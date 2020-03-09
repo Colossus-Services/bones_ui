@@ -218,13 +218,13 @@ class UIInputTable extends UIComponent {
     if ( canHighlightInputs() ) return -1 ;
 
     unhighlightErrorInputs() ;
-    return forEachEmptyFieldElement( (fieldElement) => fieldElement.classes.add( 'ss-input-error' ) );
+    return forEachEmptyFieldElement( (fieldElement) => fieldElement.classes.add( 'ui-input-error' ) );
   }
 
   int unhighlightErrorInputs() {
     if ( canHighlightInputs() ) return -1 ;
 
-    return forEachFieldElement( (fieldElement) => fieldElement.classes.remove( 'ss-input-error' ) );
+    return forEachFieldElement( (fieldElement) => fieldElement.classes.remove( 'ui-input-error' ) );
   }
 
   bool highlightField(String fieldName) {

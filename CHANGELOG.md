@@ -1,3 +1,7 @@
+## 1.0.2
+
+- of prefix 'ui-' for css.
+
 ## 1.0.1
 
 - UIAsyncContent.isValid(properties]): properties optional.
