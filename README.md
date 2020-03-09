@@ -30,14 +30,14 @@ the gateway for smooth solutions.
 
 ## Author
 
-Graciliano M. Passos: [gmpassos@GitHub][github].
+Graciliano M. Passos: [gmpassos@GitHub][gmpassos_github].
 
 ## License
 
-[Apache License - Version 2.0][apache-license]
+[Apache License - Version 2.0][apache_license]
 
 
-[github]: https://github.com/gmpassos
+[gmpassos_github]: https://github.com/gmpassos
 [colossus]: https://colossus.services/
-[apache-license]: https://www.apache.org/licenses/LICENSE-2.0.txt
+[apache_license]: https://www.apache.org/licenses/LICENSE-2.0.txt
 

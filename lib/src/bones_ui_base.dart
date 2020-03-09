@@ -1626,11 +1626,11 @@ class UIAsyncContent {
 
   Map<String,dynamic> _properties = {} ;
 
-  static bool isNotValid(UIAsyncContent asyncContent, Map<String,dynamic> properties) {
+  static bool isNotValid(UIAsyncContent asyncContent, [ Map<String,dynamic> properties ]) {
     return !isValid(asyncContent, properties) ;
   }
 
-  static bool isValid(UIAsyncContent asyncContent, Map<String,dynamic> properties) {
+  static bool isValid(UIAsyncContent asyncContent, [ Map<String,dynamic> properties ]) {
     if (asyncContent == null) return false ;
 
     if ( asyncContent.equalsProperties(properties) ) {
@@ -1643,6 +1643,8 @@ class UIAsyncContent {
   }
 
   bool equalsProperties( Map<String,dynamic> properties ) {
+    properties ??= {} ;
+
     if ( _properties.length != properties.length ) return false ;
 
     for (var key in properties.keys) {
@@ -1672,10 +1674,13 @@ class UIAsyncContent {
     _setAsyncContentFuture(contentFuture) ;
   }
 
+  Map<String, dynamic> get properties => Map<String, dynamic>.from( _properties ) ;
+
   dynamic get loadingContent => _loadingContent;
   dynamic get errorContent => _errorContent;
 
   bool _stopped = false ;
+  bool get stopped => _stopped;
 
   void stop() {
     _stopped = true ;
@@ -1965,7 +1970,10 @@ abstract class UIRoot extends UIComponent {
     super.callRender() ;
   }
 
-  UIComponent renderMenu() ;
+  UIComponent renderMenu() {
+    return null ;
+  }
+
   UIComponent renderContent() ;
 
 
