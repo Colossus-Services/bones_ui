@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:html';
 
+import 'package:bones_ui/bones_ui.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_messages/intl_messages.dart' ;
 import 'package:swiss_knife/swiss_knife_browser.dart';
@@ -568,6 +569,7 @@ bool canBeInDOM(dynamic element) {
   return false ;
 }
 
+typedef FilterRendered = bool Function( dynamic elem ) ;
 typedef FilterElement = bool Function( Element elem ) ;
 typedef ForEachElement = void Function( Element elem ) ;
 typedef ParametersProvider = Map<String,String> Function() ;
@@ -576,15 +578,17 @@ abstract class UIComponent extends UIEventHandler {
 
   dynamic id ;
 
+  UIComponent _parentUIComponent ;
   Element _parent ;
   Element _content ;
 
   bool _constructing ;
-  bool get constructing => _constructing;
+  bool get constructing => _constructing ;
 
   UIComponent(this._parent, {dynamic classes, dynamic classes2, bool inline = true, bool renderOnConstruction}) {
     _constructing = true ;
     try {
+      _parentUIComponent = _getUIComponentRenderingByContent(_parent) ;
       _content = createContentElement(inline);
 
       configureClasses(classes, classes2);
@@ -616,6 +620,30 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     return parent ;
+  }
+
+  UIComponent get parentUIComponent {
+    if ( _parentUIComponent != null ) return _parentUIComponent ;
+
+    var myParentElem = parent;
+
+    var foundParent = _getUIComponentRenderingByContent( myParentElem ) ;
+
+    if (foundParent != null) {
+      _parentUIComponent = foundParent ;
+      return _parentUIComponent ;
+    }
+
+    var uiRoot = UIRoot.getInstance() ;
+    if (uiRoot == null) return null ;
+
+    foundParent = uiRoot.getRenderedElement( (e) => e is UIComponent && identical(e._content, myParentElem) , true );
+
+    if (foundParent != null && foundParent is UIComponent) {
+      _parentUIComponent = foundParent ;
+    }
+
+    return _parentUIComponent ;
   }
 
   bool _showing = true ;
@@ -702,11 +730,24 @@ abstract class UIComponent extends UIEventHandler {
 
   List get renderedElements => _renderedElements ;
 
-  dynamic getRenderedElement( FilterElement filter ) {
+  dynamic getRenderedElement( FilterRendered filter , [bool deep]) {
     if (_renderedElements == null) return null ;
 
     for (var elem in _renderedElements) {
       if ( filter(elem) ) return elem ;
+    }
+
+    deep ??= false ;
+
+    if (deep) {
+      for (var elem in _renderedElements) {
+        if ( elem is UIComponent ) {
+          var found = elem.getRenderedElement( filter , deep ) ;
+          if (found != null) {
+            return found ;
+          }
+        }
+      }
     }
 
     return null ;
@@ -889,9 +930,43 @@ abstract class UIComponent extends UIEventHandler {
     return _renderLocale != currentLocale ;
   }
 
+  static final Map<Element,UIComponent> _componentsRendering = {} ;
+
+  static void _setUIComponentRendering( UIComponent component ) {
+    if (component == null) return ;
+    _componentsRendering[ component.content ] = component ;
+  }
+
+  static void _clearUIComponentRendering( UIComponent component ) {
+    if (component == null) return ;
+    _componentsRendering.remove( component.content ) ;
+  }
+
+  static UIComponent _getUIComponentRenderingByContent( Element content ) {
+    if (content == null) return null ;
+    return _componentsRendering[content] ;
+  }
+
   String _renderLocale ;
 
   void callRender() {
+    _setUIComponentRendering(this) ;
+    try {
+      _callRenderImpl() ;
+    }
+    finally {
+      try {
+        _notifyRenderToParent() ;
+      }
+      catch (e,s) {
+        UIConsole.error('$this _notifyRefreshToParent error', e, s);
+      }
+
+      _clearUIComponentRendering(this) ;
+    }
+  }
+
+  void _callRenderImpl() {
     var currentLocale = UIRoot.getCurrentLocale();
 
     _renderLocale = currentLocale ;
@@ -918,7 +993,8 @@ abstract class UIComponent extends UIEventHandler {
       }
     }
     catch (e,s) {
-      UIConsole.error('$this isAccessible error', e, s);
+      UIConsole.error('$this isAccessible error', e, s) ;
+      return ;
     }
 
     try {
@@ -958,6 +1034,26 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     _markRenderTime() ;
+  }
+
+  void _notifyRenderToParent() {
+    var parentUIComponent = this.parentUIComponent ;
+
+    if (parentUIComponent == null) {
+      return ;
+    }
+
+    try {
+      parentUIComponent.onChildRendered( this ) ;
+    }
+    catch (e,s) {
+      print(e) ;
+      print(s) ;
+    }
+  }
+
+  void onChildRendered( dynamic child ) {
+
   }
 
   static int _lastRenderTime ;
@@ -1471,9 +1567,7 @@ abstract class UINavigableContent extends UINavigableComponent {
 
   int topMargin ;
 
-  UINavigableContent(Element parent, List<String> routes, {this.topMargin, dynamic classes, dynamic classes2, bool inline = true, bool renderOnConstruction = false} ) : super(parent, routes, classes: classes, classes2: classes2, inline: inline, renderOnConstruction: renderOnConstruction) {
-    print('topMargin: $topMargin') ;
-  }
+  UINavigableContent(Element parent, List<String> routes, {this.topMargin, dynamic classes, dynamic classes2, bool inline = true, bool renderOnConstruction = false} ) : super(parent, routes, classes: classes, classes2: classes2, inline: inline, renderOnConstruction: renderOnConstruction) ;
 
   @override
   dynamic render() {
@@ -1778,8 +1872,9 @@ class UIAsyncContent {
     onLoadContent.add( content ) ;
   }
 
-  void _onLoadError(dynamic error) {
+  void _onLoadError(dynamic error, StackTrace stackTrace) {
     print(error);
+    print(stackTrace);
 
     _loadedContent = _Content(error, 500) ;
     _loadCount++ ;
@@ -2129,6 +2224,16 @@ class Navigation {
 
   bool get isValid => route != null && route.isNotEmpty ;
 
+  String parameter(String key, [String def]) => parameters != null ? parameters[key] ?? def : def ;
+  int parameterAsInt(String key, [int def]) => parameters != null ? parseInt( parameters[key] , def ) : def ;
+  num parameterAsNum(String key, [num def]) => parameters != null ? parseNum( parameters[key] , def ) : def ;
+  bool parameterAsBool(String key, [bool def]) => parameters != null ? parseBool(parameters[key] , def ) : def ;
+
+  List<String> parameterAsStringList(String key, [List<String> def]) => parameters != null ? parseStringFromInlineList( parameters[key] , RegExp(r'\s*,\s*') , def) : def ;
+  List<int> parameterAsIntList(String key, [List<int> def]) => parameters != null ? parseIntsFromInlineList( parameters[key] , RegExp(r'\s*,\s*') , def) : def ;
+  List<num> parameterAsNumList(String key, [List<num> def]) => parameters != null ? parseNumsFromInlineList( parameters[key] , RegExp(r'\s*,\s*') , def) : def ;
+  List<bool> parameterAsBoolList(String key, [List<bool> def]) => parameters != null ? parseBoolsFromInlineList( parameters[key] , RegExp(r'\s*,\s*') , def) : def ;
+
   @override
   String toString() {
     return 'Navigation{route: $route, parameters: $parameters}';
@@ -2389,7 +2494,7 @@ class UINavigator {
     _lastNavigateRoute = route ;
     _lastNavigateRouteParameters = copyMapString(parameters) ;
 
-    var routeQueryString = encodeQueryString(parameters);
+    var routeQueryString = _encodeRouteParameters(parameters) ;
 
     var fragment = '#$route' ;
 
@@ -2414,9 +2519,15 @@ class UINavigator {
       }
     }
     
-    UIConsole.log('Navigated to $route');
+    UIConsole.log('Navigated to $route $parameters');
 
     _onNavigate.add( route ) ;
+  }
+
+  String _encodeRouteParameters(Map<String, String> parameters) {
+    var urlEncoded = encodeQueryString(parameters) ;
+    var routeEncoded = urlEncoded.replaceAll('%2C', ',') ;
+    return routeEncoded ;
   }
 
   final List<UINavigableComponent> _navigables = [] ;

@@ -11,7 +11,7 @@ import 'package:swiss_knife/swiss_knife.dart';
 abstract class UIButton extends UIComponent {
   static final EVENT_CLICK = 'CLICK' ;
 
-  UIButton(Element container, {String navigate, Map<String,String> navigateParameters, ParametersProvider navigateParametersProvider, dynamic classes, dynamic classes2}) : super(container, classes: classes, classes2: classes2) {
+  UIButton(Element container, {String navigate, Map<String,String> navigateParameters, ParametersProvider navigateParametersProvider, dynamic classes}) : super(container, classes: 'ui-button', classes2: classes) {
     registerClickListener(onClickEvent) ;
 
     if (navigate != null) {
@@ -112,7 +112,7 @@ class UIInfosTable extends UIComponent {
 
   final Map _infos ;
 
-  UIInfosTable(Element parent, this._infos) : super(parent);
+  UIInfosTable(Element parent, this._infos, { dynamic classes }) : super(parent, classes: 'ui-infos-table', classes2: classes );
 
   @override
   List render() {
@@ -205,7 +205,10 @@ class UIInputTable extends UIComponent {
 
   final List<InputConfig> _inputs ;
 
-  UIInputTable(Element parent, this._inputs, [ this._inputErrorClass ]) : super(parent);
+  UIInputTable(Element parent, this._inputs, { String inputErrorClass , dynamic classes } ) :
+        _inputErrorClass = inputErrorClass ,
+        super(parent, classes: 'ui-infos-table', classes2: classes )
+  ;
 
   String _inputErrorClass ;
 
@@ -345,7 +348,7 @@ abstract class UIDialog extends UIComponent {
 
   final bool hideUIRoot ;
 
-  UIDialog({this.hideUIRoot = false, dynamic classes}) : super(document.documentElement, classes: classes) {
+  UIDialog( {this.hideUIRoot = false, dynamic classes} ) : super(document.documentElement, classes: 'ui-dialog', classes2: classes) {
     _myConfigure() ;
   }
 
@@ -475,7 +478,7 @@ class UIClipImage extends UIComponent {
 
   String color ;
 
-  UIClipImage(Element container, this._img, {this.imgWidth = 0 , this.imgHeight = 0, this.color = '#00ff00', dynamic classes}) : super(container, classes: classes) ;
+  UIClipImage(Element container, this._img, {this.imgWidth = 0 , this.imgHeight = 0, this.color = '#00ff00', dynamic classes}) : super(container, classes: 'ui-dialog', classes2: classes) ;
 
   @override
   void configure() {
@@ -640,3 +643,404 @@ class UIClipImage extends UIComponent {
 }
 
 ///////////////////////
+
+
+class UIMultiSelection extends UIComponent {
+
+  final Map _options ;
+  final bool multiSelection ;
+  final String width ;
+  final int optionsPanelMargin ;
+  final String separator ;
+
+  final Duration selectionMaxDelay ;
+
+  final EventStream<UIMultiSelection> onSelect = EventStream() ;
+
+  UIMultiSelection(Element parent, this._options, { this.multiSelection, this.width , this.optionsPanelMargin = 20 , this.separator = ' ; ' , Duration selectionMaxDelay , dynamic classes } ) :
+        selectionMaxDelay = selectionMaxDelay ?? Duration( seconds: 10 ) ,
+        super(parent, classes: 'ui-multi-selection', classes2: classes)
+  ;
+
+  InputElement _element ;
+  DivElement _divOptions ;
+  List<InputElementBase> _checkElements = [] ;
+
+  bool isCheckedByID(dynamic id) {
+    if (id == null) return null ;
+    var checkElem = _getCheckElement('$id') ;
+    return _isChecked(checkElem) ;
+  }
+
+  bool isCheckedByLabel(dynamic label) {
+    var id = getLabelID(label);
+    return isCheckedByID(id) ;
+  }
+
+  bool _needToNotifySelection = false ;
+
+  void _notifySelection(bool delayed) {
+    if ( !_needToNotifySelection ) return ;
+
+    if ( delayed ) {
+      var moveElapsed = DateTime.now().millisecondsSinceEpoch - _onDivOptionsLastMouseMove ;
+      var maxDelay = selectionMaxDelay != null ? selectionMaxDelay.inMilliseconds : 200 ;
+      if ( moveElapsed < maxDelay ) {
+        _notifySelectionDelayed() ;
+        return ;
+      }
+    }
+
+    _needToNotifySelection = false ;
+
+    onSelect.add( this ) ;
+  }
+
+  void _notifySelectionDelayed() {
+    if ( !_needToNotifySelection ) return ;
+
+    var maxDelay = selectionMaxDelay != null ? selectionMaxDelay.inMilliseconds : 200 ;
+    if (maxDelay < 200) maxDelay = 200 ;
+
+    var moveElapsed = DateTime.now().millisecondsSinceEpoch - _onDivOptionsLastMouseMove ;
+    var timeUntilMaxDelay = maxDelay - moveElapsed ;
+
+    var delay = timeUntilMaxDelay < 100 ? 100 : Math.min( timeUntilMaxDelay , maxDelay ) ;
+
+    Future.delayed( Duration(milliseconds: delay) , () => _notifySelection(true) ) ;
+  }
+
+  void checkByID(dynamic id, bool check) {
+    _checkByIDImpl(id, check, false, true) ;
+  }
+
+  void _checkByIDImpl(dynamic id, bool check, bool fromCheckElement, bool notify) {
+    if (id == null) return ;
+
+    if (!fromCheckElement) {
+      _setCheck( _getCheckElement('$id') , check) ;
+    }
+
+    if (notify) {
+      _needToNotifySelection = true;
+      _notifySelectionDelayed();
+    }
+  }
+
+  void uncheckAll() {
+    //if ( _selections.isEmpty ) return ;
+    if ( _getSelectedElements().isEmpty ) return ;
+
+    //_selections.clear();
+    _checkAllElements(false);
+    _updateElementText();
+    _needToNotifySelection = true ;
+    _notifySelectionDelayed() ;
+  }
+
+  void checkAllByID(List ids, bool check) {
+    if (ids == null || ids.isEmpty) return ;
+
+    for (var id in ids) {
+      _checkByIDImpl(id, check, false, false) ;
+    }
+
+    _updateElementText();
+    _needToNotifySelection = true ;
+    _notifySelectionDelayed() ;
+  }
+
+  void checkByLabel(dynamic label, bool check) {
+    checkByID( getLabelID(label) , check) ;
+  }
+
+  dynamic getIDLabel(dynamic id) {
+    return _options[id] ;
+  }
+
+  dynamic getLabelID(dynamic label) {
+    var entry = _options.entries.firstWhere( (e) => e.value == label , orElse: () => null );
+    return entry != null ? entry.key : null ;
+  }
+
+  List< MapEntry > getOptionsEntriesFiltered(dynamic pattern) {
+    if ( pattern == null || pattern.isEmpty ) return _options.entries ;
+
+    if ( pattern is String ) {
+      return _options.entries.where((e) => '${e.value}'.toLowerCase().contains(pattern)).toList();
+    }
+    else if ( pattern is RegExp ) {
+      return _options.entries.where((e) =>  pattern.hasMatch('${e.value}') ).toList();
+    }
+    else {
+      return [] ;
+    }
+  }
+
+  List<InputElementBase> _getSelectedElements() {
+    return _checkElements.where( (e) => (e is CheckboxInputElement && e.checked) || (e is RadioButtonInputElement && e.checked) ).toList() ;
+  }
+
+  InputElementBase _getCheckElement(String id) {
+    return _checkElements.firstWhere( (e) => e.value == id , orElse: () => null ) ;
+  }
+
+  void _checkAllElements(bool check) {
+    _getSelectedElements().forEach( (e) => _setCheck(e,check) ) ;
+  }
+
+  List<String> getSelectedIDs() {
+    return _getSelectedElements().map( (e) => e.value ).toList() ;
+  }
+
+  List<String> getSelectedLabels() {
+    return _getSelectedElements().map( (e) => e.getAttribute('opt_label') ).toList() ;
+  }
+
+  void _updateElementText() {
+    var sep = separator ?? ' ; ' ;
+    var value = getSelectedLabels().join(sep);
+    _element.value = value ;
+  }
+
+  @override
+  dynamic render() {
+    if ( _element == null ) {
+      _element = InputElement()
+        ..type = 'text'
+      ;
+
+      if (width != null) {
+        _element.style.width = width ;
+      }
+
+      _divOptions = DivElement()
+        ..style.display = 'none'
+        ..style.backgroundColor = 'rgba(255,255,255, 0.90)'
+        ..style.position = 'absolute'
+        ..style.left = '0px'
+        ..style.top = '0px'
+        ..style.textAlign = 'left'
+        ..style.padding = '4px'
+        ..style.borderRadius = '0 0 10px 10px'
+      ;
+
+      _element.onKeyUp.listen( (e) {
+        _updateDivOptions() ;
+        _toggleDivOptions(false) ;
+      } );
+
+      _element.onClick.listen( (e) {
+        _element.value = '' ;
+        _toggleDivOptions(false) ;
+      } ) ;
+
+      _element.onMouseEnter.listen( (e) => _mouseEnter(_element) ) ;
+      _element.onMouseLeave.listen( (e) => _mouseLeave(_element) ) ;
+
+      _divOptions.onMouseEnter.listen( (e) => _mouseEnter(_divOptions) ) ;
+      _divOptions.onMouseLeave.listen( (e) => _mouseLeave(_divOptions) ) ;
+
+      _divOptions.onMouseMove.listen( (e) => _onDivOptionsMouseMove(e) ) ;
+    }
+
+    var checksList = _renderDivOptions(_element, _divOptions) ;
+    _checkElements = checksList ;
+
+    return [ _element , _divOptions ] ;
+  }
+
+  bool _overElement = false ;
+  bool _overDivOptions = false ;
+
+  void _mouseEnter(Element elem) {
+    if ( elem == _element ) {
+      _overElement = true ;
+    }
+    else {
+      _overDivOptions = true ;
+    }
+
+    _updateDivOptionsView();
+  }
+
+  void _mouseLeave(Element elem) {
+    if ( elem == _element ) {
+      _overElement = false ;
+    }
+    else {
+      _overDivOptions = false ;
+    }
+
+    _updateDivOptionsView();
+  }
+
+  void _updateDivOptionsView() {
+    if ( _overElement || _overDivOptions ) {
+      _toggleDivOptions( false ) ;
+    }
+    else {
+      _toggleDivOptions( true ) ;
+    }
+  }
+
+  void _updateDivOptionsPosition() {
+    var elemMargin = optionsPanelMargin ?? 20 ;
+    var elemW = _element.contentEdge.width ;
+    var w = Math.max( elemW - elemMargin , Math.min(elemW, 10) ) ;
+
+    var x = _element.offset.left ;
+    var xPadding = (elemW-w) / 2 ;
+    x += xPadding ;
+
+    var y = _element.offset.top + _element.offset.height ;
+
+    _divOptions
+      ..style.position = 'absolute'
+      ..style.left = '${x}px'
+      ..style.top = '${y}px'
+      ..style.width = '${w}px'
+    ;
+  }
+
+  dynamic _toggleDivOptions( bool requestedHide ) {
+    _updateDivOptionsPosition() ;
+
+    var hide ;
+
+    if (requestedHide != null) {
+      hide = requestedHide ;
+    }
+    else {
+      var showing = _divOptions.style.display == null || _divOptions.style.display == '' ;
+      hide = showing ;
+    }
+
+
+    if ( hide ) {
+      _divOptions.style.display = 'none' ;
+      _updateElementText();
+      _notifySelection(false);
+    }
+    else {
+      _divOptions.style.display = null ;
+    }
+
+  }
+
+  bool _setCheck(InputElementBase elem, bool check) {
+    if ( elem is CheckboxInputElement ) {
+      return elem.checked = check ;
+    }
+    else if ( elem is RadioButtonInputElement ) {
+      return elem.checked = check ;
+    }
+    else {
+      return null ;
+    }
+  }
+
+  bool _isChecked(InputElementBase elem) {
+    if ( elem is CheckboxInputElement ) {
+      return elem.checked ;
+    }
+    else if ( elem is RadioButtonInputElement ) {
+      return elem.checked ;
+    }
+    else {
+      return null ;
+    }
+  }
+
+  dynamic _updateDivOptions() {
+    var checksList = _renderDivOptions(_element, _divOptions) ;
+    _checkElements = checksList ;
+  }
+
+  dynamic _renderDivOptions(InputElement element, DivElement divOptions) {
+    divOptions.children.clear();
+
+    // ignore: omit_local_variable_types
+    List<InputElementBase> checksList = [] ;
+
+    // ignore: omit_local_variable_types
+    List<MapEntry<dynamic, dynamic>> entries = List.from(_options.entries).cast() ;
+    // ignore: omit_local_variable_types
+    List<MapEntry<dynamic, dynamic>>  entriesFiltered = [] ;
+
+    var elementValue = element.value;
+    if (elementValue.isNotEmpty) {
+      entriesFiltered = getOptionsEntriesFiltered( elementValue ) ;
+
+      if (entriesFiltered.isEmpty && elementValue.length > 1) {
+        var elementValue2 = elementValue.substring(0, elementValue.length-1) ;
+        entriesFiltered = getOptionsEntriesFiltered( elementValue2 ) ;
+      }
+
+      entriesFiltered.forEach((e1) => entries.removeWhere( (e2) => e2.key == e1.key ) ) ;
+    }
+
+    for (var optEntry in entriesFiltered) {
+      _renderDivOptionsEntry(divOptions, checksList, optEntry);
+    }
+
+    for (var optEntry in entries) {
+      _renderDivOptionsEntry(divOptions, checksList, optEntry);
+    }
+
+    return checksList ;
+  }
+
+  void _renderDivOptionsEntry( DivElement divOptions, List<InputElementBase> checksList, MapEntry optEntry ) {
+    var optKey = '${ optEntry.key }' ;
+    var optValue = '${ optEntry.value }' ;
+
+    var check = isCheckedByID( optKey ) ?? false ;
+
+    InputElementBase checkElem ;
+
+    if (multiSelection) {
+      var input = CheckboxInputElement() ;
+      input.checked = check ;
+      checkElem = input ;
+    }
+    else {
+      var input = RadioButtonInputElement()..name = '__MultiSelection__' ;
+      input.checked = check ;
+      checkElem = input ;
+    }
+
+    checkElem.value = optKey ;
+    checkElem.setAttribute('opt_label', optValue) ;
+
+    divOptions.children.add(checkElem) ;
+
+    checksList.add(checkElem) ;
+
+    var label = LabelElement()
+      ..text = optValue ;
+    ;
+
+    checkElem.onClick.listen( (e) {
+      _updateElementText();
+      _checkByIDImpl( optKey , _isChecked(checkElem) , true, true );
+    } ) ;
+
+    label.onClick.listen( (e) {
+      checkElem.click();
+      _updateElementText();
+      _checkByIDImpl( optKey , _isChecked(checkElem) , true, true );
+    } ) ;
+
+    divOptions.children.add( label ) ;
+    divOptions.children.add( BRElement() ) ;
+  }
+
+  int _onDivOptionsLastMouseMove = 0 ;
+
+  void _onDivOptionsMouseMove(MouseEvent e) {
+    _onDivOptionsLastMouseMove = DateTime.now().millisecondsSinceEpoch ;
+  }
+
+}
+
