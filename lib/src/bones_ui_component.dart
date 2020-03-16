@@ -2,6 +2,8 @@
 import 'dart:html';
 import 'dart:async';
 
+import 'package:bones_ui/bones_ui.dart';
+
 import 'bones_ui_base.dart';
 
 import 'package:swiss_knife/swiss_knife.dart';
@@ -664,6 +666,7 @@ class UIMultiSelection extends UIComponent {
 
   InputElement _element ;
   DivElement _divOptions ;
+
   List<InputElementBase> _checkElements = [] ;
 
   bool isCheckedByID(dynamic id) {
@@ -825,6 +828,8 @@ class UIMultiSelection extends UIComponent {
         ..style.borderRadius = '0 0 10px 10px'
       ;
 
+      window.onResize.listen( (e) => _updateDivOptionsPosition() ) ;
+
       _element.onKeyUp.listen( (e) {
         _updateDivOptions() ;
         _toggleDivOptions(false) ;
@@ -842,6 +847,18 @@ class UIMultiSelection extends UIComponent {
       _divOptions.onMouseLeave.listen( (e) => _mouseLeave(_divOptions) ) ;
 
       _divOptions.onMouseMove.listen( (e) => _onDivOptionsMouseMove(e) ) ;
+
+      _divOptions.onTouchEnter.listen( (e) => _mouseEnter(_element) ) ;
+      _divOptions.onTouchLeave.listen( (e) => _mouseLeave(_element) ) ;
+
+      window.onTouchStart.listen( (e) {
+        if (_divOptions == null) return ;
+
+        var overDivOptions = nodeTreeContainsAny( _divOptions , e.targetTouches.map( (t) => t.target ) ) ;
+        if ( !overDivOptions && _isShowing() ) {
+          _toggleDivOptions( true ) ;
+        }
+      });
     }
 
     var checksList = _renderDivOptions(_element, _divOptions) ;
@@ -912,7 +929,7 @@ class UIMultiSelection extends UIComponent {
       hide = requestedHide ;
     }
     else {
-      var showing = _divOptions.style.display == null || _divOptions.style.display == '' ;
+      var showing = _isShowing() ;
       hide = showing ;
     }
 
@@ -927,6 +944,8 @@ class UIMultiSelection extends UIComponent {
     }
 
   }
+
+  bool _isShowing() => _divOptions.style.display == null || _divOptions.style.display == '';
 
   bool _setCheck(InputElementBase elem, bool check) {
     if ( elem is CheckboxInputElement ) {

@@ -947,14 +947,20 @@ abstract class UIComponent extends UIEventHandler {
     return _componentsRendering[content] ;
   }
 
-  String _renderLocale ;
+  bool _rendering = false ;
+
+  bool get isRendering => _rendering;
 
   void callRender() {
     _setUIComponentRendering(this) ;
+
+    _rendering = true ;
     try {
       _callRenderImpl() ;
     }
     finally {
+      _rendering = false ;
+
       try {
         _notifyRenderToParent() ;
       }
@@ -965,6 +971,8 @@ abstract class UIComponent extends UIEventHandler {
       _clearUIComponentRendering(this) ;
     }
   }
+
+  String _renderLocale ;
 
   void _callRenderImpl() {
     var currentLocale = UIRoot.getCurrentLocale();
@@ -2085,6 +2093,8 @@ abstract class UINavigableComponent extends UIComponent {
   UINavigableComponent(Element parent, this._routes, {dynamic classes, dynamic classes2, bool inline = true, bool renderOnConstruction = false}) : super(parent, classes: classes, classes2: classes2, inline: inline, renderOnConstruction: renderOnConstruction) {
     content.classes.add('UINavigableContainer') ;
     _normalizeRoutes() ;
+
+    if (routes.isEmpty) throw ArgumentError('Empty routes') ;
 
     var currentRoute = UINavigator.currentRoute;
     var currentRouteParameters = UINavigator.currentRouteParameters;
