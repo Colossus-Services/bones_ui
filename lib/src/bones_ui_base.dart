@@ -585,7 +585,9 @@ abstract class UIComponent extends UIEventHandler {
   bool _constructing ;
   bool get constructing => _constructing ;
 
-  UIComponent(this._parent, {dynamic classes, dynamic classes2, bool inline = true, bool renderOnConstruction}) {
+  UIComponent( Element parent, {dynamic classes, dynamic classes2, bool inline = true, bool renderOnConstruction}) :
+      _parent = parent ?? createDivInline()
+  {
     _constructing = true ;
     try {
       _parentUIComponent = _getUIComponentRenderingByContent(_parent) ;
@@ -609,13 +611,17 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   Element setParent(Element parent) {
+    return _setParentImpl(parent, true) ;
+  }
+
+  Element _setParentImpl(Element parent, bool addToParent) {
     if (_parent != null && _content != null ) {
       _parent.children.remove(_content);
     }
 
     _parent = parent ;
 
-    if (_content != null ) {
+    if (_content != null && addToParent ) {
       _parent.children.add(_content);
     }
 
@@ -1064,6 +1070,8 @@ abstract class UIComponent extends UIEventHandler {
 
   }
 
+  EventStream<dynamic> onChange = EventStream() ;
+
   static int _lastRenderTime ;
   static bool _renderFinished = true ;
 
@@ -1126,12 +1134,25 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  static bool isRenderable( dynamic element ) {
+    if (element == null) return false ;
+    return element is Element || element is UIContent || element is UIAsyncContent ;
+  }
+
   List _toContentElementsImpl(Element content, dynamic rendered, bool append) {
     List renderedList ;
 
     if (rendered != null) {
       if (rendered is List) {
         renderedList = rendered ;
+      }
+      else if (rendered is Iterable) {
+        renderedList = List.from( rendered ) ;
+      }
+      else if (rendered is Map) {
+        renderedList = [] ;
+        renderedList.addAll( rendered.keys.where( isRenderable ) ) ;
+        renderedList.addAll( rendered.values.where( isRenderable ) ) ;
       }
       else {
         renderedList = [ rendered ] ;
@@ -1186,6 +1207,10 @@ abstract class UIComponent extends UIEventHandler {
       renderedList.add(value);
     }
     else if ( value is UIComponent ) {
+      if (value.parent != content) {
+        value._setParentImpl(content, false) ;
+      }
+
       var idx = content.childNodes.indexOf(value.content);
 
       if ( idx < 0 ) {
@@ -1726,7 +1751,7 @@ class UIAsyncContent {
 
   _Content _loadedContent ;
 
-  Map<String,dynamic> _properties = {} ;
+  final Map<String,dynamic> _properties ;
 
   static bool isNotValid(UIAsyncContent asyncContent, [ Map<String,dynamic> properties ]) {
     return !isValid(asyncContent, properties) ;
@@ -1746,33 +1771,26 @@ class UIAsyncContent {
 
   bool equalsProperties( Map<String,dynamic> properties ) {
     properties ??= {} ;
-
-    if ( _properties.length != properties.length ) return false ;
-
-    for (var key in properties.keys) {
-      var val1 = _properties[key] ;
-      var val2 = properties[key] ;
-      if ( val1 != val2 ) return false ;
-    }
-
-    return true ;
+    return isEqualsDeep(_properties, properties) ;
   }
 
   final EventStream<dynamic> onLoadContent = EventStream() ;
 
-  UIAsyncContent.provider(this._asyncContentProvider, dynamic loadingContent, [dynamic errorContent, this._refreshInterval, this._properties]) {
+  UIAsyncContent.provider(this._asyncContentProvider, dynamic loadingContent, [dynamic errorContent, this._refreshInterval, Map<String,dynamic> properties]) :
+        _properties = properties ?? {}
+    {
     _loadingContent = _ensureElementForDOM(loadingContent) ;
     _errorContent = _ensureElementForDOM(errorContent) ;
 
-    _initProperties();
     _callContentProvider(false) ;
   }
 
-  UIAsyncContent.future(Future<dynamic> contentFuture, dynamic loadingContent, [dynamic errorContent, this._properties]) {
+  UIAsyncContent.future(Future<dynamic> contentFuture, dynamic loadingContent, [dynamic errorContent, Map<String,dynamic> properties]) :
+        _properties = properties ?? {}
+  {
     _loadingContent = _ensureElementForDOM(loadingContent) ;
     _errorContent = _ensureElementForDOM(errorContent) ;
 
-    _initProperties();
     _setAsyncContentFuture(contentFuture) ;
   }
 
@@ -1786,10 +1804,6 @@ class UIAsyncContent {
 
   void stop() {
     _stopped = true ;
-  }
-
-  void _initProperties() {
-    _properties ??= {} ;
   }
 
   Duration get refreshInterval => _refreshInterval;

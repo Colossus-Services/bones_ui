@@ -65,6 +65,7 @@ abstract class UIButton extends UIComponent {
     fireEvent(EVENT_CLICK, event, params);
 
     onClick.add(event);
+    onChange.add(this) ;
   }
 
   final EventStream<MouseEvent> onClick = EventStream() ;
@@ -379,7 +380,15 @@ abstract class UIDialog extends UIComponent {
       if (ui != null) ui.hide() ;
     }
 
-    onShow() ;
+    try {
+      onShow() ;
+    }
+    catch(e,s) {
+      print(e) ;
+      print(s) ;
+    }
+
+    onChange.add(this) ;
   }
 
   void _callOnHide() {
@@ -388,7 +397,15 @@ abstract class UIDialog extends UIComponent {
       if (ui != null) ui.show() ;
     }
 
-    onHide() ;
+    try {
+      onHide() ;
+    }
+    catch(e,s) {
+      print(e) ;
+      print(s) ;
+    }
+
+    onChange.add(this) ;
   }
 
   void onShow() {
@@ -581,6 +598,7 @@ class UIClipImage extends UIComponent {
     content.children.add(_divRect) ;
 
     onChangeClip.add(_clipRect) ;
+    onChange.add(this) ;
   }
 
   bool get hasImageDimension => imgWidth != null && imgHeight != null && imgWidth > 0 && imgHeight > 0 ;
@@ -697,6 +715,8 @@ class UIMultiSelection extends UIComponent {
     _needToNotifySelection = false ;
 
     onSelect.add( this ) ;
+
+    onChange.add( this ) ;
   }
 
   void _notifySelectionDelayed() {
@@ -731,14 +751,26 @@ class UIMultiSelection extends UIComponent {
   }
 
   void uncheckAll() {
+    uncheckAllImpl(true);
+  }
+
+  void uncheckAllImpl(bool notify) {
     //if ( _selections.isEmpty ) return ;
     if ( _getSelectedElements().isEmpty ) return ;
 
     //_selections.clear();
     _checkAllElements(false);
     _updateElementText();
-    _needToNotifySelection = true ;
-    _notifySelectionDelayed() ;
+
+    if (notify) {
+      _needToNotifySelection = true ;
+      _notifySelectionDelayed();
+    }
+  }
+
+  void setCheckedElements(List ids) {
+    uncheckAllImpl(false);
+    checkAllByID(ids, true) ;
   }
 
   void checkAllByID(List ids, bool check) {
@@ -1062,4 +1094,347 @@ class UIMultiSelection extends UIComponent {
   }
 
 }
+
+
+typedef RenderPropertiesProvider = Map<String,dynamic> Function() ;
+typedef RenderAsync = Future<dynamic> Function( Map<String,dynamic> properties ) ;
+
+
+class UIComponentAsync extends UIComponent {
+
+  final RenderPropertiesProvider _renderPropertiesProvider ;
+  final RenderAsync _renderAsync ;
+  final dynamic loadingContent ;
+  final dynamic errorContent ;
+  final Duration refreshInterval ;
+
+  UIComponentAsync(Element parent, this._renderPropertiesProvider, this._renderAsync, this.loadingContent, this.errorContent, { this.refreshInterval, dynamic classes, dynamic classes2 } ) : super(parent, classes: classes, classes2: classes2);
+
+  final EventStream<dynamic> onLoadAsyncContent = EventStream() ;
+  UIAsyncContent _asyncContent ;
+
+  @override
+  dynamic render() {
+    var properties = renderProperties() ;
+
+    if ( !UIAsyncContent.isValid(_asyncContent, properties) ) {
+      _asyncContent = UIAsyncContent.provider( () => _renderAsync(properties) , loadingContent, errorContent , refreshInterval , properties ) ;
+      _asyncContent.onLoadContent.listen( (content) => onLoadAsyncContent.add(content) ) ;
+      _asyncContent.onLoadContent.listen( (content) => onChange.add(content) ) ;
+    }
+
+    return _asyncContent ;
+  }
+
+  bool isValid() {
+    return UIAsyncContent.isValid( _asyncContent , renderProperties() ) ;
+  }
+
+  bool isNotValid() => !isValid() ;
+
+  void stop() {
+    if ( _asyncContent != null ) _asyncContent.stop() ;
+  }
+
+  void refreshAsyncContent() {
+    if ( _asyncContent != null ) _asyncContent.refresh() ;
+  }
+
+  void reset([bool refresh = true]) {
+    if ( _asyncContent != null ) _asyncContent.reset(refresh) ;
+  }
+
+  bool get hasAutoRefresh => refreshInterval != null ;
+
+  bool get stopped => _asyncContent != null ? _asyncContent.stopped : false ;
+  bool get isLoaded => _asyncContent != null ? _asyncContent.isLoaded : false ;
+  bool get isOK => _asyncContent != null ? _asyncContent.isOK : false ;
+  bool get isWithError => _asyncContent != null ? _asyncContent.isWithError : false ;
+
+  DateTime get loadTime => _asyncContent != null ? _asyncContent.loadTime : null ;
+  int get loadCount => _asyncContent != null ? _asyncContent.loadCount : 0 ;
+
+  Map<String, dynamic> get asyncContentProperties => _asyncContent != null ? _asyncContent.properties : null ;
+
+  bool asyncContentEqualsProperties(Map<String, dynamic> properties) => _asyncContent != null ? _asyncContent.equalsProperties(properties) : false ;
+
+  Map<String,dynamic> renderProperties() {
+    var properties = _renderPropertiesProvider != null ? _renderPropertiesProvider() : null ;
+    properties ??= {} ;
+    return properties ;
+  }
+
+}
+
+class MapProperties implements Map<String, dynamic> {
+
+  static dynamic parseValue(dynamic value) {
+    if ( isInt(value) ) {
+      return parseInt(value) ;
+    }
+    else if ( isDouble(value) ) {
+      return parseDouble(value) ;
+    }
+    else if ( isNum(value) ) {
+      return parseNum(value) ;
+    }
+    else if ( isBool(value) ) {
+      return parseBool(value) ;
+    }
+    else if ( isIntList(value) ) {
+      return parseIntsFromInlineList(value, ',') ;
+    }
+    else if ( isDoubleList(value) ) {
+      return parseBoolsFromInlineList(value, ',') ;
+    }
+    else if ( isNumList(value) ) {
+      return parseNumsFromInlineList(value, ',') ;
+    }
+    else if ( isBoolList(value) ) {
+      return parseBoolsFromInlineList(value, ',') ;
+    }
+    else {
+      return value ;
+    }
+  }
+
+  Map<String,dynamic> _properties ;
+
+  MapProperties.fromProperties( Map<String,dynamic> properties ) {
+    properties ??= {} ;
+    _properties = Map.from(properties).cast();
+  }
+
+  MapProperties.fromStringProperties( Map<String,String> stringProperties ) {
+    _properties = parseStringProperties( stringProperties ) ;
+  }
+
+  T getProperty<T>(String key, [T def]) {
+    var val = _properties[key];
+    return val != null ? val as T : def ;
+  }
+
+  // ignore: use_function_type_syntax_for_parameters
+  T getPropertyAs<T>(String key, T mapper(dynamic v) , [T def] ) {
+    var val = _properties[key];
+    return val != null ? mapper(val) : def ;
+  }
+
+  String getPropertyAsString(String key, [String def]) => getPropertyAs(key , parseString, def);
+  int getPropertyAsInt(String key, [int def]) => getPropertyAs(key , parseInt, def);
+  double getPropertyAsDouble(String key, [double def]) => getPropertyAs(key , parseDouble, def);
+  num getPropertyAsNum(String key, [num def]) => getPropertyAs(key , parseNum, def);
+  bool getPropertyAsBool(String key, [bool def]) => getPropertyAs(key , parseBool, def);
+
+  List<String> getPropertyAsStringList(String key, [List<String> def]) => getPropertyAs(key , (v) => parseStringFromInlineList(v, ',', def), def);
+  List<int> getPropertyAsIntList(String key, [List<int> def]) => getPropertyAs(key , (v) => parseIntsFromInlineList(v, ',', def), def);
+  List<double> getPropertyAsDoubleList(String key, [List<double> def]) => getPropertyAs(key , (v) => parseDoublesFromInlineList(v, ',', def), def);
+  List<num> getPropertyAsNumList(String key, [List<num> def]) => getPropertyAs(key , (v) => parseNumsFromInlineList(v, ',', def), def);
+  List<bool> getPropertyAsBoolList(String key, [List<bool> def]) => getPropertyAs(key , (v) => parseBoolsFromInlineList(v, ',', def), def);
+
+  Map<String,dynamic> parseStringProperties( Map<String,String> stringProperties ) {
+    if (stringProperties == null || stringProperties.isEmpty ) return {} ;
+    return stringProperties.map( (k,v) => MapEntry(k, parseValue(v) ) ) ;
+  }
+
+  Map<String,String> toProperties() {
+    return Map.from(_properties).cast();
+  }
+
+  Map<String,String> toStringProperties() {
+    return _properties.map( (k,v) => MapEntry( k , parseString(v) ) ) ;
+  }
+
+  //////////////////////
+
+  @override
+  dynamic operator [](Object key) {
+    return _properties[key];
+  }
+
+  @override
+  void operator []=(String key, dynamic value) {
+    _properties[key] = value ;
+  }
+
+  @override
+  void addAll(Map<String, dynamic> other) {
+    _properties.addAll(other);
+  }
+
+  @override
+  void addEntries(Iterable<MapEntry<String, dynamic>> newEntries) {
+    _properties.addEntries(newEntries);
+  }
+
+  @override
+  Map<RK, RV> cast<RK, RV>() {
+    return _properties.cast() ;
+  }
+
+  @override
+  void clear() {
+    _properties.clear() ;
+  }
+
+  @override
+  bool containsKey(Object key) {
+    return _properties.containsKey(key);
+  }
+
+  @override
+  bool containsValue(Object value) {
+    return _properties.containsValue(value);
+  }
+
+  @override
+  Iterable<MapEntry<String, dynamic>> get entries => _properties.entries ;
+
+  @override
+  void forEach(void Function(String key, dynamic value) f) {
+    _properties.forEach(f) ;
+  }
+
+  @override
+  bool get isEmpty => _properties.isEmpty ;
+
+  @override
+  bool get isNotEmpty => _properties.isNotEmpty;
+
+  @override
+  Iterable<String> get keys => _properties.keys;
+
+  @override
+  int get length => _properties.length;
+
+  @override
+  Map<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(String key, dynamic value) f) {
+    return _properties.map(f) ;
+  }
+
+  @override
+  dynamic putIfAbsent(String key, dynamic Function() ifAbsent) {
+    return _properties.putIfAbsent(key, ifAbsent);
+  }
+
+  @override
+  dynamic remove(Object key) {
+    return _properties.remove(key);
+  }
+
+  @override
+  void removeWhere(bool Function(String key, dynamic value) predicate) {
+    _properties.removeWhere(predicate);
+  }
+
+  @override
+  dynamic update(String key, dynamic Function(dynamic value) update, {dynamic Function() ifAbsent}) {
+    return _properties.update(key, update, ifAbsent: ifAbsent);
+  }
+
+  @override
+  void updateAll(dynamic Function(String key, dynamic value) update) {
+    _properties.updateAll(update) ;
+  }
+
+  @override
+  Iterable<dynamic> get values => _properties.values ;
+
+}
+
+abstract class UIControlledComponent extends UIComponent {
+
+  final dynamic loadingContent ;
+  final dynamic errorContent ;
+
+  UIControlledComponent(Element parent, this.loadingContent, this.errorContent, { dynamic classes, dynamic classes2 }) : super(parent, classes: classes, classes2: classes2);
+
+  UIComponentAsync _componentAsync ;
+
+  @override
+  dynamic render() {
+    if ( constructing ) return null ;
+    _componentAsync ??= UIComponentAsync( content , getControllersProperties , (props) => renderAsync(props as MapProperties) , loadingContent, errorContent) ;
+    return _componentAsync ;
+  }
+
+  MapProperties getControllersProperties() ;
+
+  Map<String,dynamic> _controllers ;
+
+  Future<dynamic> renderAsync( MapProperties properties ) async {
+    if (_controllers == null) {
+      _controllers = await renderControllers(properties);
+      await listenControllers(_controllers) ;
+    }
+
+    await setupControllers(properties, _controllers) ;
+
+    var validSetup = isValidControllersSetup(properties, _controllers) ;
+
+    if ( !validSetup ) {
+      return renderOnlyControllers(properties, _controllers) ;
+    }
+
+    var result = UIAsyncContent.provider( () => renderResult(properties) , loadingContent, errorContent) ;
+
+    return renderControllersAndResult( properties, _controllers , result ) ;
+  }
+
+  Future< Map<String,dynamic> > renderControllers( MapProperties properties ) ;
+
+  Future<bool> setupControllers( MapProperties properties , Map<String,dynamic> controllers ) ;
+
+  Future<bool> listenControllers( Map<String,dynamic> controllers ) async {
+    for ( var control in controllers.values ) {
+
+      if ( control is Element ) {
+        control.onChange.listen( (e) => _callOnChangeControllers(control)) ;
+      }
+      else if ( control is UIComponent ) {
+        control.onChange.listen( (e) => _callOnChangeControllers(control)) ;
+      }
+      else if ( control is UIAsyncContent ) {
+        control.onLoadContent.listen( (e) => _callOnChangeControllers(control)) ;
+      }
+
+    }
+
+    return true ;
+  }
+
+  void _callOnChangeControllers(dynamic control) {
+    var propertiesNow = getControllersProperties();
+
+    try {
+      var valid = isValidControllersSetup(propertiesNow, _controllers);
+      onChangeController(_controllers, valid, control);
+    }
+    catch (e,s) {
+      print(e);
+      print(s);
+    }
+
+    onChange.add(this) ;
+  }
+
+  void onChangeController( Map<String,dynamic> controllers , bool validControllersSetup , dynamic changedController ) { }
+
+  bool isValidControllersSetup( MapProperties properties , Map<String,dynamic> controllers ) {
+    return true ;
+  }
+
+  Future<dynamic> renderOnlyControllers( MapProperties properties , Map<String,dynamic> controllers ) async {
+    return controllers != null ? List.from(controllers.values) : null ;
+  }
+
+  Future<dynamic> renderResult( MapProperties properties ) ;
+
+  Future<dynamic> renderControllersAndResult( MapProperties properties , Map<String,dynamic> controllers , dynamic result ) async {
+    return [ List.from(_controllers.values) , '<p>', result] ;
+  }
+
+}
+
+
 

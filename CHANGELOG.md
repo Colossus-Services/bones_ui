@@ -1,3 +1,10 @@
+## 1.0.5
+
+- UIComponent: accepts null parent (will be set when rendered by parent).
+- UIComponent.onChange: should be called every time a component status changes or interactive event happens.
+- UIAsyncContent.equalsProperties() now makes deep check.
+- swiss_knife: ^2.3.8
+
 ## 1.0.4
 
 - UIComponent.isRendering
