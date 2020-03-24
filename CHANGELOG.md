@@ -1,3 +1,20 @@
+## 1.0.6
+
+- UIRoot with better load of locales.
+- UIComponent._parentUIComponent better populated.
+- UIComponent.isShowing
+- UIComponent.isRendered() -> UIComponent.isRendered
+- UIAsyncContent doesn't accept anymore as sub content another UIAsyncContent (throws StateError). 
+- UIInputTable now when re-rendering respects previous set values.
+- UIRoot.buildAppStatusBar()
+- getLanguageByExtension()
+- mercury_client: ^1.1.4
+- swiss_knife: ^2.3.9
+- intl_messages: ^1.1.6
+- dom_tools: ^1.2.7
+- json_render: ^1.2.7
+- yaml: ^2.2.0
+
 ## 1.0.5
 
 - UIComponent: accepts null parent (will be set when rendered by parent).

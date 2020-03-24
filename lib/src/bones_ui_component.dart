@@ -161,6 +161,39 @@ class InputConfig {
   Map<String,String> _options ;
   bool _optional ;
 
+  factory InputConfig.from(dynamic config, [String id]) {
+    if ( config is List ) {
+      config = config.join(' ; ') ;
+    }
+
+    if ( config is String ) {
+      config = parseFromInlineMap(config, RegExp(r'\s*[,;]\s*') , RegExp(r'\s*[=:]\s*') , parseString, parseString) ;
+    }
+
+    if ( config is Map ) {
+      id ??= parseString( findKeyValue(config, ['id'], true) ) ;
+
+      var label = parseString( findKeyValue(config, ['label'], true) );
+      var type = parseString( findKeyValue(config, ['type'], true) , 'text');
+      var value = parseString( findKeyValue(config, ['value'], true) , '' );
+      var attributes = findKeyValue(config, ['attributes'], true);
+      var options = findKeyValue(config, ['options'], true);
+      var optional = parseBool( findKeyValue(config, ['optional'], true) , false );
+
+      return InputConfig(
+        id ,
+        label ,
+        type: type,
+        value: value,
+        attributes: attributes ,
+        options: options ,
+        optional: optional ,
+      ) ;
+    }
+
+    return null ;
+  }
+
   InputConfig(String id, String label, { String type = 'text', String value = '', Map<String,String> attributes, Map<String,String> options, bool optional = false }) {
     if (type == null || type.isEmpty) type = 'text' ;
     if (value == null || value.isEmpty) value = null ;
@@ -195,7 +228,10 @@ class InputConfig {
 
   String get label => _label ;
   String get type => _type ;
+
   String get value => _value ;
+  set value(String value) => _value = value;
+
   Map<String,String> get attributes => _attributes ;
   Map<String,String> get options => _options ;
   bool get optional => _optional;
@@ -275,13 +311,13 @@ class UIInputTable extends UIComponent {
     <table border='0' align="center">
     """;
 
-    for (var i in _inputs) {
+    for (var input in _inputs) {
 
       var attrs = '' ;
 
-      if (i.attributes != null && i.attributes.isNotEmpty) {
-        for (var attrKey in i.attributes.keys) {
-          var attrVal = i.attributes[attrKey] ;
+      if (input.attributes != null && input.attributes.isNotEmpty) {
+        for (var attrKey in input.attributes.keys) {
+          var attrVal = input.attributes[attrKey] ;
           if (attrKey.isNotEmpty && attrVal.isNotEmpty) {
             attrs += '$attrKey=\"$attrVal\"';
           }
@@ -289,49 +325,53 @@ class UIInputTable extends UIComponent {
 
       }
 
-      String input ;
+      String inputHtml ;
 
-      if ( i.type == 'textarea') {
-        input = '''
-        <textarea field='${ i.id }' name='${ i.id }' $attrs>${ i.value != null ? "value=\" ${i.value}\"" : '' }</textarea>
+      var inputID = input.id;
+      var inputValue = getPreviousRenderedFieldValue(input.fieldName) ?? input.value ;
+      var inputType = input.type;
+
+      if ( inputType == 'textarea') {
+        inputHtml = '''
+        <textarea field='$inputID' name='$inputID' $attrs>${ inputValue ?? '' }</textarea>
         ''';
       }
-      else if ( i.type == 'select') {
-        input = """
-        <select field='${ i.id }' name='${ i.id }' $attrs>
+      else if ( inputType == 'select') {
+        inputHtml = """
+        <select field='$inputID' name='$inputID' $attrs>
         """;
 
-        if ( i.options != null && i.options.isNotEmpty ) {
-          for (var optKey in i.options.keys) {
-            var optVal = i.options[optKey];
+        if ( input.options != null && input.options.isNotEmpty ) {
+          for (var optKey in input.options.keys) {
+            var optVal = input.options[optKey];
             if (optVal == null || optVal.isEmpty) {
               optVal = optKey;
             }
 
-            input += '''
+            inputHtml += '''
             <option value="$optKey">$optVal</option>
             ''';
           }
         }
-        else if ( i.value != null && i.value.isNotEmpty ) {
-          input += '${ i.value }' ;
+        else if ( inputValue != null && inputValue.isNotEmpty ) {
+          inputHtml += '$inputValue' ;
         }
 
-        input += '''
+        inputHtml += '''
         </select>
         ''';
 
 
       }
       else {
-        input = '''
-        <input field='${ i.id }' name='${ i.id }' type="${ i.type }" ${ i.value != null ? "value=\" ${i.value}\"" : '' } $attrs>
+        inputHtml = '''
+        <input field='$inputID' name='$inputID' type="$inputType" ${ inputValue != null ? 'value="$inputValue"' : '' } $attrs>
         ''';
       }
 
       html += '''
       <tr>
-      <td style="vertical-align: top ; text-align: right"><b>${ i.label }:&nbsp;</b></td><td style="text-align: center">$input</td>
+      <td style="vertical-align: top ; text-align: right"><b>${ input.label }:&nbsp;</b></td><td style="text-align: center">$inputHtml</td>
       </tr>
       ''';
     }
@@ -341,6 +381,23 @@ class UIInputTable extends UIComponent {
     ''';
 
     return [html];
+  }
+
+  @override
+  void posRender() {
+    var fields = getFieldsElementsMap() ;
+
+    if (fields != null && fields.isNotEmpty) {
+      for ( var entry in fields.entries ) {
+        var fieldName = entry.key ;
+        var elem = entry.value ;
+
+        elem.onChange.listen( (e) {
+          updateRenderedFieldValue(fieldName) ;
+          onChange.add(elem);
+        }) ;
+      }
+    }
   }
 
 }
@@ -860,6 +917,8 @@ class UIMultiSelection extends UIComponent {
         ..style.borderRadius = '0 0 10px 10px'
       ;
 
+      _divOptions.classes.add('ui-multiselection-options-menu') ;
+
       window.onResize.listen( (e) => _updateDivOptionsPosition() ) ;
 
       _element.onKeyUp.listen( (e) {
@@ -1102,13 +1161,21 @@ typedef RenderAsync = Future<dynamic> Function( Map<String,dynamic> properties )
 
 class UIComponentAsync extends UIComponent {
 
-  final RenderPropertiesProvider _renderPropertiesProvider ;
-  final RenderAsync _renderAsync ;
+  RenderPropertiesProvider _renderPropertiesProvider ;
+  RenderAsync _renderAsync ;
   final dynamic loadingContent ;
   final dynamic errorContent ;
   final Duration refreshInterval ;
 
-  UIComponentAsync(Element parent, this._renderPropertiesProvider, this._renderAsync, this.loadingContent, this.errorContent, { this.refreshInterval, dynamic classes, dynamic classes2 } ) : super(parent, classes: classes, classes2: classes2);
+  UIComponentAsync(Element parent, this._renderPropertiesProvider, this._renderAsync, this.loadingContent, this.errorContent, { this.refreshInterval, dynamic classes, dynamic classes2 , dynamic id } ) : super(parent, classes: classes, classes2: classes2, id: id, renderOnConstruction: false) {
+    _renderPropertiesProvider ??= renderPropertiesProvider ;
+    _renderAsync ??= renderAsync ;
+
+    callRender();
+  }
+
+  Map<String,dynamic> renderPropertiesProvider() => {};
+  Future<dynamic> renderAsync( Map<String,dynamic> properties ) => null;
 
   final EventStream<dynamic> onLoadAsyncContent = EventStream() ;
   UIAsyncContent _asyncContent ;
@@ -1118,9 +1185,11 @@ class UIComponentAsync extends UIComponent {
     var properties = renderProperties() ;
 
     if ( !UIAsyncContent.isValid(_asyncContent, properties) ) {
-      _asyncContent = UIAsyncContent.provider( () => _renderAsync(properties) , loadingContent, errorContent , refreshInterval , properties ) ;
-      _asyncContent.onLoadContent.listen( (content) => onLoadAsyncContent.add(content) ) ;
-      _asyncContent.onLoadContent.listen( (content) => onChange.add(content) ) ;
+      _asyncContent = UIAsyncContent.provider( () => _renderAsync( renderProperties() ) , loadingContent, errorContent , refreshInterval , properties ) ;
+      _asyncContent.onLoadContent.listen( (content) {
+        onLoadAsyncContent.add(content);
+        onChange.add(content);
+      } ) ;
     }
 
     return _asyncContent ;
@@ -1137,7 +1206,7 @@ class UIComponentAsync extends UIComponent {
   }
 
   void refreshAsyncContent() {
-    if ( _asyncContent != null ) _asyncContent.refresh() ;
+    if ( _asyncContent != null && !_asyncContent.stopped ) _asyncContent.refresh() ;
   }
 
   void reset([bool refresh = true]) {
@@ -1209,15 +1278,35 @@ class MapProperties implements Map<String, dynamic> {
     _properties = parseStringProperties( stringProperties ) ;
   }
 
+  MapProperties.fromMap( Map properties ) {
+    properties ??= {} ;
+    _properties = properties.map( (k,v) => MapEntry( parseString(k) , parseString(v) ) ) ;
+  }
+
   T getProperty<T>(String key, [T def]) {
-    var val = _properties[key];
+    var val = findKeyValue(_properties, [key], true) ;
     return val != null ? val as T : def ;
   }
 
   // ignore: use_function_type_syntax_for_parameters
   T getPropertyAs<T>(String key, T mapper(dynamic v) , [T def] ) {
-    var val = _properties[key];
+    var val = findKeyValue(_properties, [key], true) ;
     return val != null ? mapper(val) : def ;
+  }
+
+  String getPropertyAsStringTrimLC(String key, [String def]) {
+    var val = getPropertyAsStringTrim(key , def);
+    return val != null ? val.toLowerCase() : null ;
+  }
+
+  String getPropertyAsStringTrimUC(String key, [String def]) {
+    var val = getPropertyAsStringTrim(key , def);
+    return val != null ? val.toUpperCase() : null ;
+  }
+
+  String getPropertyAsStringTrim(String key, [String def]) {
+    var val = getPropertyAsString(key , def);
+    return val != null ? val.trim() : null ;
   }
 
   String getPropertyAsString(String key, [String def]) => getPropertyAs(key , parseString, def);
@@ -1237,7 +1326,7 @@ class MapProperties implements Map<String, dynamic> {
     return stringProperties.map( (k,v) => MapEntry(k, parseValue(v) ) ) ;
   }
 
-  Map<String,String> toProperties() {
+  Map<String,dynamic> toProperties() {
     return Map.from(_properties).cast();
   }
 
@@ -1342,25 +1431,43 @@ class MapProperties implements Map<String, dynamic> {
 
 }
 
+
+
 abstract class UIControlledComponent extends UIComponent {
 
   final dynamic loadingContent ;
   final dynamic errorContent ;
 
-  UIControlledComponent(Element parent, this.loadingContent, this.errorContent, { dynamic classes, dynamic classes2 }) : super(parent, classes: classes, classes2: classes2);
+  final dynamic resultLoadingContent ;
+  final dynamic resultErrorContent ;
+
+  UIControlledComponent(Element parent, this.loadingContent, this.errorContent, { this.resultLoadingContent, this.resultErrorContent, dynamic classes, dynamic classes2 }) : super(parent, classes: classes, classes2: classes2, renderOnConstruction: false);
 
   UIComponentAsync _componentAsync ;
 
   @override
   dynamic render() {
-    if ( constructing ) return null ;
-    _componentAsync ??= UIComponentAsync( content , getControllersProperties , (props) => renderAsync(props as MapProperties) , loadingContent, errorContent) ;
+    _componentAsync ??= UIComponentAsync( content , getControllersProperties , (props) => renderAsync(props as MapProperties) , loadingContent, errorContent, id: '$id/_componentAsync') ;
     return _componentAsync ;
+  }
+
+  void refreshComponentAsync() {
+    if (_componentAsync != null) {
+      _componentAsync.refreshAsyncContent();
+    }
   }
 
   MapProperties getControllersProperties() ;
 
   Map<String,dynamic> _controllers ;
+
+  Map<String, dynamic> get controllers => _controllers != null ? Map.from(_controllers).cast() : null ;
+
+  dynamic getController(String key) {
+    return _controllers != null ? _controllers[key] : null ;
+  }
+
+  UIComponentAsync _componentAsyncResult ;
 
   Future<dynamic> renderAsync( MapProperties properties ) async {
     if (_controllers == null) {
@@ -1376,9 +1483,12 @@ abstract class UIControlledComponent extends UIComponent {
       return renderOnlyControllers(properties, _controllers) ;
     }
 
-    var result = UIAsyncContent.provider( () => renderResult(properties) , loadingContent, errorContent) ;
+    var resultLoadingContent = this.resultLoadingContent ?? UIComponent.copyRenderable(loadingContent) ;
+    var resultErrorContent = this.resultErrorContent ?? UIComponent.copyRenderable(errorContent) ;
 
-    return renderControllersAndResult( properties, _controllers , result ) ;
+    _componentAsyncResult ??= UIComponentAsync( content , getControllersProperties , (props) => renderResult(props as MapProperties) , resultLoadingContent, resultErrorContent, id: '$id/_componentAsyncResult') ;
+
+    return renderControllersAndResult( properties, _controllers , _componentAsyncResult ) ;
   }
 
   Future< Map<String,dynamic> > renderControllers( MapProperties properties ) ;
@@ -1389,13 +1499,13 @@ abstract class UIControlledComponent extends UIComponent {
     for ( var control in controllers.values ) {
 
       if ( control is Element ) {
-        control.onChange.listen( (e) => _callOnChangeControllers(control)) ;
+        control.onChange.listen( (e) => callOnChangeControllers(control)) ;
       }
       else if ( control is UIComponent ) {
-        control.onChange.listen( (e) => _callOnChangeControllers(control)) ;
+        control.onChange.listen( (e) => callOnChangeControllers(control)) ;
       }
       else if ( control is UIAsyncContent ) {
-        control.onLoadContent.listen( (e) => _callOnChangeControllers(control)) ;
+        control.onLoadContent.listen( (e) => callOnChangeControllers(control)) ;
       }
 
     }
@@ -1403,7 +1513,7 @@ abstract class UIControlledComponent extends UIComponent {
     return true ;
   }
 
-  void _callOnChangeControllers(dynamic control) {
+  void callOnChangeControllers(dynamic control) {
     var propertiesNow = getControllersProperties();
 
     try {

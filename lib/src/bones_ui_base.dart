@@ -4,7 +4,7 @@ import 'dart:html';
 import 'package:bones_ui/bones_ui.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_messages/intl_messages.dart' ;
-import 'package:swiss_knife/swiss_knife_browser.dart';
+import 'package:swiss_knife/swiss_knife.dart';
 import 'package:dom_tools/dom_tools.dart';
 
 import 'bones_ui_layout.dart';
@@ -585,7 +585,7 @@ abstract class UIComponent extends UIEventHandler {
   bool _constructing ;
   bool get constructing => _constructing ;
 
-  UIComponent( Element parent, {dynamic classes, dynamic classes2, bool inline = true, bool renderOnConstruction}) :
+  UIComponent( Element parent, {dynamic classes, dynamic classes2, bool inline = true, bool renderOnConstruction, this.id}) :
       _parent = parent ?? createDivInline()
   {
     _constructing = true ;
@@ -610,19 +610,43 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  UIComponent clone() => null ;
+
   Element setParent(Element parent) {
     return _setParentImpl(parent, true) ;
   }
 
   Element _setParentImpl(Element parent, bool addToParent) {
-    if (_parent != null && _content != null ) {
-      _parent.children.remove(_content);
+    if (parent == null) throw StateError('Null parent') ;
+
+    if (_content != null ) {
+      if ( identical(_parent, parent) ) return _parent ;
+
+      _content.remove() ;
+
+      if (_parent != null ) {
+        _parent.children.remove(_content);
+      }
     }
 
     _parent = parent ;
 
     if (_content != null && addToParent ) {
       _parent.children.add(_content);
+
+      clear();
+    }
+
+    if (_parent != null) {
+      var parentUI = _getUIComponentRenderingByContent(_parent);
+
+      if (parentUI == null) {
+        if ( isAnyComponentRendering ) {
+          _setUIComponentRenderingExtra(this) ;
+        }
+      }
+
+      _parentUIComponent = parentUI ;
     }
 
     return parent ;
@@ -652,7 +676,10 @@ abstract class UIComponent extends UIEventHandler {
     return _parentUIComponent ;
   }
 
+
   bool _showing = true ;
+  bool get isShowing => _showing;
+
   String _displayOnHidden ;
 
   void hide() {
@@ -835,12 +862,10 @@ abstract class UIComponent extends UIEventHandler {
 
   bool _rendered = false ;
 
-  bool isRendered() {
-    return _rendered ;
-  }
+  bool get isRendered => _rendered ;
 
   void clear() {
-    if ( !isRendered() ) return ;
+    if ( !isRendered ) return ;
 
     if (_renderedElements != null) {
       for (var e in _renderedElements) {
@@ -885,7 +910,7 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   void _refreshImpl() {
-    if ( !isRendered() ) return ;
+    if ( !isRendered ) return ;
     clear();
     callRender();
   }
@@ -902,7 +927,7 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   void _refreshIfLocaleChangedImpl() {
-    if ( !isRendered() ) return ;
+    if ( !isRendered ) return ;
     if ( localeChangeFromLastRender ) {
       UIConsole.log('Locale changed: $_renderLocale -> ${ UIRoot.getCurrentLocale() } ; Refreshing...') ;
       clear();
@@ -916,7 +941,13 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   void ensureRendered() {
-    if ( !isRendered() ) callRender() ;
+    if ( !isRendered ) {
+      callRender() ;
+    }
+    else if ( localeChangeFromLastRender) {
+      clear();
+      callRender();
+    }
   }
 
   bool isAccessible() {
@@ -937,21 +968,65 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   static final Map<Element,UIComponent> _componentsRendering = {} ;
+  static final Map<Element,UIComponent> _componentsRenderingExtra = {} ;
+
+  static bool get isAnyComponentRendering => _componentsRendering.isNotEmpty;
 
   static void _setUIComponentRendering( UIComponent component ) {
     if (component == null) return ;
     _componentsRendering[ component.content ] = component ;
   }
 
+  static void _setUIComponentRenderingExtra( UIComponent component ) {
+    if (component == null) return ;
+    _componentsRenderingExtra[ component.content ] = component ;
+  }
+
   static void _clearUIComponentRendering( UIComponent component ) {
     if (component == null) return ;
     _componentsRendering.remove( component.content ) ;
+    if ( _componentsRendering.isEmpty ) {
+      _componentsRenderingExtra.clear();
+    }
   }
 
-  static UIComponent _getUIComponentRenderingByContent( Element content ) {
+  static UIComponent _getUIComponentRenderingByContent( Element content , [bool findUIRootTree = true]) {
     if (content == null) return null ;
-    return _componentsRendering[content] ;
+
+    var parent = _componentsRendering[content] ?? _componentsRenderingExtra[content] ;
+
+    if (parent == null && findUIRootTree) {
+      var uiRoot = UIRoot.getInstance() ;
+      if (uiRoot != null) {
+        parent = uiRoot.findUIComponentByContent(content);
+      }
+    }
+
+    return parent ;
   }
+
+  UIComponent findUIComponentByContent(Element content) {
+    if (content == null) return null ;
+    if ( identical(content , _content) ) return this ;
+
+    if (_renderedElements == null || _renderedElements.isEmpty) return null ;
+
+    for (var elem in _renderedElements) {
+      if (elem is UIComponent) {
+        var uiComp = elem.findUIComponentByContent(content) ;
+        if (uiComp != null) return uiComp ;
+      }
+    }
+
+    for (var elem in _content.children) {
+      if ( identical(content , elem) ) {
+        return this ;
+      }
+    }
+
+    return null ;
+  }
+
 
   bool _rendering = false ;
 
@@ -1022,11 +1097,7 @@ abstract class UIComponent extends UIEventHandler {
 
       _renderedElements = renderedElements ;
 
-      for (var e in renderedElements) {
-        if (e is UIComponent) {
-          e.ensureRendered();
-        }
-      }
+      _ensureAllRendered(renderedElements);
     }
     catch (e,s) {
       UIConsole.error('$this render error', e, s);
@@ -1048,6 +1119,32 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     _markRenderTime() ;
+  }
+
+  void _ensureAllRendered(List elements) {
+    if (elements == null || elements.isEmpty) return ;
+
+    for (var e in elements) {
+      if (e is UIComponent) {
+        e.ensureRendered();
+      }
+      else if (e is Element) {
+        var subElements = [] ;
+
+        for (var child in e.children) {
+          var uiComponent = _getUIComponentRenderingByContent(child, false) ;
+
+          if (uiComponent != null) {
+            uiComponent.ensureRendered();
+          }
+          else if ( child.children.isNotEmpty ) {
+            subElements.add(child) ;
+          }
+        }
+
+        _ensureAllRendered(subElements) ;
+      }
+    }
   }
 
   void _notifyRenderToParent() {
@@ -1139,6 +1236,21 @@ abstract class UIComponent extends UIEventHandler {
     return element is Element || element is UIContent || element is UIAsyncContent ;
   }
 
+  static dynamic copyRenderable( dynamic element , [ dynamic def ]) {
+    if ( element is String ) return element ;
+
+    if ( element is UIComponent ) {
+      var clone = element.clone() ;
+      return clone ?? ( isRenderable(def) ? def : null ) ;
+    }
+    else if ( isRenderable(element) ) {
+      return element;
+    }
+    else {
+      return null ;
+    }
+  }
+
   List _toContentElementsImpl(Element content, dynamic rendered, bool append) {
     List renderedList ;
 
@@ -1228,10 +1340,7 @@ abstract class UIComponent extends UIEventHandler {
     }
     else if ( value is UIAsyncContent ) {
       if ( !value.isLoaded || value.hasAutoRefresh ) {
-        value.onLoadContent.listen( (c) {
-          print('Loaded content: $c') ;
-          refresh() ;
-        } , singletonIdentifier: this ) ;
+        value.onLoadContent.listen( (c) => refresh() , singletonIdentifier: this ) ;
       }
 
       if ( value.isExpired ) {
@@ -1304,7 +1413,7 @@ abstract class UIComponent extends UIEventHandler {
       value.remove();
     }
     else if (value is UIComponent) {
-      if (value.isRendered()) {
+      if ( value.isRendered ) {
         value.content.remove();
       }
     }
@@ -1393,18 +1502,18 @@ abstract class UIComponent extends UIEventHandler {
     var fieldElem = _fields[fieldName] ;
     if (fieldElem == null) return null ;
 
-    return parseFieldValue(fieldElem);
+    return parseElementValue(fieldElem);
   }
 
-  String parseFieldValue(Element fieldElem) {
-    if ( fieldElem is InputElement ) {
-      return fieldElem.value ;
+  static String parseElementValue(Element element) {
+    if ( element is InputElement ) {
+      return element.value ;
     }
-    else if ( fieldElem is TextAreaElement ) {
-      return fieldElem.value ;
+    else if ( element is TextAreaElement ) {
+      return element.value ;
     }
     else {
-      return fieldElem.text ;
+      return element.text ;
     }
   }
 
@@ -1413,16 +1522,35 @@ abstract class UIComponent extends UIEventHandler {
     return fieldElem ;
   }
 
-  void setField(String fieldName, var value) {
+  Map<String, dynamic> _fieldValues ;
+
+  dynamic getPreviousRenderedFieldValue(String fieldName) => _fieldValues != null ? _fieldValues[fieldName] : null ;
+
+  void setField(String fieldName, dynamic value) {
     var fieldElem = _fields[fieldName] ;
     if (fieldElem == null) return ;
 
+    var valueStr = value != null ? '$value' : null ;
+
+    _fieldValues ??= {} ;
+    _fieldValues[fieldName] =  valueStr ;
+
     if ( fieldElem is InputElement ) {
-      fieldElem.value = value ;
+      fieldElem.value = valueStr ;
     }
     else {
-      fieldElem.text = value ;
+      fieldElem.text = valueStr ;
     }
+  }
+
+  void updateRenderedFieldValue(String fieldName) {
+    var fieldElem = _fields[fieldName] ;
+    if (fieldElem == null) return ;
+
+    var value = parseElementValue(fieldElem) ;
+
+    _fieldValues ??= {} ;
+    _fieldValues[fieldName] = value ;
   }
 
   void _clearFields() {
@@ -1434,12 +1562,15 @@ abstract class UIComponent extends UIEventHandler {
 
     if (fieldName != null && fieldName.isNotEmpty) {
       _fields[fieldName] = elem ;
+
+      _fieldValues ??= {} ;
+      _fieldValues[fieldName] = parseElementValue(elem);
     }
   }
 
   bool hasEmptyField() {
     for( var field in _fields.values ) {
-      var val = parseFieldValue(field) ;
+      var val = parseElementValue(field) ;
       if ( val == null || val.toString().isEmpty ) return true ;
     }
     return false ;
@@ -1449,9 +1580,11 @@ abstract class UIComponent extends UIEventHandler {
 
   List<Element> getFieldsElements() => List.from( _fields.values ) ;
 
+  Map<String, Element> getFieldsElementsMap() => Map.from( _fields ).cast() ;
+
   bool isEmptyField(String fieldName) {
     var fieldElement = getFieldElement(fieldName) ;
-    var val = parseFieldValue( fieldElement ) ;
+    var val = parseElementValue( fieldElement ) ;
     return val == null || val.toString().isEmpty ;
   }
 
@@ -1460,7 +1593,7 @@ abstract class UIComponent extends UIEventHandler {
     List<String> emptyFields = [] ;
 
     for( var entry in _fields.entries ) {
-      var val = parseFieldValue( entry.value ) ;
+      var val = parseElementValue( entry.value ) ;
       if ( val == null || val.toString().isEmpty ) {
         emptyFields.add( entry.key ) ;
       }
@@ -1889,6 +2022,9 @@ class UIAsyncContent {
     _loadedContent = _Content(content, 200) ;
     _loadCount++ ;
     _loadTime = DateTime.now() ;
+
+    _inspectContent(content) ;
+
     _scheduleRefresh() ;
 
     onLoadContent.add( content ) ;
@@ -1904,6 +2040,23 @@ class UIAsyncContent {
     _scheduleRefresh() ;
 
     onLoadContent.add( null ) ;
+  }
+
+  void _inspectContent(dynamic content) {
+    if (content == null) return ;
+
+    if (content is Map) {
+      _inspectContent( content.keys ) ;
+      _inspectContent( content.values ) ;
+    }
+    else if (content is Iterable) {
+      for ( var e in content ) {
+        _inspectContent(e) ;
+      }
+    }
+    else if (content is UIAsyncContent) {
+      throw StateError("Can't have as content another UIAsyncContent: $content") ;
+    }
   }
 
   bool get isLoaded => _loadedContent != null ;
@@ -1971,11 +2124,29 @@ abstract class UIRoot extends UIComponent {
     _rootInstance = this ;
 
     _localesManager = createLocalesManager(initializeLocale, _onDefineLocale) ;
+    _localesManager.onPreDefineLocale.add(onPrefDefineLocale) ;
+
     _futureInitializeLocale = _localesManager.initialize(getPreferredLocale) ;
+
+    window.onResize.listen( _onResize ) ;
 
     UINavigator.get().refreshNavigationAsync();
 
     UIConsole.checkAutoEnable() ;
+  }
+
+  void _onResize(Event e) {
+    try {
+      onResize(e) ;
+    }
+    catch(e,s) {
+      print(e) ;
+      print(s) ;
+    }
+  }
+
+  void onResize(Event e) {
+
   }
 
   LocalesManager getLocalesManager() {
@@ -2009,6 +2180,10 @@ abstract class UIRoot extends UIComponent {
 
   List<String> getInitializedLocales() {
     return _localesManager.getInitializedLocales() ;
+  }
+
+  Future<bool> onPrefDefineLocale(String locale) {
+    return Future.value(null) ;
   }
 
   void _onDefineLocale(String locale) {
@@ -2071,14 +2246,17 @@ abstract class UIRoot extends UIComponent {
   void _onReadyToInitialize() {
     UIConsole.log('UIRoot> ready to initialize!') ;
 
+    onInitialized();
+
+    _initialRender();
+    callRender() ;
+
     try {
       onInitialize.add(this) ;
     }
     catch (e) {
       UIConsole.error('Error calling UIRoot.onInitialize()', e);
     };
-
-    callRender() ;
   }
 
   @override
@@ -2087,12 +2265,24 @@ abstract class UIRoot extends UIComponent {
     super.callRender() ;
   }
 
+  void onInitialized() {
+
+  }
+
+  void _initialRender() {
+    buildAppStatusBar();
+  }
+
+  void buildAppStatusBar() {
+    return null ;
+  }
+
+
   UIComponent renderMenu() {
     return null ;
   }
 
   UIComponent renderContent() ;
-
 
 }
 

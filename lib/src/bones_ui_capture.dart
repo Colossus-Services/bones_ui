@@ -4,7 +4,7 @@ import 'dart:html';
 import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
 
-import 'package:swiss_knife/swiss_knife_browser.dart';
+import 'package:swiss_knife/swiss_knife.dart';
 
 enum CaptureType {
   PHOTO,
