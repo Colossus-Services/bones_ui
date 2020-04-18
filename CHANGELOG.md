@@ -1,3 +1,19 @@
+## 1.0.7
+
+- UISimpleButton
+- UIButtonCapturePhoto
+- UICapture: now handles loaded data and converts to a CaptureDataFormat type.
+- UIExplorer: modelType catalog.
+- UIComponent: better automatic resolution of parentUIComponent
+- UIComponent: fields are views now. Removed UIComponent._fields Map.
+- InputConfig: now renders the components (moved from UIInputTable).
+- getLanguageByExtension(): fixed markdown extension.
+- json_render: ^1.2.8
+- dom_tools: ^1.2.8
+- intl_messages: ^1.1.7
+- mercury_client: ^1.1.5
+- swiss_knife: ^2.3.10
+
 ## 1.0.6
 
 - UIRoot with better load of locales.

@@ -83,7 +83,7 @@ String getLanguageByExtension(String extension) {
 
   switch (extension) {
     case 'dart': return 'dart' ;
-    case 'mk': case 'markdown': return 'markdown' ;
+    case 'md': case 'markdown': return 'markdown' ;
     case 'cpp': return 'cpp' ;
     case 'diff': return 'diff' ;
     case 'awk': return 'awk' ;

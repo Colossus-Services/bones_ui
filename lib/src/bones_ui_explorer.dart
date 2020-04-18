@@ -3,8 +3,10 @@ import 'dart:convert' as dart_convert;
 import 'dart:html';
 
 import 'package:bones_ui/bones_ui.dart';
+import 'package:intl_messages/intl_messages.dart';
 import 'package:json_render/json_render.dart';
 import 'package:mercury_client/mercury_client.dart';
+import 'package:swiss_knife/swiss_knife.dart';
 import 'package:yaml/yaml.dart';
 
 final ResourceContentCache _resourceContentCache = ResourceContentCache() ;
@@ -160,7 +162,7 @@ class YAMLConfigDocument extends ConfigDocument {
 
   @override
   dynamic get(String key, [dynamic def]) {
-    return _document[key] ?? def ;
+    return findKeyValue<dynamic,dynamic>(_document, [key], true) ?? def ;
   }
 
   YamlNode asYamlNode() {
@@ -187,7 +189,7 @@ class JSONConfigDocument extends ConfigDocument {
 
   @override
   dynamic get(String key, [dynamic def]) {
-    return _document[key] ?? def ;
+    return findKeyValue<dynamic,dynamic>(_document, [key], true) ?? def ;
   }
 
   @override
@@ -327,83 +329,181 @@ class UIExplorer extends UIComponentAsync {
     else if ( modelType == 'query' ) {
       return await render_query() ;
     }
+    else if ( modelType == 'catalog' ) {
+      return await render_catalog() ;
+    }
   }
 
   Future<dynamic> render_document() async {
     var doc = model.configDocument ;
 
-    String content = doc.get('content') ;
+    var content = doc.getAsString('content') ;
     if (content != null) {
       return content ;
     }
 
-    String markdown = doc.get('markdown') ;
+    var markdown = doc.getAsString('markdown') ;
     if (markdown != null) {
       return markdownToDiv(markdown) ;
     }
 
-    String code = doc.get('code') ;
+    var code = doc.getAsString('code') ;
     if (code != null) {
       String language = doc.get('language') ;
       return UICodeHighlight(this.content, code, language: language) ;
     }
 
-    String url = doc.get('url') ;
+    var url = doc.getAsString('url') ;
     if (url != null) {
-      var uri = await model.resolveURL(url) ;
-
-      var resourceContent = ResourceContent.fromURI(uri) ;
-      resourceContent = _resourceContentCache.get(resourceContent) ;
-
-      var urlContent = await resourceContent.getContent() ;
-      if (urlContent == null) return null ;
-
-      var extension = getPathExtension(url).toLowerCase().trim() ;
-
-      if ( extension != null ) {
-        var language = getLanguageByExtension(extension) ;
-
-        if (language == 'html') {
-          return urlContent ;
-        }
-        else if (language == 'text') {
-          return '<pre>\n$urlContent\n</pre>' ;
-        }
-        else if (language == 'markdown') {
-          return markdownToDiv(urlContent) ;
-        }
-        else if (language != null) {
-          return UICodeHighlight(this.content, urlContent, language: language);
-        }
-      }
-
-      return urlContent ;
+      return _render_document_url(url, doc);
     }
 
     return null ;
   }
 
+  Future<dynamic> _render_document_url(String url, ConfigDocument doc) async {
+    var uri = await model.resolveURL(url) ;
+
+    var localeUrlPattern = doc.getAsString('locale_url_pattern') ;
+
+    ResourceContent resourceContent ;
+    if (localeUrlPattern != null) {
+      var intlResourceUri = IntlResourceUri(RegExp(localeUrlPattern), url, _resourceContentCache) ;
+      resourceContent = await intlResourceUri.resolveResourceContent() ;
+    }
+    else {
+      resourceContent = ResourceContent.fromURI(uri) ;
+      resourceContent = _resourceContentCache.get(resourceContent) ;
+    }
+
+    var urlContent = await resourceContent.getContent() ;
+    if (urlContent == null) return null ;
+
+    var extension = getPathExtension(url).toLowerCase().trim() ;
+
+    if ( extension != null ) {
+      var language = getLanguageByExtension(extension) ;
+
+      if (language == 'html') {
+        return urlContent ;
+      }
+      else if (language == 'text') {
+        return '<pre>\n$urlContent\n</pre>' ;
+      }
+      else if (language == 'markdown') {
+        return markdownToDiv(urlContent) ;
+      }
+      else if (language != null) {
+        return UICodeHighlight(this.content, urlContent, language: language);
+      }
+    }
+
+    return urlContent ;
+  }
+
   Future<dynamic> render_query() async {
-    var doc = model.configDocument ;
+    var conf = model.configDocument ;
 
-    var inputs = doc.getAsMap('inputs') ;
+    var inputs = conf.getAsMap('inputs') ;
 
-    var inputConfigs = inputs.map( (k,v) => MapEntry( k , InputConfig.from( v , '$k' ) ) ).values.toList() ;
+    var inputConfigs = InputConfig.listFromMap( inputs ) ;
 
-    var executor = doc.getAsMap('executor') ;
+    var executor = MapProperties.fromMap( conf.getAsMap('executor') ) ;
 
-    var viewer = doc.getAsMap('viewer') ;
+    var viewer = MapProperties.fromMap( conf.getAsMap('viewer') ) ;
 
     return _UIExplorerQuery(content, inputConfigs, executor, viewer, loadingContent: 'loading...', errorContent: 'error!') ;
   }
+
+  Future<dynamic> render_catalog() async {
+    var conf = model.configDocument ;
+
+    var documentInputConfigs = InputConfig.listFromMap( conf.getAsMap('document') ) ;
+
+    var documentViewer = MapProperties.fromMap( conf.getAsMap('document_viewer') ) ;
+
+    var documentPreview = MapProperties.fromMap( conf.getAsMap('document_preview') ) ;
+    var documentStorage = MapProperties.fromMap( conf.getAsMap('document_storage') ) ;
+    var documentListing = MapProperties.fromMap( conf.getAsMap('document_listing') ) ;
+
+    return _UIExplorerCatalog(content, documentInputConfigs, documentViewer, documentPreview, documentStorage, documentListing) ;
+  }
+
+}
+
+class _UIExplorerCatalog extends UIComponent {
+
+  final List<InputConfig> documentInputConfig ;
+  final MapProperties _documentViewer ;
+  final MapProperties _documentPreview ;
+  final MapProperties _documentStorage ;
+  final MapProperties _documentListing ;
+
+  _UIExplorerCatalog(Element parent, this.documentInputConfig, this._documentViewer, this._documentPreview, this._documentStorage, this._documentListing, { dynamic classes }) : super(parent, classes: classes);
+
+  @override
+  dynamic render() {
+    var newDoc = render_newDocument() ;
+
+    var listingAsync = UIComponentAsync(content, _listingProperties, render_listing , 'Loading...', 'Error...' ) ;
+
+    return [ newDoc , '<hr>', listingAsync ] ;
+  }
+
+  Map<String,dynamic> _listingProperties() {
+    var navigation = UINavigator.currentNavigation ;
+
+    var page = navigation.parameterAsInt('page', 0) ;
+
+    return {'page': page} ;
+  }
+
+  Future<dynamic> render_listing(Map<String,dynamic> properties) async {
+    var httpRequester = HttpRequester( MapProperties.fromMap(_documentListing) , MapProperties.fromMap(properties) ) ;
+
+    var response = await httpRequester.doRequest() ;
+
+    var viewerRender = _ViewerRender(_documentPreview) ;
+
+    var responseType = httpRequester.config.getPropertyAsStringTrimLC('response') ;
+
+    return viewerRender.render(content, responseType, response) ;
+  }
+
+  dynamic render_newDocument() {
+    var documentInputs = UIInputTable(content, documentInputConfig) ;
+    var sendButton = UISimpleButton(content , 'Send') ;
+
+    sendButton.onClick.listen( (e) => _sendNewDocument(documentInputs) ) ;
+
+    return [ 'New Document:<p>' , documentInputs , '<br>' , sendButton ] ;
+  }
+
+  void _sendNewDocument(UIInputTable documentInputs) async {
+
+    var fields = documentInputs.getFields() ;
+
+    var inputFields = documentInputConfig.map( (input) => input.fieldName ).toList() ;
+    fields.removeWhere( (k,v) => !inputFields.contains(k) ) ;
+
+    var document = dart_convert.json.encode(fields) ;
+
+    fields['DOCUMENT'] = document ;
+
+    var httpRequester = HttpRequester( MapProperties.fromMap(_documentStorage) , MapProperties.fromMap(fields) ) ;
+    var response = await httpRequester.doRequest() ;
+
+  }
+
+
 
 }
 
 class _UIExplorerQuery extends UIControlledComponent {
 
   final List<InputConfig> inputConfig ;
-  final Map _executor ;
-  final Map _viewer ;
+  final MapProperties _executor ;
+  final MapProperties _viewer ;
 
   _UIExplorerQuery(Element parent, this.inputConfig, this._executor, this._viewer, { dynamic loadingContent, dynamic errorContent, dynamic classes }) : super(parent, loadingContent, errorContent, classes: classes);
 
@@ -450,14 +550,6 @@ class _UIExplorerQuery extends UIControlledComponent {
 
     inputTable.onChange.listen( (elem) => callOnChangeControllers(elem) ) ;
 
-    /*
-    var fields = inputTable.getFieldsElements() ;
-
-    for ( var control in fields ) {
-      control.onChange.listen( (e) => callOnChangeControllers(control)) ;
-    }
-     */
-
     return true ;
   }
 
@@ -470,32 +562,58 @@ class _UIExplorerQuery extends UIControlledComponent {
 
   @override
   Future<dynamic> renderResult(MapProperties properties) async {
-    var executor = MapProperties.fromMap(_executor) ;
+    var queryResponse = await executeQuery(properties, _executor);
 
-    var queryResponse = await executeQuery(properties, executor);
+    var responseType = _executor.getPropertyAsStringTrimLC('response') ;
+    var viewerRender = _ViewerRender(_viewer) ;
 
-    return renderViewer(properties, executor, queryResponse) ;
+    return viewerRender.render(content, responseType, queryResponse) ;
   }
 
-  Future<dynamic> renderViewer(MapProperties properties, MapProperties executor, dynamic queryResponse) async {
-    var viewer = MapProperties.fromMap(_viewer) ;
+  Future<dynamic> executeQuery(MapProperties properties, MapProperties executor) async {
+    var type = executor.getPropertyAsStringTrimLC('type', 'http') ;
 
-    var type = viewer.getPropertyAsStringTrimLC('type', 'html') ;
+    if ( type == 'http' || type == 'https' ) {
+      return executeQuery_http(executor, type, properties, null);
+    }
+    else {
+      return null ;
+    }
+  }
+
+  Future<dynamic> executeQuery_http(MapProperties executor, String type, MapProperties properties, int page) async {
+    var httpRequester = HttpRequester(executor, properties) ;
+    return httpRequester.doRequest() ;
+  }
+
+}
+
+///////////////////
+
+
+class _ViewerRender {
+
+  final MapProperties config ;
+
+  _ViewerRender(this.config);
+
+  Future<dynamic> render(Element output, String contentType, dynamic content) async {
+    var type = config.getPropertyAsStringTrimLC('type', 'html') ;
 
     if ( type == 'code' ) {
-      return renderViewer_code(executor, queryResponse);
+      return render_code(output, contentType, content);
     }
     else if ( type == 'json' ) {
-      return renderViewer_json(viewer, queryResponse);
+      return render_json(output, contentType, content);
     }
 
     return null ;
   }
 
-  DivElement renderViewer_json(MapProperties viewer, queryResponse) {
-    var jsonRender = queryResponse is String ? JSONRender.fromJSONAsString(queryResponse) : JSONRender.fromJSON(queryResponse) ;
+  DivElement render_json(Element output, String contentType, dynamic content) {
+    var jsonRender = content is String ? JSONRender.fromJSONAsString(content) : JSONRender.fromJSON(content) ;
 
-    var mode = viewer.getPropertyAsStringTrimLC('mode') ;
+    var mode = config.getPropertyAsStringTrimLC('mode') ;
 
     if (mode == 'input') {
       jsonRender.renderMode = JSONRenderMode.INPUT ;
@@ -506,8 +624,8 @@ class _UIExplorerQuery extends UIControlledComponent {
 
     jsonRender.addAllKnownTypeRenders();
 
-    var showNodeArrow = viewer.getPropertyAsBool('showNodeArrow', true) ;
-    var showNodeOpenerAndCloser = viewer.getPropertyAsBool('showNodeOpenerAndCloser', true) ;
+    var showNodeArrow = config.getPropertyAsBool('show_node_arrow', true) ;
+    var showNodeOpenerAndCloser = config.getPropertyAsBool('show_node_opener_and_closer', true) ;
 
     jsonRender.showNodeArrow = showNodeArrow ;
     jsonRender.showNodeOpenerAndCloser = showNodeOpenerAndCloser ;
@@ -515,78 +633,14 @@ class _UIExplorerQuery extends UIControlledComponent {
     return jsonRender.render() ;
   }
 
-  UICodeHighlight renderViewer_code(MapProperties executor, dynamic queryResponse) {
-    if ( !(queryResponse is String) ) {
-      queryResponse = dart_convert.JsonEncoder.withIndent('  ').convert(queryResponse) ;
+  UICodeHighlight render_code(Element output, String contentType, dynamic content) {
+    if ( !(content is String) ) {
+      content = dart_convert.JsonEncoder.withIndent('  ').convert(content) ;
     }
 
-    var response = executor.getPropertyAsStringTrimLC('response') ;
-    var language = getLanguageByExtension(response) ;
+    var language = config.getPropertyAsStringTrimLC('language') ?? getLanguageByExtension(contentType) ;
 
-    return UICodeHighlight(content , queryResponse, language: language) ;
+    return UICodeHighlight(output , content, language: language) ;
   }
-
-  Future<dynamic> executeQuery(MapProperties properties, MapProperties executor) async {
-    var type = executor.getPropertyAsStringTrimLC('type', 'http') ;
-
-    if ( type == 'http' || type == 'https' ) {
-      return executeQuery_http(executor, type, properties);
-    }
-    else {
-      return null ;
-    }
-  }
-
-  Future<dynamic> executeQuery_http(MapProperties executor, String type, MapProperties properties) async {
-    var host = executor.getPropertyAsStringTrimLC('host') ;
-
-    String scheme ;
-
-    if (host == null) {
-      host = getHrefHostAndPort() ;
-      scheme = getHrefScheme() ;
-    }
-    else if ( RegExp(r'^:?\d+$').hasMatch(host) ) {
-      if ( !host.startsWith(':') ) host = ':$host' ;
-      host = getHrefHost() + host ;
-      scheme = getHrefScheme() ;
-    }
-    else {
-      scheme = type == 'https' ? 'https' : 'http' ;
-    }
-
-    var baseURL = scheme +'://$host/' ;
-
-    var method = executor.getPropertyAsString('method') ;
-
-    var client = HttpClient(baseURL) ;
-
-    var path = executor.getPropertyAsString('path', '/') ;
-
-    var pathBuilt = path.contains('{{') ? buildStringPattern(path, properties.toStringProperties()) : path ;
-
-    var response = executor.getPropertyAsStringTrimLC('response');
-
-    ///////////////
-
-    var httpMethod = getHttpMethod(method, HttpMethod.GET) ;
-
-    var httpResponse = await client.request( httpMethod, pathBuilt) ;
-
-    if ( !httpResponse.isOK ) return null ;
-
-    if ( response == 'json' ) {
-      return httpResponse.json ;
-    }
-
-    if ( httpResponse.isBodyTypeJSON ) {
-      return httpResponse.json ;
-    }
-
-    return httpResponse.body ;
-  }
-
 
 }
-
-

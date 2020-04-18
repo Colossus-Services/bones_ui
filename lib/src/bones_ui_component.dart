@@ -2,11 +2,14 @@
 import 'dart:html';
 import 'dart:async';
 
-import 'package:bones_ui/bones_ui.dart';
+import 'bones_ui_capture.dart';
 
 import 'bones_ui_base.dart';
 
 import 'package:swiss_knife/swiss_knife.dart';
+
+import 'package:dom_tools/dom_tools.dart';
+
 
 ///////////////////////
 
@@ -73,41 +76,83 @@ abstract class UIButton extends UIComponent {
   void onClickEvent(dynamic event, List params) {}
 
   @override
-  List render() {
+  dynamic render() {
+
     var rendered = renderButton() ;
 
-    var renderedElements = toContentElements(content, rendered);
+    var renderAll = toContentElements(content, rendered, false, false) ;
+    _onClickListen(renderAll) ;
 
+    var renderedHidden = renderHidden() ;
+
+    if (renderedHidden != null) {
+      renderAll.add( renderedHidden ) ;
+    }
+
+    return renderAll ;
+  }
+
+  bool _content_onClick_listening = false ;
+
+  void _onClickListen(List renderedElements) {
     var clickSet = false ;
 
-    for (var e in renderedElements) {
-      if (e is Element) {
-        e.onClick.listen((e) => fireClickEvent(e)) ;
+    for (var elem in renderedElements) {
+      if (elem is Element) {
+        elem.onClick.listen((e) => fireClickEvent(e)) ;
         clickSet = true ;
       }
     }
 
-    if (!clickSet) {
+    if (!clickSet && !_content_onClick_listening) {
       content.onClick.listen((e) => fireClickEvent(e)) ;
+      _content_onClick_listening = true ;
     }
-
-    var renderedHidden = renderHiddens() ;
-
-    if (renderedHidden != null) {
-      var renderedElementsHidden = toContentElements(content, renderedHidden, true);
-      renderedElements.addAll(renderedElementsHidden) ;
-    }
-
-    return renderedElements ;
   }
 
   dynamic renderButton() ;
 
-  dynamic renderHiddens() {
+  dynamic renderHidden() {
     return null;
   }
 
 }
+
+class UISimpleButton extends UIButton {
+  final String text ;
+  final String fontSize ;
+
+  UISimpleButton(Element parent, this.text, {String navigate, Map<String,String> navigateParameters, ParametersProvider navigateParametersProvider, dynamic classes, bool small = false, this.fontSize}) : super(parent, navigate: navigate, navigateParameters: navigateParameters, navigateParametersProvider: navigateParametersProvider, classes: classes) {
+    configureClasses( classes , [ small ? 'ui-button-small' : 'ui-button' ] ) ;
+  }
+
+  @override
+  String renderButton() {
+    if (disabled) {
+      content.style.opacity = '0.7' ;
+    }
+    else {
+      content.style.opacity = null ;
+    }
+
+    if (fontSize != null) {
+      return "<span style='font-size: $fontSize'>$text</span>" ;
+    }
+    else {
+      return text ;
+    }
+  }
+
+  void setWideButton() {
+    content.style.width = '80%';
+  }
+
+  void setNormalButton() {
+    content.style.width = null ;
+  }
+
+}
+
 
 ///////////////////////
 
@@ -151,7 +196,13 @@ class UIInfosTable extends UIComponent {
 
 ///////////////////////
 
+typedef FieldValueProvider = dynamic Function(String field) ;
+
 class InputConfig {
+
+  static List<InputConfig> listFromMap( Map map ) {
+    return map.map( (k,v) => MapEntry( k , InputConfig.from( v , '$k' ) ) ).values.toList() ;
+  }
 
   String _id ;
   String _label ;
@@ -179,6 +230,14 @@ class InputConfig {
       var attributes = findKeyValue(config, ['attributes'], true);
       var options = findKeyValue(config, ['options'], true);
       var optional = parseBool( findKeyValue(config, ['optional'], true) , false );
+
+      if (attributes is Map) {
+        attributes = asMapOfString(attributes) ;
+      }
+      
+      if (options is Map) {
+        options = asMapOfString(options) ;
+      }
 
       return InputConfig(
         id ,
@@ -237,6 +296,99 @@ class InputConfig {
   bool get optional => _optional;
 
   bool get required => !_optional;
+
+  dynamic renderInput( [ FieldValueProvider fieldValueProvider ] ) {
+    var inputID = id ;
+    var inputType = type;
+    var inputValue = fieldValueProvider != null ? ( fieldValueProvider( fieldName ) ?? value ) : value ;
+
+    Element inputElement ;
+    UIComponent inputComponent ;
+
+    if ( inputType == 'textarea') {
+      inputElement = _render_textArea(inputValue) ;
+    }
+    else if ( inputType == 'select') {
+      inputElement = _render_select(inputValue);
+    }
+    else if ( inputType == 'image') {
+      var capture = UIButtonCapturePhoto(null, label, fieldName: inputID) ;
+      inputComponent = capture ;
+    }
+    else {
+      inputElement = _render_generic_input(inputType, inputValue) ;
+    }
+
+    if ( inputElement != null ) {
+      inputElement.setAttribute('name', inputID);
+      inputElement.setAttribute('field', inputID);
+
+      if (attributes != null && attributes.isNotEmpty) {
+        for (var attrKey in attributes.keys) {
+          var attrVal = attributes[attrKey];
+          if (attrKey.isNotEmpty && attrVal.isNotEmpty) {
+            inputElement.setAttribute(attrKey, attrVal);
+          }
+        }
+      }
+
+      return inputElement ;
+    }
+    else if ( inputComponent != null ) {
+      return inputComponent ;
+    }
+
+    return null ;
+  }
+
+  TextAreaElement _render_textArea(inputValue) {
+    var textArea = TextAreaElement() ;
+    textArea.value = inputValue ;
+    return textArea;
+  }
+
+  Element _render_generic_input(String inputType, inputValue) {
+    var inputHtml = '''
+      <input type="$inputType" ${ inputValue != null ? 'value="$inputValue"' : '' }>
+    ''';
+
+    var input = createHTML( inputHtml ) ;
+    return input;
+  }
+
+  SelectElement _render_select(inputValue) {
+    var select = SelectElement() ;
+
+    if ( options != null && options.isNotEmpty ) {
+      for (var optKey in options.keys) {
+        var optVal = options[optKey];
+        var selected = false ;
+
+        if (optKey.endsWith('*')) {
+          optKey = optKey.substring(0, optKey.length-1) ;
+          selected = true ;
+        }
+
+        if (optVal == null || optVal.isEmpty) {
+          optVal = optKey;
+        }
+
+        var optionElement = OptionElement(data: optVal, value: optKey);
+
+        if (selected) {
+          optionElement.selected = selected;
+        }
+
+        select.add( optionElement , null ) ;
+      }
+    }
+    else if ( inputValue != null && inputValue.isNotEmpty ) {
+      select.innerHtml = '$inputValue' ;
+    }
+    return select;
+  }
+
+
 
 }
 
@@ -305,82 +457,38 @@ class UIInputTable extends UIComponent {
   }
 
   @override
-  List render() {
-
-    var html = """
-    <table border='0' align="center">
-    """;
+  dynamic render() {
+    var table = TableElement() ;
+    var tBody = table.createTBody() ;
 
     for (var input in _inputs) {
+      var row = tBody.addRow() ;
 
-      var attrs = '' ;
+      row.addCell()
+        ..style.verticalAlign = 'top'
+        ..style.textAlign = 'right'
+        ..innerHtml = '<b>${ input.label }:&nbsp;</b>'
+      ;
 
-      if (input.attributes != null && input.attributes.isNotEmpty) {
-        for (var attrKey in input.attributes.keys) {
-          var attrVal = input.attributes[attrKey] ;
-          if (attrKey.isNotEmpty && attrVal.isNotEmpty) {
-            attrs += '$attrKey=\"$attrVal\"';
-          }
-        }
+      var celInput = row.addCell()
+        ..style.textAlign = 'center'
+      ;
 
+      var inputRendered = input.renderInput( getPreviousRenderedFieldValue ) ;
+
+      if ( inputRendered is Element ) {
+        celInput.children.add( inputRendered ) ;
       }
+      else if ( inputRendered is UIComponent ) {
+        var div = createDiv() ;
+        celInput.children.add(div) ;
 
-      String inputHtml ;
-
-      var inputID = input.id;
-      var inputValue = getPreviousRenderedFieldValue(input.fieldName) ?? input.value ;
-      var inputType = input.type;
-
-      if ( inputType == 'textarea') {
-        inputHtml = '''
-        <textarea field='$inputID' name='$inputID' $attrs>${ inputValue ?? '' }</textarea>
-        ''';
+        inputRendered.setParent(div) ;
+        inputRendered.render();
       }
-      else if ( inputType == 'select') {
-        inputHtml = """
-        <select field='$inputID' name='$inputID' $attrs>
-        """;
-
-        if ( input.options != null && input.options.isNotEmpty ) {
-          for (var optKey in input.options.keys) {
-            var optVal = input.options[optKey];
-            if (optVal == null || optVal.isEmpty) {
-              optVal = optKey;
-            }
-
-            inputHtml += '''
-            <option value="$optKey">$optVal</option>
-            ''';
-          }
-        }
-        else if ( inputValue != null && inputValue.isNotEmpty ) {
-          inputHtml += '$inputValue' ;
-        }
-
-        inputHtml += '''
-        </select>
-        ''';
-
-
-      }
-      else {
-        inputHtml = '''
-        <input field='$inputID' name='$inputID' type="$inputType" ${ inputValue != null ? 'value="$inputValue"' : '' } $attrs>
-        ''';
-      }
-
-      html += '''
-      <tr>
-      <td style="vertical-align: top ; text-align: right"><b>${ input.label }:&nbsp;</b></td><td style="text-align: center">$inputHtml</td>
-      </tr>
-      ''';
     }
 
-    html += '''
-    </table>
-    ''';
-
-    return [html];
+    return table ;
   }
 
   @override
@@ -389,11 +497,12 @@ class UIInputTable extends UIComponent {
 
     if (fields != null && fields.isNotEmpty) {
       for ( var entry in fields.entries ) {
-        var fieldName = entry.key ;
+        //var fieldName = entry.key ;
         var elem = entry.value ;
 
         elem.onChange.listen( (e) {
-          updateRenderedFieldValue(fieldName) ;
+          //updateRenderedFieldValue(fieldName) ;
+          updateRenderedFieldElementValue(elem) ;
           onChange.add(elem);
         }) ;
       }
@@ -1234,203 +1343,6 @@ class UIComponentAsync extends UIComponent {
   }
 
 }
-
-class MapProperties implements Map<String, dynamic> {
-
-  static dynamic parseValue(dynamic value) {
-    if ( isInt(value) ) {
-      return parseInt(value) ;
-    }
-    else if ( isDouble(value) ) {
-      return parseDouble(value) ;
-    }
-    else if ( isNum(value) ) {
-      return parseNum(value) ;
-    }
-    else if ( isBool(value) ) {
-      return parseBool(value) ;
-    }
-    else if ( isIntList(value) ) {
-      return parseIntsFromInlineList(value, ',') ;
-    }
-    else if ( isDoubleList(value) ) {
-      return parseBoolsFromInlineList(value, ',') ;
-    }
-    else if ( isNumList(value) ) {
-      return parseNumsFromInlineList(value, ',') ;
-    }
-    else if ( isBoolList(value) ) {
-      return parseBoolsFromInlineList(value, ',') ;
-    }
-    else {
-      return value ;
-    }
-  }
-
-  Map<String,dynamic> _properties ;
-
-  MapProperties.fromProperties( Map<String,dynamic> properties ) {
-    properties ??= {} ;
-    _properties = Map.from(properties).cast();
-  }
-
-  MapProperties.fromStringProperties( Map<String,String> stringProperties ) {
-    _properties = parseStringProperties( stringProperties ) ;
-  }
-
-  MapProperties.fromMap( Map properties ) {
-    properties ??= {} ;
-    _properties = properties.map( (k,v) => MapEntry( parseString(k) , parseString(v) ) ) ;
-  }
-
-  T getProperty<T>(String key, [T def]) {
-    var val = findKeyValue(_properties, [key], true) ;
-    return val != null ? val as T : def ;
-  }
-
-  // ignore: use_function_type_syntax_for_parameters
-  T getPropertyAs<T>(String key, T mapper(dynamic v) , [T def] ) {
-    var val = findKeyValue(_properties, [key], true) ;
-    return val != null ? mapper(val) : def ;
-  }
-
-  String getPropertyAsStringTrimLC(String key, [String def]) {
-    var val = getPropertyAsStringTrim(key , def);
-    return val != null ? val.toLowerCase() : null ;
-  }
-
-  String getPropertyAsStringTrimUC(String key, [String def]) {
-    var val = getPropertyAsStringTrim(key , def);
-    return val != null ? val.toUpperCase() : null ;
-  }
-
-  String getPropertyAsStringTrim(String key, [String def]) {
-    var val = getPropertyAsString(key , def);
-    return val != null ? val.trim() : null ;
-  }
-
-  String getPropertyAsString(String key, [String def]) => getPropertyAs(key , parseString, def);
-  int getPropertyAsInt(String key, [int def]) => getPropertyAs(key , parseInt, def);
-  double getPropertyAsDouble(String key, [double def]) => getPropertyAs(key , parseDouble, def);
-  num getPropertyAsNum(String key, [num def]) => getPropertyAs(key , parseNum, def);
-  bool getPropertyAsBool(String key, [bool def]) => getPropertyAs(key , parseBool, def);
-
-  List<String> getPropertyAsStringList(String key, [List<String> def]) => getPropertyAs(key , (v) => parseStringFromInlineList(v, ',', def), def);
-  List<int> getPropertyAsIntList(String key, [List<int> def]) => getPropertyAs(key , (v) => parseIntsFromInlineList(v, ',', def), def);
-  List<double> getPropertyAsDoubleList(String key, [List<double> def]) => getPropertyAs(key , (v) => parseDoublesFromInlineList(v, ',', def), def);
-  List<num> getPropertyAsNumList(String key, [List<num> def]) => getPropertyAs(key , (v) => parseNumsFromInlineList(v, ',', def), def);
-  List<bool> getPropertyAsBoolList(String key, [List<bool> def]) => getPropertyAs(key , (v) => parseBoolsFromInlineList(v, ',', def), def);
-
-  Map<String,dynamic> parseStringProperties( Map<String,String> stringProperties ) {
-    if (stringProperties == null || stringProperties.isEmpty ) return {} ;
-    return stringProperties.map( (k,v) => MapEntry(k, parseValue(v) ) ) ;
-  }
-
-  Map<String,dynamic> toProperties() {
-    return Map.from(_properties).cast();
-  }
-
-  Map<String,String> toStringProperties() {
-    return _properties.map( (k,v) => MapEntry( k , parseString(v) ) ) ;
-  }
-
-  //////////////////////
-
-  @override
-  dynamic operator [](Object key) {
-    return _properties[key];
-  }
-
-  @override
-  void operator []=(String key, dynamic value) {
-    _properties[key] = value ;
-  }
-
-  @override
-  void addAll(Map<String, dynamic> other) {
-    _properties.addAll(other);
-  }
-
-  @override
-  void addEntries(Iterable<MapEntry<String, dynamic>> newEntries) {
-    _properties.addEntries(newEntries);
-  }
-
-  @override
-  Map<RK, RV> cast<RK, RV>() {
-    return _properties.cast() ;
-  }
-
-  @override
-  void clear() {
-    _properties.clear() ;
-  }
-
-  @override
-  bool containsKey(Object key) {
-    return _properties.containsKey(key);
-  }
-
-  @override
-  bool containsValue(Object value) {
-    return _properties.containsValue(value);
-  }
-
-  @override
-  Iterable<MapEntry<String, dynamic>> get entries => _properties.entries ;
-
-  @override
-  void forEach(void Function(String key, dynamic value) f) {
-    _properties.forEach(f) ;
-  }
-
-  @override
-  bool get isEmpty => _properties.isEmpty ;
-
-  @override
-  bool get isNotEmpty => _properties.isNotEmpty;
-
-  @override
-  Iterable<String> get keys => _properties.keys;
-
-  @override
-  int get length => _properties.length;
-
-  @override
-  Map<K2, V2> map<K2, V2>(MapEntry<K2, V2> Function(String key, dynamic value) f) {
-    return _properties.map(f) ;
-  }
-
-  @override
-  dynamic putIfAbsent(String key, dynamic Function() ifAbsent) {
-    return _properties.putIfAbsent(key, ifAbsent);
-  }
-
-  @override
-  dynamic remove(Object key) {
-    return _properties.remove(key);
-  }
-
-  @override
-  void removeWhere(bool Function(String key, dynamic value) predicate) {
-    _properties.removeWhere(predicate);
-  }
-
-  @override
-  dynamic update(String key, dynamic Function(dynamic value) update, {dynamic Function() ifAbsent}) {
-    return _properties.update(key, update, ifAbsent: ifAbsent);
-  }
-
-  @override
-  void updateAll(dynamic Function(String key, dynamic value) update) {
-    _properties.updateAll(update) ;
-  }
-
-  @override
-  Iterable<dynamic> get values => _properties.values ;
-
-}
-
 
 
 abstract class UIControlledComponent extends UIComponent {

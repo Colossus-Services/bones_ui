@@ -574,6 +574,12 @@ typedef FilterElement = bool Function( Element elem ) ;
 typedef ForEachElement = void Function( Element elem ) ;
 typedef ParametersProvider = Map<String,String> Function() ;
 
+abstract class UIField {
+
+  String getFieldValue() ;
+
+}
+
 abstract class UIComponent extends UIEventHandler {
 
   dynamic id ;
@@ -590,7 +596,7 @@ abstract class UIComponent extends UIEventHandler {
   {
     _constructing = true ;
     try {
-      _parentUIComponent = _getUIComponentRenderingByContent(_parent) ;
+      _setParentUIComponent( _getUIComponentRenderingByContent(_parent) ) ;
       _content = createContentElement(inline);
 
       configureClasses(classes, classes2);
@@ -646,10 +652,20 @@ abstract class UIComponent extends UIEventHandler {
         }
       }
 
-      _parentUIComponent = parentUI ;
+      _setParentUIComponent(parentUI) ;
     }
 
     return parent ;
+  }
+
+  final Set<UIComponent> _subUIComponents = {} ;
+
+  void _setParentUIComponent(UIComponent uiParent) {
+    _parentUIComponent = uiParent ;
+
+    if (_parentUIComponent != null) {
+      _parentUIComponent._subUIComponents.add(this) ;
+    }
   }
 
   UIComponent get parentUIComponent {
@@ -660,17 +676,21 @@ abstract class UIComponent extends UIEventHandler {
     var foundParent = _getUIComponentRenderingByContent( myParentElem ) ;
 
     if (foundParent != null) {
-      _parentUIComponent = foundParent ;
-      return _parentUIComponent ;
+      _setParentUIComponent(foundParent) ;
+    }
+    else {
+      var uiRoot = UIRoot.getInstance() ;
+      if (uiRoot == null) return null ;
+
+      foundParent = uiRoot.getRenderedElement( (e) => e is UIComponent && identical(e._content, myParentElem) , true );
+
+      if (foundParent != null && foundParent is UIComponent) {
+        _setParentUIComponent(foundParent) ;
+      }
     }
 
-    var uiRoot = UIRoot.getInstance() ;
-    if (uiRoot == null) return null ;
-
-    foundParent = uiRoot.getRenderedElement( (e) => e is UIComponent && identical(e._content, myParentElem) , true );
-
-    if (foundParent != null && foundParent is UIComponent) {
-      _parentUIComponent = foundParent ;
+    if (_parentUIComponent != null) {
+      _resolve_componentsRenderingExtra() ;
     }
 
     return _parentUIComponent ;
@@ -758,6 +778,54 @@ abstract class UIComponent extends UIEventHandler {
 
   Element get parent => _parent;
   Element get content => _content;
+
+  List<Element> getContentChildrenDeep( [ FilterElement filter ] ) {
+    return _contentChildrenDeepImpl( _content.children , [] , filter ) ;
+  }
+
+  List<Element> _contentChildrenDeepImpl( List<Element> list , List<Element> deep , [ FilterElement filter ] ) {
+    if (list == null || list.isEmpty) return deep ;
+
+    if ( filter != null ) {
+      for (var elem in list) {
+        if ( filter(elem) ) {
+          deep.add(elem);
+        }
+      }
+
+      for (var elem in list) {
+        _contentChildrenDeepImpl( elem.children , deep , filter ) ;
+      }
+    }
+    else {
+      for (var elem in list) {
+        deep.add(elem) ;
+      }
+
+      for (var elem in list) {
+        _contentChildrenDeepImpl( elem.children , deep ) ;
+      }
+    }
+
+    return deep ;
+  }
+
+  Element findInContentChildrenDeep( FilterElement filter ) => _findInContentChildrenDeepImpl( _content.children , filter );
+
+  Element _findInContentChildrenDeepImpl( List<Element> list , FilterElement filter ) {
+    if (list == null || list.isEmpty) return null ;
+
+    for (var elem in list) {
+      if ( filter(elem) ) return elem ;
+    }
+
+    for (var elem in list) {
+      var found = _findInContentChildrenDeepImpl( elem.children , filter ) ;
+      if (found != null) return found ;
+    }
+
+    return null ;
+  }
 
   List _renderedElements ;
 
@@ -883,6 +951,8 @@ abstract class UIComponent extends UIEventHandler {
 
     _content.children.clear();
 
+    _subUIComponents.clear();
+
     _rendered = false ;
   }
 
@@ -990,6 +1060,29 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  static bool _resolve_componentsRenderingExtra_call = false ;
+
+  static void _resolve_componentsRenderingExtra() {
+    if ( _componentsRenderingExtra.isEmpty ) return ;
+
+    if (_resolve_componentsRenderingExtra_call) return ;
+    _resolve_componentsRenderingExtra_call = true ;
+
+    try {
+      for (var uiComp in _componentsRenderingExtra.values) {
+        uiComp.parentUIComponent ;
+      }
+    }
+    catch(e,s) {
+      print(e) ;
+      print(s) ;
+    }
+    finally {
+      _resolve_componentsRenderingExtra_call = false ;
+    }
+
+  }
+
   static UIComponent _getUIComponentRenderingByContent( Element content , [bool findUIRootTree = true]) {
     if (content == null) return null ;
 
@@ -999,6 +1092,7 @@ abstract class UIComponent extends UIEventHandler {
       var uiRoot = UIRoot.getInstance() ;
       if (uiRoot != null) {
         parent = uiRoot.findUIComponentByContent(content);
+        //parent ??= uiRoot.findUIComponentByChild(content);
       }
     }
 
@@ -1018,11 +1112,46 @@ abstract class UIComponent extends UIEventHandler {
       }
     }
 
+    for (var elem in _subUIComponents) {
+      var uiComp = elem.findUIComponentByChild(content) ;
+      if (uiComp != null) return uiComp ;
+    }
+
     for (var elem in _content.children) {
       if ( identical(content , elem) ) {
         return this ;
       }
     }
+
+    return null ;
+  }
+
+  UIComponent findUIComponentByChild(Element child) {
+    if (child == null) return null ;
+    if ( identical(child , _content) ) return this ;
+
+    for (var elem in _content.children) {
+      if ( identical(child , elem) ) {
+        return this ;
+      }
+    }
+
+    if (_renderedElements != null && _renderedElements.isNotEmpty) {
+      for (var elem in _renderedElements) {
+        if (elem is UIComponent) {
+          var uiComp = elem.findUIComponentByChild(child) ;
+          if (uiComp != null) return uiComp ;
+        }
+      }
+    }
+
+    for (var elem in _subUIComponents) {
+      var uiComp = elem.findUIComponentByChild(child) ;
+      if (uiComp != null) return uiComp ;
+    }
+
+    var deepChild  = findInContentChildrenDeep( (elem) => identical(child , elem) ) ;
+    if (deepChild != null) return this ;
 
     return null ;
   }
@@ -1041,6 +1170,8 @@ abstract class UIComponent extends UIEventHandler {
     }
     finally {
       _rendering = false ;
+
+      _resolve_componentsRenderingExtra();
 
       try {
         _notifyRenderToParent() ;
@@ -1088,8 +1219,6 @@ abstract class UIComponent extends UIEventHandler {
 
     try {
       _rendered = true ;
-
-      _clearFields() ;
 
       var rendered = render() ;
 
@@ -1154,8 +1283,12 @@ abstract class UIComponent extends UIEventHandler {
       return ;
     }
 
+    parentUIComponent._call_onChildRendered( this ) ;
+  }
+
+  void _call_onChildRendered( UIComponent child ) {
     try {
-      parentUIComponent.onChildRendered( this ) ;
+      onChildRendered( this ) ;
     }
     catch (e,s) {
       print(e) ;
@@ -1163,7 +1296,7 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  void onChildRendered( dynamic child ) {
+  void onChildRendered( UIComponent child ) {
 
   }
 
@@ -1216,11 +1349,13 @@ abstract class UIComponent extends UIEventHandler {
 
   void posRender() {}
 
-  List toContentElements(Element content, dynamic rendered, [bool append = false]) {
+  List toContentElements(Element content, dynamic rendered, [bool append = false, bool parseAttributes = true]) {
     try {
       var list = _toContentElementsImpl(content, rendered, append) ;
 
-      _parseAttributes(content.children);
+      if ( parseAttributes ) {
+        _parseAttributes(content.children);
+      }
 
       return list ;
     }
@@ -1307,7 +1442,7 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   int _buildRenderList(dynamic value, List renderedList, int prevElemIndex) {
-    if ( value is Element ) {
+    if ( value is Node ) {
       var idx = content.childNodes.indexOf(value);
 
       if ( idx < 0 ) {
@@ -1429,11 +1564,12 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   void _parseAttributes(List list) {
+    if (list == null || list.isEmpty) return ;
+
     for (var elem in list) {
       if (elem is Element) {
         _parseNavigate(elem);
         _parseAction(elem);
-        _parseField(elem);
         _parseEvents(elem);
 
         try {
@@ -1480,36 +1616,69 @@ abstract class UIComponent extends UIEventHandler {
 
   //////////////////////
 
-  final Map<String,Element> _fields = {} ;
+  Element getFieldElement(String fieldName) => findInContentChildrenDeep( (e) {
+    if ( e is Element ) {
+      var fieldValue = getElementAttribute(e,'field') ;
+      return fieldValue == fieldName ;
+    }
+    return false ;
+  });
 
-  Map<String,String> getFields( {List<String> ignore} ) {
-    // ignore: omit_local_variable_types
-    Map<String,String> map = {} ;
+  Map<String, Element> getFieldsElementsMap( {List<String> ignore} ) {
+    ignore ??= [] ;
 
-    for (var k in _fields.keys) {
-      if ( ignore != null && ignore.contains(k) ) continue;
+    var fieldsElements = _contentChildrenDeepImpl( content.children , [] , (e) {
+      if ( e is Element ) {
+        var fieldValue = getElementAttribute(e,'field') ;
+        return fieldValue != null && fieldValue.isNotEmpty ;
+      }
+      return false ;
+    } ) ;
 
-      var val = getField(k) ;
-      if (val != null) {
-        map[k] = val ;
+    var map = <String, Element>{} ;
+
+    for (var elem in fieldsElements) {
+      var fieldValue = getElementAttribute(elem,'field') ;
+      if ( !map.containsKey(fieldValue) && !ignore.contains(fieldValue) ) {
+        map[fieldValue] = elem ;
       }
     }
 
     return map ;
   }
 
-  String getField(String fieldName) {
-    var fieldElem = _fields[fieldName] ;
-    if (fieldElem == null) return null ;
+  List<Element> getFieldsElements() => List.from( getFieldsElementsMap().values ) ;
 
-    return parseElementValue(fieldElem);
-  }
+  static String parseElementValue(Element element , [UIComponent parentComponent]) {
 
-  static String parseElementValue(Element element) {
-    if ( element is InputElement ) {
+    UIComponent uiComponent ;
+
+    if (parentComponent != null) {
+      uiComponent = parentComponent.findUIComponentByChild(element) ;
+    }
+    else {
+      uiComponent = UIRoot.getInstance().findUIComponentByChild(element) ;
+    }
+
+    if ( uiComponent is UIField ) {
+      var uiField = uiComponent as UIField ;
+      return uiField.getFieldValue() ;
+    }
+
+    if ( element is TextAreaElement ) {
       return element.value ;
     }
-    else if ( element is TextAreaElement ) {
+    else if ( element is SelectElement ) {
+      var selected = element.selectedOptions ;
+      if ( selected == null || selected.isEmpty ) return '' ;
+      return selected.map( (opt) => opt.value ).join(';') ;
+    }
+    else if ( element is FileUploadInputElement ) {
+      var files = element.files ;
+      if (files != null && files.isNotEmpty) return files.map( (f) => f.name ).join(';') ;
+    }
+
+    if ( element is InputElement ) {
       return element.value ;
     }
     else {
@@ -1517,23 +1686,26 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  Element getFieldElement(String fieldName) {
-    var fieldElem = _fields[fieldName] ;
-    return fieldElem ;
+  Map<String,String> getFields( {List<String> ignore} ) => getFieldsElementsMap( ignore: ignore ).map( (k,v) => MapEntry(k, parseElementValue(v , this)) ) ;
+
+  String getField(String fieldName) {
+    var fieldElem = getFieldElement(fieldName);
+    if (fieldElem == null) return null ;
+    return parseElementValue(fieldElem , this );
   }
 
-  Map<String, dynamic> _fieldValues ;
+  Map<String, dynamic> _renderedFieldsValues ;
 
-  dynamic getPreviousRenderedFieldValue(String fieldName) => _fieldValues != null ? _fieldValues[fieldName] : null ;
+  dynamic getPreviousRenderedFieldValue(String fieldName) => _renderedFieldsValues != null ? _renderedFieldsValues[fieldName] : null ;
 
   void setField(String fieldName, dynamic value) {
-    var fieldElem = _fields[fieldName] ;
+    var fieldElem = getFieldElement(fieldName);
     if (fieldElem == null) return ;
 
     var valueStr = value != null ? '$value' : null ;
 
-    _fieldValues ??= {} ;
-    _fieldValues[fieldName] =  valueStr ;
+    _renderedFieldsValues ??= {} ;
+    _renderedFieldsValues[fieldName] =  valueStr ;
 
     if ( fieldElem is InputElement ) {
       fieldElem.value = valueStr ;
@@ -1544,61 +1716,41 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   void updateRenderedFieldValue(String fieldName) {
-    var fieldElem = _fields[fieldName] ;
+    var fieldElem = getFieldElement(fieldName);
     if (fieldElem == null) return ;
 
-    var value = parseElementValue(fieldElem) ;
+    var value = parseElementValue(fieldElem, this) ;
 
-    _fieldValues ??= {} ;
-    _fieldValues[fieldName] = value ;
+    _renderedFieldsValues ??= {} ;
+    _renderedFieldsValues[fieldName] = value ;
   }
 
-  void _clearFields() {
-    _fields.clear() ;
+  void updateRenderedFieldElementValue(Element fieldElem) {
+    if (fieldElem == null) return ;
+
+    var fieldName = fieldElem.getAttribute('field') ;
+    if (fieldName == null || fieldName.isEmpty) return ;
+
+    var value = parseElementValue(fieldElem , this ) ;
+
+    _renderedFieldsValues ??= {} ;
+    _renderedFieldsValues[fieldName] = value ;
   }
 
-  void _parseField(Element elem) {
-    var fieldName = getElementAttribute(elem,'field');
+  bool hasEmptyField() => getFieldsElementsMap().isEmpty;
 
-    if (fieldName != null && fieldName.isNotEmpty) {
-      _fields[fieldName] = elem ;
-
-      _fieldValues ??= {} ;
-      _fieldValues[fieldName] = parseElementValue(elem);
-    }
-  }
-
-  bool hasEmptyField() {
-    for( var field in _fields.values ) {
-      var val = parseElementValue(field) ;
-      if ( val == null || val.toString().isEmpty ) return true ;
-    }
-    return false ;
-  }
-
-  List<String> getFieldsNames() => List.from( _fields.keys ) ;
-
-  List<Element> getFieldsElements() => List.from( _fields.values ) ;
-
-  Map<String, Element> getFieldsElementsMap() => Map.from( _fields ).cast() ;
+  List<String> getFieldsNames() => List.from( getFieldsElementsMap().keys ) ;
 
   bool isEmptyField(String fieldName) {
     var fieldElement = getFieldElement(fieldName) ;
-    var val = parseElementValue( fieldElement ) ;
+    var val = parseElementValue( fieldElement , this ) ;
     return val == null || val.toString().isEmpty ;
   }
 
   List<String> getEmptyFields() {
-    // ignore: omit_local_variable_types
-    List<String> emptyFields = [] ;
-
-    for( var entry in _fields.entries ) {
-      var val = parseElementValue( entry.value ) ;
-      if ( val == null || val.toString().isEmpty ) {
-        emptyFields.add( entry.key ) ;
-      }
-    }
-    return emptyFields ;
+    var fields = getFields() ;
+    fields.removeWhere( (k,v) => (v != null && v.isNotEmpty) ) ;
+    return List.from( fields.keys ) ;
   }
 
   int forEachFieldElement( ForEachElement f ) {
