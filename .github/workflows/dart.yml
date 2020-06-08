@@ -22,6 +22,10 @@ jobs:
       run: apt-get install -y firefox-esr xorg
     - name: Install dependencies
       run: pub get
+    - name: WhoAmI
+      run: whoami
+    - name: User 1001
+      run: id -un 1001
     - name: Run tests
       run: su - $(id -un 1001) && pub run test -p firefox
 
