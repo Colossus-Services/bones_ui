@@ -16,13 +16,68 @@ Bones UI - A simple and easy Web User Interface framework for Dart
 A simple usage example:
 
 ```dart
+import 'dart:html';
 
 import 'package:bones_ui/bones_ui.dart';
 
-main() {
-  
-    //TODO
+void main() async {
+  // Creates `bones_ui` root and initialize it:
+  var root = MyRoot(querySelector('#output'));
+  root.initialize();
+}
 
+// `Bones_UI` root.
+class MyRoot extends UIRoot {
+  MyRoot(Element container) : super(container);
+
+  MyMenu _menu;
+  MyHome _home;
+
+  @override
+  void configure() {
+    _menu = MyMenu(content);
+    _home = MyHome(content);
+  }
+
+  // Returns the menu component.
+  @override
+  UIComponent renderMenu() => _menu;
+
+  // Returns the content component.
+  @override
+  UIComponent renderContent() => _home;
+}
+
+// Top menu.
+class MyMenu extends UIComponent {
+  MyMenu(Element parent) : super(parent);
+
+  // Renders a fixed top menu with sections 'home' and 'help'.
+  @override
+  dynamic render() {
+    return $div(
+        style: 'position: fixed; top: 0; left: 0; width: 100%; background-color: black; color: white; padding: 10px',
+        content: '<span style="fonte-size: 120%; font-weight: bold" navigate="home">Bones_UI &nbsp; - &nbsp;</span>'
+        );
+  }
+}
+
+// The `home` component.
+class MyHome extends UIComponent {
+  MyHome(Element parent) : super(parent);
+
+  @override
+  dynamic render() {
+    return markdownToDiv(('''
+    <br>
+    
+    # Home
+    
+    Welcome!
+    
+    This is a VERY simple example!
+    '''));
+  }
 }
 
 ```
