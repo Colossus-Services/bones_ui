@@ -16,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install Firefox
+      run: sudo apt-get install firefox xorg
     - name: Install dependencies
       run: pub get
     - name: Run tests
