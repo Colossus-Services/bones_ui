@@ -27,7 +27,7 @@ jobs:
     - name: Add user tester
       run: adduser --disabled-password tester
     - name: Clean Project
-      run: rm -rf .dart_tool .packages pubspec.lock
+      run: rm -rf .dart_tool .packages pubspec.lock && chown -R tester:tester . && ls -al
     - name: Pub Get
       run: su -c 'cd $(< /tmp/test-dir.txt) && pub get' tester
     - name: Run tests
