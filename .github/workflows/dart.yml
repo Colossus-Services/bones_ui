@@ -26,6 +26,8 @@ jobs:
       run: pwd && pwd >/tmp/test-dir.txt
     - name: Add user tester
       run: adduser --disabled-password tester
+    - name: Clean Project
+      run: rm -rf .dart_tool .packages pubspec.lock
     - name: Pub Get
       run: su -c 'cd $(< /tmp/test-dir.txt) && pub get' tester
     - name: Run tests
