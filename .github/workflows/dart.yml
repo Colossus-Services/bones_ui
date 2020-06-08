@@ -13,6 +13,7 @@ jobs:
 
     container:
       image:  google/dart:latest
+      options: --user 1001
 
     steps:
     - uses: actions/checkout@v2
