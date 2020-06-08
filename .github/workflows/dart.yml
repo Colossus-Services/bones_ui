@@ -19,7 +19,7 @@ jobs:
     - name: APT update
       run: apt-get update
     - name: Install Firefox
-      run: apt-get install firefox-esr xorg
+      run: apt-get install -y firefox-esr xorg
     - name: Install dependencies
       run: pub get
     - name: Run tests
