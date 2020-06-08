@@ -18,9 +18,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: APT update
-      run: apt-get update
+      run: sudo apt-get update
     - name: Install Firefox
-      run: apt-get install -y firefox-esr xorg
+      run: sudo apt-get install -y firefox-esr xorg
     - name: Install dependencies
       run: pub get
     - name: Run tests
