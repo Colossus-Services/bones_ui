@@ -20,13 +20,13 @@ jobs:
       run: apt-get update
     - name: Install Firefox
       run: apt-get install -y firefox-esr xorg
-    - name: Install dependencies
-      run: pub get
     - name: WhoAmI
       run: whoami
+    - name: Current DIR
+      run: pwd && pwd >/tmp/test-dir.txt
     - name: Add user tester
       run: adduser --disabled-password tester
-    - name: Current DIR
-      run: pwd
+    - name: Pub Get
+      run: su -c 'cd $(< /tmp/test-dir.txt) && pub get' tester
     - name: Run tests
-      run: su -c 'DISPLAY=:0 pub run test -p firefox' tester
+      run: su -c 'DISPLAY=:0 cd $(< /tmp/test-dir.txt) && pub run test -p firefox' tester
