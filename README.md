@@ -21,14 +21,14 @@ import 'dart:html';
 import 'package:bones_ui/bones_ui.dart';
 
 void main() async {
-  // Creates `bones_ui` root and initialize it:
+  // Create `bones_ui` root and initialize it:
   var root = MyRoot(querySelector('#output'));
   root.initialize();
 }
 
 // `Bones_UI` root.
 class MyRoot extends UIRoot {
-  MyRoot(Element container) : super(container);
+  MyRoot(Element rootContainer) : super(rootContainer);
 
   MyMenu _menu;
   MyHome _home;
@@ -52,12 +52,12 @@ class MyRoot extends UIRoot {
 class MyMenu extends UIComponent {
   MyMenu(Element parent) : super(parent);
 
-  // Renders a fixed top menu with sections 'home' and 'help'.
+  // Renders a fixed top menu with a title.
   @override
   dynamic render() {
     return $div(
         style: 'position: fixed; top: 0; left: 0; width: 100%; background-color: black; color: white; padding: 10px',
-        content: '<span style="fonte-size: 120%; font-weight: bold" navigate="home">Bones_UI &nbsp; - &nbsp;</span>'
+        content: '<span style="fonte-size: 120%; font-weight: bold">Bones_UI</span>'
         );
   }
 }
@@ -82,12 +82,22 @@ class MyHome extends UIComponent {
 
 ```
 
+## Example from Sources
+
+Get the source
+```
+  $> git clone https://github.com/Colossus-Services/bones_ui.git
+```
+
+...and see the [Web Example][example] (just follow the README file for instructions).
+
+[example]: https://github.com/Colossus-Services/bones_ui/tree/master/example
 
 ## Features and bugs
 
 Please file feature requests and bugs at the [issue tracker][tracker].
 
-[tracker]: https://github.com/Colossus-Services/bones_ui
+[tracker]: https://github.com/Colossus-Services/bones_ui/issues
 
 ## Colossus.Services
 

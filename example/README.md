@@ -2,12 +2,6 @@
 
 A simple Web Example with `bones_ui`.
 
-## Live Example
-
-You can see [here a live example][live_example]
-
-[live_example]: https://colossus-services.github.io/bones_ui/example/www/
-
 ## Running Example from Sources
 
 Git clone the `bones_ui` project (if you don't have it yet).

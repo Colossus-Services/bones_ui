@@ -3,14 +3,14 @@ import 'dart:html';
 import 'package:bones_ui/bones_ui.dart';
 
 void main() async {
-  // Creates `bones_ui` root and initialize it:
+  // Create `bones_ui` root and initialize it:
   var root = MyRoot(querySelector('#output'));
   root.initialize();
 }
 
 // `Bones_UI` root.
 class MyRoot extends UIRoot {
-  MyRoot(Element container) : super(container);
+  MyRoot(Element rootContainer) : super(rootContainer);
 
   MyMenu _menu;
   MyNavigable _navigable;
