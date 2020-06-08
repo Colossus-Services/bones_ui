@@ -29,4 +29,4 @@ jobs:
     - name: Current DIR
       run: pwd
     - name: Run tests
-      run: su - tester && pub run test -p firefox
+      run: su -c 'DISPLAY=:0 pub run test -p firefox' - tester
