@@ -1,11 +1,12 @@
 library pwa_worker;
 
 import 'dart:async';
+
 import 'package:service_worker/worker.dart';
 
 void _log(Object o) => print('PWA_WORKER: $o');
 
-Cache _cache ;
+Cache _cache;
 
 Future _initCache() async {
   _log('Init cache...');
@@ -51,17 +52,16 @@ void _registerHandlers() {
 
     event.waitUntil(_initCache());
   });
-
 }
 
 Future<Response> _getCachedOrFetch(int id, Request request) async {
   var r = await caches.match(request);
   if (r != null) {
-    _log('  $id: Found in cache: ${ request.url }');
+    _log('  $id: Found in cache: ${request.url}');
     return r;
   } else {
     _log('  $id: No cached version. Fetching: ${request.url}');
-    _cache.add(request);
+    await _cache.add(request);
     r = await fetch(request);
     _log('  $id: Got for ${request.url}: ${r.statusText}');
   }
@@ -70,8 +70,7 @@ Future<Response> _getCachedOrFetch(int id, Request request) async {
 
 class PWAWorker {
   static void start() {
-    print("PWAWorker: start") ;
+    print('PWAWorker: start');
     _registerHandlers();
   }
 }
-

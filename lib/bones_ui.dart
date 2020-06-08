@@ -8,6 +8,7 @@ export 'package:json_object_mapper/json_object_mapper.dart';
 export 'package:html_unescape/html_unescape.dart';
 
 export 'package:dom_tools/dom_tools.dart';
+export 'package:dom_builder/dom_builder.dart';
 
 export 'src/bones_ui_base.dart';
 export 'src/bones_ui_component.dart';

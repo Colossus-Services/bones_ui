@@ -1,4 +1,16 @@
-Bones UI - Simple and easy Web User Interface Framework for Dart
+# Bones UI
+
+[![pub package](https://img.shields.io/pub/v/bones_ui.svg?logo=dart&logoColor=00b9fc)](https://pub.dartlang.org/packages/bones_ui)
+[![CI](https://img.shields.io/github/workflow/status/Colossus-Services/bones_ui/Dart%20CI/master?logo=github-actions&logoColor=white)](https://github.com/Colossus-Services/bones_ui/actions)
+[![GitHub Tag](https://img.shields.io/github/v/tag/Colossus-Services/bones_ui?logo=git&logoColor=white)](https://github.com/Colossus-Services/bones_ui/releases)
+[![New Commits](https://img.shields.io/github/commits-since/Colossus-Services/bones_ui/latest?logo=git&logoColor=white)](https://github.com/Colossus-Services/bones_ui/network)
+[![Last Commits](https://img.shields.io/github/last-commit/Colossus-Services/bones_ui?logo=git&logoColor=white)](https://github.com/Colossus-Services/bones_ui/commits/master)
+[![Pull Requests](https://img.shields.io/github/issues-pr/Colossus-Services/bones_ui?logo=github&logoColor=white)](https://github.com/Colossus-Services/bones_ui/pulls)
+[![Code size](https://img.shields.io/github/languages/code-size/Colossus-Services/bones_ui?logo=github&logoColor=white)](https://github.com/Colossus-Services/bones_ui)
+[![License](https://img.shields.io/github/license/Colossus-Services/bones_ui?logo=open-source-initiative&logoColor=green)](https://github.com/Colossus-Services/bones_ui/blob/master/LICENSE)
+
+
+Bones UI - A simple and easy Web User Interface framework for Dart
 
 ## Usage
 
@@ -25,7 +37,7 @@ Please file feature requests and bugs at the [issue tracker][tracker].
 
 ## Colossus.Services
 
-This is a an open-source project from [Colossus.Services][colossus]:
+This is an open-source project from [Colossus.Services][colossus]:
 the gateway for smooth solutions.
 
 ## Author
@@ -34,10 +46,10 @@ Graciliano M. Passos: [gmpassos@GitHub][gmpassos_github].
 
 ## License
 
-[Apache License - Version 2.0][apache_license]
+[Colossus Cloud Services Open Source License - Version 1.0][colossus_license]
 
 
 [gmpassos_github]: https://github.com/gmpassos
 [colossus]: https://colossus.services/
-[apache_license]: https://www.apache.org/licenses/LICENSE-2.0.txt
+[colossus_license]: http://colossus.services/licenses/open-source/
 

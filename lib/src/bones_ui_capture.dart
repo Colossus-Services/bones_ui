@@ -1,7 +1,10 @@
 
+import 'dart:async';
 import 'dart:html';
 import 'dart:convert' as data_convert ;
 import 'dart:typed_data';
+
+import 'package:bones_ui/bones_ui.dart';
 
 import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
@@ -23,16 +26,16 @@ enum CaptureDataFormat {
   DATA_URL_BASE64,
 }
 
-abstract class UICapture extends UIButton implements UIField {
+abstract class UICapture extends UIButton implements UIField<String> {
 
   final CaptureType captureType ;
 
-  String _fieldName ;
+  final String _fieldName ;
 
-  UICapture(Element container, this.captureType, {String fieldName, String navigate, Map<String,String> navigateParameters, ParametersProvider navigateParametersProvider, dynamic classes}) :
+  UICapture(Element container, this.captureType, {String fieldName, String navigate, Map<String,String> navigateParameters, ParametersProvider navigateParametersProvider, dynamic classes, dynamic classes2, dynamic componentClass}) :
       _fieldName = fieldName ,
       super(
-          container, classes: classes,
+          container, classes: classes, classes2: classes2, componentClass: ['ui-capture', componentClass],
           navigate: navigate, navigateParameters: navigateParameters, navigateParametersProvider: navigateParametersProvider
       )
   ;
@@ -129,10 +132,7 @@ abstract class UICapture extends UIButton implements UIField {
       return data_convert.base64.decode(s) ;
     }
     else if ( _captureDataFormat == CaptureDataFormat.DATA_URL_BASE64 ) {
-      var s = _selectedFileData as String ;
-      var idx = s.indexOf(',') ;
-      var base64 = s.substring(idx+1) ;
-      return data_convert.base64.decode(base64) ;
+      return DataURLBase64.parsePayloadAsArrayBuffer(_selectedFileData as String);
     }
 
     return null ;
@@ -155,11 +155,7 @@ abstract class UICapture extends UIButton implements UIField {
       return data_convert.latin1.decode(data) ;
     }
     else if ( _captureDataFormat == CaptureDataFormat.DATA_URL_BASE64 ) {
-      var s = _selectedFileData as String ;
-      var idx = s.indexOf(',') ;
-      var base64 = s.substring(idx+1) ;
-      var data = data_convert.base64.decode(base64) ;
-      return data_convert.latin1.decode(data) ;
+      return DataURLBase64.parsePayloadAsString(_selectedFileData as String);
     }
 
     return null ;
@@ -183,8 +179,7 @@ abstract class UICapture extends UIButton implements UIField {
     }
     else if ( _captureDataFormat == CaptureDataFormat.DATA_URL_BASE64 ) {
       var s = _selectedFileData as String ;
-      var idx = s.indexOf(',') ;
-      return s.substring(idx+1) ;
+      return DataURLBase64.parsePayloadAsBase64(s);
     }
 
     return null ;
@@ -218,11 +213,11 @@ abstract class UICapture extends UIButton implements UIField {
 
     var mediaType = fileMimeType(_selectedFile) ;
 
-    return toDataURLBase64(mediaType, base64) ;
+    return toDataURLBase64( MimeType.asString(mediaType , '') , base64) ;
 
   }
 
-  String fileMimeType(File file) {
+  MimeType fileMimeType(File file) {
     var fileExtension = getPathExtension(file.name) ?? '' ;
     fileExtension = fileExtension.toLowerCase().trim() ;
 
@@ -240,7 +235,7 @@ abstract class UICapture extends UIButton implements UIField {
       mediaType = 'audio/$fileExtension' ;
     }
 
-    return mediaType ;
+    return MimeType.parse(mediaType) ;
   }
 
   String toDataURLBase64(String mediaType, String base64) {
@@ -255,26 +250,69 @@ abstract class UICapture extends UIButton implements UIField {
     _captureDataFormat = dataFormat ?? CaptureDataFormat.ARRAY_BUFFER ;
   }
 
+  // Default true since not all popular browsers can't handle Exif yet:
+  bool _removeExifFromImage = true ;
+
+  bool get removeExifFromImage => _removeExifFromImage;
+
+  set removeExifFromImage(bool value) {
+    _removeExifFromImage = value ?? false ;
+  }
+
   void _readFile(FileUploadInputElement input) async{
     if ( input != null && input.files.isNotEmpty ) {
       var file = input.files.first;
 
       _selectedFile = file ;
+      _selectedFileData = null ;
 
-      if ( _captureDataFormat == CaptureDataFormat.ARRAY_BUFFER ) {
-        _selectedFileData = await readFileDataAsArrayBuffer(file) ;
+      if ( _removeExifFromImage ) {
+        var mimeType = fileMimeType(file);
+
+        if ( mimeType != null && mimeType.isImageJPEG ) {
+          var fileDataURL = await readFileDataAsDataURLBase64(file) ;
+
+          if (fileDataURL != null) {
+            var img = ImageElement(src: fileDataURL) ;
+            await elementOnLoad(img) ;
+
+            var canvas = toCanvasElement(img, img.naturalWidth, img.naturalHeight) ;
+            img = canvasToImageElement(canvas, mimeType.toString()) ;
+
+            var dataURL = img.src ;
+
+            if (_captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+              _selectedFileData = DataURLBase64.parsePayloadAsArrayBuffer(dataURL) ;
+            }
+            else if (_captureDataFormat == CaptureDataFormat.STRING) {
+              _selectedFileData = DataURLBase64.parsePayloadAsString(dataURL) ;
+            }
+            else if (_captureDataFormat == CaptureDataFormat.BASE64) {
+              _selectedFileData = DataURLBase64.parsePayloadAsBase64(dataURL) ;
+            }
+            else if (_captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+              _selectedFileData = dataURL ;
+            }
+          }
+        }
       }
-      else if ( _captureDataFormat == CaptureDataFormat.STRING ) {
-        _selectedFileData = await readFileDataAsText(file) ;
-      }
-      else if ( _captureDataFormat == CaptureDataFormat.BASE64 ) {
-        _selectedFileData = await readFileDataAsBase64(file) ;
-      }
-      else if ( _captureDataFormat == CaptureDataFormat.DATA_URL_BASE64 ) {
-        _selectedFileData = await readFileDataAsDataURLBase64(file) ;
-      }
-      else {
-        throw StateError("Can't capture data as format: $_captureDataFormat") ;
+
+      if (_selectedFileData == null) {
+        if (_captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+          _selectedFileData = await readFileDataAsArrayBuffer(file);
+        }
+        else if (_captureDataFormat == CaptureDataFormat.STRING) {
+          _selectedFileData = await readFileDataAsText(file);
+        }
+        else if (_captureDataFormat == CaptureDataFormat.BASE64) {
+          _selectedFileData = await readFileDataAsBase64(file);
+        }
+        else if (_captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+          _selectedFileData = await readFileDataAsDataURLBase64(file);
+        }
+        else {
+          throw StateError("Can't capture data as format: $_captureDataFormat");
+        }
       }
 
       onCaptureData.add(this) ;
@@ -284,7 +322,7 @@ abstract class UICapture extends UIButton implements UIField {
   Future<String> readFileDataAsDataURLBase64(File file) async {
     var base64 = await readFileDataAsBase64(file) ;
     var mediaType = fileMimeType(file) ;
-    return toDataURLBase64(mediaType, base64) ;
+    return toDataURLBase64( MimeType.asString(mediaType , '') , base64) ;
   }
 
   Future<String> readFileDataAsBase64(File file) async {
@@ -453,11 +491,11 @@ class UIButtonCapturePhoto extends UICapture {
   final String text ;
   final String fontSize ;
 
-  UIButtonCapturePhoto(Element parent, this.text, {String fieldName, String navigate, Map<String,String> navigateParameters, ParametersProvider navigateParametersProvider, dynamic classes, bool small = false, this.fontSize}) : super(
-      parent, CaptureType.PHOTO, fieldName: fieldName, navigate: navigate, navigateParameters: navigateParameters, navigateParametersProvider: navigateParametersProvider, classes: classes
+  UIButtonCapturePhoto(Element parent, this.text, {String fieldName, String navigate, Map<String,String> navigateParameters, ParametersProvider navigateParametersProvider, dynamic classes, dynamic classes2, dynamic componentClass, bool small = false, this.fontSize}) : super(
+      parent, CaptureType.PHOTO, fieldName: fieldName, navigate: navigate, navigateParameters: navigateParameters, navigateParametersProvider: navigateParametersProvider, classes: classes , classes2: classes2, componentClass: [ small ? 'ui-button-small' : 'ui-button' , componentClass ]
   )
   {
-    configureClasses( classes , [ small ? 'ui-button-small' : 'ui-button' ] ) ;
+    configureClasses( classes , null , [ small ? 'ui-button-small' : 'ui-button' ] ) ;
   }
 
   @override

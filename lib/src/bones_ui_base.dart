@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:intl_messages/intl_messages.dart' ;
 import 'package:swiss_knife/swiss_knife.dart';
 import 'package:dom_tools/dom_tools.dart';
+import 'package:dom_builder/dom_builder_dart_html.dart';
 
 import 'bones_ui_layout.dart';
 
@@ -50,6 +51,10 @@ abstract class EventHandlerPrivate {
 
 }
 
+/// A console output int the UI.
+///
+/// Useful for web development, allowing access to console output
+/// directly in the UI.
 class UIConsole {
 
   static UIConsole _instance ;
@@ -59,15 +64,12 @@ class UIConsole {
     return _instance ;
   }
 
-  /////////////////
-
   bool _enabled = false ;
   final List<String> _logs = [] ;
 
   int _limit = 10000 ;
 
   UIConsole._internal() {
-
     mapJSUIConsole();
   }
 
@@ -77,9 +79,13 @@ class UIConsole {
     _mapJSUIConsole = true ;
 
     try {
-      mapJSFunction('UIConsole', (o) {
+      mapJSFunction('UIConsole',
+          (o) {
             UIConsole.log('JS> $o') ;
-          });
+          }
+      );
+
+      evalJS(' UIConsole("MOHHH!!!") ') ;
     }
     catch (e) {
       UIConsole.error("Can't mapJSFunction: UIConsole", e) ;
@@ -302,7 +308,7 @@ class UIConsole {
       ..padding = '6px 6px 7px 6px'
       ..color = '#ffffff'
       ..backgroundColor = 'rgba(0,0,0, 0.90)'
-      ..zIndex = '100'
+      ..zIndex = '9999999999'
     ;
 
     var contentClipboard = createDivInline() ;
@@ -444,12 +450,14 @@ class UIConsole {
     }
   }
 
+  static final String BUTTON_ID = 'UIConsole_button' ;
+
   static DivElement button([double opacity = 0.20]) {
     enable();
 
     var elem = createDivInline('[>_]') ;
 
-    elem.id = 'UIConsole_button' ;
+    elem.id = BUTTON_ID ;
 
     elem.style
       ..backgroundColor = 'rgba(0,0,0, 0.5)'
@@ -464,7 +472,7 @@ class UIConsole {
   }
 
   static void displayButton() {
-    var prevElem = querySelector('#UIConsole_button');
+    var prevElem = querySelector('#$BUTTON_ID');
     if (prevElem != null) return ;
 
     var elem = button(1.0);
@@ -484,6 +492,7 @@ class UIConsole {
 
 }
 
+/// Tracks and fires events of device orientation changes.
 class UIDeviceOrientation extends EventHandlerPrivate {
 
   static final EVENT_CHANGE_ORIENTATION = 'CHANGE_ORIENTATION' ;
@@ -499,6 +508,7 @@ class UIDeviceOrientation extends EventHandlerPrivate {
     window.onDeviceOrientation.listen(_onChangeOrientation);
   }
 
+  /// Registers [listen] for device orientation changes.
   static void listen(UIEventListener listener) {
     get()._listen(listener);
   }
@@ -519,6 +529,7 @@ class UIDeviceOrientation extends EventHandlerPrivate {
     _lastOrientation = orientation ;
   }
 
+  /// Returns [true] if device is in landscape orientation.
   static bool isLandscape() {
     var orientation = window.orientation ;
     if (orientation == null) return false ;
@@ -527,6 +538,7 @@ class UIDeviceOrientation extends EventHandlerPrivate {
 
 }
 
+/// Returns [true] if a `Bones_UI` component is in DOM.
 bool isComponentInDOM(dynamic element) {
   if (element == null) return false ;
 
@@ -550,6 +562,7 @@ bool isComponentInDOM(dynamic element) {
   return false ;
 }
 
+/// Returns [true] if [element] type is able to be in DOM.
 bool canBeInDOM(dynamic element) {
   if (element == null) return false ;
 
@@ -574,12 +587,19 @@ typedef FilterElement = bool Function( Element elem ) ;
 typedef ForEachElement = void Function( Element elem ) ;
 typedef ParametersProvider = Map<String,String> Function() ;
 
-abstract class UIField {
+abstract class UIField<V> {
 
-  String getFieldValue() ;
+  V getFieldValue() ;
 
 }
 
+abstract class UIFieldMap<V> {
+
+  Map<String,V> getFieldMap() ;
+
+}
+
+/// Base class do create `Bones_UI` components.
 abstract class UIComponent extends UIEventHandler {
 
   dynamic id ;
@@ -591,7 +611,7 @@ abstract class UIComponent extends UIEventHandler {
   bool _constructing ;
   bool get constructing => _constructing ;
 
-  UIComponent( Element parent, {dynamic classes, dynamic classes2, bool inline = true, bool renderOnConstruction, this.id}) :
+  UIComponent( Element parent, {dynamic classes, dynamic classes2, dynamic componentClass, bool inline = true, bool renderOnConstruction, this.id}) :
       _parent = parent ?? createDivInline()
   {
     _constructing = true ;
@@ -599,15 +619,15 @@ abstract class UIComponent extends UIEventHandler {
       _setParentUIComponent( _getUIComponentRenderingByContent(_parent) ) ;
       _content = createContentElement(inline);
 
-      configureClasses(classes, classes2);
+      configureClasses(classes, classes2, componentClass);
 
       configure();
 
       _parent.children.add(_content);
 
-      renderOnConstruction ??= this.renderOnConstruction();
+      renderOnConstruction ??= false ;
 
-      if (renderOnConstruction != null && renderOnConstruction) {
+      if (renderOnConstruction) {
         callRender();
       }
     }
@@ -734,11 +754,10 @@ abstract class UIComponent extends UIEventHandler {
     List<String> classesNames ;
 
     if (classes is List) {
-      classesNames = classes.map((d) => d != null ? d.toString() : '').where((s) => s.isNotEmpty).toList() ;
+      classesNames = classes.where( (c) => c != null ).expand( (c) => _normalizeClasses(c) ).toList().where((c) => c.isNotEmpty).toList() ;
     }
     else {
-      var className = classes.toString() ;
-      classesNames = [className] ;
+      classesNames = classes.toString().split(RegExp(r'[\s,]+')).where((s) => s.isNotEmpty).toList() ;
     }
 
     classesNames.removeWhere( (s) => s == null || s.isEmpty ) ;
@@ -746,9 +765,10 @@ abstract class UIComponent extends UIEventHandler {
     return classesNames ;
   }
 
-  void configureClasses(classes1, classes2) {
-    var classesNames1 = _normalizeClasses(classes1) ;
-    var classesNames2 = _normalizeClasses(classes2) ;
+  void configureClasses(classes1, [classes2, componentClasses]) {
+    var classesNames1 = toFlatListOfStrings(classes1) ;
+    var classesNames2 = toFlatListOfStrings(classes2) ;
+    var classesNamesComponent = toFlatListOfStrings(componentClasses) ;
 
     classesNames1.addAll(classesNames2) ;
 
@@ -764,9 +784,15 @@ abstract class UIComponent extends UIEventHandler {
       content.classes.removeAll(classesNamesRemove) ;
     }
 
-  }
+    if ( classesNamesComponent != null && classesNamesComponent.isNotEmpty ) {
+      for (var c in classesNamesComponent) {
+        if ( !content.classes.contains(c) ) {
+          content.classes.add(c);
+        }
+      }
+    }
 
-  bool renderOnConstruction() => true ;
+  }
 
   void configure() {
 
@@ -1174,6 +1200,13 @@ abstract class UIComponent extends UIEventHandler {
       _resolve_componentsRenderingExtra();
 
       try {
+        _notifyRendered();
+      }
+      catch (e,s) {
+        UIConsole.error('$this _notifyRendered error', e, s);
+      }
+
+      try {
         _notifyRenderToParent() ;
       }
       catch (e,s) {
@@ -1274,6 +1307,12 @@ abstract class UIComponent extends UIEventHandler {
         _ensureAllRendered(subElements) ;
       }
     }
+  }
+
+  final EventStream<UIComponent> onRender = EventStream() ;
+
+  void _notifyRendered() {
+    Future.delayed( Duration(milliseconds: 1) , () => onRender.add(this) ) ;
   }
 
   void _notifyRenderToParent() {
@@ -1441,7 +1480,16 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  static final UIDOMGenerator _domGenerator = UIDOMGenerator() ;
+
   int _buildRenderList(dynamic value, List renderedList, int prevElemIndex) {
+    if (value == null) return prevElemIndex ;
+
+    if ( value is DOMNode ) {
+      var domNode = value as DOMNode ;
+      value = domNode.buildDOM(_domGenerator) ;
+    }
+
     if ( value is Node ) {
       var idx = content.childNodes.indexOf(value);
 
@@ -1536,6 +1584,9 @@ abstract class UIComponent extends UIEventHandler {
 
         renderedList.addAll( appendedElements ) ;
       }
+    }
+    else {
+      throw UnsupportedError("Bones_UI: Can't render element of type: ${ value.runtimeType }") ;
     }
 
     return prevElemIndex ;
@@ -1662,20 +1713,21 @@ abstract class UIComponent extends UIEventHandler {
 
     if ( uiComponent is UIField ) {
       var uiField = uiComponent as UIField ;
-      return uiField.getFieldValue() ;
+      return MapProperties.toStringValue( uiField.getFieldValue() ) ;
     }
-
-    if ( element is TextAreaElement ) {
+    else if ( element is TextAreaElement ) {
       return element.value ;
     }
     else if ( element is SelectElement ) {
       var selected = element.selectedOptions ;
       if ( selected == null || selected.isEmpty ) return '' ;
-      return selected.map( (opt) => opt.value ).join(';') ;
+      return MapProperties.toStringValue( selected.map( (opt) => opt.value ) ) ;
     }
     else if ( element is FileUploadInputElement ) {
       var files = element.files ;
-      if (files != null && files.isNotEmpty) return files.map( (f) => f.name ).join(';') ;
+      if (files != null && files.isNotEmpty) {
+        return MapProperties.toStringValue( files.map( (f) => f.name ) ) ;
+      }
     }
 
     if ( element is InputElement ) {
@@ -1843,46 +1895,50 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  //////////////////////
-
-
-// Dart 2 Mirrors is not stable yet:
-/*
-  InstanceMirror _instanceMirror ;
-
-  InstanceMirror getInstanceMirror() {
-    if (_instanceMirror == null) {
-      _instanceMirror = reflect(this);
-    }
-    return _instanceMirror;
-  }
-
-  void _parseFields(Element elem) {
-      var fieldName = elem.getAttribute("field");
-
-      if (fieldName != null && fieldName.isNotEmpty) {
-        var instanceMirror = getInstanceMirror();
-
-        try {
-          var symbol = MirrorSystem.getSymbol(fieldName);
-          UIConsole.log("SET> $instanceMirror > $symbol > $elem");
-          instanceMirror.setField(symbol, elem).reflectee ;
-        }
-        catch (e) {
-          UIConsole.log("Error setting field: $e");
-        }
-
-      }
-  }
-
-  */
-
-
 
 }
 
+/// A [DOMGenerator] (from package `dom_builder`)
+/// able to generate [Element] (from `dart:html`).
+class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
+
+  @override
+  bool canHandleExternalElement(externalElement) {
+    if ( externalElement is List ) {
+      return listMatchesAll(externalElement, canHandleExternalElement) ;
+    }
+    else if ( externalElement is UIComponent ) {
+      return true ;
+    }
+
+    return super.canHandleExternalElement(externalElement) ;
+  }
+
+  @override
+  Element addExternalElementToElement(Element element, externalElement) {
+    if ( externalElement is List ) {
+      for (var elem in externalElement) {
+        addExternalElementToElement(element, elem) ;
+      }
+      return null ;
+    }
+    else if ( externalElement is UIComponent ) {
+      var component = externalElement ;
+      var componentContent = component.content ;
+      element.children.add(componentContent) ;
+      component.setParent(element);
+      return componentContent ;
+    }
+
+    return super.addExternalElementToElement(element, externalElement);
+  }
+
+}
+
+/// A `Bones_UI` component for navigable contents by routes.
 abstract class UINavigableContent extends UINavigableComponent {
 
+  /// Optional top margin (in px) for the content.
   int topMargin ;
 
   UINavigableContent(Element parent, List<String> routes, {this.topMargin, dynamic classes, dynamic classes2, bool inline = true, bool renderOnConstruction = false} ) : super(parent, routes, classes: classes, classes2: classes2, inline: inline, renderOnConstruction: renderOnConstruction) ;
@@ -1915,15 +1971,18 @@ abstract class UINavigableContent extends UINavigableComponent {
     return allRendered ;
   }
 
+  /// Called to render the head of the content.
   dynamic renderRouteHead(String route, Map<String,String> parameters) { return null ;}
+
+  /// Called to render the footer of the content.
   dynamic renderRouteFoot(String route, Map<String,String> parameters) { return null ;}
 
 }
 
-
-
+/// Base class for content components.
 abstract class UIContent extends UIComponent {
 
+  /// Optional top margin (in px) for the content.
   int topMargin ;
 
   UIContent(Element parent, {this.topMargin, dynamic classes, dynamic classes2, bool inline = true, bool renderOnConstruction} ) : super(parent, classes: classes, classes2: classes2, inline: inline, renderOnConstruction: renderOnConstruction) ;
@@ -1952,8 +2011,13 @@ abstract class UIContent extends UIComponent {
     return allRendered ;
   }
 
+  /// Called to render the head of the content.
   dynamic renderHead() { return null ;}
+
+  /// Called to render the content.
   dynamic renderContent();
+
+  /// Called to render the footer of the content.
   dynamic renderFoot() { return null ;}
 
 }
@@ -2026,6 +2090,7 @@ bool _isElementForDOM(dynamic element) {
 
 typedef AsyncContentProvider = Future<dynamic> Function() ;
 
+/// An asynchronous content.
 class UIAsyncContent {
   AsyncContentProvider _asyncContentProvider ;
   Future<dynamic> _asyncContentFuture ;
@@ -2035,6 +2100,9 @@ class UIAsyncContent {
   Duration _refreshInterval ;
 
   _Content _loadedContent ;
+
+  final String _locale ;
+  String get locale => _locale;
 
   final Map<String,dynamic> _properties ;
 
@@ -2046,6 +2114,22 @@ class UIAsyncContent {
     if (asyncContent == null) return false ;
 
     if ( asyncContent.equalsProperties(properties) ) {
+      return isValidLocale(asyncContent) ;
+    }
+    else {
+      asyncContent.stop() ;
+      return false ;
+    }
+  }
+
+  static bool isNotValidLocale(UIAsyncContent asyncContent) {
+    return !isValidLocale(asyncContent) ;
+  }
+
+  static bool isValidLocale(UIAsyncContent asyncContent) {
+    if (asyncContent == null) return false ;
+
+    if ( asyncContent.equalsCurrentLocale() ) {
       return true ;
     }
     else {
@@ -2054,6 +2138,10 @@ class UIAsyncContent {
     }
   }
 
+  bool equalsCurrentLocale() => _locale == IntlLocale.getDefaultLocale() ;
+
+  bool equalsLocale( String locale ) => _locale == locale;
+
   bool equalsProperties( Map<String,dynamic> properties ) {
     properties ??= {} ;
     return isEqualsDeep(_properties, properties) ;
@@ -2061,7 +2149,14 @@ class UIAsyncContent {
 
   final EventStream<dynamic> onLoadContent = EventStream() ;
 
+  /// Constructs an [UIAsyncContent] using [_asyncContentProvider] ([Function]), that returns the content.
+  ///
+  /// [loadingContent] Content to show while loading.
+  /// [errorContent] Content to show on error.
+  /// [_refreshInterval] Interval to refresh the content.
+  /// [properties] Properties of this content.
   UIAsyncContent.provider(this._asyncContentProvider, dynamic loadingContent, [dynamic errorContent, this._refreshInterval, Map<String,dynamic> properties]) :
+        _locale = IntlLocale.getDefaultLocale() ,
         _properties = properties ?? {}
     {
     _loadingContent = _ensureElementForDOM(loadingContent) ;
@@ -2070,7 +2165,14 @@ class UIAsyncContent {
     _callContentProvider(false) ;
   }
 
+  /// Constructs an [UIAsyncContent] using [contentFuture] ([Future<dynamic>]), that returns the content.
+  ///
+  /// [loadingContent] Content to show while loading.
+  /// [errorContent] Content to show on error.
+  /// [_refreshInterval] Interval to refresh the content.
+  /// [properties] Properties of this content.
   UIAsyncContent.future(Future<dynamic> contentFuture, dynamic loadingContent, [dynamic errorContent, Map<String,dynamic> properties]) :
+        _locale = IntlLocale.getDefaultLocale() ,
         _properties = properties ?? {}
   {
     _loadingContent = _ensureElementForDOM(loadingContent) ;
@@ -2087,6 +2189,7 @@ class UIAsyncContent {
   bool _stopped = false ;
   bool get stopped => _stopped;
 
+  /// Stops any attempt to load this content.
   void stop() {
     _stopped = true ;
   }
@@ -2142,13 +2245,23 @@ class UIAsyncContent {
 
   void _setAsyncContentFuture(Future<dynamic> contentFuture) {
     _asyncContentFuture = contentFuture ;
-    _asyncContentFuture.then(_onLoadedContent).catchError(_onLoadError) ;
+
+    if (_asyncContentFuture != null) {
+      _asyncContentFuture.then(_onLoadedContent).catchError(_onLoadError);
+    }
+    else {
+      _onLoadedContent(null);
+    }
   }
 
+  /// Calls [refresh] asynchronously.
   void refreshAsync() {
     Future.microtask( refresh ) ;
   }
 
+  /// Refresh this content.
+  ///
+  /// If [_asyncContentProvider] is null calls to this method are ignored.
   void refresh() {
     _refreshImpl(true) ;
   }
@@ -2159,15 +2272,20 @@ class UIAsyncContent {
   }
 
   int _loadCount = 0 ;
+  /// Returns the number of loads performed for this asynchronous content.
   int get loadCount => _loadCount;
 
   DateTime _loadTime ;
+  /// Returns the [DateTime] of last load.
   DateTime get loadTime => _loadTime;
 
+  /// Returns in milliseconds the amount of elpased time since last load.
   int get elapsedLoadTime => _loadTime != null ? DateTime.now().millisecondsSinceEpoch - _loadTime.millisecondsSinceEpoch : -1 ;
 
+  /// Returns true if this content is expired ([elapsedLoadTime] > [_refreshInterval]).
   bool get isExpired => _refreshInterval != null && elapsedLoadTime > _refreshInterval.inMilliseconds ;
 
+  /// Returns [true] if has a [_refreshInterval].
   bool get hasAutoRefresh => _refreshInterval != null ;
 
   void _onLoadedContent(dynamic content) {
@@ -2211,11 +2329,15 @@ class UIAsyncContent {
     }
   }
 
+  /// Returns [true] if the content is loaded.
   bool get isLoaded => _loadedContent != null ;
 
+  /// Returns [true] if the content is loaded and OK.
   bool get isOK => _loadedContent != null && _loadedContent.status == 200 ;
+  /// Returns [true] if the content is loaded and with error.
   bool get isWithError => _loadedContent != null && _loadedContent.status == 500 ;
 
+  /// Returns the already loaded content.
   dynamic get content {
     if ( _loadedContent == null ) {
       return loadingContent ;
@@ -2228,6 +2350,9 @@ class UIAsyncContent {
     }
   }
 
+  /// Resets the component.
+  ///
+  /// [refresh] If [true] (default), will call [refresh] after reset.
   void reset( [bool refresh = true] ) {
     print('RESET ASYNC CONTENT> $this');
 
@@ -2254,25 +2379,22 @@ class Dimension {
 
   Dimension(this.width, this.height);
 
-
 }
 
-///////////////////////////////////////////////////
-
+/// The root for `Bones_UI` component tree.
 abstract class UIRoot extends UIComponent {
 
   static UIRoot _rootInstance ;
 
+  /// Returns the current [UIRoot] instance.
   static UIRoot getInstance() {
     return _rootInstance ;
   }
 
-  /////////////////////////////////////////////////
-
   LocalesManager _localesManager ;
   Future<bool> _futureInitializeLocale ;
 
-  UIRoot(Element container, {dynamic classes}) : super(container, classes: classes) {
+  UIRoot(Element rootContainer, {dynamic classes}) : super(rootContainer, classes: classes) {
     _rootInstance = this ;
 
     _localesManager = createLocalesManager(initializeLocale, _onDefineLocale) ;
@@ -2285,6 +2407,8 @@ abstract class UIRoot extends UIComponent {
     UINavigator.get().refreshNavigationAsync();
 
     UIConsole.checkAutoEnable() ;
+
+    UIConsole.enable();
   }
 
   void _onResize(Event e) {
@@ -2344,9 +2468,6 @@ abstract class UIRoot extends UIComponent {
   }
 
   @override
-  bool renderOnConstruction() => false ;
-
-  @override
   List render() {
     var menu = renderMenu() ;
     var content = renderContent() ;
@@ -2392,7 +2513,9 @@ abstract class UIRoot extends UIComponent {
     }
   }
 
+  /// [EventStream] for when this [UIRoot] is initialized.
   final EventStream<UIRoot> onInitialize = EventStream() ;
+  /// [EventStream] for when this [UIRoot] finishes to render UI.
   final EventStream<UIRoot> onFinishRender = EventStream() ;
 
   void _onReadyToInitialize() {
@@ -2425,19 +2548,22 @@ abstract class UIRoot extends UIComponent {
     buildAppStatusBar();
   }
 
+  /// Called to render App status bar.
   void buildAppStatusBar() {
     return null ;
   }
 
-
+  /// Called to render UI menu.
   UIComponent renderMenu() {
     return null ;
   }
 
+  /// Called to render UI content.
   UIComponent renderContent() ;
 
 }
 
+/// A `Bones_UI` component for navigable components by routes.
 abstract class UINavigableComponent extends UIComponent {
 
   List<String> _routes ;
@@ -2466,11 +2592,23 @@ abstract class UINavigableComponent extends UIComponent {
 
     UINavigator.get().registerNavigable(this);
 
-    renderOnConstruction ??= this.renderOnConstruction();
-
     if ( renderOnConstruction ) {
       callRender();
     }
+  }
+
+  String _currentTitle = '' ;
+
+  String get currentTitle => _currentTitle;
+
+  set currentTitle(String value) {
+    _currentTitle = value ?? '' ;
+  }
+
+  bool get findRoutes => _findRoutes;
+
+  set findRoutes(bool value) {
+    _findRoutes = value;
   }
 
   void _normalizeRoutes() {
@@ -2522,6 +2660,7 @@ abstract class UINavigableComponent extends UIComponent {
   String get currentRoute => _currentRoute ;
   Map<String,String> get currentRouteParameters => copyMapString(_currentRouteParameters) ;
 
+  /// Returns [true] if this instance can navigate to [route].
   bool canNavigateTo(String route) {
     for (var r in routes) {
       if ( route == r || route.startsWith('$r/') ) {
@@ -2568,8 +2707,11 @@ abstract class UINavigableComponent extends UIComponent {
     return rendered ;
   }
 
+  /// Called to render the [route] with [parameters].
   dynamic renderRoute(String route, Map<String,String> parameters) ;
 
+  /// Changes the current selected [route], with [parameters],
+  /// of this [UINavigableComponent].
   bool navigateTo(String route, [Map<String,String> parameters]) {
     if ( !canNavigateTo(route) ) return false ;
 
@@ -2582,12 +2724,17 @@ abstract class UINavigableComponent extends UIComponent {
 
 }
 
+/// Represents a navigation ([route] + [parameters]).
 class Navigation {
+
+  /// The route ID/name.
   final String route ;
+  /// The route parameters.
   final Map<String,String> parameters ;
 
   Navigation(this.route, [this.parameters]) ;
 
+  /// Returns [true] if this route ID/name is valid.
   bool get isValid => route != null && route.isNotEmpty ;
 
   String parameter(String key, [String def]) => parameters != null ? parameters[key] ?? def : def ;
@@ -2606,6 +2753,7 @@ class Navigation {
   }
 }
 
+/// Handles navigation and routes.
 class UINavigator {
 
   static UINavigator _instance ;
@@ -2632,9 +2780,14 @@ class UINavigator {
     UIConsole.log('Init UINavigator[$href]> route: $_currentRoute ; parameters:  $_currentRouteParameters ; secureContext: $isSecureContext') ;
   }
 
+  /// Returns [true] if this device is online.
   static bool get isOnline => window.navigator.onLine ;
+  /// Returns [true] if this device is off-line.
   static bool get isOffline => !isOnline ;
 
+  /// Returns [true] if this device is in secure contexts (HTTPS).
+  ///
+  /// See: [https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts]
   static bool get isSecureContext {
     try {
       return window.isSecureContext ;
@@ -2671,32 +2824,37 @@ class UINavigator {
       return ;
     }
 
-    UIConsole.log('UINavigator._onChangeRoute: $uri > ${ event.oldUrl }');
+    UIConsole.log('UINavigator._onChangeRoute: new: $uri > previous: ${ event.oldUrl }');
     _navigateToFromURL(uri);
   }
 
+  /// Refreshed the current route asynchronously.
   void refreshNavigationAsync([bool force = false]) {
     Future.microtask( () => refreshNavigation(force) );
   }
 
+  /// Refreshed the current route.
   void refreshNavigation([bool force = false]) {
-    _navigateTo(currentRoute, _currentRouteParameters, null, force);
+    _navigateTo(currentRoute, parameters: _currentRouteParameters, force: force);
   }
 
   String _currentRoute ;
   Map<String,String> _currentRouteParameters ;
 
+  /// Returns the current [Navigation].
   static Navigation get currentNavigation {
     var route = currentRoute;
     if (route == null || route.isEmpty) return null ;
     return Navigation( route, currentRouteParameters );
   }
 
+  /// Returns the current route.
   static String get currentRoute => get()._currentRoute ;
+  /// Returns the current route parameters.
   static Map<String,String> get currentRouteParameters => copyMapString( get()._currentRouteParameters ) ;
 
-  static
-  bool get hasRoute => get()._hasRoute() ;
+  /// Returns [true] if current location has a route entry.
+  static bool get hasRoute => get()._hasRoute() ;
 
   bool _hasRoute() {
     return _currentRoute != null && _currentRoute.isNotEmpty ;
@@ -2740,45 +2898,55 @@ class UINavigator {
 
     UIConsole.log('UINavigator._navigateToFromURL[$url] route: $route ; parameters: $parameters');
 
-    _navigateTo(route, parameters, null, force) ;
+    _navigateTo(route, parameters: parameters, force: force, fromURL: true) ;
   }
 
+  /// Navigate using [navigation] do determine route and parameters.
   static void navigate(Navigation navigation, [bool force = false]) {
     if (navigation == null || !navigation.isValid) return ;
-    get()._callNavigateTo(navigation.route, navigation.parameters, null, force);
+    get()._callNavigateTo(navigation.route, parameters: navigation.parameters, force: force);
   }
 
-  static void navigateAsync(Navigation navigation, [bool force = false]) {
+  /// Navigate asynchronously using [navigation] do determine route and parameters.
+  static void navigateAsync(Navigation navigation, {bool force = false}) {
     if (navigation == null || !navigation.isValid) return ;
     get()._callNavigateToAsync(navigation.route, navigation.parameters, null, force);
   }
 
-  static void navigateTo(String route, [Map<String,String> parameters, ParametersProvider parametersProvider, bool force = false]) {
-    get()._callNavigateTo(route, parameters, parametersProvider, force);
+  /// Navigate to a [route] with [parameters] or [parametersProvider].
+  ///
+  /// [force] If [true] changes the route even if the current route is the same.
+  static void navigateTo(String route, {Map<String,String> parameters, ParametersProvider parametersProvider, bool force = false}) {
+    get()._callNavigateTo(route, parameters: parameters, parametersProvider: parametersProvider, force: force);
   }
 
-  static void navigateToAsync(String route, [Map<String,String> parameters,  ParametersProvider parametersProvider, bool force = false]) {
+  /// Navigate asynchronously to a [route] with [parameters] or [parametersProvider].
+  ///
+  /// [force] If [true] changes the route even if the current route is the same.
+  static void navigateToAsync(String route, {Map<String,String> parameters,  ParametersProvider parametersProvider, bool force = false}) {
     get()._callNavigateToAsync(route, parameters, parametersProvider, force);
   }
 
-  void _callNavigateTo(String route, [Map<String,String> parameters, ParametersProvider parametersProvider, bool force = false]) {
+  void _callNavigateTo(String route, {Map<String,String> parameters, ParametersProvider parametersProvider, bool force = false}) {
     if ( _navigables.isEmpty || findNavigable(route) == null ) {
-      Future.microtask( () => _navigateTo(route, parameters, parametersProvider, force) ) ;
+      Future.microtask( () => _navigateTo(route, parameters: parameters, parametersProvider: parametersProvider, force: force) ) ;
     }
     else {
-      _navigateTo(route, parameters, parametersProvider, force);
+      _navigateTo(route, parameters: parameters, parametersProvider: parametersProvider, force: force);
     }
   }
 
   void _callNavigateToAsync(String route, [Map<String,String> parameters, ParametersProvider parametersProvider, bool force = false]) {
-    Future.microtask( () => _navigateTo(route, parameters, parametersProvider, force) ) ;
+    Future.microtask( () => _navigateTo(route, parameters: parameters, parametersProvider: parametersProvider, force: force) ) ;
   }
 
   int _navigateCount = 0 ;
   final List<Navigation> _navigationHistory = [] ;
 
+  /// Returns a history list of [Navigation].
   static List<Navigation> get navigationHistory => List.from( get()._navigationHistory ) ;
 
+  /// Returns the initial route when browser window was open.
   static String get initialRoute => get()._initialRoute ;
 
   String get _initialRoute {
@@ -2787,6 +2955,7 @@ class UINavigator {
 
   }
 
+  /// Returns the initial [Navigation] when browser window was open.
   static Navigation get initialNavigation => get()._initialNavigation ;
 
   Navigation get _initialNavigation {
@@ -2806,9 +2975,10 @@ class UINavigator {
 
   final EventStream<String> _onNavigate = EventStream() ;
 
+  /// [EventStream] for when navagation changes.
   static EventStream<String> get onNavigate => get()._onNavigate ;
 
-  void _navigateTo(String route, [Map<String,String> parameters, ParametersProvider parametersProvider, bool force = false]) {
+  void _navigateTo(String route, {Map<String,String> parameters, ParametersProvider parametersProvider, bool force = false, bool fromURL = false}) {
     if ( route == '<' ) {
       var navigation = _navigationHistory.last ;
 
@@ -2869,12 +3039,15 @@ class UINavigator {
     var locationUrl = window.location.href ;
     var locationUrl2 = locationUrl.contains('#') ? locationUrl.replaceFirst(RegExp(r'#.*'), fragment) : '$locationUrl$fragment' ;
 
-    _suspend_onChangeRoute();
-    try {
-      window.location.href = locationUrl2;
+    var routeNavigable = findNavigable(route) ;
+
+    var routeTitle = route ;
+    if (routeNavigable != null) {
+      routeTitle = routeNavigable.currentTitle ;
     }
-    finally {
-      _resume_onChangeRouteAsync();
+
+    if ( !fromURL ) {
+      window.history.pushState({}, routeTitle, locationUrl2);
     }
 
     clearDetachedNavigables();
@@ -2898,6 +3071,7 @@ class UINavigator {
 
   final List<UINavigableComponent> _navigables = [] ;
 
+  /// Finds a [UINavigableComponent] that responds for [route].
   UINavigableComponent findNavigable(String route) {
     for (var nav in _navigables) {
       if ( nav.canNavigateTo(route) ) return nav ;
@@ -2905,6 +3079,9 @@ class UINavigator {
     return null ;
   }
 
+  /// Registers a [UINavigableComponent].
+  ///
+  /// Called internally by [UINavigableComponent].
   void registerNavigable(UINavigableComponent navigable) {
     if ( !_navigables.contains(navigable) ) {
       _navigables.add(navigable);
@@ -2913,30 +3090,35 @@ class UINavigator {
     clearDetachedNavigables() ;
   }
 
-  List<Element> selectNavigables([Element elem]) {
-    return elem != null ? elem.querySelectorAll('.UINavigableContainer') : document.querySelectorAll('.UINavigableContainer')  ;
+  /// Returns [List<Element>] that are from navigable components.
+  ///
+  /// [element] If null uses [document] to select sub elements.
+  List<Element> selectNavigables([Element element]) {
+    return element != null ? element.querySelectorAll('.UINavigableContainer') : document.querySelectorAll('.UINavigableContainer')  ;
   }
 
-  List<String> findElementNavigableRoutes(Element elem) {
+
+  /// Find in [element] tree nodes with attribute `navigate`.
+  List<String> findElementNavigableRoutes(Element element) {
     // ignore: omit_local_variable_types
     List<String> routes = [] ;
 
-    _findElementNavigableRoutes([elem], routes) ;
+    _findElementNavigableRoutes([element], routes) ;
 
     return routes ;
   }
 
-  void _findElementNavigableRoutes(List<Element> elems, List<String> routes) {
-    for (var elem in elems) {
+  void _findElementNavigableRoutes(List<Element> elements, List<String> routes) {
+    for (var elem in elements) {
       var navigateRoute = elem.getAttribute('navigate');
       if ( navigateRoute != null && navigateRoute.isNotEmpty && !routes.contains(navigateRoute) ) {
         routes.add(navigateRoute) ;
       }
-
       _findElementNavigableRoutes(elem.children, routes) ;
     }
   }
 
+  /// Removes from navigables cache detached elements.
   void clearDetachedNavigables() {
     // ignore: omit_local_variable_types
     List<Element> list = selectNavigables() ;
@@ -2944,27 +3126,32 @@ class UINavigator {
     // ignore: omit_local_variable_types
     List<UINavigableComponent> navigables = List.from(_navigables) ;
 
+    var uiRoot = UIRoot.getInstance() ;
+
     for (var container in navigables) {
-      if ( !list.contains(container.content) ) {
+      var navigableContent = container.content ;
+      if ( !list.contains(navigableContent) && ( uiRoot != null && uiRoot.findUIComponentByContent(navigableContent) == null ) ) {
         _navigables.remove(container);
       }
     }
   }
 
-  static StreamSubscription navigateOnClick(Element elem, String route, [Map<String,String> parameters, ParametersProvider parametersProvider, bool force = false]) {
+  /// Register a `onClick` listener in [element] to navigate to [route]
+  /// with [parameters].
+  static StreamSubscription navigateOnClick(Element element, String route, [Map<String,String> parameters, ParametersProvider parametersProvider, bool force = false]) {
     var paramsStr = parameters != null ? parameters.toString() : '' ;
 
-    var attrRoute = elem.getAttribute('__navigate__route') ;
-    var attrParams = elem.getAttribute('__navigate__parameters') ;
+    var attrRoute = element.getAttribute('__navigate__route') ;
+    var attrParams = element.getAttribute('__navigate__parameters') ;
 
     if ( route != attrRoute || paramsStr != attrParams ) {
-      elem.setAttribute('__navigate__route', route) ;
-      elem.setAttribute('__navigate__parameters', paramsStr) ;
+      element.setAttribute('__navigate__route', route) ;
+      element.setAttribute('__navigate__parameters', paramsStr) ;
 
-      StreamSubscription subscription = elem.onClick.listen( (e) => navigateTo(route, parameters, parametersProvider, force) ) ;
+      StreamSubscription subscription = element.onClick.listen( (e) => navigateTo(route, parameters: parameters, parametersProvider: parametersProvider, force: force) ) ;
 
-      if ( elem.style.cursor == null || elem.style.cursor.isEmpty ) {
-        elem.style.cursor = 'pointer' ;
+      if ( element.style.cursor == null || element.style.cursor.isEmpty ) {
+        element.style.cursor = 'pointer' ;
       }
 
       return subscription;

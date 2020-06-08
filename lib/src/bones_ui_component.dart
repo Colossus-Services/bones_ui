@@ -11,12 +11,11 @@ import 'package:swiss_knife/swiss_knife.dart';
 import 'package:dom_tools/dom_tools.dart';
 
 
-///////////////////////
-
+/// Base class for button components.
 abstract class UIButton extends UIComponent {
   static final EVENT_CLICK = 'CLICK' ;
 
-  UIButton(Element container, {String navigate, Map<String,String> navigateParameters, ParametersProvider navigateParametersProvider, dynamic classes}) : super(container, classes: 'ui-button', classes2: classes) {
+  UIButton(Element parent, {String navigate, Map<String,String> navigateParameters, ParametersProvider navigateParametersProvider, dynamic classes, dynamic classes2, dynamic componentClass}) : super(parent, classes: classes, classes2: classes2, componentClass: ['ui-button', componentClass]) {
     registerClickListener(onClickEvent) ;
 
     if (navigate != null) {
@@ -118,13 +117,16 @@ abstract class UIButton extends UIComponent {
 
 }
 
+/// A simple button implementation.
 class UISimpleButton extends UIButton {
+  /// Text/label of the button.
   final String text ;
+  /// Font size of the button.
   final String fontSize ;
 
-  UISimpleButton(Element parent, this.text, {String navigate, Map<String,String> navigateParameters, ParametersProvider navigateParametersProvider, dynamic classes, bool small = false, this.fontSize}) : super(parent, navigate: navigate, navigateParameters: navigateParameters, navigateParametersProvider: navigateParametersProvider, classes: classes) {
-    configureClasses( classes , [ small ? 'ui-button-small' : 'ui-button' ] ) ;
-  }
+  UISimpleButton(Element parent, this.text, {String navigate, Map<String,String> navigateParameters, ParametersProvider navigateParametersProvider, dynamic classes, dynamic classes2, dynamic componentClass, bool small = false, this.fontSize}) :
+        super(parent, navigate: navigate, navigateParameters: navigateParameters, navigateParametersProvider: navigateParametersProvider, classes: classes, classes2: classes2, componentClass: [ small ? 'ui-button-small' : 'ui-button' , componentClass])
+  ;
 
   @override
   String renderButton() {
@@ -154,8 +156,7 @@ class UISimpleButton extends UIButton {
 }
 
 
-///////////////////////
-
+/// Component that renders a table with information.
 class UIInfosTable extends UIComponent {
 
   final Map _infos ;
@@ -194,10 +195,10 @@ class UIInfosTable extends UIComponent {
 
 }
 
-///////////////////////
 
 typedef FieldValueProvider = dynamic Function(String field) ;
 
+/// Configuration for an input.
 class InputConfig {
 
   static List<InputConfig> listFromMap( Map map ) {
@@ -320,6 +321,8 @@ class InputConfig {
     }
 
     if ( inputElement != null ) {
+      inputElement.classes.add('form-control') ;
+      
       inputElement.setAttribute('name', inputID);
       inputElement.setAttribute('field', inputID);
 
@@ -388,10 +391,9 @@ class InputConfig {
     return select;
   }
 
-
-
 }
 
+/// Component that renders a table with inputs.
 class UIInputTable extends UIComponent {
 
   final List<InputConfig> _inputs ;
@@ -465,9 +467,9 @@ class UIInputTable extends UIComponent {
       var row = tBody.addRow() ;
 
       row.addCell()
-        ..style.verticalAlign = 'top'
+        ..style.verticalAlign = 'middle'
         ..style.textAlign = 'right'
-        ..innerHtml = '<b>${ input.label }:&nbsp;</b>'
+        ..innerHtml = '<label><b>${ input.label }:&nbsp;</b></label>'
       ;
 
       var celInput = row.addCell()
@@ -511,8 +513,7 @@ class UIInputTable extends UIComponent {
 
 }
 
-///////////////////////
-
+/// Component that renders a dialog.
 abstract class UIDialog extends UIComponent {
 
   final bool hideUIRoot ;
@@ -534,7 +535,7 @@ abstract class UIDialog extends UIComponent {
       ..padding = '6px 6px 7px 6px'
       ..color = '#ffffff'
       ..backgroundColor = 'rgba(0,0,0, 0.70)'
-      ..zIndex = '100'
+      ..zIndex = '999999999'
     ;
 
     _callOnShow();
@@ -607,11 +608,12 @@ abstract class UIDialog extends UIComponent {
 
 }
 
-///////////////////////
-
+/// Represents an image clip parameters.
 class ImageClip {
 
+  /// [Dimension] of viewed image.
   final Dimension viewDimension ;
+  /// Clip [Rectangle].
   final Rectangle viewClip ;
 
   Dimension _imageDimension ;
@@ -654,6 +656,7 @@ class ImageClip {
 
 }
 
+/// Component to clip an image.
 class UIClipImage extends UIComponent {
 
   final ImageElement _img ;
@@ -828,10 +831,8 @@ class UIClipImage extends UIComponent {
 
 }
 
-///////////////////////
-
-
-class UIMultiSelection extends UIComponent {
+/// A component that renders a multi-selection input.
+class UIMultiSelection extends UIComponent implements UIField<List<String>> {
 
   final Map _options ;
   final bool multiSelection ;
@@ -845,8 +846,13 @@ class UIMultiSelection extends UIComponent {
 
   UIMultiSelection(Element parent, this._options, { this.multiSelection, this.width , this.optionsPanelMargin = 20 , this.separator = ' ; ' , Duration selectionMaxDelay , dynamic classes } ) :
         selectionMaxDelay = selectionMaxDelay ?? Duration( seconds: 10 ) ,
-        super(parent, classes: 'ui-multi-selection', classes2: classes)
+        super(parent, classes: 'ui-multi-selection', classes2: classes, renderOnConstruction: true)
   ;
+
+  @override
+  List<String> getFieldValue() {
+    return getSelectedIDs() ;
+  }
 
   InputElement _element ;
   DivElement _divOptions ;
@@ -916,15 +922,39 @@ class UIMultiSelection extends UIComponent {
     }
   }
 
-  void uncheckAll() {
-    uncheckAllImpl(true);
+  bool isAllChecked() {
+    if (_checkElements.isEmpty) return false ;
+    var firstNotChecked = _checkElements.firstWhere( (e) => !_isChecked(e) , orElse: () => null );
+    return firstNotChecked == null ;
   }
 
-  void uncheckAllImpl(bool notify) {
-    //if ( _selections.isEmpty ) return ;
+  bool isAllUnchecked() {
+    if (_checkElements.isEmpty) return true ;
+    var firstChecked = _checkElements.firstWhere( (e) => _isChecked(e) , orElse: () => null );
+    return firstChecked == null ;
+  }
+
+  void checkAll() {
+    _checkAllImpl(true);
+  }
+
+  void _checkAllImpl(bool notify) {
+    _checkAllElements(true);
+    _updateElementText();
+
+    if (notify) {
+      _needToNotifySelection = true ;
+      _notifySelectionDelayed();
+    }
+  }
+
+  void uncheckAll() {
+    _uncheckAllImpl(true);
+  }
+
+  void _uncheckAllImpl(bool notify) {
     if ( _getSelectedElements().isEmpty ) return ;
 
-    //_selections.clear();
     _checkAllElements(false);
     _updateElementText();
 
@@ -935,7 +965,7 @@ class UIMultiSelection extends UIComponent {
   }
 
   void setCheckedElements(List ids) {
-    uncheckAllImpl(false);
+    _uncheckAllImpl(false);
     checkAllByID(ids, true) ;
   }
 
@@ -965,9 +995,11 @@ class UIMultiSelection extends UIComponent {
   }
 
   List< MapEntry > getOptionsEntriesFiltered(dynamic pattern) {
-    if ( pattern == null || pattern.isEmpty ) return _options.entries ;
+    if ( pattern == null ) return _options.entries.toList() ;
 
     if ( pattern is String ) {
+      pattern = pattern.trim() ;
+      if ( pattern.isEmpty || pattern == '*' ) return _options.entries.toList() ;
       return _options.entries.where((e) => '${e.value}'.toLowerCase().contains(pattern)).toList();
     }
     else if ( pattern is RegExp ) {
@@ -979,7 +1011,11 @@ class UIMultiSelection extends UIComponent {
   }
 
   List<InputElementBase> _getSelectedElements() {
-    return _checkElements.where( (e) => (e is CheckboxInputElement && e.checked) || (e is RadioButtonInputElement && e.checked) ).toList() ;
+    return _checkElements.where( (e) => _isChecked(e) ?? false ).toList() ;
+  }
+
+  List<InputElementBase> _getUnSelectedElements() {
+    return _checkElements.where( (e) => !(_isChecked(e) ?? false) ).toList() ;
   }
 
   InputElementBase _getCheckElement(String id) {
@@ -987,7 +1023,11 @@ class UIMultiSelection extends UIComponent {
   }
 
   void _checkAllElements(bool check) {
-    _getSelectedElements().forEach( (e) => _setCheck(e,check) ) ;
+    _checkElements.forEach( (e) => _setCheck(e,check) ) ;
+  }
+
+  bool hasSelection() {
+    return _getSelectedElements().isNotEmpty ;
   }
 
   List<String> getSelectedIDs() {
@@ -998,10 +1038,28 @@ class UIMultiSelection extends UIComponent {
     return _getSelectedElements().map( (e) => e.getAttribute('opt_label') ).toList() ;
   }
 
+  List<String> getUnselectedIDs() {
+    return _getUnSelectedElements().map( (e) => e.value ).toList() ;
+  }
+
+  List<String> getUnselectedLabels() {
+    return _getUnSelectedElements().map( (e) => e.getAttribute('opt_label') ).toList() ;
+  }
+
   void _updateElementText() {
-    var sep = separator ?? ' ; ' ;
-    var value = getSelectedLabels().join(sep);
-    _element.value = value ;
+    if ( _element == null ) return ;
+
+    String text ;
+
+    if ( isAllChecked() ) {
+      text = '*' ;
+    }
+    else {
+      var sep = separator ?? ' ; ' ;
+      text = getSelectedLabels().join(sep);
+    }
+
+    _element.value = text ;
   }
 
   @override
@@ -1011,9 +1069,14 @@ class UIMultiSelection extends UIComponent {
         ..type = 'text'
       ;
 
+      _element.style.padding = '5px 10px' ;
+      _element.style.border = '1px solid #ccc';
+
       if (width != null) {
         _element.style.width = width ;
       }
+
+      //style="cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%"
 
       _divOptions = DivElement()
         ..style.display = 'none'
@@ -1023,9 +1086,10 @@ class UIMultiSelection extends UIComponent {
         ..style.top = '0px'
         ..style.textAlign = 'left'
         ..style.padding = '4px'
-        ..style.borderRadius = '0 0 10px 10px'
       ;
 
+      _divOptions.classes.add('shadow') ;
+      _divOptions.classes.add('p-2') ;
       _divOptions.classes.add('ui-multiselection-options-menu') ;
 
       window.onResize.listen( (e) => _updateDivOptionsPosition() ) ;
@@ -1117,6 +1181,7 @@ class UIMultiSelection extends UIComponent {
       ..style.left = '${x}px'
       ..style.top = '${y}px'
       ..style.width = '${w}px'
+      ..style.zIndex = '999999999'
     ;
   }
 
@@ -1188,6 +1253,7 @@ class UIMultiSelection extends UIComponent {
     List<MapEntry<dynamic, dynamic>>  entriesFiltered = [] ;
 
     var elementValue = element.value;
+
     if (elementValue.isNotEmpty) {
       entriesFiltered = getOptionsEntriesFiltered( elementValue ) ;
 
@@ -1236,9 +1302,8 @@ class UIMultiSelection extends UIComponent {
 
     checksList.add(checkElem) ;
 
-    var label = LabelElement()
-      ..text = optValue ;
-    ;
+    var label = LabelElement() ;
+    setElementInnerHTML(label, ' &nbsp; $optValue') ;
 
     checkElem.onClick.listen( (e) {
       _updateElementText();
@@ -1268,7 +1333,20 @@ typedef RenderPropertiesProvider = Map<String,dynamic> Function() ;
 typedef RenderAsync = Future<dynamic> Function( Map<String,dynamic> properties ) ;
 
 
+/// A component that renders a content asynchronously.
+///
+/// Useful to render a content that is loading.
 class UIComponentAsync extends UIComponent {
+
+  static bool isValidComponentAsync(UIComponentAsync asyncContent, [ Map<String,dynamic> properties ]) {
+    if (asyncContent == null || asyncContent._asyncContent == null ) return false ;
+    return UIAsyncContent.isValid(asyncContent._asyncContent, properties) ;
+  }
+
+  static bool isValidLocaleComponentAsync(UIComponentAsync asyncContent, [ Map<String,dynamic> properties ]) {
+    if (asyncContent == null || asyncContent._asyncContent == null ) return false ;
+    return UIAsyncContent.isValidLocale(asyncContent._asyncContent) ;
+  }
 
   RenderPropertiesProvider _renderPropertiesProvider ;
   RenderAsync _renderAsync ;
@@ -1276,11 +1354,23 @@ class UIComponentAsync extends UIComponent {
   final dynamic errorContent ;
   final Duration refreshInterval ;
 
-  UIComponentAsync(Element parent, this._renderPropertiesProvider, this._renderAsync, this.loadingContent, this.errorContent, { this.refreshInterval, dynamic classes, dynamic classes2 , dynamic id } ) : super(parent, classes: classes, classes2: classes2, id: id, renderOnConstruction: false) {
+  /// Constructs a [UIComponentAsync].
+  ///
+  /// Note: if an attempt to render happens with the same properties of
+  /// previously rendered content it will be ignored.
+  ///
+  /// [_renderPropertiesProvider] Provider of the properties of rendered content.
+  /// [_renderAsync] Function that renders the component.
+  /// [loadingContent] Content to show while loading.
+  /// [errorContent] Content to show on error.
+  /// [refreshInterval] Refresh interval [Duration].
+  UIComponentAsync(Element parent, this._renderPropertiesProvider, this._renderAsync, this.loadingContent, this.errorContent, { this.refreshInterval, dynamic classes, dynamic classes2 , dynamic id , bool renderOnConstruction } ) : super(parent, classes: classes, classes2: classes2, id: id, renderOnConstruction: false) {
     _renderPropertiesProvider ??= renderPropertiesProvider ;
     _renderAsync ??= renderAsync ;
 
-    callRender();
+    if ( renderOnConstruction != null && renderOnConstruction ) {
+      callRender();
+    }
   }
 
   Map<String,dynamic> renderPropertiesProvider() => {};
@@ -1310,6 +1400,7 @@ class UIComponentAsync extends UIComponent {
 
   bool isNotValid() => !isValid() ;
 
+  /// Stops
   void stop() {
     if ( _asyncContent != null ) _asyncContent.stop() ;
   }
@@ -1344,6 +1435,11 @@ class UIComponentAsync extends UIComponent {
 
 }
 
+enum ControllerPropertiesType {
+  CONTROLLER_VALUE,
+  ROUTE_PARAMETERS,
+  IMPLEMENTATION
+}
 
 abstract class UIControlledComponent extends UIComponent {
 
@@ -1353,13 +1449,21 @@ abstract class UIControlledComponent extends UIComponent {
   final dynamic resultLoadingContent ;
   final dynamic resultErrorContent ;
 
-  UIControlledComponent(Element parent, this.loadingContent, this.errorContent, { this.resultLoadingContent, this.resultErrorContent, dynamic classes, dynamic classes2 }) : super(parent, classes: classes, classes2: classes2, renderOnConstruction: false);
+  final ControllerPropertiesType controllersPropertiesType ;
+
+  UIControlledComponent(Element parent, this.loadingContent, this.errorContent, { this.resultLoadingContent, this.resultErrorContent, ControllerPropertiesType controllersPropertiesType, dynamic classes, dynamic classes2 }) :
+        controllersPropertiesType = controllersPropertiesType ?? ControllerPropertiesType.CONTROLLER_VALUE ,
+        super(parent, classes: classes, classes2: classes2, renderOnConstruction: false)
+  ;
 
   UIComponentAsync _componentAsync ;
 
   @override
   dynamic render() {
-    _componentAsync ??= UIComponentAsync( content , getControllersProperties , (props) => renderAsync(props as MapProperties) , loadingContent, errorContent, id: '$id/_componentAsync') ;
+    if ( !UIComponentAsync.isValidLocaleComponentAsync(_componentAsync , getControllersProperties()) ) {
+      reset();
+      _componentAsync = UIComponentAsync( content , getControllersProperties , (props) => renderAsync(props as MapProperties) , loadingContent, errorContent, id: '$id/_componentAsync') ;
+    }
     return _componentAsync ;
   }
 
@@ -1369,7 +1473,42 @@ abstract class UIControlledComponent extends UIComponent {
     }
   }
 
-  MapProperties getControllersProperties() ;
+  MapProperties getControllersProperties() {
+    switch( controllersPropertiesType ) {
+      case ControllerPropertiesType.CONTROLLER_VALUE: return getControllersPropertiesByControllersValues() ;
+      case ControllerPropertiesType.ROUTE_PARAMETERS: return getControllersPropertiesByRouteParameters() ;
+      default: return getControllersPropertiesByControllersValues() ;
+    }
+  }
+
+  MapProperties getControllersPropertiesByControllersValues() {
+    var mapProperties = MapProperties();
+    if (_controllers == null || _controllers.isEmpty) return mapProperties ;
+
+    for ( var entry in _controllers.entries ) {
+      var key = entry.key ;
+      var value = entry.value ;
+
+      if ( value is UIField ) {
+        value = value.getFieldValue() ;
+      }
+      else if ( value is UIComponent ) {
+        var fields = value.getFields() ;
+        value = asMapOfString(fields) ;
+      }
+      else if ( value is Element ) {
+        value = UIComponent.parseElementValue(value, this) ;
+      }
+
+      mapProperties.put(key, value) ;
+    }
+
+    return mapProperties ;
+  }
+
+  MapProperties getControllersPropertiesByRouteParameters() {
+    return MapProperties.fromStringProperties( UINavigator.currentNavigation.parameters ) ;
+  }
 
   Map<String,dynamic> _controllers ;
 
@@ -1377,6 +1516,12 @@ abstract class UIControlledComponent extends UIComponent {
 
   dynamic getController(String key) {
     return _controllers != null ? _controllers[key] : null ;
+  }
+
+  void reset() {
+    _componentAsync = null ;
+    _componentAsyncResult = null ;
+    _controllers = null ;
   }
 
   UIComponentAsync _componentAsyncResult ;
@@ -1398,7 +1543,12 @@ abstract class UIControlledComponent extends UIComponent {
     var resultLoadingContent = this.resultLoadingContent ?? UIComponent.copyRenderable(loadingContent) ;
     var resultErrorContent = this.resultErrorContent ?? UIComponent.copyRenderable(errorContent) ;
 
-    _componentAsyncResult ??= UIComponentAsync( content , getControllersProperties , (props) => renderResult(props as MapProperties) , resultLoadingContent, resultErrorContent, id: '$id/_componentAsyncResult') ;
+    if ( !UIComponentAsync.isValidComponentAsync(_componentAsyncResult, properties) ) {
+      _componentAsyncResult = UIComponentAsync(
+          content, getControllersProperties, (props) =>
+          renderResult(props as MapProperties), resultLoadingContent,
+          resultErrorContent, id: '$id/_componentAsyncResult');
+    }
 
     return renderControllersAndResult( properties, _controllers , _componentAsyncResult ) ;
   }
@@ -1440,23 +1590,84 @@ abstract class UIControlledComponent extends UIComponent {
     onChange.add(this) ;
   }
 
-  void onChangeController( Map<String,dynamic> controllers , bool validControllersSetup , dynamic changedController ) { }
+  void onChangeController( Map<String,dynamic> controllers , bool validControllersSetup , dynamic changedController ) {
+    if ( validControllersSetup ) {
+      switch (controllersPropertiesType) {
+        case ControllerPropertiesType.CONTROLLER_VALUE:{
+          _refreshContentOnPropertiesChange();
+          break ;
+        }
+        case ControllerPropertiesType.ROUTE_PARAMETERS: {
+          var route = UINavigator.currentRoute;
+          var parameters = getControllersProperties().toStringProperties() ;
+          UINavigator.navigateTo( route , parameters: parameters ) ;
+          break ;
+        }
+        default: {
+          _refreshContentOnPropertiesChange();
+          break ;
+        }
+      }
+    }
+  }
+
+  void _refreshContentOnPropertiesChange() {
+    var controllersProperties = getControllersProperties().toStringProperties() ;
+
+    if ( !_componentAsync.asyncContentEqualsProperties( controllersProperties ) ) {
+      refreshComponentAsync();
+    }
+  }
 
   bool isValidControllersSetup( MapProperties properties , Map<String,dynamic> controllers ) {
     return true ;
   }
 
   Future<dynamic> renderOnlyControllers( MapProperties properties , Map<String,dynamic> controllers ) async {
-    return controllers != null ? List.from(controllers.values) : null ;
+    return _renderControllers(controllers);
+  }
+
+  List _renderControllers(Map<String, dynamic> controllers) {
+    if (controllers == null) return null ;
+
+    var list = [] ;
+
+    for ( var entry in controllers.entries ) {
+      if ( entry.key.endsWith('_label') ) continue ;
+
+      if ( list.isNotEmpty ) {
+        var separatorH = createSpan('&nbsp<wbr>');
+        var separatorV = DivElement()
+          ..classes.add('w-100')
+          ..classes.add('d-md-none')
+          //..classes.add('d-lg-block')
+        ;
+        list.add( separatorH ) ;
+        list.add( separatorV ) ;
+      }
+      
+      var label = controllers['${ entry.key }_label'] ;
+      var controller = entry.value ;
+
+      if (label is String) {
+        var span = createLabel( '$label: &nbsp ' ) ;
+        list.add(span) ;
+      }
+      else {
+        list.add(label) ;
+      }
+
+      list.add(controller) ;
+    }
+
+    return list ;
   }
 
   Future<dynamic> renderResult( MapProperties properties ) ;
 
   Future<dynamic> renderControllersAndResult( MapProperties properties , Map<String,dynamic> controllers , dynamic result ) async {
-    return [ List.from(_controllers.values) , '<p>', result] ;
+    return [ _renderControllers(controllers) , '<p>', result] ;
   }
 
 }
-
-
 

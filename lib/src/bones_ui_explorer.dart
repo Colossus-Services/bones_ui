@@ -344,13 +344,17 @@ class UIExplorer extends UIComponentAsync {
 
     var markdown = doc.getAsString('markdown') ;
     if (markdown != null) {
-      return markdownToDiv(markdown) ;
+      var div = markdownToDiv(markdown);
+      div.style.overflowWrap = 'break-word' ;
+      return div ;
     }
 
     var code = doc.getAsString('code') ;
     if (code != null) {
       String language = doc.get('language') ;
-      return UICodeHighlight(this.content, code, language: language) ;
+      var codeHighlight = UICodeHighlight(this.content, code, language: language);
+      codeHighlight.content.style.overflowWrap = 'break-word' ;
+      return codeHighlight ;
     }
 
     var url = doc.getAsString('url') ;
@@ -391,10 +395,14 @@ class UIExplorer extends UIComponentAsync {
         return '<pre>\n$urlContent\n</pre>' ;
       }
       else if (language == 'markdown') {
-        return markdownToDiv(urlContent) ;
+        var div = markdownToDiv(urlContent);
+        div.style.overflowWrap = 'break-word' ;
+        return div ;
       }
       else if (language != null) {
-        return UICodeHighlight(this.content, urlContent, language: language);
+        var codeHighlight = UICodeHighlight(content, urlContent, language: language);
+        codeHighlight.content.style.overflowWrap = 'break-word' ;
+        return codeHighlight;
       }
     }
 
@@ -439,15 +447,16 @@ class _UIExplorerCatalog extends UIComponent {
   final MapProperties _documentStorage ;
   final MapProperties _documentListing ;
 
-  _UIExplorerCatalog(Element parent, this.documentInputConfig, this._documentViewer, this._documentPreview, this._documentStorage, this._documentListing, { dynamic classes }) : super(parent, classes: classes);
+  _UIExplorerCatalog(Element parent, this.documentInputConfig, this._documentViewer, this._documentPreview, this._documentStorage, this._documentListing, { dynamic classes }) : super(parent, classes: classes, renderOnConstruction: false);
 
   @override
   dynamic render() {
-    var newDoc = render_newDocument() ;
 
     var listingAsync = UIComponentAsync(content, _listingProperties, render_listing , 'Loading...', 'Error...' ) ;
 
-    return [ newDoc , '<hr>', listingAsync ] ;
+    var newDoc = render_newDocument() ;
+
+    return [ listingAsync , '<hr>', newDoc , '<hr>' ] ;
   }
 
   Map<String,dynamic> _listingProperties() {
@@ -493,9 +502,8 @@ class _UIExplorerCatalog extends UIComponent {
     var httpRequester = HttpRequester( MapProperties.fromMap(_documentStorage) , MapProperties.fromMap(fields) ) ;
     var response = await httpRequester.doRequest() ;
 
+    refresh();
   }
-
-
 
 }
 
@@ -505,7 +513,7 @@ class _UIExplorerQuery extends UIControlledComponent {
   final MapProperties _executor ;
   final MapProperties _viewer ;
 
-  _UIExplorerQuery(Element parent, this.inputConfig, this._executor, this._viewer, { dynamic loadingContent, dynamic errorContent, dynamic classes }) : super(parent, loadingContent, errorContent, classes: classes);
+  _UIExplorerQuery(Element parent, this.inputConfig, this._executor, this._viewer, { dynamic loadingContent, dynamic errorContent, dynamic classes }) : super(parent, loadingContent, errorContent, controllersPropertiesType: ControllerPropertiesType.IMPLEMENTATION, classes: classes);
 
   @override
   MapProperties getControllersProperties() {

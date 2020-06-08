@@ -1,5 +1,7 @@
 ## 1.0.7
 
+- Added API Documentation.
+- Updated LICENSE.
 - UISimpleButton
 - UIButtonCapturePhoto
 - UICapture: now handles loaded data and converts to a CaptureDataFormat type.
@@ -8,11 +10,12 @@
 - UIComponent: fields are views now. Removed UIComponent._fields Map.
 - InputConfig: now renders the components (moved from UIInputTable).
 - getLanguageByExtension(): fixed markdown extension.
-- json_render: ^1.2.8
-- dom_tools: ^1.2.8
-- intl_messages: ^1.1.7
-- mercury_client: ^1.1.5
-- swiss_knife: ^2.3.10
+- json_render: ^1.3.2
+- dom_tools: ^1.3.1
+- dom_builder: ^1.0.6
+- intl_messages: ^1.1.8
+- mercury_client: ^1.1.7
+- swiss_knife: ^2.5.2
 
 ## 1.0.6
 
