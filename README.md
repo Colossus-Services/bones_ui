@@ -7,7 +7,6 @@
 [![Last Commits](https://img.shields.io/github/last-commit/Colossus-Services/bones_ui?logo=git&logoColor=white)](https://github.com/Colossus-Services/bones_ui/commits/master)
 [![Pull Requests](https://img.shields.io/github/issues-pr/Colossus-Services/bones_ui?logo=github&logoColor=white)](https://github.com/Colossus-Services/bones_ui/pulls)
 [![Code size](https://img.shields.io/github/languages/code-size/Colossus-Services/bones_ui?logo=github&logoColor=white)](https://github.com/Colossus-Services/bones_ui)
-[![License](https://img.shields.io/github/license/Colossus-Services/bones_ui?logo=open-source-initiative&logoColor=green)](https://github.com/Colossus-Services/bones_ui/blob/master/LICENSE)
 
 
 Bones UI - A simple and easy Web User Interface framework for Dart
