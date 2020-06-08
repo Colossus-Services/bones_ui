@@ -20,14 +20,15 @@ jobs:
       run: apt-get update
     - name: Install Firefox
       run: apt-get install -y firefox-esr xorg
-    - name: WhoAmI
-      run: whoami
     - name: Current DIR
       run: pwd && pwd >/tmp/test-dir.txt
     - name: Add user tester
       run: adduser --disabled-password tester
-    - name: Clean Project
-      run: rm -rf .dart_tool .packages pubspec.lock && chown -R tester:tester . && ls -al
+    - name: Clean Project + chown tester
+      run: |
+        rm -rf .dart_tool .packages pubspec.lock
+        chown -R tester:tester .
+        ls -al
     - name: Pub Get
       run: su -c 'cd $(< /tmp/test-dir.txt) && pub get' tester
     - name: Run tests
