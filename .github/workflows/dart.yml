@@ -25,7 +25,7 @@ jobs:
     - name: WhoAmI
       run: whoami
     - name: Add user tester
-      run: adduser -p 123456 tester
+      run: adduser --disabled-password tester
     - name: Current DIR
       run: pwd
     - name: Run tests
