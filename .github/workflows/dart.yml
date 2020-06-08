@@ -25,6 +25,8 @@ jobs:
     - name: WhoAmI
       run: whoami
     - name: Add user tester
-      run: useradd tester
+      run: adduser -p 123456 tester
+    - name: Current DIR
+      run: pwd
     - name: Run tests
       run: su - tester && pub run test -p firefox
