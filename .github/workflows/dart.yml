@@ -25,11 +25,6 @@ jobs:
     - name: WhoAmI
       run: whoami
     - name: Add user tester
-      run: useradd tester && su tester
-    - name: WhoAmI
-      run: whoami
-    - name: User 1001
-      run: id -un 1001
+      run: useradd tester
     - name: Run tests
-      run: su - $(id -un 1001) && pub run test -p firefox
-
+      run: su - tester && pub run test -p firefox
