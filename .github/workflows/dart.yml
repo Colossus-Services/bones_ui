@@ -16,6 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: APT update
+      run: apt-get update
     - name: Install Firefox
       run: apt-get install firefox xorg
     - name: Install dependencies
