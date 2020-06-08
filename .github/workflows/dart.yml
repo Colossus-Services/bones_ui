@@ -24,6 +24,10 @@ jobs:
       run: pub get
     - name: WhoAmI
       run: whoami
+    - name: Add user tester
+      run: useradd tester && su tester
+    - name: WhoAmI
+      run: whoami
     - name: User 1001
       run: id -un 1001
     - name: Run tests
