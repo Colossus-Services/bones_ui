@@ -1,3 +1,7 @@
+## 1.0.11
+
+- Remove debugging code: UIConsole.enable();
+
 ## 1.0.10
 
 - dom_builder: ^1.0.7

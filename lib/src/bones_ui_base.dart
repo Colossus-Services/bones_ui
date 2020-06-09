@@ -2356,8 +2356,6 @@ abstract class UIRoot extends UIComponent {
     UINavigator.get().refreshNavigationAsync();
 
     UIConsole.checkAutoEnable();
-
-    UIConsole.enable();
   }
 
   void _onResize(Event e) {
