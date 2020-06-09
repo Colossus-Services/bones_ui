@@ -583,6 +583,7 @@ abstract class UIDialog extends UIComponent {
 
   }
 
+  @override
   bool get isShowing {
     return parent.contains(content) ;
   }

@@ -451,7 +451,6 @@ class _UIExplorerCatalog extends UIComponent {
 
   @override
   dynamic render() {
-
     var listingAsync = UIComponentAsync(content, _listingProperties, render_listing , 'Loading...', 'Error...' ) ;
 
     var newDoc = render_newDocument() ;
@@ -472,7 +471,7 @@ class _UIExplorerCatalog extends UIComponent {
 
     var response = await httpRequester.doRequest() ;
 
-    var viewerRender = _ViewerRender(_documentPreview) ;
+    var viewerRender = _ViewerRender( _documentViewer ?? _documentPreview ) ;
 
     var responseType = httpRequester.config.getPropertyAsStringTrimLC('response') ;
 
@@ -483,9 +482,11 @@ class _UIExplorerCatalog extends UIComponent {
     var documentInputs = UIInputTable(content, documentInputConfig) ;
     var sendButton = UISimpleButton(content , 'Send') ;
 
+    var error = $span( classes: 'ui-text-alert' , attributes: {'hidden': 'true', 'field': 'send-error'} , content: 'Error sending!') ;
+
     sendButton.onClick.listen( (e) => _sendNewDocument(documentInputs) ) ;
 
-    return [ 'New Document:<p>' , documentInputs , '<br>' , sendButton ] ;
+    return [ 'New Document:<p>' , documentInputs , '<br>' , sendButton , error ] ;
   }
 
   void _sendNewDocument(UIInputTable documentInputs) async {
@@ -502,7 +503,13 @@ class _UIExplorerCatalog extends UIComponent {
     var httpRequester = HttpRequester( MapProperties.fromMap(_documentStorage) , MapProperties.fromMap(fields) ) ;
     var response = await httpRequester.doRequest() ;
 
-    refresh();
+    if ( response == null ){
+      var elementError = getFieldElement('send-error') ;
+      elementError.hidden = false ;
+    }
+    else {
+      refresh();
+    }
   }
 
 }

@@ -1,8 +1,8 @@
-import 'package:service_worker/window.dart' as ServiceWorker;
+import 'package:service_worker/window.dart' as service_worker;
 
 class PWA {
   static bool activate(String dartFile) {
-    if (!ServiceWorker.isSupported) {
+    if (!service_worker.isSupported) {
       print('PWA not supported!');
       return false;
     }
@@ -10,7 +10,7 @@ class PWA {
     var jsFile = '$dartFile.js';
 
     try {
-      ServiceWorker.register(jsFile);
+      service_worker.register(jsFile);
       print('PWA> registered: $jsFile');
       return true;
     } catch (e, s) {

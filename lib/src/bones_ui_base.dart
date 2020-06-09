@@ -748,23 +748,6 @@ abstract class UIComponent extends UIEventHandler {
     return isNodeInDOM( _content ) ;
   }
 
-  List<String> _normalizeClasses(classes) {
-    if (classes == null) return [] ;
-
-    List<String> classesNames ;
-
-    if (classes is List) {
-      classesNames = classes.where( (c) => c != null ).expand( (c) => _normalizeClasses(c) ).toList().where((c) => c.isNotEmpty).toList() ;
-    }
-    else {
-      classesNames = classes.toString().split(RegExp(r'[\s,]+')).where((s) => s.isNotEmpty).toList() ;
-    }
-
-    classesNames.removeWhere( (s) => s == null || s.isEmpty ) ;
-
-    return classesNames ;
-  }
-
   void configureClasses(classes1, [classes2, componentClasses]) {
     var classesNames1 = toFlatListOfStrings(classes1) ;
     var classesNames2 = toFlatListOfStrings(classes2) ;
@@ -2798,32 +2781,8 @@ class UINavigator {
     }
   }
 
-  void _suspend_onChangeRoute() {
-    _onChangeRouteSuspended = true ;
-    print('> _suspend_onChangeRoute: suspended: $_onChangeRouteSuspended') ;
-  }
-
-  void _resume_onChangeRouteAsync() {
-    print('> _resume_onChangeRouteAsync: suspended: $_onChangeRouteSuspended') ;
-    if (!_onChangeRouteSuspended) return ;
-    Future.delayed( Duration (seconds: 1), _resume_onChangeRoute );
-  }
-
-  void _resume_onChangeRoute() {
-    _onChangeRouteSuspended = false ;
-    print('> _resume_onChangeRoute: suspended: $_onChangeRouteSuspended') ;
-  }
-
-  bool _onChangeRouteSuspended = false ;
-
   void _onChangeRoute(HashChangeEvent event) {
     var uri = Uri.parse( event.newUrl );
-
-    if (_onChangeRouteSuspended) {
-      UIConsole.log('UINavigator._onChangeRoute: from: ${ event.oldUrl } > to: $uri [SUSPENDED]');
-      return ;
-    }
-
     UIConsole.log('UINavigator._onChangeRoute: new: $uri > previous: ${ event.oldUrl }');
     _navigateToFromURL(uri);
   }
