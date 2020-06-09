@@ -1,4 +1,4 @@
-# Bones UI
+# Bones_UI
 
 [![pub package](https://img.shields.io/pub/v/bones_ui.svg?logo=dart&logoColor=00b9fc)](https://pub.dartlang.org/packages/bones_ui)
 [![CI](https://img.shields.io/github/workflow/status/Colossus-Services/bones_ui/Dart%20CI/master?logo=github-actions&logoColor=white)](https://github.com/Colossus-Services/bones_ui/actions)
@@ -10,7 +10,7 @@
 [![License](https://img.shields.io/github/license/Colossus-Services/bones_ui?logo=open-source-initiative&logoColor=green)](https://github.com/Colossus-Services/bones_ui/blob/master/LICENSE)
 
 
-Bones UI - A simple and easy Web User Interface framework for Dart
+Bones_UI - A simple and easy Web User Interface framework for Dart
 
 ## Usage
 
