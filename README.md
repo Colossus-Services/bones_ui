@@ -94,6 +94,17 @@ Get the source
 
 [example]: https://github.com/Colossus-Services/bones_ui/tree/master/example
 
+## Bootstrap Integration
+
+You can use the Dart package [Bones_UI_Bootstrap][bones_ui_bootstrap]
+to activate [Bootstrap][bootstrap] integration with `Bones_UI`.
+
+[Bones_UI_Bootstrap][bones_ui_bootstrap] automatically handles loading of JavaScript libraries and CSS.
+With it you don't need to add any HTML or JavaScript code to have full integration of [Bootstrap][bootstrap] with `Bones_UI`.
+
+[bones_ui_bootstrap]: https://pub.dev/packages/bones_ui_bootstrap
+[bootstrap]: https://getbootstrap.com/ 
+ 
 ## Features and bugs
 
 Please file feature requests and bugs at the [issue tracker][tracker].

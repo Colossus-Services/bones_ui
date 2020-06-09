@@ -1,3 +1,8 @@
+## 1.0.10
+
+- dom_builder: ^1.0.7
+- Update README.md to indicate `bones_ui_bootstrap`. 
+
 ## 1.0.9
 
 - Fix README LICENSE title.
