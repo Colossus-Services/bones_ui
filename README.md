@@ -10,7 +10,7 @@
 [![License](https://img.shields.io/github/license/Colossus-Services/bones_ui?logo=open-source-initiative&logoColor=green)](https://github.com/Colossus-Services/bones_ui/blob/master/LICENSE)
 
 
-Bones_UI - A simple and easy Web User Interface framework for Dart
+Bones_UI - A simple and easy Web User Interface framework for Dart.
 
 ## Usage
 

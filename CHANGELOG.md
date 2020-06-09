@@ -1,3 +1,7 @@
+## 1.0.9
+
+- Fix README LICENSE title.
+
 ## 1.0.8
 
 - dartfmt.
