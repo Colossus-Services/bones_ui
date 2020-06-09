@@ -51,9 +51,8 @@ Graciliano M. Passos: [gmpassos@GitHub][gmpassos_github].
 
 ## License
 
-[Colossus Cloud Services Open Source License - Version 1.0][colossus_license]
-
+[Artistic License - Version 2.0][artistic_license]
 
 [gmpassos_github]: https://github.com/gmpassos
 [colossus]: https://colossus.services/
-[colossus_license]: http://colossus.services/licenses/open-source/
+[artistic_license]: https://github.com/Colossus-Services/bones_ui/blob/master/LICENSE
