@@ -43,7 +43,7 @@ class MyMenu extends UIComponent {
         content: [
           $span(
               content:
-                  '<span style="fonte-size: 120%; font-weight: bold" navigate="home">Bones_UI &nbsp; - &nbsp;</span>'),
+                  '<span style="font-size: 120%; font-weight: bold" navigate="home">Bones_UI &nbsp; - &nbsp;</span>'),
           $span(attributes: {'navigate': 'home'}, content: 'Home'),
           '<span> &nbsp; | &nbsp; </span>',
           $span(attributes: {'navigate': 'help'}, content: 'Help')

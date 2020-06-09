@@ -1,3 +1,8 @@
+## 1.0.8
+
+- dartfmt.
+- Fix typos.
+
 ## 1.0.7
 
 - Added API Documentation.

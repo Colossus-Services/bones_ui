@@ -58,7 +58,7 @@ class MyMenu extends UIComponent {
   dynamic render() {
     return $div(
         style: 'position: fixed; top: 0; left: 0; width: 100%; background-color: black; color: white; padding: 10px',
-        content: '<span style="fonte-size: 120%; font-weight: bold">Bones_UI</span>'
+        content: '<span style="font-size: 120%; font-weight: bold">Bones_UI</span>'
         );
   }
 }
