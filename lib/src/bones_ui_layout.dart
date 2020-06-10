@@ -41,8 +41,6 @@ class ValueUnitExpression extends SimpleExpression {
     return '$value$unit';
   }
 
-  ///////////////////////////////
-
   dynamic operator +(o) => ValueUnitExpression(value + o, unit);
 
   dynamic operator -(o) => ValueUnitExpression(value - o, unit);

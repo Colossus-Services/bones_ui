@@ -1586,8 +1586,6 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  //////////////////////
-
   void _parseNavigate(Element elem) {
     var navigateRoute = getElementAttribute(elem, 'navigate');
 
@@ -1595,8 +1593,6 @@ abstract class UIComponent extends UIEventHandler {
       UINavigator.navigateOnClick(elem, navigateRoute);
     }
   }
-
-  //////////////////////
 
   Element getFieldElement(String fieldName) => findInContentChildrenDeep((e) {
         if (e is Element) {
@@ -1759,8 +1755,6 @@ abstract class UIComponent extends UIEventHandler {
     return count;
   }
 
-  //////////////////////
-
   void _parseAction(Element elem) {
     var actionValue = getElementAttribute(elem, 'action');
 
@@ -1773,8 +1767,6 @@ abstract class UIComponent extends UIEventHandler {
     UIConsole.log('action: $action');
   }
 
-  //////////////////////
-
   void _parseUiLayout(Element elem) {
     var uiLayout = getElementAttribute(elem, 'uiLayout');
 
@@ -1782,8 +1774,6 @@ abstract class UIComponent extends UIEventHandler {
       UILayout(this, elem, uiLayout);
     }
   }
-
-  //////////////////////
 
   void _parseEvents(Element elem) {
     _parseOnEventKeyPress(elem);

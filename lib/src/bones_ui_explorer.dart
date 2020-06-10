@@ -364,15 +364,6 @@ class UIExplorer extends UIComponentAsync {
       return div;
     }
 
-    var code = doc.getAsString('code');
-    if (code != null) {
-      String language = doc.get('language');
-      var codeHighlight =
-          UICodeHighlight(this.content, code, language: language);
-      codeHighlight.content.style.overflowWrap = 'break-word';
-      return codeHighlight;
-    }
-
     var url = doc.getAsString('url');
     if (url != null) {
       return _render_document_url(url, doc);
@@ -412,11 +403,12 @@ class UIExplorer extends UIComponentAsync {
         var div = markdownToDiv(urlContent);
         div.style.overflowWrap = 'break-word';
         return div;
-      } else if (language != null) {
-        var codeHighlight =
-            UICodeHighlight(content, urlContent, language: language);
-        codeHighlight.content.style.overflowWrap = 'break-word';
-        return codeHighlight;
+      } else if (language == 'json') {
+        var jsonRender = JSONRender.fromJSONAsString(urlContent);
+        jsonRender.addAllKnownTypeRenders();
+        var div = jsonRender.render();
+        div.style.overflowWrap = 'break-word';
+        return div;
       }
     }
 
@@ -649,8 +641,6 @@ class _UIExplorerQuery extends UIControlledComponent {
   }
 }
 
-///////////////////
-
 class _ViewerRender {
   final MapProperties config;
 
@@ -660,8 +650,14 @@ class _ViewerRender {
       Element output, String contentType, dynamic content) async {
     var type = config.getPropertyAsStringTrimLC('type', 'html');
 
-    if (type == 'code') {
-      return render_code(output, contentType, content);
+    if (type == 'html') {
+      if (content is Node) {
+        return content;
+      } else if (content is DOMElement) {
+        return content;
+      } else {
+        return createHTML('$content');
+      }
     } else if (type == 'json') {
       return render_json(output, contentType, content);
     }
@@ -692,17 +688,5 @@ class _ViewerRender {
     jsonRender.showNodeOpenerAndCloser = showNodeOpenerAndCloser;
 
     return jsonRender.render();
-  }
-
-  UICodeHighlight render_code(
-      Element output, String contentType, dynamic content) {
-    if (!(content is String)) {
-      content = dart_convert.JsonEncoder.withIndent('  ').convert(content);
-    }
-
-    var language = config.getPropertyAsStringTrimLC('language') ??
-        getLanguageByExtension(contentType);
-
-    return UICodeHighlight(output, content, language: language);
   }
 }

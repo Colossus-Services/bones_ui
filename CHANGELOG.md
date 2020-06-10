@@ -1,3 +1,9 @@
+## 1.0.12
+
+- Removed UICodeHighlight.
+- dom_tools: ^1.3.2
+- json_render: ^1.3.3
+
 ## 1.0.11
 
 - Remove debugging code: UIConsole.enable();
