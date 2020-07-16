@@ -1,12 +1,20 @@
 import 'dart:convert' as dart_convert;
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
+import 'package:dom_builder/dom_builder.dart';
+import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:json_render/json_render.dart';
 import 'package:mercury_client/mercury_client.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 import 'package:yaml/yaml.dart';
+
+import 'bones_ui_base.dart';
+import 'bones_ui_document.dart';
+import 'component/button.dart';
+import 'component/component_async.dart';
+import 'component/controlled_component.dart';
+import 'component/input_config.dart';
 
 final ResourceContentCache _resourceContentCache = ResourceContentCache();
 

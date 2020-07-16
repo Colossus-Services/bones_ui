@@ -4,10 +4,8 @@ import 'dart:html';
 import 'dart:typed_data';
 
 import 'package:bones_ui/bones_ui.dart';
+import 'package:bones_ui/src/bones_ui_base.dart';
 import 'package:swiss_knife/swiss_knife.dart';
-
-import 'bones_ui_base.dart';
-import 'bones_ui_component.dart';
 
 enum CaptureType { PHOTO, PHOTO_SELFIE, VIDEO, VIDEO_SELFIE, AUDIO, JSON, FILE }
 
@@ -206,6 +204,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   data_convert.Encoding _dataEncoding;
 
   data_convert.Encoding get dataEncoding => _dataEncoding;
+
   set dataEncoding(data_convert.Encoding value) {
     _dataEncoding = value ?? data_convert.latin1;
   }
