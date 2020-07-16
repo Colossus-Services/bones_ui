@@ -1,3 +1,16 @@
+## 1.0.13
+
+- Renamed `UIButton` to `UIButtonBase`.
+- Renamed `UISimpleButton` to `UIButton`.
+- `UIDialog`: improved implementation.
+- `UICapture`: Added generic file support.
+- dartfmt.
+- swiss_knife: ^2.5.5
+- dom_tools: ^1.3.4
+- dom_builder: ^1.0.13
+- json_render: ^1.3.4
+- mercury_client: ^1.1.8
+
 ## 1.0.12
 
 - Removed UICodeHighlight.

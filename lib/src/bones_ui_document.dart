@@ -1,5 +1,3 @@
-
-
 class URLLink {
   final String url;
 

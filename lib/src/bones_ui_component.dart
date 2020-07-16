@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:html';
 
+import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
@@ -8,10 +9,10 @@ import 'bones_ui_base.dart';
 import 'bones_ui_capture.dart';
 
 /// Base class for button components.
-abstract class UIButton extends UIComponent {
+abstract class UIButtonBase extends UIComponent {
   static final EVENT_CLICK = 'CLICK';
 
-  UIButton(Element parent,
+  UIButtonBase(Element parent,
       {String navigate,
       Map<String, String> navigateParameters,
       ParametersProvider navigateParametersProvider,
@@ -126,14 +127,75 @@ abstract class UIButton extends UIComponent {
 }
 
 /// A simple button implementation.
-class UISimpleButton extends UIButton {
+class UIButton extends UIButtonBase {
+  static void register() {
+    UIComponent.registerElementGenerator('ui-button', generator);
+  }
+
+  static Element generator(DOMGenerator<Node> domGenerator, tag, Node parent,
+      Map<String, DOMAttribute> attributes, Node contentHolder) {
+    var component = UIButton(parent, contentHolder.text);
+    component.appendComponentAttributes(attributes.values);
+    component.ensureRendered();
+    return component.content;
+  }
+
+  @override
+  dynamic getComponentAttributeExtended(String name) {
+    switch (name) {
+      case 'text':
+        return text;
+      default:
+        return null;
+    }
+  }
+
+  @override
+  bool setComponentAttributeExtended(String name, value) {
+    switch (name) {
+      case 'text':
+        {
+          _text = parseAttributeValueAsString(value);
+          return true;
+        }
+      default:
+        return null;
+    }
+  }
+
+  @override
+  bool appendComponentAttributeExtended(String name, value) {
+    switch (name) {
+      case 'text':
+        {
+          _text += parseAttributeValueAsString(value);
+          return true;
+        }
+      default:
+        return null;
+    }
+  }
+
+  @override
+  bool clearComponentAttributeExtended(String name) {
+    switch (name) {
+      case 'text':
+        {
+          _text = '';
+          return true;
+        }
+      default:
+        return null;
+    }
+  }
+
   /// Text/label of the button.
-  final String text;
+  String _text;
 
   /// Font size of the button.
   final String fontSize;
 
-  UISimpleButton(Element parent, this.text,
+  UIButton(Element parent, String text,
       {String navigate,
       Map<String, String> navigateParameters,
       ParametersProvider navigateParametersProvider,
@@ -142,7 +204,8 @@ class UISimpleButton extends UIButton {
       dynamic componentClass,
       bool small = false,
       this.fontSize})
-      : super(parent,
+      : _text = text,
+        super(parent,
             navigate: navigate,
             navigateParameters: navigateParameters,
             navigateParametersProvider: navigateParametersProvider,
@@ -152,6 +215,17 @@ class UISimpleButton extends UIButton {
               small ? 'ui-button-small' : 'ui-button',
               componentClass
             ]);
+
+  String get text => _text;
+
+  set text(String value) {
+    _text = value;
+  }
+
+  @override
+  Element createContentElement(bool inline) {
+    return ButtonElement();
+  }
 
   @override
   String renderButton() {
@@ -543,11 +617,13 @@ class UIInputTable extends UIComponent {
 }
 
 /// Component that renders a dialog.
-abstract class UIDialog extends UIComponent {
+abstract class UIDialogBase extends UIComponent {
+  static final rootParent = document.documentElement;
+
   final bool hideUIRoot;
 
-  UIDialog({this.hideUIRoot = false, dynamic classes})
-      : super(document.documentElement,
+  UIDialogBase({this.hideUIRoot = false, bool show = false, dynamic classes})
+      : super(show ?? false ? rootParent : null,
             classes: 'ui-dialog', classes2: classes) {
     _myConfigure();
   }
@@ -569,19 +645,58 @@ abstract class UIDialog extends UIComponent {
     _callOnShow();
   }
 
+  final String dialogButtonClass = 'ui-dialog-button';
+
+  bool _onClickListenOnlyForDialogButtonClass = false;
+  bool get onClickListenOnlyForDialogButtonClass =>
+      _onClickListenOnlyForDialogButtonClass;
+  set onClickListenOnlyForDialogButtonClass(bool value) {
+    _onClickListenOnlyForDialogButtonClass = value ?? false;
+  }
+
+  @override
+  void posRender() {
+    var selectors = _onClickListenOnlyForDialogButtonClass
+        ? '.$dialogButtonClass'
+        : '.$dialogButtonClass, button';
+
+    var buttons = content.querySelectorAll(selectors);
+
+    if (buttons != null && buttons.isNotEmpty) {
+      for (var button in buttons) {
+        button.onClick.listen(_callOnDialogButtonClick);
+      }
+    }
+  }
+
+  bool _hideOnDialogButtonClick = true;
+
+  bool get hideOnDialogButtonClick => _hideOnDialogButtonClick;
+
+  set hideOnDialogButtonClick(bool value) {
+    _hideOnDialogButtonClick = value ?? true;
+  }
+
+  void _callOnDialogButtonClick(MouseEvent event) {
+    if (_hideOnDialogButtonClick) {
+      hide();
+    }
+
+    onDialogButtonClick(event);
+  }
+
+  void onDialogButtonClick(MouseEvent event) {}
+
+  final EventStream<UIDialog> onHide = EventStream();
+  final EventStream<UIDialog> onShow = EventStream();
+
   void _callOnShow() {
     if (hideUIRoot) {
       var ui = UIRoot.getInstance();
       if (ui != null) ui.hide();
     }
 
-    try {
-      onShow();
-    } catch (e, s) {
-      print(e);
-      print(s);
-    }
-
+    onShow.add(this);
     onChange.add(this);
   }
 
@@ -591,29 +706,20 @@ abstract class UIDialog extends UIComponent {
       if (ui != null) ui.show();
     }
 
-    try {
-      onHide();
-    } catch (e, s) {
-      print(e);
-      print(s);
-    }
-
+    onHide.add(this);
     onChange.add(this);
   }
 
-  void onShow() {}
-
-  void onHide() {}
-
   @override
   bool get isShowing {
-    return parent.contains(content);
+    return rootParent.contains(content);
   }
 
   @override
   void show() {
     if (!isShowing) {
-      document.documentElement.children.add(content);
+      rootParent.children.add(content);
+      ensureRendered();
       _callOnShow();
     }
   }
@@ -627,6 +733,59 @@ abstract class UIDialog extends UIComponent {
     if (showing) {
       _callOnHide();
     }
+  }
+
+  bool _canceled = false;
+  bool get isCanceled => _canceled;
+
+  void cancel() {
+    _canceled = true;
+    hide();
+  }
+
+  final Map<Completer, StreamSubscription<UIDialog>> _showAndWaitHideListens =
+      {};
+
+  Future<bool> showAndWait() async {
+    show();
+
+    var completer = Completer<bool>();
+
+    var listen = onHide.listen((event) {
+      var listen = _showAndWaitHideListens.remove(completer);
+      if (listen != null) {
+        listen.cancel();
+      }
+      completer.complete(!isCanceled);
+    });
+
+    _showAndWaitHideListens[completer] = listen;
+
+    return completer.future;
+  }
+}
+
+class UIDialog extends UIDialogBase {
+  dynamic renderContent;
+
+  UIDialog(this.renderContent,
+      {bool hideUIRoot = false, bool show = false, dynamic classes})
+      : super(hideUIRoot: hideUIRoot, show: show, classes: classes);
+
+  @override
+  void configure() {
+    super.configure();
+    content.style.textAlign = 'center';
+  }
+
+  @override
+  dynamic render() {
+    return $div(
+        style: 'text-align: center;'
+            'position: absolute;'
+            'top: 50%; left: 50%;'
+            'transform: translate(-50%, -50%);',
+        content: renderContent);
   }
 }
 
@@ -1227,9 +1386,8 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   }
 
   void _updateDivOptionsPosition() {
-    var elemMargin = optionsPanelMargin ?? 20;
-    var elemW = _element.contentEdge.width;
-    var w = Math.max(elemW - elemMargin, Math.min(elemW, 10));
+    var elemW = _element.borderEdge.width;
+    var w = elemW;
 
     var x = _element.offset.left;
     var xPadding = (elemW - w) / 2;
@@ -1320,18 +1478,24 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
           .forEach((e1) => entries.removeWhere((e2) => e2.key == e1.key));
     }
 
+    var table = TableElement();
+
+    var tbody = table.createTBody();
+
+    divOptions.children.add(table);
+
     for (var optEntry in entriesFiltered) {
-      _renderDivOptionsEntry(divOptions, checksList, optEntry);
+      _renderDivOptionsEntry(tbody, checksList, optEntry);
     }
 
     for (var optEntry in entries) {
-      _renderDivOptionsEntry(divOptions, checksList, optEntry);
+      _renderDivOptionsEntry(tbody, checksList, optEntry);
     }
 
     return checksList;
   }
 
-  void _renderDivOptionsEntry(DivElement divOptions,
+  void _renderDivOptionsEntry(TableSectionElement tbody,
       List<InputElementBase> checksList, MapEntry optEntry) {
     var optKey = '${optEntry.key}';
     var optValue = '${optEntry.value}';
@@ -1353,12 +1517,18 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     checkElem.value = optKey;
     checkElem.setAttribute('opt_label', optValue);
 
-    divOptions.children.add(checkElem);
+    var row = tbody.addRow();
+
+    var cell1 = row.addCell()
+      ..style.padding = '2px 6px 2px 2px'
+      ..style.verticalAlign = 'top';
+
+    cell1.children.add(checkElem);
 
     checksList.add(checkElem);
 
     var label = LabelElement();
-    setElementInnerHTML(label, ' &nbsp; $optValue');
+    setElementInnerHTML(label, optValue);
 
     checkElem.onClick.listen((e) {
       _updateElementText();
@@ -1371,8 +1541,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
       _checkByIDImpl(optKey, _isChecked(checkElem), true, true);
     });
 
-    divOptions.children.add(label);
-    divOptions.children.add(BRElement());
+    var cell2 = row.addCell()..style.textAlign = 'left';
+
+    cell2.children.add(label);
   }
 
   int _onDivOptionsLastMouseMove = 0;
@@ -1636,7 +1807,8 @@ abstract class UIControlledComponent extends UIComponent {
 
   Future<dynamic> renderAsync(MapProperties properties) async {
     if (_controllers == null) {
-      _controllers = await renderControllers(properties);
+      var controllers = await renderControllers(properties);
+      _controllers = _resolveControllers(controllers);
       await listenControllers(_controllers);
     }
 
@@ -1735,9 +1907,7 @@ abstract class UIControlledComponent extends UIComponent {
   }
 
   bool isValidControllersSetup(
-      MapProperties properties, Map<String, dynamic> controllers) {
-    return true;
-  }
+      MapProperties properties, Map<String, dynamic> controllers);
 
   Future<dynamic> renderOnlyControllers(
       MapProperties properties, Map<String, dynamic> controllers) async {
@@ -1777,6 +1947,20 @@ abstract class UIControlledComponent extends UIComponent {
     }
 
     return list;
+  }
+
+  Map<String, dynamic> _resolveControllers(Map<String, dynamic> controllers) {
+    var parent = _componentAsync.content;
+
+    var resolvedControllers = controllers.map((key, value) {
+      var elements = toContentElements(parent, value);
+      var element = elements.isEmpty
+          ? null
+          : (elements.length == 1 ? elements.single : elements);
+      return MapEntry(key, element);
+    });
+
+    return resolvedControllers;
   }
 
   Future<dynamic> renderResult(MapProperties properties);

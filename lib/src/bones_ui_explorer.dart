@@ -506,7 +506,7 @@ class _UIExplorerCatalog extends UIComponent {
 
   dynamic render_newDocument() {
     var documentInputs = UIInputTable(content, documentInputConfig);
-    var sendButton = UISimpleButton(content, 'Send');
+    var sendButton = UIButton(content, 'Send');
 
     var error = $span(
         classes: 'ui-text-alert',

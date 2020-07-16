@@ -31,5 +31,7 @@ jobs:
           ls -al
       - name: Pub Get
         run: su -c 'cd $(< /tmp/test-dir.txt) && pub get' tester
+      - name: dartfmt
+        run: su -c 'cd $(< /tmp/test-dir.txt) && dartfmt -n --set-exit-if-changed .
       - name: Run tests
         run: su -c 'DISPLAY=:0 cd $(< /tmp/test-dir.txt) && pub run test -p firefox' tester

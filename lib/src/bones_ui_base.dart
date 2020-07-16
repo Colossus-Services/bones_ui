@@ -6,9 +6,65 @@ import 'package:dom_builder/dom_builder_dart_html.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_messages/intl_messages.dart';
+//import 'package:logger/logger.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import 'bones_ui_layout.dart';
+
+/*
+final LoggerFactory _loggerFactory = LoggerFactory(name: 'Bones_UI') ;
+
+final Logger logger = _loggerFactory.get();
+
+final Logger loggerIgnoreBonesUI = _loggerFactory.get(
+    printer: PrettyPrinter(printTime: true)
+      ..ignorePackage('bones_ui')
+      ..ignorePackage('bones_ui_bootstrap'));
+*/
+
+// Temporary logger. Will be replaced by `logger`.
+class _Logger {
+  void i(dynamic msg) {
+    msg = _format(msg);
+    print(msg);
+  }
+
+  void e(dynamic msg, dynamic e, StackTrace s) {
+    msg = _format(msg);
+    _error(msg);
+    _error(e);
+    _error(s);
+  }
+
+  void _error(msg) {
+    window.console.error(msg);
+  }
+
+  dynamic _format(dynamic msg) {
+    if (msg is List) {
+      return msg.map((e) => _format(msg));
+    } else if (msg is String) {
+      var str = StringBuffer();
+
+      str.write('┌-------------------------------------------------\n');
+
+      var lines = msg.split('\n');
+
+      for (var line in lines) {
+        str.write('| ');
+        str.write(line);
+        str.write('\n');
+      }
+
+      str.write('└-------------------------------------------------\n');
+
+      return str.toString();
+    }
+  }
+}
+
+final _Logger logger = _Logger();
+final _Logger loggerIgnoreBonesUI = _Logger();
 
 typedef UIEventListener = void Function(dynamic event, List params);
 
@@ -81,8 +137,6 @@ class UIConsole {
       mapJSFunction('UIConsole', (o) {
         UIConsole.log('JS> $o');
       });
-
-      evalJS(' UIConsole("MOHHH!!!") ');
     } catch (e) {
       UIConsole.error("Can't mapJSFunction: UIConsole", e);
     }
@@ -218,7 +272,7 @@ class UIConsole {
 
   void _log(dynamic msg) {
     if (!_enabled) {
-      print(msg);
+      loggerIgnoreBonesUI.i(msg);
       return;
     }
 
@@ -231,11 +285,7 @@ class UIConsole {
       _logs.remove(0);
     }
 
-    if (msg is String) {
-      print(log);
-    } else {
-      print(msg);
-    }
+    loggerIgnoreBonesUI.i(msg);
   }
 
   static String allLogs() {
@@ -467,7 +517,7 @@ class UIConsole {
 
     var elem = button(1.0);
 
-    print('Button: ${elem.clientHeight}');
+    loggerIgnoreBonesUI.i('Button: ${elem.clientHeight}');
 
     elem.style
       ..position = 'fixed'
@@ -1059,11 +1109,12 @@ abstract class UIComponent extends UIEventHandler {
 
     try {
       for (var uiComp in _componentsRenderingExtra.values) {
-        uiComp.parentUIComponent;
+        try {
+          uiComp.parentUIComponent;
+        } catch (e, s) {
+          logger.e('Error resolving parent UIComponent', e, s);
+        }
       }
-    } catch (e, s) {
-      print(e);
-      print(s);
     } finally {
       _resolve_componentsRenderingExtra_call = false;
     }
@@ -1281,8 +1332,8 @@ abstract class UIComponent extends UIEventHandler {
     try {
       onChildRendered(this);
     } catch (e, s) {
-      print(e);
-      print(s);
+      loggerIgnoreBonesUI.e(
+          'Error calling onChildRendered() for instance: $this', e, s);
     }
   }
 
@@ -1347,8 +1398,8 @@ abstract class UIComponent extends UIEventHandler {
 
       return list;
     } catch (e, s) {
-      print(e);
-      print(s);
+      logger.e(
+          'Error converting rendered to content elements: $rendered', e, s);
       return [];
     }
   }
@@ -1373,26 +1424,41 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  List _toContentElementsImpl(Element content, dynamic rendered, bool append) {
-    List renderedList;
+  List toRenderableList(dynamic list) {
+    List renderableList;
 
-    if (rendered != null) {
-      if (rendered is List) {
-        renderedList = rendered;
-      } else if (rendered is Iterable) {
-        renderedList = List.from(rendered);
-      } else if (rendered is Map) {
-        renderedList = [];
-        renderedList.addAll(rendered.keys.where(isRenderable));
-        renderedList.addAll(rendered.values.where(isRenderable));
+    if (list != null) {
+      if (list is List) {
+        renderableList = list;
+      } else if (list is Iterable) {
+        renderableList = List.from(list);
+      } else if (list is Map) {
+        renderableList = [];
+
+        for (var entry in list.entries) {
+          var key = entry.key;
+          var val = entry.value;
+          if (isRenderable(key)) {
+            renderableList.add(key);
+          }
+          if (isRenderable(val) || isHTMLElement(val)) {
+            renderableList.add(val);
+          }
+        }
       } else {
-        renderedList = [rendered];
+        renderableList = [list];
       }
     }
 
-    if (renderedList != null) {
-      if (isListOfStrings(renderedList)) {
-        var html = renderedList.join('\n');
+    return renderableList;
+  }
+
+  List _toContentElementsImpl(Element content, dynamic rendered, bool append) {
+    var renderableList = toRenderableList(rendered);
+
+    if (renderableList != null) {
+      if (isListOfStrings(renderableList)) {
+        var html = renderableList.join('\n');
 
         if (append) {
           appendElementInnerHTML(content, html);
@@ -1403,16 +1469,17 @@ abstract class UIComponent extends UIEventHandler {
         var list = List.from(content.childNodes);
         return list;
       } else {
-        for (var value in renderedList) {
-          _removeContent(value);
+        for (var value in renderableList) {
+          _removeFromContent(value);
         }
 
         var renderedList2 = [];
 
         var prevElemIndex = -1;
 
-        for (var value in renderedList) {
-          prevElemIndex = _buildRenderList(value, renderedList2, prevElemIndex);
+        for (var value in renderableList) {
+          prevElemIndex =
+              _buildRenderList(content, value, renderedList2, prevElemIndex);
         }
 
         return renderedList2;
@@ -1424,7 +1491,15 @@ abstract class UIComponent extends UIEventHandler {
 
   static final UIDOMGenerator _domGenerator = UIDOMGenerator();
 
-  int _buildRenderList(dynamic value, List renderedList, int prevElemIndex) {
+  static UIDOMGenerator get domGenerator => _domGenerator;
+
+  static bool registerElementGenerator(
+      String tag, ElementGenerator<Node> elementGenerator) {
+    return _domGenerator.registerElementGenerator(tag, elementGenerator);
+  }
+
+  int _buildRenderList(
+      Element content, dynamic value, List renderedList, int prevElemIndex) {
     if (value == null) return prevElemIndex;
 
     if (value is DOMNode) {
@@ -1433,11 +1508,11 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     if (value is Node) {
-      var idx = content.childNodes.indexOf(value);
+      var idx = content.nodes.indexOf(value);
 
       if (idx < 0) {
-        content.children.add(value);
-        idx = content.childNodes.indexOf(value);
+        content.nodes.add(value);
+        idx = content.nodes.indexOf(value);
       }
 
       prevElemIndex = idx;
@@ -1447,15 +1522,15 @@ abstract class UIComponent extends UIEventHandler {
         value._setParentImpl(content, false);
       }
 
-      var idx = content.childNodes.indexOf(value.content);
+      var idx = content.nodes.indexOf(value.content);
 
       if (idx < 0) {
         content.children.add(value.content);
-        idx = content.childNodes.indexOf(value.content);
+        idx = content.nodes.indexOf(value.content);
       } else if (idx < prevElemIndex) {
         value.content.remove();
         content.children.add(value.content);
-        idx = content.childNodes.indexOf(value.content);
+        idx = content.nodes.indexOf(value.content);
       }
 
       prevElemIndex = idx;
@@ -1473,36 +1548,37 @@ abstract class UIComponent extends UIEventHandler {
         }
       }
 
-      var content = value.content;
-      prevElemIndex = _buildRenderList(content, renderedList, prevElemIndex);
+      prevElemIndex =
+          _buildRenderList(content, value.content, renderedList, prevElemIndex);
     } else if (value is List) {
       for (var elem in value) {
-        prevElemIndex = _buildRenderList(elem, renderedList, prevElemIndex);
+        prevElemIndex =
+            _buildRenderList(content, elem, renderedList, prevElemIndex);
       }
     } else if (value is String) {
       if (prevElemIndex < 0) {
         setElementInnerHTML(content, value);
-        prevElemIndex = content.childNodes.length - 1;
+        prevElemIndex = content.nodes.length - 1;
 
-        renderedList.addAll(content.childNodes);
+        renderedList.addAll(content.nodes);
       } else {
-        var preAppendSize = content.childNodes.length;
+        var preAppendSize = content.nodes.length;
 
         appendElementInnerHTML(content, value);
 
-        var appendedElements = content.childNodes
-            .sublist(preAppendSize, content.childNodes.length);
+        var appendedElements =
+            content.nodes.sublist(preAppendSize, content.nodes.length);
 
         if (prevElemIndex == preAppendSize - 1) {
-          prevElemIndex = content.childNodes.length - 1;
+          prevElemIndex = content.nodes.length - 1;
         } else {
           if (appendedElements.isNotEmpty) {
             for (var elem in appendedElements) {
               elem.remove();
             }
 
-            var restDyn = copyList(content.childNodes.length >= prevElemIndex
-                ? content.childNodes.sublist(prevElemIndex + 1)
+            var restDyn = copyList(content.nodes.length >= prevElemIndex
+                ? content.nodes.sublist(prevElemIndex + 1)
                 : null);
 
             // ignore: omit_local_variable_types
@@ -1515,13 +1591,24 @@ abstract class UIComponent extends UIEventHandler {
             appendedElements.forEach((n) => content.append(n));
             rest.forEach((n) => content.append(n));
 
-            prevElemIndex = content.childNodes.indexOf(appendedElements[0]);
+            prevElemIndex = content.nodes.indexOf(appendedElements[0]);
           }
         }
 
         renderedList.addAll(appendedElements);
       }
+    } else if (value is Function) {
+      try {
+        var result = value();
+        prevElemIndex =
+            _buildRenderList(content, result, renderedList, prevElemIndex);
+      } catch (e, s) {
+        UIConsole.error('Error calling function: $value', e, s);
+      }
     } else {
+      UIConsole.log("Bones_UI: Can't render element of type");
+      UIConsole.log(value);
+
       throw UnsupportedError(
           "Bones_UI: Can't render element of type: ${value.runtimeType}");
     }
@@ -1529,7 +1616,7 @@ abstract class UIComponent extends UIEventHandler {
     return prevElemIndex;
   }
 
-  void _removeContent(dynamic value) {
+  void _removeFromContent(dynamic value) {
     if (value == null) return;
 
     if (value is Element) {
@@ -1539,11 +1626,11 @@ abstract class UIComponent extends UIEventHandler {
         value.content.remove();
       }
     } else if (value is UIAsyncContent) {
-      _removeContent(value.loadingContent);
-      _removeContent(value.content);
+      _removeFromContent(value.loadingContent);
+      _removeFromContent(value.content);
     } else if (value is List) {
       for (var val in value) {
-        _removeContent(val);
+        _removeFromContent(val);
       }
     }
   }
@@ -1594,6 +1681,143 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  String _normalizeComponentAttributeName(String name) {
+    if (name == null) return null;
+    name = name.toLowerCase().trim();
+    if (name.isEmpty) return null;
+    return name;
+  }
+
+  static final RegExp _VALUE_DELIMITER_GENERIC = RegExp(r'[\s,;]+');
+
+  List<String> parseAttributeValueAsStringList(dynamic value,
+          [Pattern delimiter]) =>
+      parseStringFromInlineList(value, delimiter ?? _VALUE_DELIMITER_GENERIC);
+
+  String parseAttributeValueAsString(dynamic value,
+      [String delimiter, Pattern delimiterPattern]) {
+    var list = parseAttributeValueAsStringList(value, delimiterPattern);
+    if (list.isEmpty) return '';
+    delimiter ??= ' ';
+    return list.length == 1 ? list.single : list.join(delimiter);
+  }
+
+  dynamic getComponentAttribute(String name) {
+    name = _normalizeComponentAttributeName(name);
+    if (name == null) return null;
+
+    switch (name) {
+      case 'style':
+        return content.style.cssText;
+      case 'class':
+        return content.classes.join(' ');
+      default:
+        return getComponentAttributeExtended(name);
+    }
+  }
+
+  dynamic getComponentAttributeExtended(String name) => false;
+
+  bool setComponentAttributes(Iterable<DOMAttribute> attributes) {
+    if (attributes == null || attributes.isEmpty) return true;
+
+    var allOk = true;
+    for (var attr in attributes) {
+      var ok = setComponentAttribute(
+          attr.name, attr.isListValue ? attr.values : attr.value);
+      if (!ok) {
+        allOk = false;
+      }
+    }
+    return allOk;
+  }
+
+  bool setComponentAttribute(String name, dynamic value) {
+    if (value == null) {
+      return clearComponentAttribute(name);
+    }
+
+    name = _normalizeComponentAttributeName(name);
+    if (name == null) return false;
+
+    switch (name) {
+      case 'style':
+        {
+          content.style.cssText = parseAttributeValueAsString(value);
+          return true;
+        }
+      case 'class':
+        {
+          content.classes.clear();
+          content.classes.addAll(parseAttributeValueAsStringList(value));
+          return true;
+        }
+      default:
+        return setComponentAttributeExtended(name, value) ?? false;
+    }
+  }
+
+  bool setComponentAttributeExtended(String name, dynamic value) => false;
+
+  bool clearComponentAttribute(String name) {
+    name = _normalizeComponentAttributeName(name);
+    if (name == null) return false;
+
+    switch (name) {
+      case 'style':
+        {
+          content.style.cssText = '';
+          return true;
+        }
+      case 'class':
+        {
+          content.classes.clear();
+          return true;
+        }
+      default:
+        return clearComponentAttributeExtended(name) ?? false;
+    }
+  }
+
+  bool clearComponentAttributeExtended(String name) => false;
+
+  bool appendComponentAttributes(Iterable<DOMAttribute> attributes) {
+    if (attributes == null || attributes.isEmpty) return true;
+
+    var allOk = true;
+    for (var attr in attributes) {
+      var ok = appendComponentAttribute(
+          attr.name, attr.isListValue ? attr.values : attr.value);
+      if (!ok) {
+        allOk = false;
+      }
+    }
+    return allOk;
+  }
+
+  bool appendComponentAttribute(String name, dynamic value) {
+    name = _normalizeComponentAttributeName(name);
+    if (name == null) return false;
+
+    switch (name) {
+      case 'style':
+        {
+          content.style.cssText +=
+              ' ; ' + parseAttributeValueAsString(value, ' ; ');
+          return true;
+        }
+      case 'class':
+        {
+          content.classes.addAll(parseAttributeValueAsStringList(value));
+          return true;
+        }
+      default:
+        return appendComponentAttributeExtended(name, value) ?? false;
+    }
+  }
+
+  bool appendComponentAttributeExtended(String name, dynamic value) => false;
+
   Element getFieldElement(String fieldName) => findInContentChildrenDeep((e) {
         if (e is Element) {
           var fieldValue = getElementAttribute(e, 'field');
@@ -1623,6 +1847,22 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     return map;
+  }
+
+  bool clearComponentContent() {
+    content.nodes.clear();
+    return true;
+  }
+
+  bool setComponentContent(List<Node> nodes) {
+    content.nodes.clear();
+    content.nodes.addAll(nodes);
+    return true;
+  }
+
+  bool appendComponentContent(List<Node> nodes) {
+    content.nodes.addAll(nodes);
+    return true;
   }
 
   List<Element> getFieldsElements() => List.from(getFieldsElementsMap().values);
@@ -1817,6 +2057,9 @@ abstract class UIComponent extends UIEventHandler {
 /// able to generate [Element] (from `dart:html`).
 class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   @override
+  DOMTreeMap<Node> createGenericDOMTreeMap() => createDOMTreeMap();
+
+  @override
   bool canHandleExternalElement(externalElement) {
     if (externalElement is List) {
       return listMatchesAll(externalElement, canHandleExternalElement);
@@ -1828,18 +2071,26 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   }
 
   @override
-  Element addExternalElementToElement(Element element, externalElement) {
+  List<Node> addExternalElementToElement(Node element, externalElement) {
     if (externalElement is List) {
+      if (externalElement.isEmpty) return null;
+      var children = <Node>[];
       for (var elem in externalElement) {
-        addExternalElementToElement(element, elem);
+        var child = addExternalElementToElement(element, elem);
+        children.addAll(child);
       }
-      return null;
+      return children;
     } else if (externalElement is UIComponent) {
       var component = externalElement;
       var componentContent = component.content;
-      element.children.add(componentContent);
-      component.setParent(element);
-      return componentContent;
+
+      if (element is Element) {
+        element.children.add(componentContent);
+        component.setParent(element);
+        return [componentContent];
+      }
+
+      return null;
     }
 
     return super.addExternalElementToElement(element, externalElement);
@@ -2242,8 +2493,8 @@ class UIAsyncContent {
   }
 
   void _onLoadError(dynamic error, StackTrace stackTrace) {
-    print(error);
-    print(stackTrace);
+    loggerIgnoreBonesUI.e(
+        'Error loading async content for instance: $this', error, stackTrace);
 
     _loadedContent = _Content(error, 500);
     _loadCount++;
@@ -2294,7 +2545,7 @@ class UIAsyncContent {
   ///
   /// [refresh] If [true] (default), will call [refresh] after reset.
   void reset([bool refresh = true]) {
-    print('RESET ASYNC CONTENT> $this');
+    loggerIgnoreBonesUI.i('Resetting async content for instance: $this');
 
     _loadedContent = null;
     _ignoredRefreshCount = 0;
@@ -2334,6 +2585,8 @@ abstract class UIRoot extends UIComponent {
 
   UIRoot(Element rootContainer, {dynamic classes})
       : super(rootContainer, classes: classes) {
+    _registerAllComponents();
+
     _rootInstance = this;
 
     _localesManager = createLocalesManager(initializeLocale, _onDefineLocale);
@@ -2352,8 +2605,8 @@ abstract class UIRoot extends UIComponent {
     try {
       onResize(e);
     } catch (e, s) {
-      print(e);
-      print(s);
+      loggerIgnoreBonesUI.e(
+          'Error calling onResize() for instance: $this', e, s);
     }
   }
 
@@ -2752,8 +3005,8 @@ class UINavigator {
   static bool get isSecureContext {
     try {
       return window.isSecureContext;
-    } catch (e) {
-      print(e);
+    } catch (e, s) {
+      logger.e('Error calling `window.isSecureContext`', e, s);
       return false;
     }
   }
@@ -3150,4 +3403,12 @@ class UINavigator {
 
     return null;
   }
+}
+
+bool _registeredAllComponents = false;
+
+void _registerAllComponents() {
+  if (_registeredAllComponents) return;
+  _registeredAllComponents = true;
+  UIButton.register();
 }
