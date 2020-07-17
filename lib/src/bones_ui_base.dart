@@ -29,7 +29,7 @@ class _Logger {
   }
 
   void e(dynamic msg, dynamic e, StackTrace s) {
-    msg = _format(msg);
+    msg = _format(msg, true);
     _error(msg);
     if (e != null) {
       _error(e.toString());
@@ -43,11 +43,11 @@ class _Logger {
     window.console.error(msg);
   }
 
-  dynamic _format(dynamic msg) {
+  dynamic _format(dynamic msg, [bool error = false]) {
     if (msg is List) {
       return msg.map((e) => _format(msg));
     } else if (msg is String) {
-      var str = StringBuffer();
+      var str = StringBuffer(error ? '\n' : '');
 
       str.write('┌-------------------------------------------------\n');
 
@@ -62,6 +62,8 @@ class _Logger {
       str.write('└-------------------------------------------------\n');
 
       return str.toString();
+    } else {
+      return msg;
     }
   }
 

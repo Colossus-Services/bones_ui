@@ -70,10 +70,40 @@ abstract class UIDialogBase extends UIComponent {
 
   void _callOnDialogButtonClick(MouseEvent event) {
     if (_hideOnDialogButtonClick) {
-      hide();
+      var clickedElement = event.target;
+
+      if (clickedElement != null && isCancelButton(clickedElement)) {
+        cancel();
+      } else {
+        hide();
+      }
     }
 
     onDialogButtonClick(event);
+  }
+
+  List<String> cancelButtonClasses = ['btn-cancel'];
+
+  bool isCancelButton(Element clickedElement) {
+    if (clickedElement == null) return false;
+
+    if (isNotEmptyObject(cancelButtonClasses)) {
+      for (var className in cancelButtonClasses) {
+        if (clickedElement.classes.contains(className)) {
+          return true;
+        }
+
+        var elementsWithClass = content.querySelectorAll('.$className');
+
+        for (var elem in elementsWithClass) {
+          if ( elem == clickedElement || elem.contains(clickedElement) ) {
+            return true ;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 
   void onDialogButtonClick(MouseEvent event) {}

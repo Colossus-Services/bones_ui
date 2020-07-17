@@ -11,6 +11,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   Map _options;
 
   final bool _multiSelection;
+  final bool _allowInputValue;
 
   final String width;
 
@@ -24,6 +25,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
 
   UIMultiSelection(Element parent, Map options,
       {bool multiSelection = true,
+      bool allowInputValue,
       this.width,
       this.optionsPanelMargin = 20,
       this.separator = ' ; ',
@@ -31,6 +33,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
       dynamic classes})
       : _options = options ?? {},
         _multiSelection = multiSelection ?? true,
+        _allowInputValue = allowInputValue ?? false,
         selectionMaxDelay = selectionMaxDelay ?? Duration(seconds: 10),
         super(parent,
             classes: 'ui-multi-selection',
@@ -503,9 +506,11 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
         _renderDivOptionsEntry(tbody, checksList, optEntry, true);
       }
 
-      var tr = tbody.addRow();
-      var td = tr.addCell()..colSpan = 2;
-      td.append(HRElement());
+      if (entries.isNotEmpty) {
+        var tr = tbody.addRow();
+        var td = tr.addCell()..colSpan = 2;
+        td.append(HRElement());
+      }
     }
 
     for (var optEntry in entries) {
