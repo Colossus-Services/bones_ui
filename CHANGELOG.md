@@ -1,3 +1,7 @@
+## 1.0.15
+
+- dartanalyzer.
+
 ## 1.0.14
 
 - Refactor: move components implementations to directory `components`.
