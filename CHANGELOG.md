@@ -1,6 +1,12 @@
 ## 1.0.14
 
 - Refactor: move components implementations to directory `components`.
+- Added `UIControlledComponentsetupControllersOnChange`.
+- `UIMultiSelection`: mutable options; options panel with scroll bars.
+- Usage of `IntlBasicDictionary` for some messages.
+- dartfmt.
+- swiss_knife: ^2.5.6
+- intl_messages: ^1.1.9
 
 ## 1.0.13
 

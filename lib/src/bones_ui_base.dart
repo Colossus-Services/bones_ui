@@ -31,8 +31,12 @@ class _Logger {
   void e(dynamic msg, dynamic e, StackTrace s) {
     msg = _format(msg);
     _error(msg);
-    _error(e);
-    _error(s);
+    if (e != null) {
+      _error(e.toString());
+    }
+    if (s != null) {
+      _error(formatStackTrace(s));
+    }
   }
 
   void _error(msg) {
@@ -58,6 +62,26 @@ class _Logger {
       str.write('└-------------------------------------------------\n');
 
       return str.toString();
+    }
+  }
+
+  String formatStackTrace(StackTrace stackTrace) {
+    var lines = stackTrace.toString().split('\n');
+
+    var formatted = <String>[];
+    var count = 0;
+
+    var length = lines.length;
+    for (var i = 0; i < length; i++) {
+      var line = lines[i].trim();
+      if (line.isEmpty) continue;
+      formatted.add('#$count   ${line.replaceFirst(RegExp(r'#\d+\s+'), '')}');
+    }
+
+    if (formatted.isEmpty) {
+      return null;
+    } else {
+      return formatted.join('\n');
     }
   }
 }

@@ -435,7 +435,8 @@ class UIExplorer extends UIComponentAsync {
     var viewer = MapProperties.fromMap(conf.getAsMap('viewer'));
 
     return _UIExplorerQuery(content, inputConfigs, executor, viewer,
-        loadingContent: 'loading...', errorContent: 'error!');
+        loadingContent: '${IntlBasicDictionary.msg('loading')}...',
+        errorContent: '${IntlBasicDictionary.msg('error')}!');
   }
 
   Future<dynamic> render_catalog() async {
@@ -483,7 +484,11 @@ class _UIExplorerCatalog extends UIComponent {
   @override
   dynamic render() {
     var listingAsync = UIComponentAsync(
-        content, _listingProperties, render_listing, 'Loading...', 'Error...');
+        content,
+        _listingProperties,
+        render_listing,
+        '${IntlBasicDictionary.msg('loading')}...',
+        '${IntlBasicDictionary.msg('error')}!');
 
     var newDoc = render_newDocument();
 

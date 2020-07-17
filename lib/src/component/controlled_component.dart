@@ -155,6 +155,11 @@ abstract class UIControlledComponent extends UIComponent {
   Future<bool> setupControllers(
       MapProperties properties, Map<String, dynamic> controllers);
 
+  Future<bool> setupControllersOnChange(
+      MapProperties properties, Map<String, dynamic> controllers) async {
+    return false;
+  }
+
   Future<bool> listenControllers(Map<String, dynamic> controllers) async {
     for (var control in controllers.values) {
       if (control is Element) {
@@ -205,6 +210,9 @@ abstract class UIControlledComponent extends UIComponent {
             break;
           }
       }
+    } else {
+      var propertiesNow = getControllersProperties();
+      setupControllersOnChange(propertiesNow, controllers);
     }
   }
 
