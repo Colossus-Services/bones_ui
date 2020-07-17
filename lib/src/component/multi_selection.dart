@@ -214,8 +214,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     if (pattern is String) {
       var patternStr = pattern;
       patternStr = patternStr.trim().toLowerCase();
-      if (patternStr.isEmpty || patternStr == '*')
+      if (patternStr.isEmpty || patternStr == '*') {
         return _options.entries.toList();
+      }
       return _options.entries
           .where((e) => '${e.value}'.toLowerCase().contains(patternStr))
           .toList();
