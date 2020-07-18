@@ -96,8 +96,8 @@ abstract class UIDialogBase extends UIComponent {
         var elementsWithClass = content.querySelectorAll('.$className');
 
         for (var elem in elementsWithClass) {
-          if ( elem == clickedElement || elem.contains(clickedElement) ) {
-            return true ;
+          if (elem == clickedElement || elem.contains(clickedElement)) {
+            return true;
           }
         }
       }

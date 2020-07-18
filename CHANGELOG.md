@@ -1,3 +1,12 @@
+## 1.0.16
+
+- `UIDialog`: handle closing/cancel buttons.
+- `UIMultiSelection`: fix when selecting all entries and showing an unnecessary `<hr>`.
+    `_allowInputValue` now triggers `onChange`.   
+- swiss_knife: ^2.5.7
+- mercury_client: ^1.1.9
+- dom_tools: ^1.3.5
+
 ## 1.0.15
 
 - dartanalyzer.

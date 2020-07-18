@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:html';
 
 import 'package:bones_ui/src/bones_ui_base.dart';
@@ -19,7 +18,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
 
   final String separator;
 
-  final Duration selectionMaxDelay;
+  InteractionCompleter _optionsPanelInteractionCompleter;
+
+  InteractionCompleter _inputInteractionCompleter;
 
   final EventStream<UIMultiSelection> onSelect = EventStream();
 
@@ -34,11 +35,25 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
       : _options = options ?? {},
         _multiSelection = multiSelection ?? true,
         _allowInputValue = allowInputValue ?? false,
-        selectionMaxDelay = selectionMaxDelay ?? Duration(seconds: 10),
         super(parent,
             classes: 'ui-multi-selection',
             classes2: classes,
-            renderOnConstruction: true);
+            renderOnConstruction: true) {
+    _optionsPanelInteractionCompleter = InteractionCompleter('optionsPanel',
+        triggerDelay: selectionMaxDelay ?? Duration(seconds: 10),
+        functionToTrigger: _notifySelection);
+
+    if (_allowInputValue) {
+      _inputInteractionCompleter = InteractionCompleter('input',
+          triggerDelay: selectionMaxDelay ?? Duration(seconds: 10),
+          functionToTrigger: _notifyInput);
+    } else {
+      _inputInteractionCompleter = InteractionCompleterDummy();
+    }
+  }
+
+  Duration get selectionMaxDelay =>
+      _optionsPanelInteractionCompleter.triggerDelay;
 
   Map get options => Map.from(_options);
 
@@ -57,8 +72,18 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
 
   bool get isMultiSelection => _multiSelection;
 
+  bool get allowInputValue => _allowInputValue;
+
   @override
   List<String> getFieldValue() {
+    if (allowInputValue && !hasSelection) {
+      var value = inputValue;
+      if (isNotEmptyObject(value)) {
+        return [inputValue];
+      } else {
+        return [];
+      }
+    }
     return selectedIDs;
   }
 
@@ -78,44 +103,18 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     return isCheckedByID(id);
   }
 
-  bool _needToNotifySelection = false;
+  void _notifyInput() {
+    if (!allowInputValue) return;
 
-  void _notifySelection(bool delayed) {
-    if (!_needToNotifySelection) return;
-
-    if (delayed) {
-      var moveElapsed =
-          DateTime.now().millisecondsSinceEpoch - _onDivOptionsLastMouseMove;
-      var maxDelay =
-          selectionMaxDelay != null ? selectionMaxDelay.inMilliseconds : 200;
-      if (moveElapsed < maxDelay) {
-        _notifySelectionDelayed();
-        return;
-      }
+    if (hasInputValue) {
+      onChange.add(this);
     }
+  }
 
-    _needToNotifySelection = false;
-
+  void _notifySelection() {
     onSelect.add(this);
 
     onChange.add(this);
-  }
-
-  void _notifySelectionDelayed() {
-    if (!_needToNotifySelection) return;
-
-    var maxDelay =
-        selectionMaxDelay != null ? selectionMaxDelay.inMilliseconds : 200;
-    if (maxDelay < 200) maxDelay = 200;
-
-    var moveElapsed =
-        DateTime.now().millisecondsSinceEpoch - _onDivOptionsLastMouseMove;
-    var timeUntilMaxDelay = maxDelay - moveElapsed;
-
-    var delay =
-        timeUntilMaxDelay < 100 ? 100 : Math.min(timeUntilMaxDelay, maxDelay);
-
-    Future.delayed(Duration(milliseconds: delay), () => _notifySelection(true));
   }
 
   void checkByID(dynamic id, bool check) {
@@ -131,8 +130,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     }
 
     if (notify) {
-      _needToNotifySelection = true;
-      _notifySelectionDelayed();
+      _optionsPanelInteractionCompleter.interact();
     }
   }
 
@@ -159,8 +157,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     _updateElementText();
 
     if (notify) {
-      _needToNotifySelection = true;
-      _notifySelectionDelayed();
+      _optionsPanelInteractionCompleter.interact();
     }
   }
 
@@ -175,8 +172,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     _updateElementText();
 
     if (notify) {
-      _needToNotifySelection = true;
-      _notifySelectionDelayed();
+      _optionsPanelInteractionCompleter.interact();
     }
   }
 
@@ -193,8 +189,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     }
 
     _updateElementText();
-    _needToNotifySelection = true;
-    _notifySelectionDelayed();
+    _optionsPanelInteractionCompleter.interact();
   }
 
   void checkByLabel(dynamic label, bool check) {
@@ -249,6 +244,10 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     _checkElements.forEach((e) => _setCheck(e, check));
   }
 
+  String get inputValue => _input?.value;
+
+  bool get hasInputValue => isNotEmptyObject(inputValue);
+
   bool get hasSelection {
     return _getSelectedElements().isNotEmpty;
   }
@@ -281,16 +280,16 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   void _updateElementText() {
     if (_input == null) return;
 
-    String text;
-
     if (isAllChecked) {
-      text = '*';
+      _input.value = '*';
     } else {
-      var sep = separator ?? ' ; ';
-      text = selectedLabels.join(sep);
-    }
+      var labels = selectedLabels;
 
-    _input.value = text;
+      if (isNotEmptyObject(labels) || !allowInputValue) {
+        var sep = separator ?? ' ; ';
+        _input.value = selectedLabels.join(sep);
+      }
+    }
   }
 
   @override
@@ -323,12 +322,23 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
       window.onResize.listen((e) => _updateDivOptionsPosition());
 
       _input.onKeyUp.listen((e) {
+        if (allowInputValue) {
+          if (hasSelection) {
+            uncheckAll();
+          }
+          _optionsPanelInteractionCompleter.interact(noTriggering: true);
+          _inputInteractionCompleter.interact();
+        }
+
         _updateOptionsPanel();
+
         _toggleDivOptions(false);
       });
 
       _input.onClick.listen((e) {
-        _input.value = '';
+        if (hasSelection || !allowInputValue) {
+          _input.value = '';
+        }
         _toggleDivOptions(false);
       });
 
@@ -338,7 +348,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
       _optionsPanel.onMouseEnter.listen((e) => _mouseEnter(_optionsPanel));
       _optionsPanel.onMouseLeave.listen((e) => _mouseLeave(_optionsPanel));
 
-      _optionsPanel.onMouseMove.listen((e) => _onDivOptionsMouseMove(e));
+      _optionsPanel.onMouseMove.listen((e) => _onOptionsPanelMouseMove(e));
 
       _optionsPanel.onTouchEnter.listen((e) => _mouseEnter(_input));
       _optionsPanel.onTouchLeave.listen((e) => _mouseLeave(_input));
@@ -357,7 +367,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     _optionsPanel.style.maxHeight = '60vh';
     _optionsPanel.style.overflowY = 'scroll';
 
-    var checksList = _renderPanelOptions(_input, _optionsPanel);
+    var checksList = _renderPanelOptions();
     _checkElements = checksList;
 
     return [_input, _optionsPanel];
@@ -428,7 +438,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     if (hide) {
       _optionsPanel.style.display = 'none';
       _updateElementText();
-      _notifySelection(false);
+      _optionsPanelInteractionCompleter.triggerIfHasInteraction();
     } else {
       _optionsPanel.style.display = null;
     }
@@ -458,31 +468,34 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   }
 
   dynamic _updateOptionsPanel() {
-    var checksList = _renderPanelOptions(_input, _optionsPanel);
+    var checksList = _renderPanelOptions();
     _checkElements = checksList;
   }
 
-  List<InputElementBase> _renderPanelOptions(
-      InputElement input, DivElement optionsPanel) {
-    optionsPanel.children.clear();
+  String _optionsSignature(List<MapEntry<dynamic, dynamic>> entries,
+      List<MapEntry<dynamic, dynamic>> entriesFiltered) {
+    var str = StringBuffer();
 
-    if (_options.isEmpty) {
-      optionsPanel.append(createHTML(''' 
-          <div style="text-align: center; width: 100%">
-            <i>${IntlBasicDictionary.msg('no_options')}</i>
-          </div>
-          '''));
-      return [];
-    }
+    entries.forEach((entry) {
+      str.write('${entry.key}');
+      str.write('${entry.value}');
+    });
 
-    var checksList = <InputElementBase>[];
+    entriesFiltered.forEach((entry) {
+      str.write('${entry.key}');
+      str.write('${entry.value}');
+    });
 
+    return str.toString();
+  }
+
+  List<List<MapEntry<dynamic, dynamic>>> _optionsEntriesOrder() {
     var entries =
         List.from(_options.entries).cast<MapEntry<dynamic, dynamic>>();
 
     var entriesFiltered = <MapEntry<dynamic, dynamic>>[];
 
-    var inputValue = input.value;
+    var inputValue = _input.value;
 
     if (inputValue.isNotEmpty) {
       entriesFiltered = getOptionsEntriesFiltered(inputValue);
@@ -496,14 +509,46 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
           .forEach((e1) => entries.removeWhere((e2) => e2.key == e1.key));
     }
 
+    return [entries, entriesFiltered];
+  }
+
+  String _renderedPanelOptionsSignature;
+
+  List<InputElementBase> _renderPanelOptions() {
+    var entriesOrder = _optionsEntriesOrder();
+
+    var entries = entriesOrder[0];
+    var entriesFiltered = entriesOrder[1];
+
+    var optionsSignature = _optionsSignature(entries, entriesFiltered);
+
+    if (_renderedPanelOptionsSignature == optionsSignature) {
+      return _checkElements;
+    }
+
+    _renderedPanelOptionsSignature = optionsSignature;
+
+    _optionsPanel.children.clear();
+
+    if (_options.isEmpty) {
+      _optionsPanel.append(createHTML(''' 
+          <div style="text-align: center; width: 100%">
+            <i>${IntlBasicDictionary.msg('no_options')}</i>
+          </div>
+          '''));
+      return [];
+    }
+
+    var checksList = <InputElementBase>[];
+
     var table = TableElement()..style.borderCollapse = 'collapse';
     var tbody = table.createTBody();
 
-    optionsPanel.children.add(table);
+    _optionsPanel.children.add(table);
 
     if (entriesFiltered.isNotEmpty) {
       for (var optEntry in entriesFiltered) {
-        _renderDivOptionsEntry(tbody, checksList, optEntry, true);
+        _renderOptionsPanelEntry(tbody, checksList, optEntry, true);
       }
 
       if (entries.isNotEmpty) {
@@ -514,17 +559,17 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     }
 
     for (var optEntry in entries) {
-      _renderDivOptionsEntry(tbody, checksList, optEntry, false);
+      _renderOptionsPanelEntry(tbody, checksList, optEntry, false);
     }
 
     if (isNotEmptyObject(inputValue)) {
-      optionsPanel.scrollTop = 0;
+      _optionsPanel.scrollTop = 0;
     } else {
       var firstCheckedElement =
           checksList.firstWhere((e) => _isChecked(e), orElse: () => null);
 
       if (firstCheckedElement != null) {
-        _scrollToElement(optionsPanel, firstCheckedElement);
+        _scrollToElement(_optionsPanel, firstCheckedElement);
       }
     }
 
@@ -535,7 +580,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     element.scrollIntoView(ScrollAlignment.CENTER);
   }
 
-  void _renderDivOptionsEntry(TableSectionElement tbody,
+  void _renderOptionsPanelEntry(TableSectionElement tbody,
       List<InputElementBase> checksList, MapEntry optEntry, bool filtered) {
     var optKey = '${optEntry.key}';
     var optValue = '${optEntry.value}';
@@ -586,9 +631,8 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     cell2.children.add(label);
   }
 
-  int _onDivOptionsLastMouseMove = 0;
-
-  void _onDivOptionsMouseMove(MouseEvent e) {
-    _onDivOptionsLastMouseMove = DateTime.now().millisecondsSinceEpoch;
+  void _onOptionsPanelMouseMove(MouseEvent e) {
+    _optionsPanelInteractionCompleter.interact(noTriggering: true);
+    _inputInteractionCompleter.interact(noTriggering: true);
   }
 }
