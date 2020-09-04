@@ -67,6 +67,7 @@ class MyNavigable extends UINavigableComponent {
         return '?';
     }
   }
+
 }
 
 // The `home` route.

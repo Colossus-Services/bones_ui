@@ -1629,7 +1629,7 @@ abstract class UIComponent extends UIEventHandler {
                 '[NOT IN DOM] Denied access to route: $redirectToRoute');
           } else {
             UIConsole.log('Denied access to route: $redirectToRoute');
-            UINavigator.navigateTo(redirectToRoute);
+            UINavigator.navigateToAsync(redirectToRoute);
           }
         }
 
@@ -3305,8 +3305,6 @@ abstract class UIRoot extends UIComponent {
 
     window.onResize.listen(_onResize);
 
-    UINavigator.get().refreshNavigationAsync();
-
     UIConsole.checkAutoEnable();
   }
 
@@ -3425,7 +3423,8 @@ abstract class UIRoot extends UIComponent {
     } catch (e) {
       UIConsole.error('Error calling UIRoot.onInitialize()', e);
     }
-    ;
+
+    UINavigator.get().refreshNavigationAsync();
   }
 
   @override
@@ -3558,10 +3557,13 @@ abstract class UINavigableComponent extends UIComponent {
     }
   }
 
+  /// List of routes that this component can [navigateTo].
   List<String> get routes => copyListString(_routes);
 
+  /// The current route rendered by this component.
   String get currentRoute => _currentRoute;
 
+  /// The current route parameters used to rendered this component.
   Map<String, String> get currentRouteParameters =>
       copyMapString(_currentRouteParameters);
 
@@ -3613,13 +3615,28 @@ abstract class UINavigableComponent extends UIComponent {
   /// Called to render the [route] with [parameters].
   dynamic renderRoute(String route, Map<String, String> parameters);
 
+  /// Should return [true] if [route] [isAccessible].
+  bool isAccessibleRoute(String route) => true;
+
+  /// Should return the route to redirect if [route] is not accessible.
+  ///
+  /// Same behavior of [deniedAccessRoute].
+  String deniedAccessRouteOfRoute(String route) => null ;
+
   /// Changes the current selected [route], with [parameters],
   /// of this [UINavigableComponent].
   bool navigateTo(String route, [Map<String, String> parameters]) {
     if (!canNavigateTo(route)) return false;
 
+    parameters ??= {};
+
+    if (_currentRoute == route &&
+        isEquivalentMap(_currentRouteParameters, parameters)) {
+      return true;
+    }
+
     _currentRoute = route;
-    _currentRouteParameters = parameters ?? {};
+    _currentRouteParameters = copyMapString(parameters);
 
     _refreshInternal();
     return true;
@@ -3850,10 +3867,10 @@ class UINavigator {
       ParametersProvider parametersProvider,
       bool force = false}) {
     if (_navigables.isEmpty || findNavigable(route) == null) {
-      Future.microtask(() => _navigateTo(route,
-          parameters: parameters,
-          parametersProvider: parametersProvider,
-          force: force));
+      Future.delayed(
+          Duration(milliseconds: 50),
+          () => _navigateTo(route, parameters: parameters, parametersProvider: parametersProvider, force: force)
+      );
     } else {
       _navigateTo(route,
           parameters: parameters,
@@ -3915,7 +3932,8 @@ class UINavigator {
       {Map<String, String> parameters,
       ParametersProvider parametersProvider,
       bool force = false,
-      bool fromURL = false}) {
+      bool fromURL = false,
+      int cantFindNavigableRetry = 0}) {
     if (route == '<') {
       var navigation = _navigationHistory.last;
 
@@ -3934,12 +3952,6 @@ class UINavigator {
       parameters = parametersProvider();
     }
 
-    if (!force &&
-        _lastNavigateRoute == route &&
-        isEquivalentMap(parameters, _lastNavigateRouteParameters)) return;
-
-    _navigateCount++;
-
     if (route.contains('?')) {
       var parts = route.split('?');
       route = parts[0];
@@ -3948,6 +3960,41 @@ class UINavigator {
       parameters = params;
       parameters.addAll(parametersOrig);
     }
+
+    if (!force &&
+        _lastNavigateRoute == route &&
+        isEquivalentMap(parameters, _lastNavigateRouteParameters)) return;
+
+    var routeNavigable = findNavigable(route);
+
+    if (routeNavigable == null && cantFindNavigableRetry < 3) {
+      var delay = 100 + (cantFindNavigableRetry * 500);
+      Future.delayed(
+          Duration(milliseconds: delay),
+          () => _navigateTo(route,
+              parameters: parameters,
+              force: force,
+              cantFindNavigableRetry: cantFindNavigableRetry + 1));
+      return;
+    }
+
+    if (routeNavigable != null) {
+      String deniedAccessRoute ;
+
+      if ( !routeNavigable.isAccessible() ) {
+        deniedAccessRoute = routeNavigable.deniedAccessRoute() ;
+      }
+      if ( deniedAccessRoute == null && !routeNavigable.isAccessibleRoute(route) ) {
+        deniedAccessRoute = routeNavigable.deniedAccessRouteOfRoute(route);
+      }
+
+      if ( isNotEmptyObject(deniedAccessRoute) ) {
+        navigateToAsync(deniedAccessRoute);
+        return ;
+      }
+    }
+
+    _navigateCount++;
 
     UIConsole.log(
         'UINavigator.navigateTo[force: $force ; count: $_navigateCount] from: $_lastNavigateRoute $_lastNavigateRouteParameters > to: $route $parameters');
@@ -3980,8 +4027,6 @@ class UINavigator {
     var locationUrl2 = locationUrl.contains('#')
         ? locationUrl.replaceFirst(RegExp(r'#.*'), fragment)
         : '$locationUrl$fragment';
-
-    var routeNavigable = findNavigable(route);
 
     var routeTitle = route;
     if (routeNavigable != null) {

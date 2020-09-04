@@ -1,3 +1,11 @@
+## 1.0.18
+
+- Better behavior of `UINavigableComponent` when `UIRoot` makes the 1st render,
+  and the route is not accessible and redirected to another route.
+- Fixed navigation to a route not registered yet (when `UIRoot` does the 1st render). 
+- Avoid 'loop' of navigations to the same route. 
+- swiss_knife: ^2.5.13
+
 ## 1.0.17
 
 - Added support to `DataSource` into `UIComponent`.
