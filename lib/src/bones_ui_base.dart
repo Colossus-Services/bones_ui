@@ -3621,7 +3621,7 @@ abstract class UINavigableComponent extends UIComponent {
   /// Should return the route to redirect if [route] is not accessible.
   ///
   /// Same behavior of [deniedAccessRoute].
-  String deniedAccessRouteOfRoute(String route) => null ;
+  String deniedAccessRouteOfRoute(String route) => null;
 
   /// Changes the current selected [route], with [parameters],
   /// of this [UINavigableComponent].
@@ -3869,8 +3869,10 @@ class UINavigator {
     if (_navigables.isEmpty || findNavigable(route) == null) {
       Future.delayed(
           Duration(milliseconds: 50),
-          () => _navigateTo(route, parameters: parameters, parametersProvider: parametersProvider, force: force)
-      );
+          () => _navigateTo(route,
+              parameters: parameters,
+              parametersProvider: parametersProvider,
+              force: force));
     } else {
       _navigateTo(route,
           parameters: parameters,
@@ -3979,18 +3981,19 @@ class UINavigator {
     }
 
     if (routeNavigable != null) {
-      String deniedAccessRoute ;
+      String deniedAccessRoute;
 
-      if ( !routeNavigable.isAccessible() ) {
-        deniedAccessRoute = routeNavigable.deniedAccessRoute() ;
+      if (!routeNavigable.isAccessible()) {
+        deniedAccessRoute = routeNavigable.deniedAccessRoute();
       }
-      if ( deniedAccessRoute == null && !routeNavigable.isAccessibleRoute(route) ) {
+      if (deniedAccessRoute == null &&
+          !routeNavigable.isAccessibleRoute(route)) {
         deniedAccessRoute = routeNavigable.deniedAccessRouteOfRoute(route);
       }
 
-      if ( isNotEmptyObject(deniedAccessRoute) ) {
+      if (isNotEmptyObject(deniedAccessRoute)) {
         navigateToAsync(deniedAccessRoute);
-        return ;
+        return;
       }
     }
 
