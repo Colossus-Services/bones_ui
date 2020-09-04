@@ -1,3 +1,22 @@
+## 1.0.17
+
+- Added support to `DataSource` into `UIComponent`.
+- Added `UIMenu` and `UIPopupMenu`: Creates a top menu with popups and icons.
+- Added `UISVG`: Renders SVG links or tags.
+- Added `UIDataSource`: Connects a `DataSource` to `UIComponent`.
+- Added `UIColorPickerInput`: A simple and compact color picker component.
+- Added placeholder support into `InputConfig`.
+- `UIInfosTable`: `headerColumnsNames`, `headerColor`, `rowsStyles`, `cellsStyles`.
+- swiss_knife: ^2.5.12
+- dynamic_call: ^1.0.12
+- mercury_client: ^1.1.10
+- intl_messages: ^1.1.10
+- dom_tools: ^1.3.9
+- dom_builder: ^1.0.17
+- json_render: ^1.3.5
+- json_object_mapper: ^1.1.2
+- mustache_template: ^1.0.0+1
+
 ## 1.0.16
 
 - `UIDialog`: handle closing/cancel buttons.

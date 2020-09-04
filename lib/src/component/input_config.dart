@@ -1,5 +1,6 @@
 import 'dart:html';
 
+import 'package:bones_ui/bones_ui.dart';
 import 'package:bones_ui/src/bones_ui_base.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
@@ -25,7 +26,13 @@ class InputConfig {
 
   String _value;
 
+  String _placeholder;
+
   Map<String, String> _attributes;
+
+  List<String> classes = ['form-control'];
+
+  String style;
 
   Map<String, String> _options;
 
@@ -48,6 +55,8 @@ class InputConfig {
       var type = parseString(findKeyValue(config, ['type'], true), 'text');
       var value = parseString(findKeyValue(config, ['value'], true), '');
       var attributes = findKeyValue(config, ['attributes'], true);
+      var classes = findKeyValue(config, ['class', 'classes'], true);
+      var style = findKeyValue(config, ['style'], true);
       var options = findKeyValue(config, ['options'], true);
       var optional = parseBool(findKeyValue(config, ['optional'], true), false);
 
@@ -59,15 +68,14 @@ class InputConfig {
         options = asMapOfString(options);
       }
 
-      return InputConfig(
-        id,
-        label,
-        type: type,
-        value: value,
-        attributes: attributes,
-        options: options,
-        optional: optional,
-      );
+      return InputConfig(id, label,
+          type: type,
+          value: value,
+          attributes: attributes,
+          options: options,
+          optional: optional,
+          classes: classes,
+          style: style);
     }
 
     return null;
@@ -76,11 +84,15 @@ class InputConfig {
   InputConfig(String id, String label,
       {String type = 'text',
       String value = '',
+      String placeholder = '',
       Map<String, String> attributes,
       Map<String, String> options,
-      bool optional = false}) {
+      bool optional = false,
+      List<String> classes,
+      String style}) {
     if (type == null || type.isEmpty) type = 'text';
     if (value == null || value.isEmpty) value = null;
+    if (placeholder == null || placeholder.isEmpty) placeholder = null;
 
     if (label == null || label.isEmpty) {
       if (value != null) {
@@ -99,11 +111,22 @@ class InputConfig {
     _label = label;
     _type = type;
     _value = value;
+    _placeholder = placeholder;
 
     _attributes = attributes;
     _options = options;
 
     _optional = optional;
+
+    if (classes != null) {
+      classes.removeWhere((e) => e == null);
+      this.classes = classes;
+    }
+
+    if (style != null) {
+      style = style.trim();
+      this.style = style.isNotEmpty ? style : null;
+    }
   }
 
   String get id => _id;
@@ -117,6 +140,8 @@ class InputConfig {
   String get value => _value;
 
   set value(String value) => _value = value;
+
+  String get placeholder => _placeholder;
 
   Map<String, String> get attributes => _attributes;
 
@@ -143,15 +168,44 @@ class InputConfig {
     } else if (inputType == 'image') {
       var capture = UIButtonCapturePhoto(null, label, fieldName: inputID);
       inputComponent = capture;
+    } else if (inputType == 'color') {
+      var picker = UIColorPickerInput(null,
+          fieldName: inputID,
+          placeholder: placeholder,
+          value: inputValue,
+          pickerWidth: 150,
+          pickerHeight: 100);
+      inputComponent = picker;
+    } else if (inputType == 'html') {
+      inputElement = createHTML(inputValue);
+      inputElement.onClick.listen((event) {
+        var value = inputElement.getAttribute('element_value');
+        if (isNotEmptyObject(value)) {
+          inputElement.setAttribute('field_value', value);
+        }
+      });
     } else {
       inputElement = _render_generic_input(inputType, inputValue);
     }
 
     if (inputElement != null) {
-      inputElement.classes.add('form-control');
+      if (isNotEmptyObject(classes)) {
+        inputElement.classes.addAll(classes);
+      }
 
+      if (isNotEmptyObject(style)) {
+        var cssText = inputElement.style.cssText;
+        inputElement.style.cssText =
+            isNotEmptyObject(cssText) ? '$cssText ; $style' : style;
+      }
+
+      inputElement.setAttribute('id', inputID);
       inputElement.setAttribute('name', inputID);
       inputElement.setAttribute('field', inputID);
+
+      if (placeholder != null) {
+        inputElement.setAttribute('placeholder', placeholder);
+      }
 
       if (attributes != null && attributes.isNotEmpty) {
         for (var attrKey in attributes.keys) {
@@ -178,7 +232,7 @@ class InputConfig {
 
   Element _render_generic_input(String inputType, inputValue) {
     var inputHtml = '''
-      <input type="$inputType" ${inputValue != null ? 'value="$inputValue"' : ''}>
+      <input style="width: 100%" type="$inputType" ${inputValue != null ? 'value="$inputValue"' : ''}>
     ''';
 
     var input = createHTML(inputHtml);
@@ -215,16 +269,60 @@ class InputConfig {
     }
     return select;
   }
+
+  List<Element> renderElementsWithInputValues(String html,
+      [FieldValueProvider fieldValueProvider]) {
+    var inputID = id;
+    var inputType = type;
+    var inputValue = fieldValueProvider != null
+        ? (fieldValueProvider(fieldName) ?? value)
+        : value;
+
+    var elements = <Element>[];
+
+    var keys = <String>[];
+
+    if (inputType == 'select') {
+      if (options != null && options.isNotEmpty) {
+        keys = options.keys
+            .map((k) => k.replaceFirst(RegExp(r'\s*\*\s*$'), ''))
+            .toList();
+      } else if (inputValue != null && inputValue.isNotEmpty) {
+        var select = SelectElement()..innerHtml = '$inputValue';
+        keys = select.options.map((opt) => opt.value).toList();
+      }
+    } else {
+      keys.add(inputValue);
+    }
+
+    for (var key in keys) {
+      var renderHtml = html;
+
+      if (html.contains('{{') && html.contains('}}')) {
+        renderHtml = buildStringPattern(html, {inputID: key});
+      }
+
+      var elem = createHTML(renderHtml);
+
+      elem.setAttribute('element_value', key);
+      elements.add(elem);
+    }
+
+    return elements;
+  }
 }
 
 /// Component that renders a table with inputs.
 class UIInputTable extends UIComponent {
   final List<InputConfig> _inputs;
+  final bool showLabels;
 
   UIInputTable(Element parent, this._inputs,
-      {String inputErrorClass, dynamic classes})
+      {String inputErrorClass, bool showLabels, dynamic classes, dynamic style})
       : _inputErrorClass = inputErrorClass,
-        super(parent, classes: 'ui-infos-table', classes2: classes);
+        showLabels = showLabels ?? true,
+        super(parent,
+            componentClass: 'ui-infos-table', classes: classes, style: style);
 
   String _inputErrorClass;
 
@@ -287,18 +385,25 @@ class UIInputTable extends UIComponent {
 
   @override
   dynamic render() {
+    var form = FormElement();
+
+    form.autocomplete = 'off';
+
     var table = TableElement();
     var tBody = table.createTBody();
 
     for (var input in _inputs) {
       var row = tBody.addRow();
 
-      row.addCell()
-        ..style.verticalAlign = 'middle'
-        ..style.textAlign = 'right'
-        ..innerHtml = '<label><b>${input.label}:&nbsp;</b></label>';
+      if (showLabels) {
+        row.addCell()
+          ..style.verticalAlign = 'top'
+          ..style.textAlign = 'right'
+          ..innerHtml =
+              '<label for="${input.id}"><b>${input.label}:&nbsp;</b></label>';
+      }
 
-      var celInput = row.addCell()..style.textAlign = 'center';
+      var celInput = row.addCell()..style.textAlign = 'left';
 
       var inputRendered = input.renderInput(getPreviousRenderedFieldValue);
 
@@ -309,12 +414,37 @@ class UIInputTable extends UIComponent {
         celInput.children.add(div);
 
         inputRendered.setParent(div);
-        inputRendered.render();
+        inputRendered.ensureRendered();
+
+        if (inputRendered is UIColorPickerInput) {
+          inputRendered.onFocus.listen((_) {
+            onInputFocus.add(inputRendered);
+          });
+        }
       }
     }
 
-    return table;
+    form.append(table);
+
+    return form;
   }
+
+  static Duration defaultOnChangeTriggerDelay = Duration(seconds: 2);
+
+  Duration _onChangeTriggerDelay = defaultOnChangeTriggerDelay;
+
+  Duration get onChangeTriggerDelay => _onChangeTriggerDelay;
+
+  set onChangeTriggerDelay(Duration value) {
+    if (value == null) {
+      value = defaultOnChangeTriggerDelay;
+    } else if (value.inMilliseconds < 500) {
+      value = Duration(milliseconds: 500);
+    }
+    _onChangeTriggerDelay = value;
+  }
+
+  EventStream<dynamic> onInputFocus = EventStream();
 
   @override
   void posRender() {
@@ -322,11 +452,30 @@ class UIInputTable extends UIComponent {
 
     if (fields != null && fields.isNotEmpty) {
       for (var entry in fields.entries) {
-        //var fieldName = entry.key ;
+        var fieldName = entry.key;
         var elem = entry.value;
 
+        var interactionCompleter = InteractionCompleter('field:$fieldName',
+            triggerDelay: _onChangeTriggerDelay);
+
+        elem.onFocus.listen((event) {
+          var element = event.target;
+          if (element is Element) {
+            onInputFocus.add(element);
+          }
+        });
+
         elem.onChange.listen((e) {
-          //updateRenderedFieldValue(fieldName) ;
+          interactionCompleter.cancel();
+          updateRenderedFieldElementValue(elem);
+          onChange.add(elem);
+        });
+
+        elem.onKeyUp.listen((event) {
+          interactionCompleter.interact();
+        });
+
+        interactionCompleter.onComplete.listen((e) {
           updateRenderedFieldElementValue(elem);
           onChange.add(elem);
         });

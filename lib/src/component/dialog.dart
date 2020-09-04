@@ -11,9 +11,13 @@ abstract class UIDialogBase extends UIComponent {
 
   final bool hideUIRoot;
 
-  UIDialogBase({this.hideUIRoot = false, bool show = false, dynamic classes})
+  UIDialogBase(
+      {this.hideUIRoot = false,
+      bool show = false,
+      dynamic classes,
+      dynamic style})
       : super(show ?? false ? rootParent : null,
-            classes: 'ui-dialog', classes2: classes) {
+            componentClass: 'ui-dialog', classes: classes, style: style) {
     _myConfigure();
   }
 

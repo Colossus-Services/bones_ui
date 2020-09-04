@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:html';
 
 import 'package:bones_ui/src/bones_ui_base.dart';
-import 'package:dom_builder/dom_builder.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 /// Base class for button components.
@@ -15,11 +14,19 @@ abstract class UIButtonBase extends UIComponent {
       ParametersProvider navigateParametersProvider,
       dynamic classes,
       dynamic classes2,
-      dynamic componentClass})
+      dynamic componentClass,
+      dynamic style,
+      dynamic style2,
+      dynamic componentStyle,
+      UIComponentGenerator generator})
       : super(parent,
             classes: classes,
             classes2: classes2,
-            componentClass: ['ui-button', componentClass]) {
+            componentClass: ['ui-button', componentClass],
+            style: style,
+            style2: style2,
+            componentStyle: componentStyle,
+            generator: generator) {
     registerClickListener(onClickEvent);
 
     if (navigate != null) {
@@ -125,72 +132,34 @@ abstract class UIButtonBase extends UIComponent {
 
 /// A simple button implementation.
 class UIButton extends UIButtonBase {
+  static final UIComponentGenerator<UIButton> GENERATOR =
+      UIComponentGenerator<UIButton>(
+          'ui-button',
+          'button',
+          'ui-button',
+          '',
+          (parent, attributes, contentHolder, contentNodes) =>
+              UIButton(parent, contentHolder.text),
+          [
+            UIComponentAttributeHandler<UIButton, String>('text',
+                parser: parseString,
+                getter: (c) => c._text,
+                setter: (c, v) => c._text = v ?? '',
+                appender: (c, v) => c._text += v ?? '',
+                cleaner: (c) => c._text = '')
+          ],
+          hasChildrenElements: false,
+          contentAsText: true);
+
   static void register() {
-    UIComponent.registerElementGenerator('ui-button', generator);
-  }
-
-  static Element generator(DOMGenerator<Node> domGenerator, tag, Node parent,
-      Map<String, DOMAttribute> attributes, Node contentHolder) {
-    var component = UIButton(parent, contentHolder.text);
-    component.appendComponentAttributes(attributes.values);
-    component.ensureRendered();
-    return component.content;
-  }
-
-  @override
-  dynamic getComponentAttributeExtended(String name) {
-    switch (name) {
-      case 'text':
-        return text;
-      default:
-        return null;
-    }
-  }
-
-  @override
-  bool setComponentAttributeExtended(String name, value) {
-    switch (name) {
-      case 'text':
-        {
-          _text = parseAttributeValueAsString(value);
-          return true;
-        }
-      default:
-        return null;
-    }
-  }
-
-  @override
-  bool appendComponentAttributeExtended(String name, value) {
-    switch (name) {
-      case 'text':
-        {
-          _text += parseAttributeValueAsString(value);
-          return true;
-        }
-      default:
-        return null;
-    }
-  }
-
-  @override
-  bool clearComponentAttributeExtended(String name) {
-    switch (name) {
-      case 'text':
-        {
-          _text = '';
-          return true;
-        }
-      default:
-        return null;
-    }
+    UIComponent.registerGenerator(GENERATOR);
   }
 
   /// Text/label of the button.
   String _text;
 
   /// Font size of the button.
-  final String fontSize;
+  String _fontSize;
 
   UIButton(Element parent, String text,
       {String navigate,
@@ -199,10 +168,11 @@ class UIButton extends UIButtonBase {
       dynamic classes,
       dynamic classes2,
       dynamic componentClass,
+      dynamic style,
+      dynamic style2,
       bool small = false,
-      this.fontSize})
-      : _text = text,
-        super(parent,
+      String fontSize})
+      : super(parent,
             navigate: navigate,
             navigateParameters: navigateParameters,
             navigateParametersProvider: navigateParametersProvider,
@@ -211,12 +181,28 @@ class UIButton extends UIButtonBase {
             componentClass: [
               small ? 'ui-button-small' : 'ui-button',
               componentClass
-            ]);
+            ],
+            style: style,
+            style2: style2,
+            generator: GENERATOR) {
+    this.text = text;
+    this.fontSize = fontSize;
+  }
 
   String get text => _text;
 
   set text(String value) {
-    _text = value;
+    _text = value ?? '';
+  }
+
+  String get fontSize => _fontSize;
+
+  set fontSize(String value) {
+    if (isEmptyObject(value)) {
+      _fontSize = null;
+    } else {
+      _fontSize = value;
+    }
   }
 
   @override
@@ -232,7 +218,7 @@ class UIButton extends UIButtonBase {
       content.style.opacity = null;
     }
 
-    if (fontSize != null) {
+    if (fontSize != null && fontSize.isNotEmpty) {
       return "<span style='font-size: $fontSize'>$text</span>";
     } else {
       return text;

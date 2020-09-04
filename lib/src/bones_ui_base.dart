@@ -4,8 +4,10 @@ import 'dart:html';
 import 'package:bones_ui/bones_ui.dart';
 import 'package:dom_builder/dom_builder_dart_html.dart';
 import 'package:dom_tools/dom_tools.dart';
+import 'package:dynamic_call/dynamic_call.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_messages/intl_messages.dart';
+import 'package:mustache_template/mustache_template.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import 'bones_ui_layout.dart';
@@ -650,8 +652,268 @@ abstract class UIFieldMap<V> {
   Map<String, V> getFieldMap();
 }
 
+typedef UIComponentInstantiator<C extends UIComponent> = C Function(
+    Element parent,
+    Map<String, DOMAttribute> attributes,
+    Node contentHolder,
+    List<DOMNode> contentNodes);
+
+typedef UIComponentAttributeParser<T> = T Function(dynamic value);
+
+typedef UIComponentAttributeGetter<C extends UIComponent, T> = T Function(
+    C uiComponent);
+
+typedef UIComponentAttributeSetter<C extends UIComponent, T> = void Function(
+    C uiComponent, T value);
+
+typedef UIComponentAttributeAppender<C extends UIComponent, T> = void Function(
+    C uiComponent, T value);
+
+typedef UIComponentAttributeCleaner<C extends UIComponent, T> = void Function(
+    C uiComponent);
+
+class UIComponentAttributeHandler<C extends UIComponent, T> {
+  static String normalizeComponentAttributeName(String name) {
+    if (name == null) return null;
+    name = name.toLowerCase().trim();
+    if (name.isEmpty) return null;
+    return name;
+  }
+
+  final String name;
+  final UIComponentAttributeParser<T> parser;
+
+  final UIComponentAttributeGetter<C, T> getter;
+
+  final UIComponentAttributeSetter<C, T> setter;
+
+  final UIComponentAttributeAppender<C, T> appender;
+
+  final UIComponentAttributeCleaner<C, T> cleaner;
+
+  UIComponentAttributeHandler(String name,
+      {this.parser,
+      this.getter,
+      this.setter,
+      UIComponentAttributeAppender<C, T> appender,
+      UIComponentAttributeCleaner<C, T> cleaner})
+      : name = normalizeComponentAttributeName(name),
+        appender = appender ?? setter,
+        cleaner = cleaner ?? ((c) => setter(c, null)) {
+    if (getter == null) throw ArgumentError.notNull('getter');
+    if (setter == null) throw ArgumentError.notNull('setter');
+  }
+
+  T parse(dynamic value) => parser != null ? parser(value) : value;
+
+  T get(C uiComponent) => getter(uiComponent);
+
+  void set(C uiComponent, dynamic value) {
+    var v = parse(value);
+    setter(uiComponent, v);
+  }
+
+  void append(C uiComponent, dynamic value) {
+    var v = parse(value);
+    appender(uiComponent, v);
+  }
+
+  void clear(C uiComponent) => cleaner(uiComponent);
+}
+
+class UIComponentGenerator<C extends UIComponent>
+    extends ElementGenerator<Element> {
+  @override
+  final String tag;
+  @override
+  final bool hasChildrenElements;
+
+  @override
+  final bool usesContentHolder;
+
+  final String generatedTag;
+
+  final DOMAttributeValueSet componentClass;
+
+  final DOMAttributeValueCSS componentStyle;
+
+  final UIComponentInstantiator<C> instantiator;
+  final Map<String, UIComponentAttributeHandler> attributes;
+
+  UIComponentGenerator(
+      this.tag,
+      this.generatedTag,
+      String componentClass,
+      String componentStyle,
+      this.instantiator,
+      Iterable<UIComponentAttributeHandler> attributes,
+      {bool hasChildrenElements = true,
+      bool usesContentHolder = true,
+      bool contentAsText = false})
+      : componentClass = DOMAttributeValueSet(
+            componentClass,
+            DOMAttribute.getAttributeDelimiter('class'),
+            DOMAttribute.getAttributeDelimiterPattern('class')),
+        componentStyle = DOMAttributeValueCSS(componentStyle),
+        attributes = Map.fromEntries(
+            attributes.map((attr) => MapEntry(attr.name, attr))),
+        hasChildrenElements = hasChildrenElements ?? true,
+        usesContentHolder = usesContentHolder ?? true {
+    if (instantiator == null) throw ArgumentError.notNull('instantiator');
+  }
+
+  @override
+  Element generate(
+      DOMGenerator<Node> domGenerator,
+      tag,
+      Node parent,
+      Map<String, DOMAttribute> attributes,
+      Node contentHolder,
+      List<DOMNode> contentNodes) {
+    var component =
+        instantiator(parent, attributes, contentHolder, contentNodes);
+    var anySet = component.appendAttributes(attributes.values);
+
+    if (anySet) {
+      component.ensureRendered(true);
+    } else {
+      component.ensureRendered();
+    }
+
+    return component.content;
+  }
+
+  @override
+  bool isGeneratedElement(Node element) {
+    if (element is Element) {
+      var tag = element.tagName.toLowerCase();
+      if (tag != generatedTag) return false;
+      var classes = element.classes;
+      var match = classes.containsAll(componentClass.asAttributeValues);
+      print(classes);
+      print('$componentClass -> $match');
+      return match;
+    } else {
+      return false;
+    }
+  }
+
+  UIComponentAttributeHandler getAttributeHandler(String name) {
+    name = UIComponentAttributeHandler.normalizeComponentAttributeName(name);
+    if (name == null || name.isEmpty) return null;
+    return attributes[name];
+  }
+
+  T getAttribute<T>(C uiComponent, String name) {
+    var attribute = getAttributeHandler(name);
+    return attribute != null ? attribute.get(uiComponent) : null;
+  }
+
+  void setAttribute<T>(C uiComponent, String name, dynamic value) {
+    var attribute = getAttributeHandler(name);
+    if (attribute != null) {
+      attribute.set(uiComponent, value);
+    }
+  }
+
+  void appendAttribute<T>(C uiComponent, String name, dynamic value) {
+    var attribute = getAttributeHandler(name);
+    if (attribute != null) {
+      attribute.append(uiComponent, value);
+    }
+  }
+
+  void clearAttribute<T>(C uiComponent, String name) {
+    var attribute = getAttributeHandler(name);
+    if (attribute != null) {
+      attribute.set(uiComponent, null);
+    }
+  }
+
+  @override
+  DOMElement revert(DOMGenerator<Node> domGenerator, DOMTreeMap<Node> treeMap,
+      DOMElement domParent, Element parent, Element node) {
+    if (node == null) return null;
+    var attributes = Map.fromEntries(node.attributes.entries);
+
+    var classes = _parseNodeClass(attributes);
+    var style = _parseNodeStyle(attributes);
+
+    var domElement =
+        DOMElement(tag, attributes: attributes, classes: classes, style: style);
+
+    if (!hasChildrenElements) {
+      if (treeMap != null) {
+        var mappedDOMNode = treeMap.getMappedDOMNode(node);
+        if (mappedDOMNode != null) {
+          domElement.add(mappedDOMNode.content);
+        }
+      } else {
+        domElement.add(node.text);
+      }
+    }
+
+    return domElement;
+  }
+
+  String _parseNodeStyle(Map<String, String> attributes) {
+    var style = (attributes.remove('style') ?? '').trim();
+
+    var attrComponentCSS = componentStyle.css;
+
+    if (attrComponentCSS.isNoEmpty && style.isNotEmpty) {
+      var attrCSS = DOMAttributeValueCSS(style).css;
+
+      for (var cssEntry in attrComponentCSS.entries) {
+        var name = cssEntry.name;
+        var entry = attrCSS.getEntry(name);
+
+        if (entry == cssEntry) {
+          attrCSS.removeEntry(name);
+        }
+      }
+
+      style = attrCSS.toString();
+    }
+
+    if (style != null && style.isEmpty) {
+      style == null;
+    }
+
+    return style;
+  }
+
+  String _parseNodeClass(Map<String, String> attributes) {
+    var classes = (attributes.remove('class') ?? '').trim();
+
+    if (componentClass.hasAttributeValue && classes.isNotEmpty) {
+      var attributeDelimiter = DOMAttribute.getAttributeDelimiter('class');
+      var attrClass = DOMAttributeValueList(classes, attributeDelimiter,
+          DOMAttribute.getAttributeDelimiterPattern('class'));
+
+      attrClass.removeAttributeValueEntry('ui-component');
+      attrClass
+          .removeAttributeValueAllEntries(componentClass.asAttributeValues);
+
+      classes = attrClass.asAttributeValue;
+    }
+
+    if (classes != null && classes.isEmpty) {
+      classes == null;
+    }
+
+    return classes;
+  }
+}
+
 /// Base class do create `Bones_UI` components.
 abstract class UIComponent extends UIEventHandler {
+  final UIComponentGenerator _generator;
+
+  static int _globalIDCount = 0;
+
+  final globalID;
+
   dynamic id;
 
   UIComponent _parentUIComponent;
@@ -665,19 +927,28 @@ abstract class UIComponent extends UIEventHandler {
   bool get constructing => _constructing;
 
   UIComponent(Element parent,
-      {dynamic classes,
+      {dynamic componentClass,
+      dynamic componentStyle,
+      dynamic classes,
       dynamic classes2,
-      dynamic componentClass,
+      dynamic style,
+      dynamic style2,
       bool inline = true,
       bool renderOnConstruction,
-      this.id})
-      : _parent = parent ?? createDivInline() {
+      this.id,
+      UIComponentGenerator generator})
+      : globalID = ++_globalIDCount,
+        _parent = parent ?? createDivInline(),
+        _generator = generator {
     _constructing = true;
     try {
       _setParentUIComponent(_getUIComponentRenderingByContent(_parent));
       _content = createContentElement(inline);
 
+      configureID();
+
       configureClasses(classes, classes2, componentClass);
+      configureStyle(style, style2, componentStyle);
 
       configure();
 
@@ -805,10 +1076,56 @@ abstract class UIComponent extends UIEventHandler {
     return isNodeInDOM(_content);
   }
 
-  void configureClasses(classes1, [classes2, componentClasses]) {
-    var classesNames1 = toFlatListOfStrings(classes1);
-    var classesNames2 = toFlatListOfStrings(classes2);
-    var classesNamesComponent = toFlatListOfStrings(componentClasses);
+  void configureID() {
+    setID(id);
+  }
+
+  void setID(dynamic id) {
+    if (id != null) {
+      var idStr = parseString(id, '').trim();
+      if (id is String) {
+        id = idStr;
+      }
+
+      if (idStr.isNotEmpty) {
+        this.id = id;
+        _content.id = idStr;
+        return;
+      }
+    }
+
+    this.id = null;
+
+    if (_content.id != null) {
+      _content.removeAttribute('id');
+    }
+  }
+
+  static final RegExp _CLASSES_ENTRY_DELIMITER = RegExp(r'[\s,;]+');
+
+  static List<String> parseClasses(dynamic classes1) =>
+      toFlatListOfStrings(classes1,
+          delimiter: _CLASSES_ENTRY_DELIMITER, trim: true, ignoreEmpty: true);
+
+  void configureClasses(dynamic classes1,
+      [dynamic classes2, dynamic componentClasses]) {
+    content.classes.add('ui-component');
+
+    var classesNamesComponent = parseClasses(componentClasses);
+    if (classesNamesComponent != null && classesNamesComponent.isNotEmpty) {
+      for (var c in classesNamesComponent) {
+        if (!content.classes.contains(c)) {
+          content.classes.add(c);
+        }
+      }
+    }
+
+    appendClasses(classes1, classes2);
+  }
+
+  void appendClasses(dynamic classes1, [dynamic classes2]) {
+    var classesNames1 = parseClasses(classes1);
+    var classesNames2 = parseClasses(classes2);
 
     classesNames1.addAll(classesNames2);
 
@@ -824,12 +1141,33 @@ abstract class UIComponent extends UIEventHandler {
           classesNamesRemove.map((s) => s.replaceFirst('!', '')).toList();
       content.classes.removeAll(classesNamesRemove);
     }
+  }
 
-    if (classesNamesComponent != null && classesNamesComponent.isNotEmpty) {
-      for (var c in classesNamesComponent) {
-        if (!content.classes.contains(c)) {
-          content.classes.add(c);
-        }
+  static final RegExp _CSS_ENTRY_DELIMITER = RegExp(r'\s*;\s*');
+
+  static List<String> parseStyle(style1) => toFlatListOfStrings(style1,
+      delimiter: _CSS_ENTRY_DELIMITER, trim: true, ignoreEmpty: true);
+
+  void configureStyle(dynamic style1,
+      [dynamic style2, dynamic componentStyle]) {
+    appendStyle(componentStyle, style1, style2);
+  }
+
+  void appendStyle(dynamic style1, [dynamic style2, dynamic style3]) {
+    var styles1 = parseStyle(style1);
+    var styles2 = parseStyle(style2);
+    var styles3 = parseStyle(style3);
+
+    styles1.addAll(styles2);
+    styles1.addAll(styles3);
+
+    if (styles1.isNotEmpty) {
+      var allStyles = styles1.join('; ');
+
+      if (content.style.cssText == '') {
+        content.style.cssText = allStyles;
+      } else {
+        content.style.cssText += allStyles;
       }
     }
   }
@@ -1045,8 +1383,7 @@ abstract class UIComponent extends UIEventHandler {
 
   void _refreshImpl() {
     if (!isRendered) return;
-    clear();
-    callRender();
+    callRender(true);
   }
 
   void refreshIfLocaleChanged() {
@@ -1074,12 +1411,13 @@ abstract class UIComponent extends UIEventHandler {
     content.remove();
   }
 
-  void ensureRendered() {
+  void ensureRendered([bool force]) {
     if (!isRendered) {
       callRender();
     } else if (localeChangeFromLastRender) {
-      clear();
-      callRender();
+      callRender(true);
+    } else if (force ?? false) {
+      callRender(true);
     }
   }
 
@@ -1149,8 +1487,8 @@ abstract class UIComponent extends UIEventHandler {
       [bool findUIRootTree = true]) {
     if (content == null) return null;
 
-    var parent =
-        _componentsRendering[content] ?? _componentsRenderingExtra[content];
+    var parent = _componentsRendering[content];
+    parent ??= _componentsRenderingExtra[content];
 
     if (parent == null && findUIRootTree) {
       var uiRoot = UIRoot.getInstance();
@@ -1224,12 +1562,31 @@ abstract class UIComponent extends UIEventHandler {
 
   bool get isRendering => _rendering;
 
-  void callRender() {
+  bool _callingRender = false;
+
+  void callRender([bool clear]) {
+    if (_callingRender) return;
+
+    _callingRender = true;
+    try {
+      _callRenderImpl(clear);
+    } catch (e, s) {
+      UIConsole.error('Error calling _callRenderImpl()', e, s);
+    } finally {
+      _callingRender = false;
+    }
+  }
+
+  void _callRenderImpl(bool clear) {
     _setUIComponentRendering(this);
+
+    if (clear ?? false) {
+      this.clear();
+    }
 
     _rendering = true;
     try {
-      _callRenderImpl();
+      _doRender();
     } finally {
       _rendering = false;
 
@@ -1253,7 +1610,7 @@ abstract class UIComponent extends UIEventHandler {
 
   String _renderLocale;
 
-  void _callRenderImpl() {
+  void _doRender() {
     var currentLocale = UIRoot.getCurrentLocale();
 
     _renderLocale = currentLocale;
@@ -1303,12 +1660,7 @@ abstract class UIComponent extends UIEventHandler {
       UIConsole.error('$this _parseAttributesPosRender(...) error', e, s);
     }
 
-    try {
-      _parseAttributesPosRender(content.children);
-      posRender();
-    } catch (e, s) {
-      UIConsole.error('$this posRender error', e, s);
-    }
+    _callPosRender();
 
     _markRenderTime();
   }
@@ -1409,6 +1761,16 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   dynamic render();
+
+  void _callPosRender() {
+    try {
+      posRender();
+    } catch (e, s) {
+      UIConsole.error('$this posRender error', e, s);
+    }
+
+    connectDataSource();
+  }
 
   void posRender() {}
 
@@ -1518,9 +1880,9 @@ abstract class UIComponent extends UIEventHandler {
 
   static UIDOMGenerator get domGenerator => _domGenerator;
 
-  static bool registerElementGenerator(
-      String tag, ElementGenerator<Node> elementGenerator) {
-    return _domGenerator.registerElementGenerator(tag, elementGenerator);
+  static bool registerGenerator(UIComponentGenerator generator) {
+    if (generator == null) throw ArgumentError.notNull('generator');
+    return _domGenerator.registerElementGenerator(generator);
   }
 
   int _buildRenderList(
@@ -1529,7 +1891,7 @@ abstract class UIComponent extends UIEventHandler {
 
     if (value is DOMNode) {
       var domNode = value as DOMNode;
-      value = domNode.buildDOM(_domGenerator);
+      value = domNode.buildDOM(generator: _domGenerator, parent: content);
     }
 
     if (value is Node) {
@@ -1668,6 +2030,7 @@ abstract class UIComponent extends UIEventHandler {
         _parseNavigate(elem);
         _parseAction(elem);
         _parseEvents(elem);
+        _parseDataSource(elem);
 
         try {
           _parseAttributes(elem.children);
@@ -1706,6 +2069,63 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  void _parseDataSource(Element content) {
+    var dataSourceCall = getElementAttribute(content, 'data-source');
+
+    if (dataSourceCall != null && dataSourceCall.isNotEmpty) {
+      this.dataSourceCall = dataSourceCall;
+    }
+  }
+
+  DataSourceCall _dataSourceCall;
+
+  bool get hasDataSource => _dataSourceCall != null;
+
+  DataSource get dataSource =>
+      _dataSourceCall != null ? _dataSourceCall.dataSource : null;
+
+  DataSourceCall get dataSourceCall => _dataSourceCall;
+
+  set dataSourceCall(dynamic daraSourceCall) {
+    _dataSourceCall = DataSourceCall.from(daraSourceCall);
+  }
+
+  String get dataSourceCallString =>
+      _dataSourceCall != null ? _dataSourceCall.toString() : '';
+
+  void connectDataSource() {
+    refreshDataSource();
+  }
+
+  void refreshDataSource() {
+    if (!hasDataSource) return;
+
+    var cachedResponse = _dataSourceCall.cachedCall();
+
+    if (cachedResponse != null) {
+      applyData(cachedResponse);
+    } else {
+      _dataSourceCall.call().then((result) {
+        applyData(result);
+      });
+    }
+  }
+
+  bool applyData(dynamic data) {
+    var changed = setData(data);
+
+    if (changed) {
+      ensureRendered(true);
+    }
+
+    return changed;
+  }
+
+  bool setData(dynamic data) {
+    print('SET DATA: $data');
+    return false;
+  }
+
   String _normalizeComponentAttributeName(String name) {
     if (name == null) return null;
     name = name.toLowerCase().trim();
@@ -1715,11 +2135,11 @@ abstract class UIComponent extends UIEventHandler {
 
   static final RegExp _VALUE_DELIMITER_GENERIC = RegExp(r'[\s,;]+');
 
-  List<String> parseAttributeValueAsStringList(dynamic value,
+  static List<String> parseAttributeValueAsStringList(dynamic value,
           [Pattern delimiter]) =>
       parseStringFromInlineList(value, delimiter ?? _VALUE_DELIMITER_GENERIC);
 
-  String parseAttributeValueAsString(dynamic value,
+  static String parseAttributeValueAsString(dynamic value,
       [String delimiter, Pattern delimiterPattern]) {
     var list = parseAttributeValueAsStringList(value, delimiterPattern);
     if (list.isEmpty) return '';
@@ -1727,7 +2147,35 @@ abstract class UIComponent extends UIEventHandler {
     return list.length == 1 ? list.single : list.join(delimiter);
   }
 
-  dynamic getComponentAttribute(String name) {
+  bool setAttributes(Iterable<DOMAttribute> attributes) {
+    if (attributes == null || attributes.isEmpty) return true;
+
+    var anySet = false;
+    for (var attr in attributes) {
+      var wasSet =
+          setAttribute(attr.name, attr.isList ? attr.values : attr.value);
+      if (wasSet) {
+        anySet = true;
+      }
+    }
+    return anySet;
+  }
+
+  bool appendAttributes(Iterable<DOMAttribute> attributes) {
+    if (attributes == null || attributes.isEmpty) return false;
+
+    var anySet = false;
+    for (var attr in attributes) {
+      var wasSet =
+          appendAttribute(attr.name, attr.isList ? attr.values : attr.value);
+      if (wasSet) {
+        anySet = true;
+      }
+    }
+    return anySet;
+  }
+
+  dynamic getAttribute(String name) {
     name = _normalizeComponentAttributeName(name);
     if (name == null) return null;
 
@@ -1736,30 +2184,20 @@ abstract class UIComponent extends UIEventHandler {
         return content.style.cssText;
       case 'class':
         return content.classes.join(' ');
+      case 'navigate':
+        return UINavigator.getNavigateOnClick(content);
+      case 'data-source':
+        return dataSourceCallString;
       default:
-        return getComponentAttributeExtended(name);
+        return _generator != null ? _generator.getAttribute(this, name) : null;
     }
   }
 
-  dynamic getComponentAttributeExtended(String name) => false;
+  static final RegExp _PATTERN_STYLE_DELIMITER = RegExp(r'\s*;\s*');
 
-  bool setComponentAttributes(Iterable<DOMAttribute> attributes) {
-    if (attributes == null || attributes.isEmpty) return true;
-
-    var allOk = true;
-    for (var attr in attributes) {
-      var ok = setComponentAttribute(
-          attr.name, attr.isListValue ? attr.values : attr.value);
-      if (!ok) {
-        allOk = false;
-      }
-    }
-    return allOk;
-  }
-
-  bool setComponentAttribute(String name, dynamic value) {
+  bool setAttribute(String name, dynamic value) {
     if (value == null) {
-      return clearComponentAttribute(name);
+      return clearAttribute(name);
     }
 
     name = _normalizeComponentAttributeName(name);
@@ -1768,7 +2206,9 @@ abstract class UIComponent extends UIEventHandler {
     switch (name) {
       case 'style':
         {
-          content.style.cssText = parseAttributeValueAsString(value);
+          var valueCSS = parseAttributeValueAsString(
+              value, '; ', _PATTERN_STYLE_DELIMITER);
+          content.style.cssText = valueCSS;
           return true;
         }
       case 'class':
@@ -1777,14 +2217,71 @@ abstract class UIComponent extends UIEventHandler {
           content.classes.addAll(parseAttributeValueAsStringList(value));
           return true;
         }
+      case 'navigate':
+        {
+          UINavigator.navigateOnClick(content, value);
+          return true;
+        }
+      case 'data-source':
+        {
+          dataSourceCall = parseString(value);
+          return true;
+        }
       default:
-        return setComponentAttributeExtended(name, value) ?? false;
+        {
+          if (_generator != null) {
+            _generator.setAttribute(this, name, value);
+            return true;
+          } else {
+            return false;
+          }
+        }
     }
   }
 
-  bool setComponentAttributeExtended(String name, dynamic value) => false;
+  bool appendAttribute(String name, dynamic value) {
+    name = _normalizeComponentAttributeName(name);
+    if (name == null) return false;
 
-  bool clearComponentAttribute(String name) {
+    switch (name) {
+      case 'style':
+        {
+          appendStyle(value);
+          return true;
+        }
+      case 'class':
+        {
+          appendClasses(value);
+          return true;
+        }
+      case 'id':
+        {
+          setID(value);
+          return true;
+        }
+      case 'navigate':
+        {
+          UINavigator.navigateOnClick(content, value);
+          return true;
+        }
+      case 'data-source':
+        {
+          dataSourceCall = parseString(value);
+          return true;
+        }
+      default:
+        {
+          if (_generator != null) {
+            _generator.appendAttribute(this, name, value);
+            return true;
+          } else {
+            return false;
+          }
+        }
+    }
+  }
+
+  bool clearAttribute(String name) {
     name = _normalizeComponentAttributeName(name);
     if (name == null) return false;
 
@@ -1799,49 +2296,27 @@ abstract class UIComponent extends UIEventHandler {
           content.classes.clear();
           return true;
         }
-      default:
-        return clearComponentAttributeExtended(name) ?? false;
-    }
-  }
-
-  bool clearComponentAttributeExtended(String name) => false;
-
-  bool appendComponentAttributes(Iterable<DOMAttribute> attributes) {
-    if (attributes == null || attributes.isEmpty) return true;
-
-    var allOk = true;
-    for (var attr in attributes) {
-      var ok = appendComponentAttribute(
-          attr.name, attr.isListValue ? attr.values : attr.value);
-      if (!ok) {
-        allOk = false;
-      }
-    }
-    return allOk;
-  }
-
-  bool appendComponentAttribute(String name, dynamic value) {
-    name = _normalizeComponentAttributeName(name);
-    if (name == null) return false;
-
-    switch (name) {
-      case 'style':
+      case 'navigate':
         {
-          content.style.cssText +=
-              ' ; ' + parseAttributeValueAsString(value, ' ; ');
+          UINavigator.clearNavigateOnClick(content);
           return true;
         }
-      case 'class':
+      case 'data-source':
         {
-          content.classes.addAll(parseAttributeValueAsStringList(value));
+          dataSourceCall = null;
           return true;
         }
       default:
-        return appendComponentAttributeExtended(name, value) ?? false;
+        {
+          if (_generator != null) {
+            _generator.clearAttribute(this, name);
+            return true;
+          } else {
+            return false;
+          }
+        }
     }
   }
-
-  bool appendComponentAttributeExtended(String name, dynamic value) => false;
 
   Element getFieldElement(String fieldName) => findInContentChildrenDeep((e) {
         if (e is Element) {
@@ -1854,46 +2329,58 @@ abstract class UIComponent extends UIEventHandler {
   Map<String, Element> getFieldsElementsMap({List<String> ignore}) {
     ignore ??= [];
 
-    var fieldsElements = _contentChildrenDeepImpl(content.children, [], (e) {
-      if (e is Element) {
-        var fieldValue = getElementAttribute(e, 'field');
-        return fieldValue != null && fieldValue.isNotEmpty;
-      }
-      return false;
-    });
+    var fieldsElements = getFieldsElements();
 
     var map = <String, Element>{};
 
     for (var elem in fieldsElements) {
-      var fieldValue = getElementAttribute(elem, 'field');
-      if (!map.containsKey(fieldValue) && !ignore.contains(fieldValue)) {
-        map[fieldValue] = elem;
+      var fieldName = getElementAttribute(elem, 'field');
+      if (!ignore.contains(fieldName)) {
+        if (map.containsKey(fieldName)) {
+          var elemValue = parseElementValue(map[fieldName], null, false);
+
+          if (isEmptyObject(elemValue)) {
+            var value = parseElementValue(elem, null, false);
+            if (isNotEmptyObject(value)) {
+              map[fieldName] = elem;
+            }
+          }
+        } else {
+          map[fieldName] = elem;
+        }
       }
     }
 
     return map;
   }
 
-  bool clearComponentContent() {
+  bool clearContent() {
     content.nodes.clear();
     return true;
   }
 
-  bool setComponentContent(List<Node> nodes) {
+  bool setContentNodes(List<Node> nodes) {
     content.nodes.clear();
     content.nodes.addAll(nodes);
     return true;
   }
 
-  bool appendComponentContent(List<Node> nodes) {
+  bool appendToContent(List<Node> nodes) {
     content.nodes.addAll(nodes);
     return true;
   }
 
-  List<Element> getFieldsElements() => List.from(getFieldsElementsMap().values);
+  List<Element> getFieldsElements() =>
+      _contentChildrenDeepImpl(content.children, [], (e) {
+        if (e is Element) {
+          var fieldValue = getElementAttribute(e, 'field');
+          return fieldValue != null && fieldValue.isNotEmpty;
+        }
+        return false;
+      });
 
   static String parseElementValue(Element element,
-      [UIComponent parentComponent]) {
+      [UIComponent parentComponent, bool allowTextAsValue = true]) {
     UIComponent uiComponent;
 
     if (parentComponent != null) {
@@ -1921,7 +2408,11 @@ abstract class UIComponent extends UIEventHandler {
     if (element is InputElement) {
       return element.value;
     } else {
-      return element.text;
+      var value = element.getAttribute('field_value');
+      if (isEmptyObject(value) && allowTextAsValue) {
+        value = element.text;
+      }
+      return value;
     }
   }
 
@@ -2078,9 +2569,188 @@ abstract class UIComponent extends UIEventHandler {
   }
 }
 
+abstract class _ElementGenerator extends ElementGenerator<Node> {
+  void setElementAttributes(
+      Element element, Map<String, DOMAttribute> attributes) {
+    element.classes.add(tag);
+
+    var attrClass = attributes['class'];
+
+    if (attrClass != null && attrClass.valueLength > 0) {
+      element.classes.addAll(attrClass.values);
+    }
+
+    var attrStyle = attributes['style'];
+
+    if (attrStyle != null && attrStyle.valueLength > 0) {
+      var prevCssText = element.style.cssText;
+      if (prevCssText == '') {
+        element.style.cssText = attrStyle.value;
+      } else {
+        var cssText2 = '$prevCssText; ${attrStyle.value} ;';
+        element.style.cssText = cssText2;
+      }
+    }
+  }
+}
+
+class _BUIElementGenerator extends _ElementGenerator {
+  @override
+  final String tag = 'bui';
+
+  @override
+  DivElement generate(
+      DOMGenerator domGenerator,
+      String tag,
+      Node parent,
+      Map<String, DOMAttribute> attributes,
+      Node contentHolder,
+      List<DOMNode> contentNodes) {
+    var buiElement = DivElement();
+
+    setElementAttributes(buiElement, attributes);
+
+    buiElement.nodes.addAll(contentHolder.nodes);
+
+    return buiElement;
+  }
+
+  @override
+  bool isGeneratedElement(Node element) {
+    return element is DivElement && element.classes.contains(tag);
+  }
+
+  @override
+  DOMElement revert(DOMGenerator domGenerator, DOMTreeMap treeMap,
+      DOMElement domParent, Node parent, Node node) {
+    if (node is DivElement) {
+      var bui =
+          $tag(tag, classes: node.classes.join(' '), style: node.style.cssText);
+
+      if (treeMap != null) {
+        var mappedDOMNode = treeMap.getMappedDOMNode(node);
+        if (mappedDOMNode != null) {
+          bui.add(mappedDOMNode.content);
+        }
+      } else {
+        bui.add(node.text);
+      }
+
+      return bui;
+    } else {
+      return null;
+    }
+  }
+}
+
+class _UITemplateElementGenerator extends _ElementGenerator {
+  final DOMGenerator<Node> domGenerator;
+
+  _UITemplateElementGenerator(this.domGenerator);
+
+  @override
+  final String tag = 'ui-template';
+
+  @override
+  bool get hasChildrenElements => false;
+
+  @override
+  bool get usesContentHolder => false;
+
+  @override
+  Element generate(
+      DOMGenerator domGenerator,
+      String tag,
+      Node parent,
+      Map<String, DOMAttribute> attributes,
+      Node contentHolder,
+      List<DOMNode> contentNodes) {
+    var element = DivElement();
+
+    setElementAttributes(element, attributes);
+
+    var html = contentNodes.map((e) => e.buildHTML(withIndent: true)).join('');
+
+    if (html.contains('{{')) {
+      var t = Template(html, lenient: true);
+      var context = getTemplateVariables();
+      html = t.renderString(context);
+    }
+
+    var domElement = $htmlRoot(element.outerHtml);
+
+    domGenerator.addChildToElement(parent, element);
+    domGenerator.generateFromHTML(html,
+        domParent: domElement, parent: element, finalizeTree: false);
+
+    return element;
+  }
+
+  Map<String, dynamic> getTemplateVariables() {
+    if (domGenerator.domContext == null) return {};
+
+    var vars = domGenerator.domContext.variables;
+
+    deepReplaceValues(vars, (c, k, v) {
+      if (v is Function) {
+        return true;
+      } else {
+        return false;
+      }
+    }, (c, k, v) {
+      return v();
+    });
+
+    return vars;
+  }
+
+  @override
+  bool isGeneratedElement(Node element) {
+    return element is DivElement && element.classes.contains(tag);
+  }
+
+  @override
+  DOMElement revert(DOMGenerator domGenerator, DOMTreeMap treeMap,
+      DOMElement domParent, Node parent, Node node) {
+    if (node is DivElement) {
+      var domElement =
+          $tag(tag, classes: node.classes.join(' '), style: node.style.cssText);
+
+      if (treeMap != null) {
+        var mappedDOMNode = treeMap.getMappedDOMNode(node);
+        if (mappedDOMNode != null) {
+          domElement.add(mappedDOMNode.content);
+        }
+      } else {
+        domElement.add(node.text);
+      }
+
+      return domElement;
+    } else {
+      return null;
+    }
+  }
+}
+
 /// A [DOMGenerator] (from package `dom_builder`)
 /// able to generate [Element] (from `dart:html`).
 class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
+  UIDOMGenerator() {
+    registerElementGenerator(_BUIElementGenerator());
+    registerElementGenerator(_UITemplateElementGenerator(this));
+
+    domContext = DOMContext();
+    _setupContextVariables();
+  }
+
+  void _setupContextVariables() {
+    domContext.variables = {
+      'routes': () {
+        return UINavigator.navigableRoutes;
+      }
+    };
+  }
+
   @override
   DOMTreeMap<Node> createGenericDOMTreeMap() => createDOMTreeMap();
 
@@ -2112,6 +2782,7 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       if (element is Element) {
         element.children.add(componentContent);
         component.setParent(element);
+        component.ensureRendered();
         return [componentContent];
       }
 
@@ -2593,6 +3264,19 @@ class Dimension {
   final int height;
 
   Dimension(this.width, this.height);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Dimension && width == other.width && height == other.height;
+
+  @override
+  int get hashCode => width.hashCode ^ height.hashCode;
+
+  @override
+  String toString() {
+    return '${width}X${height}';
+  }
 }
 
 /// The root for `Bones_UI` component tree.
@@ -2745,9 +3429,9 @@ abstract class UIRoot extends UIComponent {
   }
 
   @override
-  void callRender() {
+  void callRender([bool clear]) {
     UIConsole.log('UIRoot> rendering...');
-    super.callRender();
+    super.callRender(clear);
   }
 
   void onInitialized() {}
@@ -2772,6 +3456,8 @@ abstract class UIRoot extends UIComponent {
 
 /// A `Bones_UI` component for navigable components by routes.
 abstract class UINavigableComponent extends UIComponent {
+  static final String COMPONENT_CLASS = 'ui-navigable-component';
+
   List<String> _routes;
 
   bool _findRoutes;
@@ -2786,11 +3472,11 @@ abstract class UINavigableComponent extends UIComponent {
       bool inline = true,
       bool renderOnConstruction = false})
       : super(parent,
+            componentClass: COMPONENT_CLASS,
             classes: classes,
             classes2: classes2,
             inline: inline,
             renderOnConstruction: renderOnConstruction) {
-    content.classes.add('UINavigableContainer');
     _normalizeRoutes();
 
     if (routes.isEmpty) throw ArgumentError('Empty routes');
@@ -3222,7 +3908,7 @@ class UINavigator {
 
   final EventStream<String> _onNavigate = EventStream();
 
-  /// [EventStream] for when navagation changes.
+  /// [EventStream] for when navigation changes.
   static EventStream<String> get onNavigate => get()._onNavigate;
 
   void _navigateTo(String route,
@@ -3325,7 +4011,20 @@ class UINavigator {
     return routeEncoded;
   }
 
+  /// Returns all the known routes of registered navigables.
+  static List<String> get navigableRoutes {
+    var routes = <String>{};
+    for (var nav in navigables) {
+      routes.addAll(nav.routes);
+    }
+    routes.remove('*');
+    return List.from(routes);
+  }
+
   final List<UINavigableComponent> _navigables = [];
+
+  static List<UINavigableComponent> get navigables =>
+      List.from(get()._navigables);
 
   /// Finds a [UINavigableComponent] that responds for [route].
   UINavigableComponent findNavigable(String route) {
@@ -3346,13 +4045,16 @@ class UINavigator {
     clearDetachedNavigables();
   }
 
+  static final String _navigableComponentSelector =
+      '.${UINavigableComponent.COMPONENT_CLASS}';
+
   /// Returns [List<Element>] that are from navigable components.
   ///
   /// [element] If null uses [document] to select sub elements.
   List<Element> selectNavigables([Element element]) {
     return element != null
-        ? element.querySelectorAll('.UINavigableContainer')
-        : document.querySelectorAll('.UINavigableContainer');
+        ? element.querySelectorAll(_navigableComponentSelector)
+        : document.querySelectorAll(_navigableComponentSelector);
   }
 
   /// Find in [element] tree nodes with attribute `navigate`.
@@ -3404,7 +4106,7 @@ class UINavigator {
       [Map<String, String> parameters,
       ParametersProvider parametersProvider,
       bool force = false]) {
-    var paramsStr = parameters != null ? parameters.toString() : '';
+    var paramsStr = encodeQueryString(parameters);
 
     var attrRoute = element.getAttribute('__navigate__route');
     var attrParams = element.getAttribute('__navigate__parameters');
@@ -3413,11 +4115,24 @@ class UINavigator {
       element.setAttribute('__navigate__route', route);
       element.setAttribute('__navigate__parameters', paramsStr);
 
-      StreamSubscription subscription = element.onClick.listen((e) =>
+      var subscriptionHolder = <StreamSubscription>[];
+
+      var subscription = element.onClick.listen((e) {
+        var elemRoute = element.getAttribute('__navigate__route');
+        var elemRouteParams = element.getAttribute('__navigate__parameters');
+
+        if (elemRoute == route && elemRouteParams == paramsStr) {
           navigateTo(route,
               parameters: parameters,
               parametersProvider: parametersProvider,
-              force: force));
+              force: force);
+        } else if (subscriptionHolder.isNotEmpty) {
+          var subscription = subscriptionHolder[0];
+          subscription.cancel();
+        }
+      });
+
+      subscriptionHolder.add(subscription);
 
       if (element.style.cursor == null || element.style.cursor.isEmpty) {
         element.style.cursor = 'pointer';
@@ -3428,6 +4143,199 @@ class UINavigator {
 
     return null;
   }
+
+  static bool clearNavigateOnClick(Element element) {
+    var attrRoute = element.getAttribute('__navigate__route');
+    element.removeAttribute('__navigate__route');
+    element.removeAttribute('__navigate__parameters');
+
+    if (attrRoute != null) {
+      if (element.style.cursor == 'pointer') {
+        element.style.cursor = '';
+      }
+      return true;
+    }
+
+    return null;
+  }
+
+  /// Returns the current `navigate` property of [element].
+  static String getNavigateOnClick(Element element) {
+    var attrRoute = element.getAttribute('__navigate__route');
+
+    if (isNotEmptyObject(attrRoute)) {
+      var attrParams = element.getAttribute('__navigate__parameters');
+      return isNotEmptyObject(attrParams)
+          ? '$attrRoute?$attrParams'
+          : attrRoute;
+    }
+
+    return null;
+  }
+}
+
+class TextProvider {
+  String _text;
+
+  String Function() _function;
+
+  IntlKey _intlKey;
+
+  ElementProvider _elementProvider;
+
+  TextProvider.fromText(this._text);
+
+  TextProvider.fromFunction(this._function);
+
+  TextProvider.fromElementProvider(this._elementProvider);
+
+  TextProvider.fromIntlKey(this._intlKey);
+
+  TextProvider.fromMessages(IntlMessages intlMessages, String key,
+      {Map<String, dynamic> variables, IntlVariablesProvider variablesProvider})
+      : this.fromIntlKey(IntlKey(intlMessages, key,
+            variables: variables, variablesProvider: variablesProvider));
+
+  factory TextProvider.from(dynamic text) {
+    if (text == null) return null;
+    if (text is TextProvider) return text;
+
+    if (text is String) return TextProvider.fromText(text);
+    if (text is Function) return TextProvider.fromFunction(text);
+    if (text is IntlKey) return TextProvider.fromIntlKey(text);
+
+    if (text is ElementProvider) return TextProvider.fromElementProvider(text);
+    if (ElementProvider.accepts(text)) {
+      return TextProvider.fromElementProvider(ElementProvider.from(text));
+    }
+
+    return null;
+  }
+
+  static bool accepts(dynamic text) {
+    if (text == null) return false;
+    if (text is TextProvider) return true;
+
+    if (text is String) return true;
+    if (text is Function) return true;
+    if (ElementProvider.accepts(text)) return true;
+
+    return null;
+  }
+
+  bool _singleCall = false;
+
+  bool get singleCall => _singleCall;
+
+  set singleCall(bool value) {
+    _singleCall = value ?? false;
+  }
+
+  String get text {
+    if (_text != null) {
+      return _text;
+    }
+
+    String text;
+
+    if (_function != null) {
+      text = _function();
+    } else if (_elementProvider != null) {
+      text = _elementProvider.element.text;
+    } else if (_intlKey != null) {
+      text = _intlKey.message;
+    } else {
+      throw StateError("Can't provide a text: $this");
+    }
+
+    if (_singleCall) {
+      _text = text;
+    }
+
+    return text;
+  }
+
+  @override
+  String toString() {
+    return 'TextProvider{_text: $_text, _function: $_function, _intlKey: $_intlKey, _elementProvider: $_elementProvider, _singleCall: $_singleCall}';
+  }
+}
+
+class ElementProvider {
+  Element _element;
+
+  String _html;
+
+  UIComponent _uiComponent;
+
+  DOMNode _domNode;
+
+  ElementProvider.fromElement(this._element);
+
+  ElementProvider.fromHTML(this._html);
+
+  ElementProvider.fromUIComponent(this._uiComponent);
+
+  ElementProvider.fromDOMNode(this._domNode);
+
+  factory ElementProvider.from(dynamic element) {
+    if (element == null) return null;
+    if (element is ElementProvider) return element;
+    if (element is String) return ElementProvider.fromHTML(element);
+    if (element is Element) return ElementProvider.fromElement(element);
+    if (element is UIComponent) return ElementProvider.fromUIComponent(element);
+    if (element is DOMNode) return ElementProvider.fromDOMNode(element);
+    return null;
+  }
+
+  static bool accepts(dynamic element) {
+    if (element == null) return false;
+    if (element is ElementProvider) return true;
+    if (element is String) return true;
+    if (element is Element) return true;
+    if (element is UIComponent) return true;
+    if (element is DOMNode) return true;
+    return false;
+  }
+
+  String get elementAsHTML {
+    var elem = element;
+    return elem != null ? element.outerHtml : null;
+  }
+
+  Element get element {
+    if (_element != null) {
+      return _element;
+    }
+
+    if (_html != null) {
+      _element = createHTML(_html);
+      return _element;
+    }
+
+    if (_uiComponent != null) {
+      _uiComponent.ensureRendered();
+      _element = _uiComponent.content;
+      return _element;
+    }
+
+    if (_domNode != null) {
+      var runtime = _domNode.runtime;
+      if (runtime != null && runtime.exists) {
+        return runtime.node as Element;
+      } else {
+        return _domNode.buildDOM(generator: UIComponent.domGenerator)
+            as Element;
+      }
+    }
+
+    throw StateError("Can't provide an Element: $this");
+  }
+
+  @override
+  String toString() {
+    return 'ElementProvider{_element: $_element, _html: $_html, _uiComponent: $_uiComponent, _domNode: $_domNode}';
+  }
 }
 
 bool _registeredAllComponents = false;
@@ -3436,4 +4344,6 @@ void _registerAllComponents() {
   if (_registeredAllComponents) return;
   _registeredAllComponents = true;
   UIButton.register();
+  UIMultiSelection.register();
+  UIDataSource.register();
 }

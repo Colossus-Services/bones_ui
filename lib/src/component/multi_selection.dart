@@ -7,12 +7,28 @@ import 'package:swiss_knife/swiss_knife.dart';
 
 /// A component that renders a multi-selection input.
 class UIMultiSelection extends UIComponent implements UIField<List<String>> {
+  static final UIComponentGenerator<UIMultiSelection> GENERATOR =
+      UIComponentGenerator<UIMultiSelection>('ui-multi-selection', 'div',
+          'ui-multi-selection', 'display: inline-block',
+          (parent, attributes, contentHolder, contentNodes) {
+    var jsonConfig = parseJSON(contentHolder.text, {});
+    return UIMultiSelection(parent, jsonConfig['options']);
+  }, [
+    UIComponentAttributeHandler<UIMultiSelection, dynamic>('options',
+        parser: parseJSON,
+        getter: (c) => c._options,
+        setter: (c, v) => c._options = v ?? '',
+        cleaner: (c) => c._options = null)
+  ], hasChildrenElements: false, contentAsText: false);
+
+  static void register() {
+    UIComponent.registerGenerator(GENERATOR);
+  }
+
   Map _options;
 
   final bool _multiSelection;
   final bool _allowInputValue;
-
-  final String width;
 
   final int optionsPanelMargin;
 
@@ -27,17 +43,18 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   UIMultiSelection(Element parent, Map options,
       {bool multiSelection = true,
       bool allowInputValue,
-      this.width,
       this.optionsPanelMargin = 20,
       this.separator = ' ; ',
       Duration selectionMaxDelay,
-      dynamic classes})
+      dynamic classes,
+      dynamic style})
       : _options = options ?? {},
         _multiSelection = multiSelection ?? true,
         _allowInputValue = allowInputValue ?? false,
         super(parent,
-            classes: 'ui-multi-selection',
-            classes2: classes,
+            componentClass: 'ui-multi-selection',
+            classes: classes,
+            style: style,
             renderOnConstruction: true) {
     _optionsPanelInteractionCompleter = InteractionCompleter('optionsPanel',
         triggerDelay: selectionMaxDelay ?? Duration(seconds: 10),
@@ -60,6 +77,41 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   set options(Map value) {
     _options = value ?? {};
     refresh();
+  }
+
+  @override
+  bool setData(data) {
+    return _setDataOptions(data);
+  }
+
+  bool _setDataOptions(data) {
+    var options = _parseDataOptions(data);
+
+    if (isEqualsDeep(_options, options)) {
+      return false;
+    }
+
+    _options = options;
+
+    return true;
+  }
+
+  Map _parseDataOptions(data) {
+    if (isEmptyObject(data)) {
+      return {};
+    } else if (data is Map) {
+      return data;
+    } else if (data is List) {
+      if (data.length == 1 && data[0] is Map) {
+        return data[0];
+      } else {
+        return Map.fromEntries(data.map((e) {
+          return parseMapEntry(e, RegExp(r'\s*[:=]\s*'));
+        }));
+      }
+    } else {
+      return {};
+    }
   }
 
   void addOption(dynamic key, dynamic value) => _options[key] = value;
@@ -263,7 +315,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
 
   List<String> get selectedLabels {
     return _getSelectedElements()
-        .map((e) => e.getAttribute('opt_label'))
+        .map((e) => htmlToText(e.getAttribute('opt_label')))
         .toList();
   }
 
@@ -299,10 +351,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
 
       _input.style.padding = '5px 10px';
       _input.style.border = '1px solid #ccc';
-
-      if (isNotEmptyObject(width)) {
-        _input.style.width = width;
-      }
+      _input.style.width = '100%';
+      _input.style.backgroundColor = 'inherit';
+      _input.style.color = 'inherit';
 
       //style="cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%"
 
@@ -365,7 +416,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     }
 
     _optionsPanel.style.maxHeight = '60vh';
-    _optionsPanel.style.overflowY = 'scroll';
+    _optionsPanel.style.overflowY = 'auto';
 
     var checksList = _renderPanelOptions();
     _checkElements = checksList;
@@ -406,21 +457,32 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   }
 
   void _updateDivOptionsPosition() {
-    var elemW = _input.borderEdge.width;
-    var w = elemW;
+    var inputRect = _input.getBoundingClientRect();
 
-    var x = _input.offset.left;
-    var xPadding = (elemW - w) / 2;
-    x += xPadding;
+    var w = inputRect.width;
 
-    var y = _input.offset.top + _input.offset.height;
+    var x = inputRect.left;
+    var inputY = inputRect.top;
+    var y = inputY + inputRect.height;
+
+    var freeViewportHeightUpward = inputY - 10;
+    var freeViewportHeightBelow = (window.innerHeight - y) - 10;
 
     _optionsPanel
       ..style.position = 'absolute'
       ..style.left = '${x}px'
       ..style.top = '${y}px'
       ..style.width = '${w}px'
-      ..style.zIndex = '999999999';
+      ..style.zIndex = '999999999'
+      ..style.transform = null
+      ..style.maxHeight = '${freeViewportHeightBelow}px';
+
+    if (freeViewportHeightBelow < 130 && freeViewportHeightUpward > 130) {
+      _optionsPanel
+        ..style.top = '${inputY}px'
+        ..style.transform = 'translate(0% , -100%)'
+        ..style.maxHeight = '${freeViewportHeightUpward}px';
+    }
   }
 
   dynamic _toggleDivOptions(bool requestedHide) {
