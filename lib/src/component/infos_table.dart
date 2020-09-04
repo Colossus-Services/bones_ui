@@ -2,6 +2,7 @@ import 'dart:html';
 
 import 'package:bones_ui/bones_ui.dart';
 import 'package:bones_ui/src/bones_ui_base.dart';
+import 'package:swiss_knife/swiss_knife.dart';
 
 /// Component that renders a table with information.
 class UIInfosTable extends UIComponent {

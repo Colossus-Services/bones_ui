@@ -1,3 +1,10 @@
+## 1.0.20
+
+- Changed library:
+  - `bones_ui`: exports only `bones_ui` components and base classes.
+  - `bones_ui_kit`: exports `bones_ui` and other packages like  `swiss_knife`,
+    `dom_builder`, `dom_tools` and `mercury_client`
+
 ## 1.0.19
 
 - `UIInputTable`: `actionListenerComponent` and `actionListener`.

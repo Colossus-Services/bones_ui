@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:bones_ui/bones_ui.dart';
 import 'package:bones_ui/src/bones_ui_base.dart';
+import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 enum CaptureType { PHOTO, PHOTO_SELFIE, VIDEO, VIDEO_SELFIE, AUDIO, JSON, FILE }

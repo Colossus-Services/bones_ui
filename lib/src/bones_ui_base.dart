@@ -906,7 +906,7 @@ class UIComponentGenerator<C extends UIComponent>
   }
 }
 
-/// Base class do create `Bones_UI` components.
+/// Base class to create `Bones_UI` components.
 abstract class UIComponent extends UIEventHandler {
   final UIComponentGenerator _generator;
 
@@ -3453,7 +3453,7 @@ abstract class UIRoot extends UIComponent {
   UIComponent renderContent();
 }
 
-/// A `Bones_UI` component for navigable components by routes.
+/// `Bones_UI` base class for navigable components using routes.
 abstract class UINavigableComponent extends UIComponent {
   static final String COMPONENT_CLASS = 'ui-navigable-component';
 
