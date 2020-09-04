@@ -1,6 +1,7 @@
 ## 1.0.19
 
 - `UIInputTable`: `actionListenerComponent` and `actionListener`.
+- mercury_client: ^1.1.12
 
 ## 1.0.18
 
