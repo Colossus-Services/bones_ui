@@ -318,7 +318,12 @@ class UIInputTable extends UIComponent {
   final bool showLabels;
 
   UIInputTable(Element parent, this._inputs,
-      {String inputErrorClass, bool showLabels, dynamic classes, dynamic style})
+      {this.actionListenerComponent,
+      this.actionListener,
+      String inputErrorClass,
+      bool showLabels,
+      dynamic classes,
+      dynamic style})
       : _inputErrorClass = inputErrorClass,
         showLabels = showLabels ?? true,
         super(parent,
@@ -427,6 +432,22 @@ class UIInputTable extends UIComponent {
     form.append(table);
 
     return form;
+  }
+
+  /// Redirects [action] calls to an [UIComponent].
+  UIComponent actionListenerComponent;
+
+  /// Function to call when an [action] is triggered.
+  void Function(String) actionListener;
+
+  @override
+  void action(String action) {
+    if (actionListener != null) {
+      actionListener(action);
+    }
+    if (actionListenerComponent != null) {
+      actionListenerComponent.action(action);
+    }
   }
 
   static Duration defaultOnChangeTriggerDelay = Duration(seconds: 2);

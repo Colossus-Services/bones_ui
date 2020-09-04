@@ -1,3 +1,7 @@
+## 1.0.19
+
+- `UIInputTable`: `actionListenerComponent` and `actionListener`.
+
 ## 1.0.18
 
 - Better behavior of `UINavigableComponent` when `UIRoot` makes the 1st render,
