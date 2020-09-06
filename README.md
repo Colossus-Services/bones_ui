@@ -19,7 +19,7 @@ A simple usage example:
 ```dart
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
+import 'package:bones_ui/bones_ui_kit.dart';
 
 void main() async {
   // Create `bones_ui` root and initialize it:
