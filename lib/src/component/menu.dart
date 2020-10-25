@@ -22,6 +22,8 @@ class MenuEntry<P> extends MenuItem {
 
   TextProvider _name;
 
+  TextProvider _title;
+
   List<MenuItem> _subMenu;
 
   Function action;
@@ -29,9 +31,14 @@ class MenuEntry<P> extends MenuItem {
   P payload;
 
   MenuEntry(dynamic name,
-      {dynamic icon, Iterable<MenuItem> subMenu, this.action, this.payload}) {
+      {dynamic icon,
+      dynamic title,
+      Iterable<MenuItem> subMenu,
+      this.action,
+      this.payload}) {
     this.icon = icon;
     this.name = name;
+    this.title = title;
 
     if (subMenu != null) {
       this.subMenu = subMenu.toList();
@@ -49,6 +56,14 @@ class MenuEntry<P> extends MenuItem {
   }
 
   String get nameText => _name != null ? _name.text : '';
+
+  TextProvider get title => _title;
+
+  set title(dynamic title) {
+    _title = TextProvider.from(title);
+  }
+
+  String get titleText => _title != null ? _title.text : '';
 
   ElementProvider get icon => _icon;
 
@@ -184,7 +199,8 @@ class UIMenu extends UIComponent {
           nodes.add($span(content: itemSeparator.elementAsHTML));
         }
 
-        var nameText = menuEntry.nameText;
+        dynamic nameText = menuEntry.nameText;
+        var titleText = menuEntry.titleText;
 
         var iconElement = menuEntry.iconElement;
         var iconSeparator = iconElement != null ? ' ' : null;
@@ -193,6 +209,14 @@ class UIMenu extends UIComponent {
         if (menuEntry.hasSubMenu) {
           dropDownIcon = UISVG(null,
               width: 'auto', height: '1.2em', svgContent: SVG_ARROW_DOWN);
+        }
+
+        if (isNotEmptyObject(titleText)) {
+          if (iconElement != null) {
+            iconElement.title = titleText;
+          }
+
+          nameText = $span(attributes: {'title': titleText}, content: nameText);
         }
 
         var menuEntryDiv = $divInline(

@@ -29,11 +29,13 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       ParametersProvider navigateParametersProvider,
       dynamic classes,
       dynamic classes2,
+      dynamic style,
       dynamic componentClass})
       : _fieldName = fieldName,
         super(container,
             classes: classes,
             classes2: classes2,
+            style: style,
             componentClass: ['ui-capture', componentClass],
             navigate: navigate,
             navigateParameters: navigateParameters,
@@ -656,6 +658,7 @@ class UIButtonCapture extends UICapture {
       dynamic classes,
       dynamic classes2,
       dynamic componentClass,
+      dynamic style,
       bool small = false,
       this.fontSize})
       : super(parent, captureType,
@@ -665,12 +668,11 @@ class UIButtonCapture extends UICapture {
             navigateParametersProvider: navigateParametersProvider,
             classes: classes,
             classes2: classes2,
+            style: style,
             componentClass: [
               small ? 'ui-button-small' : 'ui-button',
               componentClass
-            ]) {
-    configureClasses(classes, null, [small ? 'ui-button-small' : 'ui-button']);
-  }
+            ]);
 
   @override
   void configure() {

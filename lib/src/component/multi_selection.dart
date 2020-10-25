@@ -18,7 +18,12 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
         parser: parseJSON,
         getter: (c) => c._options,
         setter: (c, v) => c._options = v ?? '',
-        cleaner: (c) => c._options = null)
+        cleaner: (c) => c._options = null),
+    UIComponentAttributeHandler<UIMultiSelection, dynamic>('multi-selection',
+        parser: parseBool,
+        getter: (c) => c._multiSelection,
+        setter: (c, v) => c._multiSelection = v,
+        cleaner: (c) => c._multiSelection = null)
   ], hasChildrenElements: false, contentAsText: false);
 
   static void register() {
@@ -27,7 +32,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
 
   Map _options;
 
-  final bool _multiSelection;
+  bool _multiSelection;
   final bool _allowInputValue;
 
   final int optionsPanelMargin;
@@ -55,7 +60,8 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
             componentClass: 'ui-multi-selection',
             classes: classes,
             style: style,
-            renderOnConstruction: true) {
+            renderOnConstruction: false,
+            generator: GENERATOR) {
     _optionsPanelInteractionCompleter = InteractionCompleter('optionsPanel',
         triggerDelay: selectionMaxDelay ?? Duration(seconds: 10),
         functionToTrigger: _notifySelection);
@@ -67,6 +73,8 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     } else {
       _inputInteractionCompleter = InteractionCompleterDummy();
     }
+
+    callRender();
   }
 
   Duration get selectionMaxDelay =>
@@ -77,6 +85,12 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   set options(Map value) {
     _options = value ?? {};
     refresh();
+  }
+
+  bool get multiSelection => _multiSelection;
+
+  set multiSelection(bool value) {
+    _multiSelection = value;
   }
 
   @override
@@ -122,7 +136,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
 
   dynamic removeOption(dynamic key) => _options.remove(key);
 
-  bool get isMultiSelection => _multiSelection;
+  bool get isMultiSelection => _multiSelection ?? true;
 
   bool get allowInputValue => _allowInputValue;
 
@@ -456,23 +470,34 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     }
   }
 
+  Rectangle<num> _appendScrollCoords(Rectangle<num> rect) {
+    return Rectangle(window.scrollX + rect.left, window.scrollY + rect.top,
+        rect.width, rect.height);
+  }
+
   void _updateDivOptionsPosition() {
-    var inputRect = _input.getBoundingClientRect();
+    var inputVPRect = _input.getBoundingClientRect();
+    var inputRect = _appendScrollCoords(inputVPRect);
 
-    var w = inputRect.width;
+    var inputW = inputRect.width;
+    var inputHeight = inputRect.height;
 
-    var x = inputRect.left;
+    //var inputVPX = inputVPRect.left;
+    var inputVPY = inputVPRect.top;
+    var inputX = inputRect.left;
     var inputY = inputRect.top;
-    var y = inputY + inputRect.height;
 
-    var freeViewportHeightUpward = inputY - 10;
-    var freeViewportHeightBelow = (window.innerHeight - y) - 10;
+    var x = inputX;
+    var y = inputY + inputHeight;
+
+    var freeViewportHeightUpward = inputVPY - 10;
+    var freeViewportHeightBelow = (window.innerHeight - inputVPY) - 10;
 
     _optionsPanel
       ..style.position = 'absolute'
       ..style.left = '${x}px'
       ..style.top = '${y}px'
-      ..style.width = '${w}px'
+      ..style.width = '${inputW}px'
       ..style.zIndex = '999999999'
       ..style.transform = null
       ..style.maxHeight = '${freeViewportHeightBelow}px';
@@ -537,6 +562,8 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   String _optionsSignature(List<MapEntry<dynamic, dynamic>> entries,
       List<MapEntry<dynamic, dynamic>> entriesFiltered) {
     var str = StringBuffer();
+
+    str.write('$isMultiSelection\n');
 
     entries.forEach((entry) {
       str.write('${entry.key}');

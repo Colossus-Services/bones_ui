@@ -7,10 +7,11 @@ import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_messages/intl_messages.dart';
-import 'package:mustache_template/mustache_template.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import 'bones_ui_layout.dart';
+import 'component/bui.dart';
+import 'component/template.dart';
 
 /*
 final LoggerFactory _loggerFactory = LoggerFactory(name: 'Bones_UI') ;
@@ -765,7 +766,9 @@ class UIComponentGenerator<C extends UIComponent>
   @override
   Element generate(
       DOMGenerator<Node> domGenerator,
+      DOMTreeMap<Node> treeMap,
       tag,
+      DOMElement domParent,
       Node parent,
       Map<String, DOMAttribute> attributes,
       Node contentHolder,
@@ -906,6 +909,8 @@ class UIComponentGenerator<C extends UIComponent>
   }
 }
 
+enum UIComponentClearParent { onConstruct, onInitialRender, onRender }
+
 /// Base class to create `Bones_UI` components.
 abstract class UIComponent extends UIEventHandler {
   final UIComponentGenerator _generator;
@@ -919,6 +924,7 @@ abstract class UIComponent extends UIEventHandler {
   UIComponent _parentUIComponent;
 
   Element _parent;
+  final UIComponentClearParent clearParent;
 
   Element _content;
 
@@ -933,15 +939,19 @@ abstract class UIComponent extends UIEventHandler {
       dynamic classes2,
       dynamic style,
       dynamic style2,
+      UIComponentClearParent clearParent,
       bool inline = true,
       bool renderOnConstruction,
       this.id,
       UIComponentGenerator generator})
       : globalID = ++_globalIDCount,
         _parent = parent ?? createDivInline(),
+        clearParent = clearParent,
         _generator = generator {
     _constructing = true;
     try {
+      onPreConstruct();
+
       _setParentUIComponent(_getUIComponentRenderingByContent(_parent));
       _content = createContentElement(inline);
 
@@ -952,7 +962,10 @@ abstract class UIComponent extends UIEventHandler {
 
       configure();
 
-      _parent.children.add(_content);
+      if (this.clearParent == UIComponentClearParent.onConstruct) {
+        _parent.nodes.clear();
+      }
+      _parent.append(_content);
 
       renderOnConstruction ??= false;
 
@@ -963,6 +976,8 @@ abstract class UIComponent extends UIEventHandler {
       _constructing = false;
     }
   }
+
+  void onPreConstruct() {}
 
   UIComponent clone() => null;
 
@@ -1501,6 +1516,33 @@ abstract class UIComponent extends UIEventHandler {
     return parent;
   }
 
+  UIComponent findUIComponentByID(String id) {
+    if (content == null) return null;
+
+    if (id.startsWith('#')) {
+      id = id.substring(1);
+    }
+    if (isEmptyString(id)) return null;
+
+    if (_content.id == id) return this;
+
+    if (_renderedElements == null || _renderedElements.isEmpty) return null;
+
+    for (var elem in _renderedElements) {
+      if (elem is UIComponent) {
+        var uiComp = elem.findUIComponentByID(id);
+        if (uiComp != null) return uiComp;
+      }
+    }
+
+    for (var elem in _subUIComponents) {
+      var uiComp = elem.findUIComponentByID(id);
+      if (uiComp != null) return uiComp;
+    }
+
+    return null;
+  }
+
   UIComponent findUIComponentByContent(Element content) {
     if (content == null) return null;
     if (identical(content, _content)) return this;
@@ -1577,11 +1619,46 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  void preRenderClear() {
+    clear();
+  }
+
+  int _renderCount = 0;
+
+  int get renderCount => _renderCount;
+
   void _callRenderImpl(bool clear) {
     _setUIComponentRendering(this);
 
+    _renderCount++;
+
+    var content = this.content;
+
+    if (_parent != null) {
+      if (clearParent == UIComponentClearParent.onRender ||
+          (clearParent == UIComponentClearParent.onInitialRender &&
+              _renderCount == 1)) {
+        var nodes = List<Node>.from(_parent.nodes);
+
+        var containsContent = false;
+        for (var node in nodes) {
+          if (identical(node, content)) {
+            containsContent = true;
+          } else {
+            node.remove();
+          }
+        }
+
+        if (!containsContent) {
+          _parent.append(content);
+        }
+      } else if (!_parent.nodes.contains(content)) {
+        _parent.append(content);
+      }
+    }
+
     if (clear ?? false) {
-      this.clear();
+      preRenderClear();
     }
 
     _rendering = true;
@@ -1757,7 +1834,9 @@ abstract class UIComponent extends UIEventHandler {
 
     var uiRoot = UIRoot.getInstance();
 
-    uiRoot.onFinishRender.add(uiRoot);
+    if (uiRoot != null) {
+      uiRoot.onFinishRender.add(uiRoot);
+    }
   }
 
   dynamic render();
@@ -1856,6 +1935,10 @@ abstract class UIComponent extends UIEventHandler {
         var list = List.from(content.childNodes);
         return list;
       } else {
+        if (isListValuesIdentical(renderableList, content.nodes.toList())) {
+          return renderableList;
+        }
+
         for (var value in renderableList) {
           _removeFromContent(value);
         }
@@ -2326,8 +2409,11 @@ abstract class UIComponent extends UIEventHandler {
         return false;
       });
 
-  Map<String, Element> getFieldsElementsMap({List<String> ignore}) {
-    ignore ??= [];
+  Map<String, Element> getFieldsElementsMap(
+      {List<String> fields, List<String> ignoreFields}) {
+    ignoreFields ??= [];
+
+    var specificFields = isNotEmptyObject(fields);
 
     var fieldsElements = getFieldsElements();
 
@@ -2335,7 +2421,10 @@ abstract class UIComponent extends UIEventHandler {
 
     for (var elem in fieldsElements) {
       var fieldName = getElementAttribute(elem, 'field');
-      if (!ignore.contains(fieldName)) {
+
+      var include = specificFields ? fields.contains(fieldName) : true;
+
+      if (include && !ignoreFields.contains(fieldName)) {
         if (map.containsKey(fieldName)) {
           var elemValue = parseElementValue(map[fieldName], null, false);
 
@@ -2416,8 +2505,9 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  Map<String, String> getFields({List<String> ignore}) =>
-      getFieldsElementsMap(ignore: ignore)
+  Map<String, String> getFields(
+          {List<String> fields, List<String> ignoreFields}) =>
+      getFieldsElementsMap(fields: fields, ignoreFields: ignoreFields)
           .map((k, v) => MapEntry(k, parseElementValue(v, this)));
 
   String getField(String fieldName) {
@@ -2569,7 +2659,7 @@ abstract class UIComponent extends UIEventHandler {
   }
 }
 
-abstract class _ElementGenerator extends ElementGenerator<Node> {
+abstract class ElementGeneratorBase extends ElementGenerator<Node> {
   void setElementAttributes(
       Element element, Map<String, DOMAttribute> attributes) {
     element.classes.add(tag);
@@ -2594,161 +2684,34 @@ abstract class _ElementGenerator extends ElementGenerator<Node> {
   }
 }
 
-class _BUIElementGenerator extends _ElementGenerator {
-  @override
-  final String tag = 'bui';
-
-  @override
-  DivElement generate(
-      DOMGenerator domGenerator,
-      String tag,
-      Node parent,
-      Map<String, DOMAttribute> attributes,
-      Node contentHolder,
-      List<DOMNode> contentNodes) {
-    var buiElement = DivElement();
-
-    setElementAttributes(buiElement, attributes);
-
-    buiElement.nodes.addAll(contentHolder.nodes);
-
-    return buiElement;
-  }
-
-  @override
-  bool isGeneratedElement(Node element) {
-    return element is DivElement && element.classes.contains(tag);
-  }
-
-  @override
-  DOMElement revert(DOMGenerator domGenerator, DOMTreeMap treeMap,
-      DOMElement domParent, Node parent, Node node) {
-    if (node is DivElement) {
-      var bui =
-          $tag(tag, classes: node.classes.join(' '), style: node.style.cssText);
-
-      if (treeMap != null) {
-        var mappedDOMNode = treeMap.getMappedDOMNode(node);
-        if (mappedDOMNode != null) {
-          bui.add(mappedDOMNode.content);
-        }
-      } else {
-        bui.add(node.text);
-      }
-
-      return bui;
-    } else {
-      return null;
-    }
-  }
-}
-
-class _UITemplateElementGenerator extends _ElementGenerator {
-  final DOMGenerator<Node> domGenerator;
-
-  _UITemplateElementGenerator(this.domGenerator);
-
-  @override
-  final String tag = 'ui-template';
-
-  @override
-  bool get hasChildrenElements => false;
-
-  @override
-  bool get usesContentHolder => false;
-
-  @override
-  Element generate(
-      DOMGenerator domGenerator,
-      String tag,
-      Node parent,
-      Map<String, DOMAttribute> attributes,
-      Node contentHolder,
-      List<DOMNode> contentNodes) {
-    var element = DivElement();
-
-    setElementAttributes(element, attributes);
-
-    var html = contentNodes.map((e) => e.buildHTML(withIndent: true)).join('');
-
-    if (html.contains('{{')) {
-      var t = Template(html, lenient: true);
-      var context = getTemplateVariables();
-      html = t.renderString(context);
-    }
-
-    var domElement = $htmlRoot(element.outerHtml);
-
-    domGenerator.addChildToElement(parent, element);
-    domGenerator.generateFromHTML(html,
-        domParent: domElement, parent: element, finalizeTree: false);
-
-    return element;
-  }
-
-  Map<String, dynamic> getTemplateVariables() {
-    if (domGenerator.domContext == null) return {};
-
-    var vars = domGenerator.domContext.variables;
-
-    deepReplaceValues(vars, (c, k, v) {
-      if (v is Function) {
-        return true;
-      } else {
-        return false;
-      }
-    }, (c, k, v) {
-      return v();
-    });
-
-    return vars;
-  }
-
-  @override
-  bool isGeneratedElement(Node element) {
-    return element is DivElement && element.classes.contains(tag);
-  }
-
-  @override
-  DOMElement revert(DOMGenerator domGenerator, DOMTreeMap treeMap,
-      DOMElement domParent, Node parent, Node node) {
-    if (node is DivElement) {
-      var domElement =
-          $tag(tag, classes: node.classes.join(' '), style: node.style.cssText);
-
-      if (treeMap != null) {
-        var mappedDOMNode = treeMap.getMappedDOMNode(node);
-        if (mappedDOMNode != null) {
-          domElement.add(mappedDOMNode.content);
-        }
-      } else {
-        domElement.add(node.text);
-      }
-
-      return domElement;
-    } else {
-      return null;
-    }
-  }
-}
-
 /// A [DOMGenerator] (from package `dom_builder`)
 /// able to generate [Element] (from `dart:html`).
 class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   UIDOMGenerator() {
-    registerElementGenerator(_BUIElementGenerator());
-    registerElementGenerator(_UITemplateElementGenerator(this));
+    registerElementGenerator(BUIElementGenerator());
+    registerElementGenerator(UITemplateElementGenerator());
 
-    domContext = DOMContext();
-    _setupContextVariables();
+    domContext = DOMContext<Node>();
+    setupContextVariables();
   }
 
-  void _setupContextVariables() {
+  void setupContextVariables() {
     domContext.variables = {
-      'routes': () {
-        return UINavigator.navigableRoutes;
-      }
+      'routes': () => UINavigator.navigables
+          .map((e) => e.routesAndNames.entries)
+          .expand((e) => e)
+          .map((e) => {'route': e.key, 'name': e.value})
+          .toList()
     };
+  }
+
+  static void setElementsBGBlur(Element element) {
+    if (element == null) return;
+
+    var elements = element.querySelectorAll('.bg-blur');
+    for (var e in elements) {
+      setElementBackgroundBlur(e);
+    }
   }
 
   @override
@@ -2791,6 +2754,11 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
 
     return super.addExternalElementToElement(element, externalElement);
   }
+
+  @override
+  void finalizeGeneratedTree(DOMTreeMap<Node> treeMap) {
+    setElementsBGBlur(treeMap.rootElement);
+  }
 }
 
 /// A `Bones_UI` component for navigable contents by routes.
@@ -2832,7 +2800,7 @@ abstract class UINavigableContent extends UINavigableComponent {
     addAllToList(allRendered, footRendered);
 
     if (_findRoutes != null && _findRoutes) {
-      _updateRoutes();
+      updateRoutes();
     }
 
     return allRendered;
@@ -3293,7 +3261,9 @@ abstract class UIRoot extends UIComponent {
   Future<bool> _futureInitializeLocale;
 
   UIRoot(Element rootContainer, {dynamic classes})
-      : super(rootContainer, classes: classes) {
+      : super(rootContainer,
+            classes: classes,
+            clearParent: UIComponentClearParent.onInitialRender) {
     _registerAllComponents();
 
     _rootInstance = this;
@@ -3306,6 +3276,11 @@ abstract class UIRoot extends UIComponent {
     window.onResize.listen(_onResize);
 
     UIConsole.checkAutoEnable();
+  }
+
+  @override
+  void onPreConstruct() {
+    UILoading.resolveLoadingElements();
   }
 
   void _onResize(Event e) {
@@ -3465,20 +3440,28 @@ abstract class UINavigableComponent extends UIComponent {
 
   Map<String, String> _currentRouteParameters;
 
-  UINavigableComponent(Element parent, this._routes,
-      {dynamic classes,
+  UINavigableComponent(Element parent, List<String> routes,
+      {dynamic componentClass,
+      dynamic componentStyle,
+      dynamic classes,
       dynamic classes2,
+      dynamic style,
+      dynamic style2,
       bool inline = true,
       bool renderOnConstruction = false})
-      : super(parent,
-            componentClass: COMPONENT_CLASS,
+      : _routes = routes,
+        super(parent,
+            componentClass: [componentClass, COMPONENT_CLASS],
             classes: classes,
             classes2: classes2,
+            style: style,
+            style2: style2,
             inline: inline,
             renderOnConstruction: renderOnConstruction) {
     _normalizeRoutes();
 
-    if (routes.isEmpty) throw ArgumentError('Empty routes');
+    if (findRoutes) updateRoutes();
+    if (this.routes.isEmpty) throw ArgumentError('Empty routes');
 
     var currentRoute = UINavigator.currentRoute;
     var currentRouteParameters = UINavigator.currentRouteParameters;
@@ -3490,7 +3473,7 @@ abstract class UINavigableComponent extends UIComponent {
       }
     }
 
-    _currentRoute ??= _routes[0];
+    _currentRoute ??= _routes.isNotEmpty ? _routes[0] : '';
 
     UINavigator.get().registerNavigable(this);
 
@@ -3544,21 +3527,37 @@ abstract class UINavigableComponent extends UIComponent {
     _routes = routesOk;
   }
 
-  void _updateRoutes([List<String> foundRoutes]) {
+  bool updateRoutes([List<String> foundRoutes]) {
     foundRoutes ??= UINavigator.get().findElementNavigableRoutes(content);
 
-    UIConsole.log('foundRoutes: $foundRoutes');
+    UIConsole.log('Found navigate routes: $foundRoutes');
+
+    var changed = false;
 
     for (var r in foundRoutes) {
       if (!_routes.contains(r)) {
-        UIConsole.log('_updateRoutes: $_routes + $r');
+        UIConsole.log('updateRoutes: $_routes + $r');
         _routes.add(r);
+        changed = true;
       }
     }
+
+    return changed;
   }
 
+  void setRoutes(List<String> routes) {
+    _routes = List<String>.from(routes ?? []);
+  }
+
+  /// Returns a [route] name.
+  String getRouteName(String route) => null;
+
+  /// Returns a [Map] of routes and respective names.
+  Map<String, String> get routesAndNames =>
+      Map.fromEntries(routes.map((r) => MapEntry(r, getRouteName(r) ?? r)));
+
   /// List of routes that this component can [navigateTo].
-  List<String> get routes => copyListString(_routes);
+  List<String> get routes => copyListString(_routes) ?? [];
 
   /// The current route rendered by this component.
   String get currentRoute => _currentRoute;
@@ -3585,7 +3584,7 @@ abstract class UINavigableComponent extends UIComponent {
   bool _findNewRoutes(String route) {
     var canHandleNewRoute = _canHandleNewRoute(route);
     if (!canHandleNewRoute) return false;
-    _updateRoutes([route]);
+    updateRoutes([route]);
     return true;
   }
 
@@ -3603,10 +3602,12 @@ abstract class UINavigableComponent extends UIComponent {
 
   @override
   dynamic render() {
-    var rendered = renderRoute(currentRoute, _currentRouteParameters);
+    var currentRoute = this.currentRoute;
+    var currentRouteParameters = _currentRouteParameters;
+    var rendered = renderRoute(currentRoute, currentRouteParameters);
 
     if (_findRoutes != null && _findRoutes) {
-      _updateRoutes();
+      updateRoutes();
     }
 
     return rendered;
@@ -3753,6 +3754,11 @@ class UINavigator {
 
   /// Refreshed the current route.
   void refreshNavigation([bool force = false]) {
+    if (isEmptyString(currentRoute)) {
+      print('Empty route!');
+      return;
+    }
+
     _navigateTo(currentRoute,
         parameters: _currentRouteParameters, force: force);
   }
@@ -4223,6 +4229,8 @@ class UINavigator {
 }
 
 class TextProvider {
+  dynamic _object;
+
   String _text;
 
   String Function() _function;
@@ -4232,6 +4240,8 @@ class TextProvider {
   ElementProvider _elementProvider;
 
   TextProvider.fromText(this._text);
+
+  TextProvider.fromObject(this._object);
 
   TextProvider.fromFunction(this._function);
 
@@ -4253,11 +4263,12 @@ class TextProvider {
     if (text is IntlKey) return TextProvider.fromIntlKey(text);
 
     if (text is ElementProvider) return TextProvider.fromElementProvider(text);
+
     if (ElementProvider.accepts(text)) {
       return TextProvider.fromElementProvider(ElementProvider.from(text));
+    } else {
+      return TextProvider.fromObject(text);
     }
-
-    return null;
   }
 
   static bool accepts(dynamic text) {
@@ -4284,17 +4295,21 @@ class TextProvider {
       return _text;
     }
 
-    String text;
+    dynamic value;
 
-    if (_function != null) {
-      text = _function();
+    if (_object != null) {
+      value = _object.toString();
+    } else if (_function != null) {
+      value = _function();
     } else if (_elementProvider != null) {
-      text = _elementProvider.element.text;
+      value = _elementProvider.element.text;
     } else if (_intlKey != null) {
-      text = _intlKey.message;
+      value = _intlKey.message;
     } else {
       throw StateError("Can't provide a text: $this");
     }
+
+    var text = value != null ? value.toString() : '';
 
     if (_singleCall) {
       _text = text;
@@ -4305,7 +4320,7 @@ class TextProvider {
 
   @override
   String toString() {
-    return 'TextProvider{_text: $_text, _function: $_function, _intlKey: $_intlKey, _elementProvider: $_elementProvider, _singleCall: $_singleCall}';
+    return text;
   }
 }
 
@@ -4386,12 +4401,101 @@ class ElementProvider {
   }
 }
 
+class CSSProvider {
+  Element _element;
+
+  String _html;
+
+  UIComponent _uiComponent;
+
+  DOMNode _domNode;
+
+  CSSProvider.fromElement(this._element);
+
+  CSSProvider.fromHTML(this._html);
+
+  CSSProvider.fromUIComponent(this._uiComponent);
+
+  CSSProvider.fromDOMNode(this._domNode);
+
+  factory CSSProvider.from(dynamic provider) {
+    if (provider == null) return null;
+    if (provider is CSSProvider) return provider;
+    if (provider is String) return CSSProvider.fromHTML(provider);
+    if (provider is Element) return CSSProvider.fromElement(provider);
+    if (provider is UIComponent) return CSSProvider.fromUIComponent(provider);
+    if (provider is DOMNode) return CSSProvider.fromDOMNode(provider);
+    return null;
+  }
+
+  static bool accepts(dynamic element) {
+    if (element == null) return false;
+    if (element is CSSProvider) return true;
+    if (element is String) return true;
+    if (element is Element) return true;
+    if (element is UIComponent) return true;
+    if (element is DOMNode) return true;
+    return false;
+  }
+
+  String get cssAsString {
+    var css = this.css;
+    return css != null ? css.style : null;
+  }
+
+  CSS get css {
+    if (_element != null) {
+      return cssFromElement(_element);
+    }
+
+    if (_html != null) {
+      _element = createHTML(_html);
+      return cssFromElement(_element);
+    }
+
+    if (_uiComponent != null) {
+      _uiComponent.ensureRendered();
+      _element = _uiComponent.content;
+      return cssFromElement(_element);
+    }
+
+    if (_domNode != null) {
+      var runtime = _domNode.runtime;
+      if (runtime != null && runtime.exists) {
+        return cssFromElement(runtime.node as Element);
+      } else {
+        var element =
+            _domNode.buildDOM(generator: UIComponent.domGenerator) as Element;
+        return cssFromElement(element);
+      }
+    }
+
+    throw StateError("Can't provide CSS from: $this");
+  }
+
+  static CSS cssFromElement(Element element) {
+    if (isNodeInDOM(element)) {
+      return CSS(element.getComputedStyle().cssText);
+    } else {
+      return CSS(element.style.cssText);
+    }
+  }
+
+  @override
+  String toString() {
+    return 'CSSProvider{_element: $_element, _html: $_html, _uiComponent: $_uiComponent, _domNode: $_domNode}';
+  }
+}
+
 bool _registeredAllComponents = false;
 
 void _registerAllComponents() {
   if (_registeredAllComponents) return;
   _registeredAllComponents = true;
   UIButton.register();
+  UIButtonLoader.register();
   UIMultiSelection.register();
   UIDataSource.register();
+  UIDocument.register();
+  UIDialog.register();
 }

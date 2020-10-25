@@ -1,6 +1,7 @@
 import 'dart:html';
 
 import 'package:bones_ui/bones_ui.dart';
+import 'package:bones_ui/bones_ui_kit.dart';
 import 'package:bones_ui/src/bones_ui_base.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
@@ -37,6 +38,8 @@ class InputConfig {
   Map<String, String> _options;
 
   bool _optional;
+
+  FieldValueProvider _valueProvider;
 
   factory InputConfig.from(dynamic config, [String id]) {
     if (config is List) {
@@ -89,7 +92,8 @@ class InputConfig {
       Map<String, String> options,
       bool optional = false,
       List<String> classes,
-      String style}) {
+      String style,
+      FieldValueProvider valueProvider}) {
     if (type == null || type.isEmpty) type = 'text';
     if (value == null || value.isEmpty) value = null;
     if (placeholder == null || placeholder.isEmpty) placeholder = null;
@@ -117,6 +121,7 @@ class InputConfig {
     _options = options;
 
     _optional = optional;
+    _valueProvider = valueProvider;
 
     if (classes != null) {
       classes.removeWhere((e) => e == null);
@@ -151,6 +156,8 @@ class InputConfig {
 
   bool get required => !_optional;
 
+  FieldValueProvider get valueProvider => _valueProvider;
+
   dynamic renderInput([FieldValueProvider fieldValueProvider]) {
     var inputID = id;
     var inputType = type;
@@ -160,6 +167,7 @@ class InputConfig {
 
     Element inputElement;
     UIComponent inputComponent;
+    Element element;
 
     if (inputType == 'textarea') {
       inputElement = _render_textArea(inputValue);
@@ -176,6 +184,8 @@ class InputConfig {
           pickerWidth: 150,
           pickerHeight: 100);
       inputComponent = picker;
+    } else if (inputType == 'path') {
+      element = _render_inputPath(inputID, inputValue);
     } else if (inputType == 'html') {
       inputElement = createHTML(inputValue);
       inputElement.onClick.listen((event) {
@@ -189,39 +199,87 @@ class InputConfig {
     }
 
     if (inputElement != null) {
-      if (isNotEmptyObject(classes)) {
-        inputElement.classes.addAll(classes);
-      }
-
-      if (isNotEmptyObject(style)) {
-        var cssText = inputElement.style.cssText;
-        inputElement.style.cssText =
-            isNotEmptyObject(cssText) ? '$cssText ; $style' : style;
-      }
-
-      inputElement.setAttribute('id', inputID);
-      inputElement.setAttribute('name', inputID);
-      inputElement.setAttribute('field', inputID);
-
-      if (placeholder != null) {
-        inputElement.setAttribute('placeholder', placeholder);
-      }
-
-      if (attributes != null && attributes.isNotEmpty) {
-        for (var attrKey in attributes.keys) {
-          var attrVal = attributes[attrKey];
-          if (attrKey.isNotEmpty && attrVal.isNotEmpty) {
-            inputElement.setAttribute(attrKey, attrVal);
-          }
-        }
-      }
-
+      _configureElementStyle(inputElement);
+      _configureInputElement(inputElement, inputID);
+      _configureElementAttribute(inputElement);
       return inputElement;
+    } else if (element != null) {
+      var input = element.querySelector('input');
+      _configureElementStyle(element);
+      _configureInputElement(input, inputID);
+      _configureElementAttribute(element);
+      return element;
     } else if (inputComponent != null) {
       return inputComponent;
     }
 
     return null;
+  }
+
+  void _configureElementStyle(Element inputElement) {
+    if (isNotEmptyObject(classes)) {
+      inputElement.classes.addAll(classes);
+    }
+
+    if (isNotEmptyObject(style)) {
+      var cssText = inputElement.style.cssText;
+      inputElement.style.cssText =
+          isNotEmptyObject(cssText) ? '$cssText ; $style' : style;
+    }
+  }
+
+  void _configureElementAttribute(Element inputElement) {
+    if (attributes != null && attributes.isNotEmpty) {
+      for (var attrKey in attributes.keys) {
+        var attrVal = attributes[attrKey];
+        if (attrKey.isNotEmpty && attrVal.isNotEmpty) {
+          inputElement.setAttribute(attrKey, attrVal);
+        }
+      }
+    }
+  }
+
+  void _configureInputElement(Element inputElement, String inputID) {
+    inputElement.setAttribute('id', inputID);
+    inputElement.setAttribute('name', inputID);
+    inputElement.setAttribute('field', inputID);
+
+    if (placeholder != null) {
+      inputElement.setAttribute('placeholder', placeholder);
+    }
+  }
+
+  DivElement _render_inputPath(String fieldName, String inputValue) {
+    var input = $input(style: 'width: auto', value: inputValue);
+    var button;
+
+    if (_valueProvider != null) {
+      button = $button(
+          classes: 'btn-sm btn-secondary',
+          style: 'font-size: 80%',
+          content: 'File')
+        ..onClick.listen((_) async {
+          if (_valueProvider != null) {
+            var ret = _valueProvider(fieldName) ?? '';
+            var value;
+            if (ret is Future) {
+              value = await ret;
+            } else {
+              value = ret;
+            }
+            value ??= '';
+
+            var element = input.runtime.node as InputElement;
+            element.value = '$value';
+            element.dispatchEvent(Event('change'));
+          }
+        });
+    }
+
+    var div = $div(content: [input, button])
+        .buildDOM(generator: UIComponent.domGenerator);
+
+    return div;
   }
 
   TextAreaElement _render_textArea(inputValue) {
@@ -231,11 +289,11 @@ class InputConfig {
   }
 
   Element _render_generic_input(String inputType, inputValue) {
-    var inputHtml = '''
-      <input style="width: 100%" type="$inputType" ${inputValue != null ? 'value="$inputValue"' : ''}>
-    ''';
+    var input = InputElement()
+      ..type = inputType ?? 'text'
+      ..value = inputValue ?? ''
+      ..style.width = '100%';
 
-    var input = createHTML(inputHtml);
     return input;
   }
 

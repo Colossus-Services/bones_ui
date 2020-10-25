@@ -50,14 +50,24 @@ class UIComponentAsync extends UIComponent {
   UIComponentAsync(Element parent, this._renderPropertiesProvider,
       this._renderAsync, this.loadingContent, this.errorContent,
       {this.refreshInterval,
+      dynamic componentClass,
+      dynamic componentStyle,
       dynamic classes,
       dynamic classes2,
+      dynamic style,
+      dynamic style2,
       dynamic id,
+      UIComponentGenerator generator,
       bool renderOnConstruction})
       : super(parent,
+            componentClass: componentClass,
+            componentStyle: componentStyle,
             classes: classes,
             classes2: classes2,
+            style: style,
+            style2: style2,
             id: id,
+            generator: generator,
             renderOnConstruction: false) {
     _renderPropertiesProvider ??= renderPropertiesProvider;
     _renderAsync ??= renderAsync;

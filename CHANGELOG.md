@@ -1,3 +1,22 @@
+## 1.1.0
+
+- Added `UIButtonLoader`.
+- Added `UIMasonry`.
+- Added `UIDocument`.
+- Added `UILoading` and loading elements.
+- Added `UIDialogInput`.
+- Added `htmlAsSvgContent`.
+- `UIMultiSelection`: added attribute `multi-selection`.
+- Added `BUIRender`: render framework of `bui` files and `bui-manifest` tree.
+- Improved `UIDialog` and `UIDialogBase`.
+- swiss_knife: ^2.5.16
+- dom_tools: ^1.3.14
+- dom_builder: ^1.0.20
+- json_render: ^1.3.7
+- json_object_mapper: ^1.1.3
+- Added dependency: archive: ^2.0.13
+- Removed dependency `mustache_template`. Using `dom_builder` templates.
+
 ## 1.0.20
 
 - Changed library:
