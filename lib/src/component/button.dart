@@ -247,14 +247,13 @@ class UIButtonLoader extends UIButtonBase {
       UIComponentGenerator<UIButtonLoader>(
           'ui-button-loader', 'div', 'ui-button-loader', '',
           (parent, attributes, contentHolder, contentNodes) {
-    var loadingType = attributes['loading-type'];
-    var loadingColor = attributes['loading-color'];
     var loadedTextStyle = attributes['loaded-text-style'];
     var loadedTextErrorStyle = attributes['loaded-text-error-style'];
     var loadedTextOK = attributes['loaded-text-ok'];
     var loadedTextError = attributes['loaded-text-error'];
 
-    var loadingConfig = UILoadingConfig(type: loadingType, color: loadingColor);
+    var loadingConfig = UILoadingConfig.from(attributes);
+
     return UIButtonLoader(parent, contentHolder.text,
         loadedTextStyle: loadedTextStyle,
         loadedTextErrorStyle: loadedTextErrorStyle,

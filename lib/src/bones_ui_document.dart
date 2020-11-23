@@ -5,6 +5,7 @@ import 'package:bones_ui/bones_ui_kit.dart';
 import 'package:json_render/json_render.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
+/// Represents an [url] link, with an optional [target].
 class URLLink {
   final String url;
 
@@ -20,6 +21,7 @@ class URLLink {
 
 typedef URLFilter = URLLink Function(String url);
 
+/// Returns a document language by [extension].
 String getLanguageByExtension(String extension) {
   if (extension == null) return null;
   extension = extension.trim().toLowerCase();
@@ -82,12 +84,23 @@ String getLanguageByExtension(String extension) {
   }
 }
 
+/// An [UIComponentAsync] to show rendered documents,
+/// like `markdown`, `html`, `json` and `text`.
 class UIDocument extends UIComponentAsync {
   static final UIComponentGenerator<UIDocument> GENERATOR =
       UIComponentGenerator<UIDocument>('ui-document', 'div', 'ui-document', '',
           (parent, attributes, contentHolder, contentNodes) {
-    var src = attributes['src'];
-    var resourceContent = ResourceContent.from(src);
+    var src = attributes['src']?.toString();
+
+    ResourceContent resourceContent;
+    if (isNotEmptyString(src)) {
+      resourceContent = ResourceContent.from(src);
+    } else {
+      var type = attributes['type']?.toString() ?? '.md';
+      resourceContent =
+          ResourceContent.fromURI('file.$type', contentHolder.text);
+    }
+
     return UIDocument(parent, resourceContent);
   }, [
     UIComponentAttributeHandler<UIDocument, String>('src',
@@ -159,8 +172,6 @@ class UIDocument extends UIComponentAsync {
       } else if (language == 'markdown') {
         var div = markdownToDiv(docContent);
         div.style.overflowWrap = 'break-word';
-
-        print(div.outerHtml);
         return div;
       } else if (language == 'json') {
         var jsonRender = JSONRender.fromJSONAsString(docContent);

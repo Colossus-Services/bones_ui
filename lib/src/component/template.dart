@@ -35,8 +35,6 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     DOMElement domElement;
 
     if (html.contains('{{')) {
-      //html = _resolveTagReferences(html, treeMap);
-
       try {
         var template = DOMTemplate.parse(html);
         var variables = getTemplateVariables(domGenerator, attributes);
@@ -48,16 +46,24 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
         if (asyncValues.isNotEmpty) {
           var futures =
               asyncValues.whereType<AsyncValue>().map((e) => e.future).toList();
+
+          var loadingConfig = UILoadingConfig.from(attributes);
+
+          DivElement uiLoading;
+          if (loadingConfig != null) {
+            uiLoading = loadingConfig.asDivElement();
+            element.append(uiLoading);
+          }
+
           Future.wait(futures).then((_) {
             _normalizeVariables(variables);
-
-            print('TEMPLATE VARS:');
-            print(variables);
 
             html = template.build(variables,
                 elementProvider: (q) => queryElementProvider(treeMap, q));
 
+            uiLoading?.remove();
             domElement = $htmlRoot(element.outerHtml);
+
             _generateElementContentFromHTML(
                 domGenerator, html, domElement, element);
           });
@@ -117,18 +123,30 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
     var variables = domGenerator.domContext.variables;
 
+    variables['locale'] = UIRoot.getCurrentLocale();
+
+    var routeParameters = UINavigator.currentNavigation?.parameters;
+
+    if (isNotEmptyObject(routeParameters)) {
+      variables['parameters'] = routeParameters;
+    }
+
     resolveAttributeVariables(attributes, variables);
 
-    var dataSourceResponse = getDataSourceResponse(attributes);
+    variables['attributes'] =
+        attributes.map((key, value) => MapEntry('$key', '$value'));
+
+    _normalizeVariables(variables);
+
+    var attributesResolved = variables['attributes'] as Map<String, String>;
+
+    var dataSourceResponse = getDataSourceResponse(attributesResolved);
 
     if (dataSourceResponse != null) {
       variables['data'] = AsyncValue.from(dataSourceResponse);
     }
 
     _normalizeVariables(variables);
-
-    print('UI-TEMPLATE: VARIABLES:');
-    print(variables);
 
     return variables;
   }
@@ -178,12 +196,23 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       var v2 = (v as AsyncValue).get();
       return v2;
     });
+
+    deepReplaceValues(variables, (c, k, v) {
+      return v is String && v.contains('{{') && v.contains('}}');
+    }, (c, k, v) {
+      var template = DOMTemplate.parse(v);
+      var v2 = template.build(variables);
+      return v2;
+    });
+
+    print('TEMPLATE VARS:');
+    print(variables);
   }
 
-  Future<dynamic> getDataSourceResponse(Map<String, DOMAttribute> attributes) {
+  Future<dynamic> getDataSourceResponse(Map<String, String> attributes) {
     var daraSourceCallAttr = attributes['data-source'];
     if (daraSourceCallAttr == null) return null;
-    var dataSourceCall = DataSourceCall.from(daraSourceCallAttr.value);
+    var dataSourceCall = DataSourceCall.from(daraSourceCallAttr);
 
     if (dataSourceCall != null) {
       try {

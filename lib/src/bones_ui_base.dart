@@ -2684,6 +2684,32 @@ abstract class ElementGeneratorBase extends ElementGenerator<Node> {
   }
 }
 
+class UIDOMActionExecutor extends DOMActionExecutorDartHTML {
+  @override
+  Node callLocale(Node target, List<String> parameters, DOMContext context) {
+    var variables = context?.variables ?? {};
+    var event = variables['event'] ?? {};
+    var locale = event['value'] ?? '';
+
+    if (locale != null) {
+      var localeStr = '$locale'.trim().toLowerCase();
+
+      if (localeStr.isNotEmpty) {
+        var uiRoot = UIRoot.getInstance();
+
+        var currentLocale = UIRoot.getCurrentLocale();
+
+        if (currentLocale != localeStr) {
+          uiRoot.setPreferredLocale(localeStr);
+          uiRoot.refresh();
+        }
+      }
+    }
+
+    return target;
+  }
+}
+
 /// A [DOMGenerator] (from package `dom_builder`)
 /// able to generate [Element] (from `dart:html`).
 class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
@@ -2691,27 +2717,52 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
     registerElementGenerator(BUIElementGenerator());
     registerElementGenerator(UITemplateElementGenerator());
 
+    domActionExecutor = UIDOMActionExecutor();
+
     domContext = DOMContext<Node>();
     setupContextVariables();
   }
 
   void setupContextVariables() {
     domContext.variables = {
-      'routes': () => UINavigator.navigables
-          .map((e) => e.routesAndNames.entries)
-          .expand((e) => e)
-          .map((e) => {'route': e.key, 'name': e.value})
-          .toList()
+      'routes': () => _routesEntries(false),
+      'menuRoutes': () => _routesEntries(true),
+      'currentRoute': () => _currentRouteEntry(),
     };
   }
 
+  Map<String, dynamic> _currentRouteEntry() {
+    var current = UINavigator.currentNavigation;
+    if (current == null) return null;
+    return {'route': current.route, 'parameters': current.parameters};
+  }
+
+  List<Map<String, String>> _routesEntries(bool menuRoutes) {
+    return UINavigator.navigables
+        .map((e) =>
+            (menuRoutes ? e.menuRoutesAndNames : e.routesAndNames).entries)
+        .expand((e) => e)
+        .map((e) => {'route': e.key, 'name': e.value})
+        .toList();
+  }
+
   static void setElementsBGBlur(Element element) {
+    setTreeElementsBackgroundBlur(element, 'bg-blur');
+  }
+
+  static void setElementsDivCentered(Element element) {
     if (element == null) return;
 
-    var elements = element.querySelectorAll('.bg-blur');
-    for (var e in elements) {
-      setElementBackgroundBlur(e);
-    }
+    setTreeElementsDivCentered(element, 'div-centered-vh',
+        centerVertically: true, centerHorizontally: true);
+
+    setTreeElementsDivCentered(element, 'div-centered-hv',
+        centerVertically: true, centerHorizontally: true);
+
+    setTreeElementsDivCentered(element, 'div-centered-v',
+        centerVertically: true, centerHorizontally: false);
+    setTreeElementsDivCentered(element, 'div-centered-h',
+        centerVertically: false, centerHorizontally: true);
   }
 
   @override
@@ -2757,7 +2808,9 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
 
   @override
   void finalizeGeneratedTree(DOMTreeMap<Node> treeMap) {
-    setElementsBGBlur(treeMap.rootElement);
+    var rootElement = treeMap.rootElement;
+    setElementsBGBlur(rootElement);
+    setElementsDivCentered(rootElement);
   }
 }
 
@@ -3309,7 +3362,7 @@ abstract class UIRoot extends UIComponent {
   }
 
   String getPreferredLocale() {
-    return null;
+    return _localesManager.getPreferredLocale();
   }
 
   static String getCurrentLocale() {
@@ -3461,7 +3514,7 @@ abstract class UINavigableComponent extends UIComponent {
     _normalizeRoutes();
 
     if (findRoutes) updateRoutes();
-    if (this.routes.isEmpty) throw ArgumentError('Empty routes');
+    //if (this.routes.isEmpty) throw ArgumentError('Empty routes');
 
     var currentRoute = UINavigator.currentRoute;
     var currentRouteParameters = UINavigator.currentRouteParameters;
@@ -3552,12 +3605,25 @@ abstract class UINavigableComponent extends UIComponent {
   /// Returns a [route] name.
   String getRouteName(String route) => null;
 
+  /// Returns [true] of [route] should be hidden from menu.
+  bool isRouteHiddenFromMenu(String route) {
+    return false;
+  }
+
   /// Returns a [Map] of routes and respective names.
   Map<String, String> get routesAndNames =>
       Map.fromEntries(routes.map((r) => MapEntry(r, getRouteName(r) ?? r)));
 
+  /// Returns a [Map] of routes (not hidden from menu) and respective names.
+  Map<String, String> get menuRoutesAndNames =>
+      Map.fromEntries(menuRoutes.map((r) => MapEntry(r, getRouteName(r) ?? r)));
+
   /// List of routes that this component can [navigateTo].
   List<String> get routes => copyListString(_routes) ?? [];
+
+  /// List of routes (not hidden from menu) that this component can [navigateTo].
+  List<String> get menuRoutes =>
+      (_routes ?? []).where((r) => !isRouteHiddenFromMenu(r)).toList();
 
   /// The current route rendered by this component.
   String get currentRoute => _currentRoute;
@@ -3582,13 +3648,13 @@ abstract class UINavigableComponent extends UIComponent {
   }
 
   bool _findNewRoutes(String route) {
-    var canHandleNewRoute = _canHandleNewRoute(route);
+    var canHandleNewRoute = this.canHandleNewRoute(route);
     if (!canHandleNewRoute) return false;
     updateRoutes([route]);
     return true;
   }
 
-  bool _canHandleNewRoute(String route) {
+  bool canHandleNewRoute(String route) {
     var rendered = renderRoute(route, {});
 
     if (rendered == null) {
@@ -3609,6 +3675,8 @@ abstract class UINavigableComponent extends UIComponent {
     if (_findRoutes != null && _findRoutes) {
       updateRoutes();
     }
+
+    notifyChangeRoute();
 
     return rendered;
   }
@@ -3641,6 +3709,27 @@ abstract class UINavigableComponent extends UIComponent {
 
     _refreshInternal();
     return true;
+  }
+
+  final EventStream<String> onChangeRoute = EventStream();
+
+  String _notifiedChangeRoute;
+
+  Map<String, String> _notifiedChangeRouteParameters;
+
+  void notifyChangeRoute() {
+    var route = currentRoute;
+    var parameters = currentRouteParameters;
+
+    if (_notifiedChangeRoute == route &&
+        isEquivalentMap(_notifiedChangeRouteParameters, parameters)) {
+      return;
+    }
+
+    _notifiedChangeRoute = route;
+    _notifiedChangeRouteParameters = parameters;
+
+    onChangeRoute.add(route);
   }
 }
 
@@ -3792,8 +3881,17 @@ class UINavigator {
 
   Map<String, String> _lastNavigateRouteParameters;
 
-  List _parseRouteFragment(Uri url) {
-    var fragment = url != null ? url.fragment : '';
+  List _parseRouteFragment(Uri uri) {
+    if (urlFilter != null) {
+      var url = uri.toString();
+      var url2 = urlFilter(url);
+      if (isNotEmptyString(url2) && url2 != url) {
+        UIConsole.log('Filtered URL: $url -> $url2');
+        uri = Uri.parse(url2);
+      }
+    }
+
+    var fragment = uri != null ? uri.fragment : '';
     fragment ??= '';
 
     var parts = fragment.split('?');
@@ -3805,6 +3903,8 @@ class UINavigator {
 
     return [route, parameters];
   }
+
+  static String Function(String a) urlFilter;
 
   void _navigateToFromURL(Uri url, [bool force = false]) {
     var routeFragment = _parseRouteFragment(url);

@@ -587,7 +587,34 @@ class UILoadingConfig {
         _color = TextProvider.from(color),
         _text = TextProvider.from(text);
 
+  factory UILoadingConfig.from(Map attributes) {
+    var loadingType = parseString(attributes['loading-type']);
+    var loadingInline = parseString(attributes['loading-inline']);
+    var loadingColor = parseString(attributes['loading-color']);
+    var loadingZoom = parseString(attributes['loading-zoom']);
+    var loadingText = parseString(attributes['loading-text']);
+    var loadingTextZoom = parseString(attributes['loading-text-zoom']);
+
+    if (isNotEmptyString(loadingType, trim: true) ||
+        isNotEmptyString(loadingColor, trim: true) ||
+        isNotEmptyString(loadingText, trim: true)) {
+      return UILoadingConfig(
+          type: loadingType,
+          inline: parseBool(loadingInline),
+          color: loadingColor,
+          zoom: parseDouble(loadingZoom),
+          text: loadingText,
+          textZoom: parseDouble(loadingTextZoom));
+    }
+
+    return null;
+  }
+
   String get text => _text?.text;
 
   String get color => _color?.text;
+
+  DIVElement asDIVElement() => UILoading.asDIVElement(type, config: this);
+
+  DivElement asDivElement() => UILoading.asDivElement(type, config: this);
 }

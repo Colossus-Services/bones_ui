@@ -209,6 +209,11 @@ abstract class UIDialogBase extends UIComponent {
   void show() {
     if (!isShowing) {
       var parent = this.parent ?? rootParent;
+
+      if (!isInDOM(parent)) {
+        rootParent.append(parent);
+      }
+
       if (!parent.contains(content)) {
         parent.append(content);
       }

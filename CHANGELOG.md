@@ -1,3 +1,21 @@
+## 1.1.1
+
+- Improved `BUIRender`:
+  - Added support for `IntlMessages` keys in the BUI Code: `{{intl:keyX}}`
+  - Improve route support.
+- Improved `UILoadingConfig`.
+- `UIButtonLoader`: using all properties of `UILoadingConfig`.
+- `UIDialogBase.show`: ensure that is in DOM.
+- `UITemplateElementGenerator`: support to `intl`.
+- `UIDOMActionExecutor`: implementation of `callLocale`.
+- `UINavigableComponent`: check changed route to notify also when rendering.
+- swiss_knife: ^2.5.18
+- dynamic_call: ^1.0.14
+- mercury_client: ^1.1.13
+- intl_messages: ^1.1.12
+- dom_tools: ^1.3.15
+- dom_builder: ^1.0.22
+
 ## 1.1.0
 
 - Added `UIButtonLoader`.
