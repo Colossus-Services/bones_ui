@@ -21,6 +21,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       String tag,
       DOMElement domParent,
       Node parent,
+      DOMNode domNode,
       Map<String, DOMAttribute> attributes,
       Node contentHolder,
       List<DOMNode> contentNodes) {
@@ -31,8 +32,6 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     domGenerator.addChildToElement(parent, element);
 
     var html = contentNodes.map((e) => e.buildHTML(withIndent: true)).join('');
-
-    DOMElement domElement;
 
     if (html.contains('{{')) {
       try {
@@ -47,7 +46,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
           var futures =
               asyncValues.whereType<AsyncValue>().map((e) => e.future).toList();
 
-          var loadingConfig = UILoadingConfig.from(attributes);
+          var loadingConfig = UILoadingConfig.fromMap(attributes, 'loading-');
 
           DivElement uiLoading;
           if (loadingConfig != null) {
@@ -62,29 +61,35 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
                 elementProvider: (q) => queryElementProvider(treeMap, q));
 
             uiLoading?.remove();
-            domElement = $htmlRoot(element.outerHtml);
+
+            domNode.clearNodes();
 
             _generateElementContentFromHTML(
-                domGenerator, html, domElement, element);
+                domGenerator, treeMap, html, domNode, element);
           });
         } else {
           html = template.build(variables,
               elementProvider: (q) => queryElementProvider(treeMap, q));
 
-          domElement = $htmlRoot(element.outerHtml);
+          domNode.clearNodes();
+
           _generateElementContentFromHTML(
-              domGenerator, html, domElement, element);
+              domGenerator, treeMap, html, domNode, element);
         }
       } catch (e, s) {
         print(e);
         print(s);
-        domElement = $span(content: 'error: $e');
+
+        domNode.clearNodes();
+
         _generateElementContentFromHTML(
-            domGenerator, html, domElement, element);
+            domGenerator, treeMap, html, domNode, element);
       }
     } else {
-      domElement = $htmlRoot(html);
-      _generateElementContentFromHTML(domGenerator, html, domElement, element);
+      domNode.clearNodes();
+
+      _generateElementContentFromHTML(
+          domGenerator, treeMap, html, domNode, element);
     }
 
     return element;
@@ -111,10 +116,18 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     return html;
   }
 
-  void _generateElementContentFromHTML(DOMGenerator domGenerator, String html,
-      DOMElement domElement, DivElement element) {
+  void _generateElementContentFromHTML(
+      DOMGenerator<Node> domGenerator,
+      DOMTreeMap<Node> treeMap,
+      String html,
+      DOMElement domElement,
+      DivElement element) {
     domGenerator.generateFromHTML(html,
-        domParent: domElement, parent: element, finalizeTree: false);
+        treeMap: treeMap,
+        domParent: domElement,
+        parent: element,
+        finalizeTree: false,
+        setTreeMapRoot: false);
   }
 
   Map<String, dynamic> getTemplateVariables(
@@ -122,8 +135,6 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     if (domGenerator.domContext == null) return {};
 
     var variables = domGenerator.domContext.variables;
-
-    variables['locale'] = UIRoot.getCurrentLocale();
 
     var routeParameters = UINavigator.currentNavigation?.parameters;
 
@@ -204,9 +215,6 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       var v2 = template.build(variables);
       return v2;
     });
-
-    print('TEMPLATE VARS:');
-    print(variables);
   }
 
   Future<dynamic> getDataSourceResponse(Map<String, String> attributes) {
