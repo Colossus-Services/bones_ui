@@ -94,7 +94,7 @@ abstract class UIButtonBase extends UIComponent {
   dynamic render() {
     var rendered = renderButton();
 
-    var renderAll = toContentElements(content, rendered, false, false);
+    var renderAll = toContentElements(rendered, false, false);
     _onClickListen(renderAll);
 
     var renderedHidden = renderHidden();
@@ -242,6 +242,32 @@ class UIButton extends UIButtonBase {
   }
 }
 
+DOMElement $ui_button_loader(
+    {DOMNodeValidator validate,
+    id,
+    classes,
+    style,
+    buttonClasses,
+    buttonStyle,
+    Map<String, String> attributes,
+    content,
+    bool commented,
+    dynamic loadingConfig}) {
+  return $tag('ui-button-loader',
+      id: id,
+      attributes: {
+        if (buttonClasses != null) 'button-classes': buttonClasses,
+        if (buttonClasses != null) 'button-style': buttonStyle,
+        if (loadingConfig != null)
+          'loading-config': (loadingConfig is UILoadingConfig
+              ? loadingConfig.toInlineProperties()
+              : '$loadingConfig'),
+        ...?attributes
+      },
+      content: content,
+      commented: commented);
+}
+
 class UIButtonLoader extends UIButtonBase {
   static final UIComponentGenerator<UIButtonLoader> GENERATOR =
       UIComponentGenerator<UIButtonLoader>(
@@ -251,17 +277,21 @@ class UIButtonLoader extends UIButtonBase {
     var loadedTextErrorStyle = attributes['loaded-text-error-style'];
     var loadedTextOK = attributes['loaded-text-ok'];
     var loadedTextError = attributes['loaded-text-error'];
-
-    var loadingConfig = UILoadingConfig.from(attributes);
+    var buttonClasses = attributes['button-classes'];
+    var buttonStyle = attributes['button-style'];
+    var loadingConfig =
+        UILoadingConfig.parse(attributes['loading-config']?.value);
 
     return UIButtonLoader(parent, contentHolder.text,
         loadedTextStyle: loadedTextStyle,
         loadedTextErrorStyle: loadedTextErrorStyle,
         loadedTextOK: loadedTextOK,
         loadedTextError: loadedTextError,
-        loadingConfig: loadingConfig);
+        loadingConfig: loadingConfig,
+        buttonClasses: buttonClasses,
+        buttonStyle: buttonStyle);
   }, [
-    UIComponentAttributeHandler<UIButton, String>('text',
+    UIComponentAttributeHandler<UIButtonLoader, String>('text',
         parser: parseString,
         getter: (c) => c._text,
         setter: (c, v) => c._text = v ?? '',
@@ -285,25 +315,34 @@ class UIButtonLoader extends UIButtonBase {
   final TextProvider _loadedTextStyle;
   final TextProvider _loadedTextErrorStyle;
 
-  UIButtonLoader(Element parent, String text,
-      {UILoadingConfig loadingConfig,
-      dynamic loadedTextOK,
-      dynamic loadedTextError,
-      dynamic loadedTextStyle,
-      dynamic loadedTextErrorStyle,
-      String navigate,
-      Map<String, String> navigateParameters,
-      ParametersProvider navigateParametersProvider,
-      dynamic classes,
-      dynamic classes2,
-      dynamic componentClass,
-      dynamic style,
-      dynamic style2})
-      : loadingConfig = loadingConfig,
+  final TextProvider _buttonClasses;
+  final TextProvider _buttonStyle;
+
+  UIButtonLoader(
+    Element parent,
+    String text, {
+    UILoadingConfig loadingConfig,
+    dynamic loadedTextOK,
+    dynamic loadedTextError,
+    dynamic loadedTextStyle,
+    dynamic loadedTextErrorStyle,
+    String navigate,
+    Map<String, String> navigateParameters,
+    ParametersProvider navigateParametersProvider,
+    dynamic classes,
+    dynamic classes2,
+    dynamic componentClass,
+    dynamic buttonClasses,
+    dynamic style,
+    dynamic style2,
+    dynamic buttonStyle,
+  })  : loadingConfig = loadingConfig,
         _loadedTextOK = TextProvider.from(loadedTextOK),
         _loadedTextError = TextProvider.from(loadedTextError),
         _loadedTextStyle = TextProvider.from(loadedTextStyle),
         _loadedTextErrorStyle = TextProvider.from(loadedTextErrorStyle),
+        _buttonClasses = TextProvider.from(buttonClasses),
+        _buttonStyle = TextProvider.from(buttonStyle),
         super(parent,
             navigate: navigate,
             navigateParameters: navigateParameters,
@@ -345,7 +384,10 @@ class UIButtonLoader extends UIButtonBase {
         zoom: 0.50, cssContext: content, config: loadingConfig)
       ..style.display = 'none';
 
-    _button ??= $button(content: text);
+    _button ??= $button(
+        classes: _buttonClasses?.text,
+        style: _buttonStyle?.text,
+        content: text);
 
     _loadedMessage ??= DivElement()..style.display = 'none';
 
@@ -386,11 +428,16 @@ class UIButtonLoader extends UIButtonBase {
 
   void stopLoading(bool loadOK, {String okMessage, String errorMessage}) {
     if (_loadingDiv == null) return;
-    loadOK ??= true;
 
     var button = _button.runtimeNode as Element;
 
-    if (loadOK) {
+    if (loadOK == null) {
+      _setLoadedMessageStyle();
+
+      _loadingDiv.style.display = 'none';
+      button.style.display = '';
+      _loadedMessage.style.display = 'none';
+    } else if (loadOK) {
       _setLoadedMessageStyle();
 
       _loadingDiv.style.display = 'none';
