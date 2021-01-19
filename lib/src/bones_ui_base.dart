@@ -7,6 +7,7 @@ import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_messages/intl_messages.dart';
+import 'package:json_render/json_render.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import 'bones_ui_layout.dart';
@@ -645,10 +646,12 @@ typedef FilterElement = bool Function(Element elem);
 typedef ForEachElement = void Function(Element elem);
 typedef ParametersProvider = Map<String, String> Function();
 
+/// For a [UIComponent] that is a field (has a value).
 abstract class UIField<V> {
   V getFieldValue();
 }
 
+/// For a [UIComponent] that is a field with a Map value.
 abstract class UIFieldMap<V> {
   Map<String, V> getFieldMap();
 }
@@ -673,6 +676,7 @@ typedef UIComponentAttributeAppender<C extends UIComponent, T> = void Function(
 typedef UIComponentAttributeCleaner<C extends UIComponent, T> = void Function(
     C uiComponent);
 
+/// Handler of a [UIComponent] attribute.
 class UIComponentAttributeHandler<C extends UIComponent, T> {
   static String normalizeComponentAttributeName(String name) {
     if (name == null) return null;
@@ -722,6 +726,8 @@ class UIComponentAttributeHandler<C extends UIComponent, T> {
   void clear(C uiComponent) => cleaner(uiComponent);
 }
 
+/// A generator of [UIComponent] based in a HTML tag,
+/// for `dom_builder` (extends [ElementGenerator]).
 class UIComponentGenerator<C extends UIComponent>
     extends ElementGenerator<Element> {
   @override
@@ -770,6 +776,7 @@ class UIComponentGenerator<C extends UIComponent>
       tag,
       DOMElement domParent,
       Node parent,
+      DOMNode domNode,
       Map<String, DOMAttribute> attributes,
       Node contentHolder,
       List<DOMNode> contentNodes) {
@@ -909,10 +916,19 @@ class UIComponentGenerator<C extends UIComponent>
   }
 }
 
+/// [UIComponent] behavior to clear the component.
 enum UIComponentClearParent { onConstruct, onInitialRender, onRender }
 
 /// Base class to create `Bones_UI` components.
 abstract class UIComponent extends UIEventHandler {
+  static final UIDOMGenerator domGenerator = UIDOMGenerator();
+
+  /// Register a [generator] for a type of [UIComponent].
+  static bool registerGenerator(UIComponentGenerator generator) {
+    if (generator == null) throw ArgumentError.notNull('generator');
+    return domGenerator.registerElementGenerator(generator);
+  }
+
   final UIComponentGenerator _generator;
 
   static int _globalIDCount = 0;
@@ -942,6 +958,7 @@ abstract class UIComponent extends UIEventHandler {
       UIComponentClearParent clearParent,
       bool inline = true,
       bool renderOnConstruction,
+      bool preserveRender,
       this.id,
       UIComponentGenerator generator})
       : globalID = ++_globalIDCount,
@@ -950,10 +967,17 @@ abstract class UIComponent extends UIEventHandler {
         _generator = generator {
     _constructing = true;
     try {
+      if (preserveRender != null) {
+        this.preserveRender = preserveRender;
+      }
+
       onPreConstruct();
 
-      _setParentUIComponent(_getUIComponentRenderingByContent(_parent));
       _content = createContentElement(inline);
+
+      _setParentUIComponent(_getUIComponentByContent(_parent));
+
+      registerInUIRoot();
 
       configureID();
 
@@ -977,10 +1001,17 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  /// Called by constructor to register this component in the [UIRoot] tree.
+  void registerInUIRoot() {
+    UIRoot.getInstance().registerUIComponentInTree(this);
+  }
+
+  /// Called in the beginning of constructor.
   void onPreConstruct() {}
 
   UIComponent clone() => null;
 
+  /// Sets the [parent] [Element].
   Element setParent(Element parent) {
     return _setParentImpl(parent, true);
   }
@@ -1007,53 +1038,36 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     if (_parent != null) {
-      var parentUI = _getUIComponentRenderingByContent(_parent);
-
-      if (parentUI == null) {
-        if (isAnyComponentRendering) {
-          _setUIComponentRenderingExtra(this);
-        }
-      }
-
+      var parentUI = _getUIComponentByContent(_parent);
       _setParentUIComponent(parentUI);
     }
 
     return parent;
   }
 
-  final Set<UIComponent> _subUIComponents = {};
+  /// Returns a [List] of sub [UIComponent].
+  List<UIComponent> get subUIComponents =>
+      UIRoot.getInstance()?.getSubUIComponentsByElement(content) ?? [];
+
+  /// Returns a [List] of sub [UIComponent] deeply in the tree.
+  List<UIComponent> get subUIComponentsDeeply =>
+      subUIComponents?.expand((e) => [e, ...?e.subUIComponents])?.toList() ??
+      [];
 
   void _setParentUIComponent(UIComponent uiParent) {
     _parentUIComponent = uiParent;
-
-    if (_parentUIComponent != null) {
-      _parentUIComponent._subUIComponents.add(this);
-    }
   }
 
+  /// The parent [UIComponent].
   UIComponent get parentUIComponent {
     if (_parentUIComponent != null) return _parentUIComponent;
 
     var myParentElem = parent;
 
-    var foundParent = _getUIComponentRenderingByContent(myParentElem);
+    var foundParent = _getUIComponentByContent(myParentElem);
 
     if (foundParent != null) {
       _setParentUIComponent(foundParent);
-    } else {
-      var uiRoot = UIRoot.getInstance();
-      if (uiRoot == null) return null;
-
-      foundParent = uiRoot.getRenderedElement(
-          (e) => e is UIComponent && identical(e._content, myParentElem), true);
-
-      if (foundParent != null && foundParent is UIComponent) {
-        _setParentUIComponent(foundParent);
-      }
-    }
-
-    if (_parentUIComponent != null) {
-      _resolve_componentsRenderingExtra();
     }
 
     return _parentUIComponent;
@@ -1065,6 +1079,7 @@ abstract class UIComponent extends UIEventHandler {
 
   String _displayOnHidden;
 
+  /// Hide component.
   void hide() {
     _content.hidden = true;
 
@@ -1076,6 +1091,7 @@ abstract class UIComponent extends UIEventHandler {
     _showing = false;
   }
 
+  /// Show component.
   void show() {
     _content.hidden = false;
 
@@ -1118,9 +1134,20 @@ abstract class UIComponent extends UIEventHandler {
 
   static final RegExp _CLASSES_ENTRY_DELIMITER = RegExp(r'[\s,;]+');
 
-  static List<String> parseClasses(dynamic classes1) =>
-      toFlatListOfStrings(classes1,
-          delimiter: _CLASSES_ENTRY_DELIMITER, trim: true, ignoreEmpty: true);
+  static List<String> parseClasses(dynamic classes1, [dynamic classes2]) {
+    var c1 = _parseClasses(classes1);
+    if (classes2 == null) return c1;
+
+    var c2 = _parseClasses(classes2);
+
+    var set = c1.toSet();
+    set.addAll(c2);
+
+    return set.toList();
+  }
+
+  static List<String> _parseClasses(classes) => toFlatListOfStrings(classes,
+      delimiter: _CLASSES_ENTRY_DELIMITER, trim: true, ignoreEmpty: true);
 
   void configureClasses(dynamic classes1,
       [dynamic classes2, dynamic componentClasses]) {
@@ -1187,7 +1214,25 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  /// Called by constructor, to configure this component.
   void configure() {}
+
+  StreamSubscription<String> _refreshOnNavigateListener;
+
+  bool get refreshOnNavigate => _refreshOnNavigateListener != null;
+
+  set refreshOnNavigate(bool refresh) {
+    refresh ??= false;
+    if (refreshOnNavigate != refresh) {
+      if (refresh) {
+        _refreshOnNavigateListener =
+            UINavigator.onNavigate.listen((_) => this.refresh());
+      } else {
+        _refreshOnNavigateListener?.cancel();
+        _refreshOnNavigateListener = null;
+      }
+    }
+  }
 
   Element createContentElement(bool inline) {
     return createDiv(inline);
@@ -1247,9 +1292,12 @@ abstract class UIComponent extends UIEventHandler {
     return null;
   }
 
+  String _renderedElementsLocale;
+
   List _renderedElements;
 
-  List get renderedElements => _renderedElements;
+  List get renderedElements =>
+      _renderedElements != null ? List.unmodifiable(_renderedElements) : null;
 
   dynamic getRenderedElement(FilterRendered filter, [bool deep]) {
     if (_renderedElements == null) return null;
@@ -1258,99 +1306,103 @@ abstract class UIComponent extends UIEventHandler {
       if (filter(elem)) return elem;
     }
 
-    deep ??= false;
-
-    if (deep) {
+    if (deep ?? false) {
       for (var elem in _renderedElements) {
         if (elem is UIComponent) {
-          var found = elem.getRenderedElement(filter, deep);
+          var found = elem.getRenderedElement(filter, true);
           if (found != null) {
             return found;
           }
         }
       }
+
+      var subUIComponents = this.subUIComponents;
+
+      for (var elem in subUIComponents) {
+        if (filter(elem)) return elem;
+
+        var found = elem.getRenderedElement(filter, true);
+        if (found != null) {
+          return found;
+        }
+      }
     }
 
     return null;
   }
 
-  dynamic getRenderedElementById(dynamic id) {
+  List getAllRenderedElements(FilterRendered filter, [bool deep]) {
     if (_renderedElements == null) return null;
 
+    var elements = <dynamic>{};
+
     for (var elem in _renderedElements) {
-      if (elem is UIComponent) {
-        if (elem.id == id) {
-          return elem;
-        }
-      } else if (elem is Element) {
-        if (elem.id == id) {
-          return elem;
-        }
+      if (filter(elem)) {
+        elements.add(elem);
       }
     }
 
-    return null;
-  }
-
-  UIComponent getRenderedUIComponentById(dynamic id) {
-    if (_renderedElements == null) return null;
-
-    for (var elem in _renderedElements) {
-      if (elem is UIComponent) {
-        if (elem.id == id) {
-          return elem;
+    if (deep ?? false) {
+      for (var elem in _renderedElements) {
+        if (elem is UIComponent) {
+          var found = elem.getRenderedElement(filter, true);
+          if (found != null) {
+            elements.add(found);
+          }
         }
       }
-    }
 
-    return null;
-  }
+      var subUIComponents = this.subUIComponents;
 
-  List<UIComponent> getRenderedUIComponentsByIds(List ids) {
-    // ignore: omit_local_variable_types
-    List<UIComponent> elems = [];
+      for (var elem in subUIComponents) {
+        if (filter(elem)) {
+          elements.add(elem);
+        }
 
-    for (var id in ids) {
-      var comp = getRenderedUIComponentById(id);
-      if (comp != null) elems.add(comp);
-    }
-
-    return elems;
-  }
-
-  UIComponent getRenderedUIComponentByType(Type type) {
-    if (_renderedElements == null) return null;
-
-    for (var elem in _renderedElements) {
-      if (elem is UIComponent) {
-        if (elem.runtimeType == type) {
-          return elem;
+        var found = elem.getRenderedElement(filter, true);
+        if (found != null) {
+          elements.add(found);
         }
       }
     }
 
-    return null;
+    return elements.toList();
   }
 
-  List<UIComponent> getRenderedUIComponents() {
-    if (_renderedElements == null) return [];
+  dynamic getRenderedElementById(dynamic id, [bool deep]) => getRenderedElement(
+      (elem) =>
+          (elem is UIComponent && elem.id == id) ||
+          (elem is Element && elem.id == id),
+      deep);
 
-    // ignore: omit_local_variable_types
-    List<UIComponent> list = [];
-
-    for (var elem in _renderedElements) {
-      if (elem is UIComponent) {
-        list.add(elem);
-      }
-    }
-
-    return list;
+  dynamic getRenderedUIComponentById(dynamic id, [bool deep]) {
+    if (id == null) return null;
+    return getRenderedUIComponents(deep)
+        .firstWhere((e) => e.id == id, orElse: () => null);
   }
+
+  List<UIComponent> getRenderedUIComponentsByIds(List ids, [bool deep]) {
+    if (ids == null || ids.isEmpty) return <UIComponent>[];
+    return getRenderedUIComponents(deep)
+        .where((e) => e.id != null && ids.contains(e.id))
+        .toList();
+  }
+
+  dynamic getRenderedUIComponentByType(Type type, [bool deep]) {
+    if (type == null) return null;
+    return getRenderedUIComponents(deep)
+        .where((e) => e.runtimeType == type)
+        .toList();
+  }
+
+  List<UIComponent> getRenderedUIComponents([bool deep]) =>
+      (deep ?? false) ? subUIComponentsDeeply : subUIComponents;
 
   bool _rendered = false;
 
   bool get isRendered => _rendered;
 
+  /// Clear component, removing last rendered content.
   void clear() {
     if (!isRendered) return;
 
@@ -1364,12 +1416,10 @@ abstract class UIComponent extends UIEventHandler {
       }
     }
 
-    var elems = List.from(_content.children);
-    elems.forEach((e) => e.remove());
+    var elements = List.from(_content.children);
+    elements.forEach((e) => e.remove());
 
     _content.children.clear();
-
-    _subUIComponents.clear();
 
     _rendered = false;
   }
@@ -1386,6 +1436,7 @@ abstract class UIComponent extends UIEventHandler {
     _refreshImpl();
   }
 
+  /// Refresh component, calling [render].
   void refresh() {
     try {
       __refreshFromExternalCall = true;
@@ -1413,7 +1464,7 @@ abstract class UIComponent extends UIEventHandler {
 
   void _refreshIfLocaleChangedImpl() {
     if (!isRendered) return;
-    if (localeChangeFromLastRender) {
+    if (localeChangedFromLastRender) {
       UIConsole.log(
           'Locale changed: $_renderLocale -> ${UIRoot.getCurrentLocale()} ; Refreshing...');
       clear();
@@ -1429,7 +1480,7 @@ abstract class UIComponent extends UIEventHandler {
   void ensureRendered([bool force]) {
     if (!isRendered) {
       callRender();
-    } else if (localeChangeFromLastRender) {
+    } else if (localeChangedFromLastRender) {
       callRender(true);
     } else if (force ?? false) {
       callRender(true);
@@ -1448,95 +1499,43 @@ abstract class UIComponent extends UIEventHandler {
     Future.microtask(callRender);
   }
 
-  bool get localeChangeFromLastRender {
+  bool get localeChangedFromLastRender {
     var currentLocale = UIRoot.getCurrentLocale();
     return _renderLocale != currentLocale;
   }
 
-  static final Map<Element, UIComponent> _componentsRendering = {};
+  static bool get isAnyComponentRendering =>
+      UIRoot.getInstance()?.isAnyComponentRendering ?? false;
 
-  static final Map<Element, UIComponent> _componentsRenderingExtra = {};
-
-  static bool get isAnyComponentRendering => _componentsRendering.isNotEmpty;
-
-  static void _setUIComponentRendering(UIComponent component) {
-    if (component == null) return;
-    _componentsRendering[component.content] = component;
-  }
-
-  static void _setUIComponentRenderingExtra(UIComponent component) {
-    if (component == null) return;
-    _componentsRenderingExtra[component.content] = component;
-  }
-
-  static void _clearUIComponentRendering(UIComponent component) {
-    if (component == null) return;
-    _componentsRendering.remove(component.content);
-    if (_componentsRendering.isEmpty) {
-      _componentsRenderingExtra.clear();
-    }
-  }
-
-  static bool _resolve_componentsRenderingExtra_call = false;
-
-  static void _resolve_componentsRenderingExtra() {
-    if (_componentsRenderingExtra.isEmpty) return;
-
-    if (_resolve_componentsRenderingExtra_call) return;
-    _resolve_componentsRenderingExtra_call = true;
-
-    try {
-      for (var uiComp in _componentsRenderingExtra.values) {
-        try {
-          uiComp.parentUIComponent;
-        } catch (e, s) {
-          logger.e('Error resolving parent UIComponent', e, s);
-        }
-      }
-    } finally {
-      _resolve_componentsRenderingExtra_call = false;
-    }
-  }
-
-  static UIComponent _getUIComponentRenderingByContent(Element content,
+  static UIComponent _getUIComponentByContent(Element content,
       [bool findUIRootTree = true]) {
-    if (content == null) return null;
-
-    var parent = _componentsRendering[content];
-    parent ??= _componentsRenderingExtra[content];
-
-    if (parent == null && findUIRootTree) {
-      var uiRoot = UIRoot.getInstance();
-      if (uiRoot != null) {
-        parent = uiRoot.findUIComponentByContent(content);
-        //parent ??= uiRoot.findUIComponentByChild(content);
-      }
-    }
-
-    return parent;
+    return UIRoot.getInstance()?.getUIComponentByContent(content);
   }
 
   UIComponent findUIComponentByID(String id) {
-    if (content == null) return null;
-
-    if (id.startsWith('#')) {
-      id = id.substring(1);
-    }
+    if (id.startsWith('#')) id = id.substring(1);
     if (isEmptyString(id)) return null;
+    return _findUIComponentByIDImpl(id);
+  }
 
+  UIComponent _findUIComponentByIDImpl(String id) {
+    if (_content == null) return null;
     if (_content.id == id) return this;
-
     if (_renderedElements == null || _renderedElements.isEmpty) return null;
 
     for (var elem in _renderedElements) {
       if (elem is UIComponent) {
-        var uiComp = elem.findUIComponentByID(id);
+        if (elem.id == id) return elem;
+        var uiComp = elem._findUIComponentByIDImpl(id);
         if (uiComp != null) return uiComp;
       }
     }
 
-    for (var elem in _subUIComponents) {
-      var uiComp = elem.findUIComponentByID(id);
+    var subUIComponents = this.subUIComponents;
+
+    for (var elem in subUIComponents) {
+      if (elem.id == id) return elem;
+      var uiComp = elem._findUIComponentByIDImpl(id);
       if (uiComp != null) return uiComp;
     }
 
@@ -1556,7 +1555,9 @@ abstract class UIComponent extends UIEventHandler {
       }
     }
 
-    for (var elem in _subUIComponents) {
+    var subUIComponents = this.subUIComponents;
+
+    for (var elem in subUIComponents) {
       var uiComp = elem.findUIComponentByChild(content);
       if (uiComp != null) return uiComp;
     }
@@ -1589,7 +1590,9 @@ abstract class UIComponent extends UIEventHandler {
       }
     }
 
-    for (var elem in _subUIComponents) {
+    var subUIComponents = this.subUIComponents;
+
+    for (var elem in subUIComponents) {
       var uiComp = elem.findUIComponentByChild(child);
       if (uiComp != null) return uiComp;
     }
@@ -1628,8 +1631,6 @@ abstract class UIComponent extends UIEventHandler {
   int get renderCount => _renderCount;
 
   void _callRenderImpl(bool clear) {
-    _setUIComponentRendering(this);
-
     _renderCount++;
 
     var content = this.content;
@@ -1667,8 +1668,6 @@ abstract class UIComponent extends UIEventHandler {
     } finally {
       _rendering = false;
 
-      _resolve_componentsRenderingExtra();
-
       try {
         _notifyRendered();
       } catch (e, s) {
@@ -1680,10 +1679,12 @@ abstract class UIComponent extends UIEventHandler {
       } catch (e, s) {
         UIConsole.error('$this _notifyRefreshToParent error', e, s);
       }
-
-      _clearUIComponentRendering(this);
     }
   }
+
+  int _preserveRenderCount = 0;
+
+  int get preserveRenderCount => _preserveRenderCount;
 
   String _renderLocale;
 
@@ -1718,18 +1719,38 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     try {
+      _callPreRender();
+
       _rendered = true;
 
-      var rendered = render();
+      dynamic rendered;
+      if (_preserveRender &&
+          !_renderedWithError &&
+          _renderedElements != null &&
+          _renderedElements.isNotEmpty &&
+          _renderedElementsLocale == _renderLocale) {
+        _preserveRenderCount++;
+        rendered = List.from(_renderedElements);
+      } else {
+        _renderedWithError = false;
+        _preserveRenderCount = 0;
+        rendered = render();
+      }
 
-      var renderedElements = toContentElements(content, rendered);
+      _renderedAsyncContents = {};
+
+      var renderedElements = toContentElements(rendered);
 
       _renderedElements = renderedElements;
+
+      _renderedElementsLocale = _renderLocale;
 
       _ensureAllRendered(renderedElements);
     } catch (e, s) {
       UIConsole.error('$this render error', e, s);
     }
+
+    _finalizeRender();
 
     try {
       _parseAttributesPosRender(content.children);
@@ -1742,6 +1763,10 @@ abstract class UIComponent extends UIEventHandler {
     _markRenderTime();
   }
 
+  void _finalizeRender() {
+    setTreeElementsBackgroundBlur(content, 'bg-blur');
+  }
+
   void _ensureAllRendered(List elements) {
     if (elements == null || elements.isEmpty) return;
 
@@ -1752,7 +1777,7 @@ abstract class UIComponent extends UIEventHandler {
         var subElements = [];
 
         for (var child in e.children) {
-          var uiComponent = _getUIComponentRenderingByContent(child, false);
+          var uiComponent = _getUIComponentByContent(child, false);
 
           if (uiComponent != null) {
             uiComponent.ensureRendered();
@@ -1832,14 +1857,67 @@ abstract class UIComponent extends UIEventHandler {
       UILayout.checkInstances();
     }
 
-    var uiRoot = UIRoot.getInstance();
+    UIRoot.getInstance()?.notifyFinishRender();
+  }
 
-    if (uiRoot != null) {
-      uiRoot.onFinishRender.add(uiRoot);
+  bool _preserveRender = false;
+
+  /// If [true] will preserve last render in next calls to [render].
+  bool get preserveRender => _preserveRender;
+
+  set preserveRender(bool value) {
+    _preserveRender = value ?? false;
+  }
+
+  /// Clears previous rendered elements. Only relevant if [preserveRender] is true.
+  void clearPreservedRender() {
+    if (_preserveRender) {
+      _renderedElements = [];
     }
   }
 
+  /// Called when [render] returns a [Future] value, to render the content
+  /// while loading `Future`.
+  dynamic renderLoading() => null;
+
+  bool _renderedWithError = false;
+
+  /// Returns [true] if current/last render had errors.
+  bool get isRenderedWithError => _renderedWithError;
+
+  /// Marks current/last render with error.
+  void markRenderedWithError() => _renderedWithError = true;
+
+  /// Called when [render] returns a `Future` value, to render the content
+  /// when [Future] has an error.
+  dynamic renderError(dynamic error) => null;
+
+  /// Called before [render].
+  void preRender() {}
+
+  /// Renders the elements of this component.
+  ///
+  /// Accepted return types:
+  /// - `dart:html` [Node] and [Element].
+  /// - [DIVElement], [DOMNode], [AsDOMElement] and [AsDOMNode].
+  /// - [Future].
+  /// - [UIAsyncContent].
+  /// - [String], parsed as `HTML`.
+  /// - [Map] (rendered as JSON).
+  /// - [List] with previous types (recursively).
+  /// - [Function] that returns any previous type. Including [Function]<Future>, allowing `async` functions.
   dynamic render();
+
+  /// Called after [render].
+  void posRender() {}
+
+  void _callPreRender() {
+    try {
+      preRender();
+    } catch (e, s) {
+      UIConsole.error('$this preRender error', e, s);
+    }
+  }
 
   void _callPosRender() {
     try {
@@ -1851,12 +1929,10 @@ abstract class UIComponent extends UIEventHandler {
     connectDataSource();
   }
 
-  void posRender() {}
-
-  List toContentElements(Element content, dynamic rendered,
+  List toContentElements(dynamic rendered,
       [bool append = false, bool parseAttributes = true]) {
     try {
-      var list = _toContentElementsImpl(content, rendered, append);
+      var list = _toContentElementsImpl(rendered, append);
 
       if (parseAttributes) {
         _parseAttributes(content.children);
@@ -1919,8 +1995,10 @@ abstract class UIComponent extends UIEventHandler {
     return renderableList;
   }
 
-  List _toContentElementsImpl(Element content, dynamic rendered, bool append) {
+  List _toContentElementsImpl(dynamic rendered, bool append) {
     var renderableList = toRenderableList(rendered);
+
+    var content = this.content;
 
     if (renderableList != null) {
       if (isListOfStrings(renderableList)) {
@@ -1936,7 +2014,7 @@ abstract class UIComponent extends UIEventHandler {
         return list;
       } else {
         if (isListValuesIdentical(renderableList, content.nodes.toList())) {
-          return renderableList;
+          return List.from(renderableList);
         }
 
         for (var value in renderableList) {
@@ -1948,8 +2026,7 @@ abstract class UIComponent extends UIEventHandler {
         var prevElemIndex = -1;
 
         for (var value in renderableList) {
-          prevElemIndex =
-              _buildRenderList(content, value, renderedList2, prevElemIndex);
+          prevElemIndex = _buildRenderList(value, renderedList2, prevElemIndex);
         }
 
         return renderedList2;
@@ -1959,119 +2036,69 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  static final UIDOMGenerator _domGenerator = UIDOMGenerator();
-
-  static UIDOMGenerator get domGenerator => _domGenerator;
-
-  static bool registerGenerator(UIComponentGenerator generator) {
-    if (generator == null) throw ArgumentError.notNull('generator');
-    return _domGenerator.registerElementGenerator(generator);
+  dynamic _normalizeRenderListValue(Element content, value) {
+    if (value is DOMNode) {
+      return value.buildDOM(generator: domGenerator, parent: content);
+    } else if (value is AsDOMElement) {
+      var element = value.asDOMElement;
+      return element.buildDOM(generator: domGenerator, parent: content);
+    } else if (value is AsDOMNode) {
+      var node = value.asDOMNode;
+      return node.buildDOM(generator: domGenerator, parent: content);
+    } else if (value is Map ||
+        (value is List &&
+            listMatchesAll(value, (e) => e != null && e is Map))) {
+      var jsonRender = JSONRender.fromJSON(value)
+        ..renderMode = JSONRenderMode.VIEW
+        ..addAllKnownTypeRenders();
+      return jsonRender.render();
+    } else if (value is Iterable && !(value is List)) {
+      return value.toList();
+    } else if (value is Future) {
+      var asyncContent = UIAsyncContent.future(
+        value,
+        () => renderLoading() ?? '...',
+        (error) {
+          markRenderedWithError();
+          return renderError(error) ?? '[error: $error]';
+        },
+        {'__Future__': value},
+      );
+      return asyncContent;
+    } else {
+      return value;
+    }
   }
 
-  int _buildRenderList(
-      Element content, dynamic value, List renderedList, int prevElemIndex) {
+  int _buildRenderList(dynamic value, List renderedList, int prevElemIndex) {
     if (value == null) return prevElemIndex;
+    var content = this.content;
 
-    if (value is DOMNode) {
-      var domNode = value as DOMNode;
-      value = domNode.buildDOM(generator: _domGenerator, parent: content);
-    }
+    value = _normalizeRenderListValue(content, value);
 
     if (value is Node) {
-      var idx = content.nodes.indexOf(value);
-
-      if (idx < 0) {
-        content.nodes.add(value);
-        idx = content.nodes.indexOf(value);
-      }
-
-      prevElemIndex = idx;
-      renderedList.add(value);
+      prevElemIndex =
+          _addElementToRenderList(value, value, renderedList, prevElemIndex);
     } else if (value is UIComponent) {
       if (value.parent != content) {
         value._setParentImpl(content, false);
       }
-
-      var idx = content.nodes.indexOf(value.content);
-
-      if (idx < 0) {
-        content.children.add(value.content);
-        idx = content.nodes.indexOf(value.content);
-      } else if (idx < prevElemIndex) {
-        value.content.remove();
-        content.children.add(value.content);
-        idx = content.nodes.indexOf(value.content);
-      }
-
-      prevElemIndex = idx;
-      renderedList.add(value);
+      prevElemIndex = _addElementToRenderList(
+          value, value.content, renderedList, prevElemIndex);
     } else if (value is UIAsyncContent) {
-      if (!value.isLoaded || value.hasAutoRefresh) {
-        value.onLoadContent.listen((c) => refresh(), singletonIdentifier: this);
-      }
-
-      if (value.isExpired) {
-        value.refreshAsync();
-      } else if (value.isWithError) {
-        if (value.hasAutoRefresh) {
-          value.reset();
-        }
-      }
-
       prevElemIndex =
-          _buildRenderList(content, value.content, renderedList, prevElemIndex);
+          _addUIAsyncContentToRenderList(value, renderedList, prevElemIndex);
     } else if (value is List) {
       for (var elem in value) {
-        prevElemIndex =
-            _buildRenderList(content, elem, renderedList, prevElemIndex);
+        prevElemIndex = _buildRenderList(elem, renderedList, prevElemIndex);
       }
     } else if (value is String) {
-      if (prevElemIndex < 0) {
-        setElementInnerHTML(content, value);
-        prevElemIndex = content.nodes.length - 1;
-
-        renderedList.addAll(content.nodes);
-      } else {
-        var preAppendSize = content.nodes.length;
-
-        appendElementInnerHTML(content, value);
-
-        var appendedElements =
-            content.nodes.sublist(preAppendSize, content.nodes.length);
-
-        if (prevElemIndex == preAppendSize - 1) {
-          prevElemIndex = content.nodes.length - 1;
-        } else {
-          if (appendedElements.isNotEmpty) {
-            for (var elem in appendedElements) {
-              elem.remove();
-            }
-
-            var restDyn = copyList(content.nodes.length >= prevElemIndex
-                ? content.nodes.sublist(prevElemIndex + 1)
-                : null);
-
-            // ignore: omit_local_variable_types
-            List<Node> rest = restDyn.cast();
-
-            for (var elem in rest) {
-              elem.remove();
-            }
-
-            appendedElements.forEach((n) => content.append(n));
-            rest.forEach((n) => content.append(n));
-
-            prevElemIndex = content.nodes.indexOf(appendedElements[0]);
-          }
-        }
-
-        renderedList.addAll(appendedElements);
-      }
+      prevElemIndex =
+          _addStringToRenderList(value, renderedList, prevElemIndex);
     } else if (value is Function) {
       try {
         var result = value();
-        prevElemIndex =
-            _buildRenderList(content, result, renderedList, prevElemIndex);
+        prevElemIndex = _buildRenderList(result, renderedList, prevElemIndex);
       } catch (e, s) {
         UIConsole.error('Error calling function: $value', e, s);
       }
@@ -2081,6 +2108,161 @@ abstract class UIComponent extends UIEventHandler {
 
       throw UnsupportedError(
           "Bones_UI: Can't render element of type: ${value.runtimeType}");
+    }
+
+    return prevElemIndex;
+  }
+
+  Map<UIAsyncContent, List> _renderedAsyncContents = {};
+
+  void _resolveUIAsyncContentLoaded(UIAsyncContent asyncContent) {
+    if (!asyncContent.isLoaded) return;
+
+    var prevRendered = _renderedAsyncContents[asyncContent];
+    if (prevRendered == null) return;
+
+    if (_renderedElements == null) {
+      return;
+    }
+
+    var minRenderedIdx;
+
+    for (var e in prevRendered) {
+      if (e == null) continue;
+      var idx = _renderedElements.indexOf(e);
+      if (idx >= 0) {
+        _renderedElements.removeAt(idx);
+        if (minRenderedIdx == null || idx < minRenderedIdx) {
+          minRenderedIdx = idx;
+        }
+      }
+    }
+
+    var prevElements = prevRendered.where((e) => e != null).toSet();
+
+    int minElementIdx;
+
+    for (var node in content.nodes.toList()) {
+      if (prevElements.contains(node)) {
+        var idx = content.nodes.indexOf(node);
+        if (idx >= 0) {
+          content.nodes.removeAt(idx);
+          if (minElementIdx == null || minElementIdx < idx) {
+            minElementIdx = idx;
+          }
+        }
+      }
+    }
+
+    var loadedContent = asyncContent.content;
+
+    var renderedList = [];
+    if (minElementIdx == null || minElementIdx >= content.nodes.length) {
+      _buildRenderList(loadedContent, renderedList, content.nodes.length - 1);
+
+      _renderedElements.addAll(renderedList);
+    } else {
+      var tail = content.nodes.sublist(minElementIdx).toList();
+      tail.forEach((e) => content.nodes.remove(e));
+
+      _buildRenderList(loadedContent, renderedList, content.nodes.length - 1);
+
+      content.nodes.addAll(tail);
+
+      _renderedElements.insertAll(minRenderedIdx, renderedList);
+    }
+
+    _renderedAsyncContents[asyncContent] = renderedList;
+  }
+
+  int _addUIAsyncContentToRenderList(
+      UIAsyncContent asyncContent, List renderedList, int prevElemIndex) {
+    if ((!asyncContent.isLoaded || asyncContent.hasAutoRefresh)) {
+      asyncContent.onLoadContent.listen((c) {
+        _resolveUIAsyncContentLoaded(asyncContent);
+      }, singletonIdentifier: this);
+    }
+
+    if (asyncContent.isExpired) {
+      asyncContent.refreshAsync();
+    } else if (asyncContent.isWithError) {
+      if (asyncContent.hasAutoRefresh) {
+        asyncContent.reset();
+      }
+    }
+
+    var renderIdx = renderedList.length;
+
+    prevElemIndex =
+        _buildRenderList(asyncContent.content, renderedList, prevElemIndex);
+
+    var rendered = renderedList.sublist(renderIdx).toList();
+
+    _renderedAsyncContents[asyncContent] = rendered;
+
+    return prevElemIndex;
+  }
+
+  int _addElementToRenderList(
+      dynamic value, Node element, List renderedList, int prevElemIndex) {
+    var content = this.content;
+
+    var idx = content.nodes.indexOf(element);
+
+    if (idx < 0) {
+      content.children.add(element);
+      idx = content.nodes.indexOf(element);
+    } else if (idx < prevElemIndex) {
+      element.remove();
+      content.children.add(element);
+      idx = content.nodes.indexOf(element);
+    }
+
+    prevElemIndex = idx;
+    renderedList.add(value);
+
+    return prevElemIndex;
+  }
+
+  int _addStringToRenderList(String s, List renderedList, int prevElemIndex) {
+    var content = this.content;
+
+    if (prevElemIndex < 0) {
+      setElementInnerHTML(content, s);
+      prevElemIndex = content.nodes.length - 1;
+      renderedList.addAll(content.nodes);
+    } else {
+      var preAppendSize = content.nodes.length;
+      appendElementInnerHTML(content, s);
+
+      var appendedElements =
+          content.nodes.sublist(preAppendSize, content.nodes.length);
+
+      if (prevElemIndex == preAppendSize - 1) {
+        prevElemIndex = content.nodes.length - 1;
+      } else {
+        if (appendedElements.isNotEmpty) {
+          for (var elem in appendedElements) {
+            elem.remove();
+          }
+
+          var restDyn = copyList(content.nodes.length >= prevElemIndex
+              ? content.nodes.sublist(prevElemIndex + 1)
+              : null);
+
+          var rest = restDyn.cast<Node>();
+          for (var elem in rest) {
+            elem.remove();
+          }
+
+          appendedElements.forEach((n) => content.append(n));
+          rest.forEach((n) => content.append(n));
+
+          prevElemIndex = content.nodes.indexOf(appendedElements[0]);
+        }
+      }
+
+      renderedList.addAll(appendedElements);
     }
 
     return prevElemIndex;
@@ -2426,10 +2608,11 @@ abstract class UIComponent extends UIEventHandler {
 
       if (include && !ignoreFields.contains(fieldName)) {
         if (map.containsKey(fieldName)) {
-          var elemValue = parseElementValue(map[fieldName], null, false);
+          var elemValue =
+              parseChildElementValue(map[fieldName], allowTextAsValue: false);
 
           if (isEmptyObject(elemValue)) {
-            var value = parseElementValue(elem, null, false);
+            var value = parseChildElementValue(elem, allowTextAsValue: false);
             if (isNotEmptyObject(value)) {
               map[fieldName] = elem;
             }
@@ -2468,34 +2651,47 @@ abstract class UIComponent extends UIEventHandler {
         return false;
       });
 
+  String parseChildElementValue(Element element,
+          {bool allowTextAsValue = true}) =>
+      parseElementValue(element,
+          parentUIComponent: this, allowTextAsValue: allowTextAsValue);
+
   static String parseElementValue(Element element,
-      [UIComponent parentComponent, bool allowTextAsValue = true]) {
+      {UIComponent parentUIComponent, bool allowTextAsValue = true}) {
     UIComponent uiComponent;
 
-    if (parentComponent != null) {
-      uiComponent = parentComponent.findUIComponentByChild(element);
+    if (parentUIComponent != null) {
+      uiComponent = parentUIComponent.findUIComponentByChild(element);
     } else {
       uiComponent = UIRoot.getInstance().findUIComponentByChild(element);
     }
 
     if (uiComponent is UIField) {
       var uiField = uiComponent as UIField;
-      return MapProperties.toStringValue(uiField.getFieldValue());
+      var fieldValue = uiField.getFieldValue();
+      return fieldValue != null
+          ? MapProperties.toStringValue(fieldValue)
+          : null;
+    } else if (uiComponent is UIFieldMap) {
+      var uiFieldMap = uiComponent as UIFieldMap;
+      var fieldValue = uiFieldMap.getFieldMap();
+      return fieldValue != null
+          ? MapProperties.toStringValue(fieldValue)
+          : null;
     } else if (element is TextAreaElement) {
       return element.value;
     } else if (element is SelectElement) {
       var selected = element.selectedOptions;
       if (selected == null || selected.isEmpty) return '';
       return MapProperties.toStringValue(selected.map((opt) => opt.value));
-    } else if (element is FileUploadInputElement) {
-      var files = element.files;
-      if (files != null && files.isNotEmpty) {
-        return MapProperties.toStringValue(files.map((f) => f.name));
+    } else if (element is InputElement) {
+      var type = element.type;
+      switch (type) {
+        case 'file':
+          return MapProperties.toStringValue(element.files.map((f) => f.name));
+        default:
+          return element.value;
       }
-    }
-
-    if (element is InputElement) {
-      return element.value;
     } else {
       var value = element.getAttribute('field_value');
       if (isEmptyObject(value) && allowTextAsValue) {
@@ -2506,14 +2702,42 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   Map<String, String> getFields(
-          {List<String> fields, List<String> ignoreFields}) =>
-      getFieldsElementsMap(fields: fields, ignoreFields: ignoreFields)
-          .map((k, v) => MapEntry(k, parseElementValue(v, this)));
+      {List<String> fields, List<String> ignoreFields}) {
+    var fieldsElementsMap =
+        getFieldsElementsMap(fields: fields, ignoreFields: ignoreFields);
+
+    var entries = fieldsElementsMap.entries.toList();
+    entries.sort((a, b) {
+      var aUiComponent = findUIComponentByChild(a.value);
+      var bUiComponent = findUIComponentByChild(b.value);
+      var aIsUIComponent = aUiComponent != null;
+      var bIsUIComponent = bUiComponent != null;
+
+      if (aIsUIComponent && !bIsUIComponent) {
+        return -1;
+      } else if (bIsUIComponent && !aIsUIComponent) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+
+    var fieldsValues = <String, String>{};
+
+    for (var entry in entries) {
+      var key = entry.key;
+      if (fieldsValues.containsKey(key)) continue;
+      var value = parseChildElementValue(entry.value);
+      fieldsValues[key] = value;
+    }
+
+    return fieldsValues;
+  }
 
   String getField(String fieldName) {
     var fieldElem = getFieldElement(fieldName);
     if (fieldElem == null) return null;
-    return parseElementValue(fieldElem, this);
+    return parseChildElementValue(fieldElem);
   }
 
   Map<String, dynamic> _renderedFieldsValues;
@@ -2541,7 +2765,7 @@ abstract class UIComponent extends UIEventHandler {
     var fieldElem = getFieldElement(fieldName);
     if (fieldElem == null) return;
 
-    var value = parseElementValue(fieldElem, this);
+    var value = parseChildElementValue(fieldElem);
 
     _renderedFieldsValues ??= {};
     _renderedFieldsValues[fieldName] = value;
@@ -2553,7 +2777,7 @@ abstract class UIComponent extends UIEventHandler {
     var fieldName = fieldElem.getAttribute('field');
     if (fieldName == null || fieldName.isEmpty) return;
 
-    var value = parseElementValue(fieldElem, this);
+    var value = parseChildElementValue(fieldElem);
 
     _renderedFieldsValues ??= {};
     _renderedFieldsValues[fieldName] = value;
@@ -2565,7 +2789,7 @@ abstract class UIComponent extends UIEventHandler {
 
   bool isEmptyField(String fieldName) {
     var fieldElement = getFieldElement(fieldName);
-    var val = parseElementValue(fieldElement, this);
+    var val = parseChildElementValue(fieldElement);
     return val == null || val.toString().isEmpty;
   }
 
@@ -2728,6 +2952,7 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       'routes': () => _routesEntries(false),
       'menuRoutes': () => _routesEntries(true),
       'currentRoute': () => _currentRouteEntry(),
+      'locale': () => UIRoot.getCurrentLocale(),
     };
   }
 
@@ -2774,6 +2999,8 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       return listMatchesAll(externalElement, canHandleExternalElement);
     } else if (externalElement is UIComponent) {
       return true;
+    } else if (externalElement is MessageBuilder) {
+      return true;
     }
 
     return super.canHandleExternalElement(externalElement);
@@ -2794,16 +3021,43 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       var componentContent = component.content;
 
       if (element is Element) {
-        element.children.add(componentContent);
+        element.append(componentContent);
         component.setParent(element);
         component.ensureRendered();
         return [componentContent];
       }
 
       return null;
+    } else if (externalElement is MessageBuilder) {
+      var text = externalElement.build();
+      var span = SpanElement();
+      setElementInnerHTML(span, text);
+      element.append(span);
+      return [span];
     }
 
     return super.addExternalElementToElement(element, externalElement);
+  }
+
+  @override
+  void attachFutureElement(
+      DOMElement domParent,
+      Node parent,
+      DOMNode domElement,
+      Node templateElement,
+      futureElementResolved,
+      DOMTreeMap<Node> treeMap,
+      DOMContext<Node> context) {
+    super.attachFutureElement(domParent, parent, domElement, templateElement,
+        futureElementResolved, treeMap, context);
+
+    if (futureElementResolved is Element) {
+      var parentComponent =
+          UIRoot.getInstance().findUIComponentByChild(futureElementResolved);
+      if (parentComponent != null) {
+        parentComponent._parseAttributes([futureElementResolved]);
+      }
+    }
   }
 
   @override
@@ -3061,8 +3315,8 @@ class UIAsyncContent {
       Map<String, dynamic> properties])
       : _locale = IntlLocale.getDefaultLocale(),
         _properties = properties ?? {} {
-    _loadingContent = _ensureElementForDOM(loadingContent);
-    _errorContent = _ensureElementForDOM(errorContent);
+    _loadingContent = _normalizeContent(loadingContent);
+    _errorContent = _normalizeContent(errorContent);
 
     _callContentProvider(false);
   }
@@ -3077,8 +3331,8 @@ class UIAsyncContent {
       [dynamic errorContent, Map<String, dynamic> properties])
       : _locale = IntlLocale.getDefaultLocale(),
         _properties = properties ?? {} {
-    _loadingContent = _ensureElementForDOM(loadingContent);
-    _errorContent = _ensureElementForDOM(errorContent);
+    _loadingContent = _normalizeContent(loadingContent);
+    _errorContent = _normalizeContent(errorContent);
 
     _setAsyncContentFuture(contentFuture);
   }
@@ -3087,7 +3341,24 @@ class UIAsyncContent {
 
   dynamic get loadingContent => _loadingContent;
 
-  dynamic get errorContent => _errorContent;
+  dynamic get errorContent {
+    if (_errorContent is Function) {
+      var content = _errorContent is Function(dynamic e)
+          ? _errorContent(error)
+          : _errorContent();
+      return _normalizeContent(content);
+    } else {
+      return _errorContent;
+    }
+  }
+
+  dynamic _normalizeContent(dynamic content) {
+    if (content is Function) {
+      return content;
+    } else {
+      return _ensureElementForDOM(content);
+    }
+  }
 
   bool _stopped = false;
 
@@ -3247,6 +3518,9 @@ class UIAsyncContent {
   bool get isWithError =>
       _loadedContent != null && _loadedContent.status == 500;
 
+  /// The error instance when loaded with error.
+  dynamic get error => isWithError ? _loadedContent.content : null;
+
   /// Returns the already loaded content.
   dynamic get content {
     if (_loadedContent == null) {
@@ -3279,27 +3553,6 @@ class UIAsyncContent {
   }
 }
 
-class Dimension {
-  final int width;
-
-  final int height;
-
-  Dimension(this.width, this.height);
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Dimension && width == other.width && height == other.height;
-
-  @override
-  int get hashCode => width.hashCode ^ height.hashCode;
-
-  @override
-  String toString() {
-    return '${width}X${height}';
-  }
-}
-
 /// The root for `Bones_UI` component tree.
 abstract class UIRoot extends UIComponent {
   static UIRoot _rootInstance;
@@ -3309,6 +3562,8 @@ abstract class UIRoot extends UIComponent {
     return _rootInstance;
   }
 
+  DOMTreeReferenceMap<UIComponent> _uiComponentsTree;
+
   LocalesManager _localesManager;
 
   Future<bool> _futureInitializeLocale;
@@ -3316,8 +3571,14 @@ abstract class UIRoot extends UIComponent {
   UIRoot(Element rootContainer, {dynamic classes})
       : super(rootContainer,
             classes: classes,
+            componentClass: 'ui-root',
             clearParent: UIComponentClearParent.onInitialRender) {
-    _registerAllComponents();
+    _initializeAll();
+
+    _uiComponentsTree = DOMTreeReferenceMap(content,
+        keepPurgedKeys: true,
+        maxPurgedEntries: 1000,
+        purgedEntriesTimeout: Duration(minutes: 1));
 
     _rootInstance = this;
 
@@ -3330,6 +3591,37 @@ abstract class UIRoot extends UIComponent {
 
     UIConsole.checkAutoEnable();
   }
+
+  @override
+  void registerInUIRoot() {}
+
+  bool get isAnyComponentRendering => _uiComponentsTree.validEntries
+      .where((e) => e.value.isRendering)
+      .isNotEmpty;
+
+  UIComponent getUIComponentByContent(Element uiComponentContent) {
+    if (uiComponentContent == null) return null;
+    return _uiComponentsTree.get(uiComponentContent);
+  }
+
+  UIComponent getUIComponentByChild(Element child) {
+    return _uiComponentsTree.getParentValue(child);
+  }
+
+  List<UIComponent> getSubUIComponentsByElement(Element element) {
+    if (element == null || !_uiComponentsTree.isInTree(element)) {
+      return null;
+    }
+    return _uiComponentsTree.getSubValues(element);
+  }
+
+  void registerUIComponentInTree(UIComponent uiComponent) {
+    if (uiComponent == null) return null;
+    _uiComponentsTree.put(uiComponent.content, uiComponent);
+    //print('_uiComponentsTree> $_uiComponentsTree');
+  }
+
+  void purgeUIComponentsTree() => _uiComponentsTree.purge();
 
   @override
   void onPreConstruct() {
@@ -3438,6 +3730,13 @@ abstract class UIRoot extends UIComponent {
   /// [EventStream] for when this [UIRoot] finishes to render UI.
   final EventStream<UIRoot> onFinishRender = EventStream();
 
+  void notifyFinishRender() {
+    onFinishRender.add(this);
+
+    _uiComponentsTree.purge();
+    //print('FINISH RENDER> _uiComponentsTree: $_uiComponentsTree');
+  }
+
   void _onReadyToInitialize() {
     UIConsole.log('UIRoot> ready to initialize!');
 
@@ -3479,6 +3778,19 @@ abstract class UIRoot extends UIComponent {
 
   /// Called to render UI content.
   UIComponent renderContent();
+
+  static void alert(dynamic dialogContent) {
+    getInstance().renderAlert(dialogContent);
+  }
+
+  void renderAlert(dynamic dialogContent) {
+    var div = $div(
+        classes: 'bg-blur',
+        style:
+            'color: #fff; background-color: rgba(255,255,255,0.20); margin: 12px 24px; padding: 14px; border-radius: 8px;',
+        content: dialogContent);
+    UIDialog($div(content: [$br(), div]), showCloseButton: true, show: true);
+  }
 }
 
 /// `Bones_UI` base class for navigable components using routes.
@@ -3836,6 +4148,34 @@ class UINavigator {
     _navigateToFromURL(uri);
   }
 
+  /// Navigates to a main route ([mainRouteLogged] or [mainRouteNotLogged]) based in [isLogged] status and [isLoggedRoute] and [isNotLoggedRoute] checkers.
+  ///
+  /// Keeps the [currentRoute] if is allowed by [isLoggedRoute] and [isNotLoggedRoute], depending on [isLogged] status.
+  ///
+  /// Returns true if called [navigateTo].
+  static bool navigateToMainRoute(
+      bool Function() isLogged,
+      String mainRouteLogged,
+      String mainRouteNotLogged,
+      bool Function(String route) isLoggedRoute,
+      [bool Function(String route) isNotLoggedRoute]) {
+    isNotLoggedRoute ??= (r) => !isLoggedRoute(r);
+
+    if (isLogged()) {
+      if (!isLoggedRoute(UINavigator.currentRoute)) {
+        UINavigator.navigateToAsync(mainRouteLogged);
+        return true;
+      }
+    } else {
+      if (!isNotLoggedRoute(UINavigator.currentRoute)) {
+        UINavigator.navigateToAsync(mainRouteNotLogged);
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   /// Refreshed the current route asynchronously.
   void refreshNavigationAsync([bool force = false]) {
     Future.microtask(() => refreshNavigation(force));
@@ -4033,7 +4373,7 @@ class UINavigator {
 
   final EventStream<String> _onNavigate = EventStream();
 
-  /// [EventStream] for when navigation changes.
+  /// [EventStream] for when navigation changes. Passes route name.
   static EventStream<String> get onNavigate => get()._onNavigate;
 
   void _navigateTo(String route,
@@ -4173,6 +4513,18 @@ class UINavigator {
     }
     routes.remove('*');
     return List.from(routes);
+  }
+
+  static Map<String, String> get navigableRoutesAndNames {
+    var routes = <String, String>{};
+    for (var nav in navigables) {
+      for (var route in nav.routes) {
+        var name = nav.getRouteName(route);
+        routes[route] = name ?? route;
+      }
+    }
+    routes.remove('*');
+    return routes;
   }
 
   final List<UINavigableComponent> _navigables = [];
@@ -4587,11 +4939,24 @@ class CSSProvider {
   }
 }
 
-bool _registeredAllComponents = false;
+bool _initializedAll = false;
+
+void _initializeAll() {
+  if (_initializedAll) return;
+  _initializedAll = true;
+
+  _configure();
+
+  _registerAllComponents();
+}
+
+void _configure() {
+  Dimension.parsers.add((v) {
+    return v is Screen ? Dimension(v.width, v.height) : null;
+  });
+}
 
 void _registerAllComponents() {
-  if (_registeredAllComponents) return;
-  _registeredAllComponents = true;
   UIButton.register();
   UIButtonLoader.register();
   UIMultiSelection.register();

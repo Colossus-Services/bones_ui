@@ -1,3 +1,43 @@
+## 1.2.0
+
+- `UIComponent`:
+  - Optimized performance of `render` call tree.
+  - Support to `render` values of type `Future`.
+    - Methods `renderLoading` and `renderError` for `Future` values.
+  - Improved `getFields` and `parseElementValue` (added `parseChildElementValue`).
+  - New fields:
+    - `preserveRender`, `subUIComponents`, `subUIComponentsDeeply`, `refreshOnNavigate`.
+  - New methods:
+    - `getRenderedElementById`, `getRenderedUIComponentById`, `getRenderedUIComponentsByIds`,
+    `getRenderedUIComponentByType`, `getRenderedUIComponents`.
+    - `isAnyComponentRendering`.
+- `UIRoot`:
+  - Adde `renderAlert` and `alert`.
+  - New `DOMTreeReferenceMap` to control handling of
+    `UIRoot` tree of components and `content` elements.
+- `UINavigator`:
+  - Added `navigateToMainRoute` and `navigableRoutesAndNames`.
+- `UIComponentAsync`:
+  - Added field `cacheRenderAsync`.
+- `UIAsyncContent`:
+  - Added `error` field.
+  - Now accepts `Function` as content.
+- `UILoadingConfig`: improve constructors.
+- `UIButtonLoader`:
+  - Added properties: `buttonClasses` and `buttonStyle`.
+- Helper: `$ui_button_loader`.
+- `UIButtonCapturePhoto`:
+  - New fields `buttonContent`, `selectedImageClasses`, `selectedImageStyle` and `onlyShowSelectedImageInButton`.
+  - Changed to call code moved to `dom_tools`.
+- swiss_knife: ^2.5.24
+- dynamic_call: ^1.0.16
+- mercury_client: ^1.1.16
+- intl_messages: ^1.1.13
+- dom_tools: ^1.3.20
+- dom_builder: ^1.0.24
+- json_render: ^1.3.8
+- enum_to_string: ^1.0.14
+
 ## 1.1.1
 
 - Improved `BUIRender`:
