@@ -84,7 +84,7 @@ abstract class UIControlledComponent extends UIComponent {
         var fields = value.getFields();
         value = asMapOfString(fields);
       } else if (value is Element) {
-        value = UIComponent.parseElementValue(value, this);
+        value = parseChildElementValue(value);
       }
 
       mapProperties.put(key, value);
@@ -268,10 +268,8 @@ abstract class UIControlledComponent extends UIComponent {
   }
 
   Map<String, dynamic> _resolveControllers(Map<String, dynamic> controllers) {
-    var parent = _componentAsync.content;
-
     var resolvedControllers = controllers.map((key, value) {
-      var elements = toContentElements(parent, value);
+      var elements = _componentAsync.toContentElements(value);
       var element = elements.isEmpty
           ? null
           : (elements.length == 1 ? elements.single : elements);
