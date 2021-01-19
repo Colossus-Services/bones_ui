@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert' as data_convert;
 import 'dart:html';
 import 'dart:typed_data';
@@ -283,36 +282,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       return null;
     }
 
-    var mediaType = fileMimeType(_selectedFile);
+    var mediaType = getFileMimeType(_selectedFile);
 
     return toDataURLBase64(MimeType.asString(mediaType, ''), base64);
-  }
-
-  MimeType fileMimeType(File file) {
-    var fileExtension = getPathExtension(file.name) ?? '';
-    fileExtension = fileExtension.toLowerCase().trim();
-
-    if (fileExtension == 'jpg') fileExtension = 'jpeg';
-
-    var mediaType = '';
-
-    if (captureType == CaptureType.PHOTO ||
-        captureType == CaptureType.PHOTO_SELFIE) {
-      mediaType = 'image/$fileExtension';
-    } else if (captureType == CaptureType.VIDEO ||
-        captureType == CaptureType.VIDEO) {
-      mediaType = 'video/$fileExtension';
-    } else if (captureType == CaptureType.AUDIO) {
-      mediaType = 'audio/$fileExtension';
-    } else if (captureType == CaptureType.JSON) {
-      mediaType = 'application/json';
-    }
-
-    return MimeType.parse(mediaType);
-  }
-
-  String toDataURLBase64(String mediaType, String base64) {
-    return 'data:$mediaType;base64,$base64';
   }
 
   CaptureDataFormat _captureDataFormat = CaptureDataFormat.ARRAY_BUFFER;
@@ -339,81 +311,25 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       _selectedFile = file;
       _selectedFileData = null;
 
-      if (_removeExifFromImage) {
-        var mimeType = fileMimeType(file);
-
-        if (mimeType != null && mimeType.isImageJPEG) {
-          var fileDataURL = await readFileDataAsDataURLBase64(file);
-
-          if (fileDataURL != null) {
-            var img = ImageElement(src: fileDataURL);
-            await elementOnLoad(img);
-
-            var canvas =
-                toCanvasElement(img, img.naturalWidth, img.naturalHeight);
-            img = canvasToImageElement(canvas, mimeType.toString());
-
-            var dataURL = img.src;
-
-            if (_captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
-              _selectedFileData =
-                  DataURLBase64.parsePayloadAsArrayBuffer(dataURL);
-            } else if (_captureDataFormat == CaptureDataFormat.STRING) {
-              _selectedFileData = DataURLBase64.parsePayloadAsString(dataURL);
-            } else if (_captureDataFormat == CaptureDataFormat.BASE64) {
-              _selectedFileData = DataURLBase64.parsePayloadAsBase64(dataURL);
-            } else if (_captureDataFormat ==
-                CaptureDataFormat.DATA_URL_BASE64) {
-              _selectedFileData = dataURL;
-            }
-          }
-        }
-      }
-
-      if (_selectedFileData == null) {
-        if (_captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
-          _selectedFileData = await readFileDataAsArrayBuffer(file);
-        } else if (_captureDataFormat == CaptureDataFormat.STRING) {
-          _selectedFileData = await readFileDataAsText(file);
-        } else if (_captureDataFormat == CaptureDataFormat.BASE64) {
-          _selectedFileData = await readFileDataAsBase64(file);
-        } else if (_captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
-          _selectedFileData = await readFileDataAsDataURLBase64(file);
-        } else {
-          throw StateError("Can't capture data as format: $_captureDataFormat");
-        }
+      if (_captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+        _selectedFileData = await readFileInputElementAsArrayBuffer(
+            input, _removeExifFromImage);
+      } else if (_captureDataFormat == CaptureDataFormat.STRING) {
+        _selectedFileData =
+            await readFileInputElementAsString(input, _removeExifFromImage);
+      } else if (_captureDataFormat == CaptureDataFormat.BASE64) {
+        _selectedFileData =
+            await readFileInputElementAsBase64(input, _removeExifFromImage);
+      } else if (_captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+        _selectedFileData = await readFileInputElementAsDataURLBase64(
+            input, _removeExifFromImage);
+      } else {
+        throw StateError("Can't capture data as format: $_captureDataFormat");
       }
 
       onCaptureData.add(this);
       onChange.add(this);
     }
-  }
-
-  Future<String> readFileDataAsDataURLBase64(File file) async {
-    var base64 = await readFileDataAsBase64(file);
-    var mediaType = fileMimeType(file);
-    return toDataURLBase64(MimeType.asString(mediaType, ''), base64);
-  }
-
-  Future<String> readFileDataAsBase64(File file) async {
-    var data = await readFileDataAsArrayBuffer(file);
-    return data_convert.base64.encode(data);
-  }
-
-  Future<Uint8List> readFileDataAsArrayBuffer(File file) async {
-    final reader = FileReader();
-    reader.readAsArrayBuffer(file);
-    await reader.onLoad.first;
-    var fileData = reader.result;
-    return fileData;
-  }
-
-  Future<String> readFileDataAsText(File file) async {
-    final reader = FileReader();
-    reader.readAsText(file);
-    await reader.onLoad.first;
-    var fileData = reader.result;
-    return fileData;
   }
 
   @override
@@ -548,17 +464,21 @@ class AudioFileReader extends URLFileReader {
 
 class UIButtonCapturePhoto extends UICapture {
   final String text;
+  final dynamic buttonContent;
 
   final String fontSize;
 
-  UIButtonCapturePhoto(Element parent, this.text,
-      {String fieldName,
+  UIButtonCapturePhoto(Element parent,
+      {this.text,
+      this.buttonContent,
+      String fieldName,
       String navigate,
       Map<String, String> navigateParameters,
       ParametersProvider navigateParametersProvider,
       dynamic classes,
       dynamic classes2,
       dynamic componentClass,
+      dynamic style,
       bool small = false,
       this.fontSize})
       : super(parent, CaptureType.PHOTO,
@@ -566,6 +486,7 @@ class UIButtonCapturePhoto extends UICapture {
             navigate: navigate,
             navigateParameters: navigateParameters,
             navigateParametersProvider: navigateParametersProvider,
+            style: style,
             classes: classes,
             classes2: classes2,
             componentClass: [
@@ -581,23 +502,37 @@ class UIButtonCapturePhoto extends UICapture {
   }
 
   @override
-  String renderButton() {
+  dynamic renderButton() {
     if (disabled) {
       content.style.opacity = '0.7';
     } else {
       content.style.opacity = null;
     }
 
-    if (fontSize != null) {
-      return "<span style='font-size: $fontSize'>$text</span>";
+    if (isNotEmptyString(text)) {
+      if (fontSize != null) {
+        return "<span style='font-size: $fontSize'>$text</span>";
+      } else {
+        return text;
+      }
+    } else if (buttonContent != null) {
+      return buttonContent;
     } else {
-      return text;
+      return 'Photo';
     }
   }
 
   int selectedImageMaxWidth = 100;
 
   int selectedImageMaxHeight = 100;
+
+  bool _onlyShowSelectedImageInButton = false;
+
+  bool get onlyShowSelectedImageInButton => _onlyShowSelectedImageInButton;
+
+  set onlyShowSelectedImageInButton(bool value) {
+    _onlyShowSelectedImageInButton = value ?? false;
+  }
 
   bool _showSelectedImageInButton = true;
 
@@ -607,6 +542,9 @@ class UIButtonCapturePhoto extends UICapture {
     _showSelectedImageInButton = value ?? false;
   }
 
+  List<String> selectedImageClasses;
+  String selectedImageStyle;
+
   @override
   void onCaptureFile(FileUploadInputElement input, Event event) {
     if (_showSelectedImageInButton) {
@@ -614,11 +552,17 @@ class UIButtonCapturePhoto extends UICapture {
     }
   }
 
+  final List<Element> _selectedImageElements = [];
+
   void showSelectedImage() {
     var dataURL = selectedFileDataAsDataURLBase64;
     if (dataURL == null) return;
 
-    content.children.removeWhere((e) => (e is ImageElement || e is BRElement));
+    _selectedImageElements.forEach((e) => content.children.remove(e));
+
+    if (_onlyShowSelectedImageInButton) {
+      content.children.removeWhere((e) => !e.hidden);
+    }
 
     var img = ImageElement(src: dataURL)
       ..style.padding = '2px 4px'
@@ -632,8 +576,21 @@ class UIButtonCapturePhoto extends UICapture {
       img.style.maxHeight = '${selectedImageMaxHeight}px';
     }
 
-    content.children.add(BRElement());
-    content.children.add(img);
+    if (isNotEmptyObject(selectedImageClasses)) {
+      img.classes.addAll(selectedImageClasses);
+    }
+
+    if (isNotEmptyString(selectedImageStyle, trim: true)) {
+      img.style.cssText += '; $selectedImageStyle';
+    }
+
+    _selectedImageElements.clear();
+    if (!_onlyShowSelectedImageInButton) {
+      _selectedImageElements.add(BRElement());
+    }
+    _selectedImageElements.add(img);
+
+    content.children.addAll(_selectedImageElements);
   }
 
   void setWideButton() {
