@@ -174,7 +174,7 @@ class InputConfig {
     } else if (inputType == 'select') {
       inputElement = _render_select(inputValue);
     } else if (inputType == 'image') {
-      var capture = UIButtonCapturePhoto(null, label, fieldName: inputID);
+      var capture = UIButtonCapturePhoto(null, text: label, fieldName: inputID);
       inputComponent = capture;
     } else if (inputType == 'color') {
       var picker = UIColorPickerInput(null,
