@@ -24,6 +24,7 @@ class BUIElementGenerator extends ElementGeneratorBase {
       String tag,
       DOMElement domParent,
       Node parent,
+      DOMNode domNode,
       Map<String, DOMAttribute> attributes,
       Node contentHolder,
       List<DOMNode> contentNodes) {
@@ -79,7 +80,8 @@ class BUIRender extends UINavigableComponent {
       DataAssets dataAssets,
       BUIViewProviderBase viewProvider,
       dynamic classes,
-      dynamic style})
+      dynamic style,
+      bool renderOnConstruction = true})
       : domGenerator =
             domGenerator ?? DOMGeneratorDelegate(UIComponent.domGenerator),
         _dataAssets = dataAssets,
@@ -113,12 +115,14 @@ class BUIRender extends UINavigableComponent {
 
     updateSourcesFromViewProvider();
 
-    if (!hasIntlMessages) {
-      callRender();
-    } else {
-      ensureIntlMessagesLoaded().then((value) {
-        refreshInternal();
-      });
+    if (renderOnConstruction ?? true) {
+      if (!hasIntlMessages) {
+        callRender();
+      } else {
+        ensureIntlMessagesLoaded().then((value) {
+          refreshInternal();
+        });
+      }
     }
   }
 
