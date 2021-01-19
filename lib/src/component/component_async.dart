@@ -37,6 +37,8 @@ class UIComponentAsync extends UIComponent {
 
   final Duration refreshInterval;
 
+  final bool cacheRenderAsync;
+
   /// Constructs a [UIComponentAsync].
   ///
   /// Note: if an attempt to render happens with the same properties of
@@ -50,6 +52,7 @@ class UIComponentAsync extends UIComponent {
   UIComponentAsync(Element parent, this._renderPropertiesProvider,
       this._renderAsync, this.loadingContent, this.errorContent,
       {this.refreshInterval,
+      bool cacheRenderAsync,
       dynamic componentClass,
       dynamic componentStyle,
       dynamic classes,
@@ -59,7 +62,8 @@ class UIComponentAsync extends UIComponent {
       dynamic id,
       UIComponentGenerator generator,
       bool renderOnConstruction})
-      : super(parent,
+      : cacheRenderAsync = cacheRenderAsync ?? true,
+        super(parent,
             componentClass: componentClass,
             componentStyle: componentStyle,
             classes: classes,
@@ -84,12 +88,16 @@ class UIComponentAsync extends UIComponent {
   final EventStream<dynamic> onLoadAsyncContent = EventStream();
 
   UIAsyncContent _asyncContent;
+  int _asyncContentRenderCount = 0;
 
   @override
   dynamic render() {
+    _asyncContentRenderCount++;
+
     var properties = renderProperties();
 
-    if (!UIAsyncContent.isValid(_asyncContent, properties)) {
+    if ((!cacheRenderAsync && _asyncContentRenderCount > 1) ||
+        !UIAsyncContent.isValid(_asyncContent, properties)) {
       _asyncContent = UIAsyncContent.provider(
           () => _renderAsync(renderProperties()),
           loadingContent,
@@ -100,6 +108,7 @@ class UIComponentAsync extends UIComponent {
         onLoadAsyncContent.add(content);
         onChange.add(content);
       });
+      _asyncContentRenderCount = 0;
     }
 
     return _asyncContent;
