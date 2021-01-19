@@ -1,6 +1,8 @@
 import 'dart:html';
 
+import 'package:bones_ui/bones_ui.dart';
 import 'package:bones_ui/bones_ui_kit.dart';
+import 'package:enum_to_string/enum_to_string.dart';
 
 const Map<String, String> _CSS_LOADING = {
   'ui-loading-ring': '''
@@ -504,6 +506,8 @@ abstract class UILoading {
       if (config.textZoom != null) textZoom = config.textZoom;
     }
 
+    type ??= UILoadingType.ring;
+
     var loadingClass = getUILoadingTypeClass(type);
     if (loadingClass == null) return null;
 
@@ -568,7 +572,7 @@ abstract class UILoading {
   }
 }
 
-class UILoadingConfig {
+class UILoadingConfig implements AsDOMElement {
   final UILoadingType type;
   final bool inline;
   final TextProvider _color;
@@ -577,37 +581,56 @@ class UILoadingConfig {
   final double textZoom;
 
   UILoadingConfig(
-      {dynamic type,
-      this.inline,
+      {UILoadingType type,
+      dynamic inline,
       dynamic color,
-      this.zoom,
+      dynamic zoom,
       dynamic text,
-      this.textZoom})
-      : type = getUILoadingType(type),
+      dynamic textZoom})
+      : type = getUILoadingType(type) ?? UILoadingType.ring,
+        inline = parseBool(inline),
         _color = TextProvider.from(color),
-        _text = TextProvider.from(text);
+        zoom = parseDouble(zoom),
+        _text = TextProvider.from(text),
+        textZoom = parseDouble(textZoom);
 
-  factory UILoadingConfig.from(Map attributes) {
-    var loadingType = parseString(attributes['loading-type']);
-    var loadingInline = parseString(attributes['loading-inline']);
-    var loadingColor = parseString(attributes['loading-color']);
-    var loadingZoom = parseString(attributes['loading-zoom']);
-    var loadingText = parseString(attributes['loading-text']);
-    var loadingTextZoom = parseString(attributes['loading-text-zoom']);
+  factory UILoadingConfig.from(dynamic o, [String prefix]) {
+    if (o == null) return null;
+    if (o is UILoadingConfig) return o;
+    if (o is Map) return UILoadingConfig.fromMap(o, prefix);
+    return UILoadingConfig.parse(o.toString(), prefix);
+  }
 
-    if (isNotEmptyString(loadingType, trim: true) ||
-        isNotEmptyString(loadingColor, trim: true) ||
-        isNotEmptyString(loadingText, trim: true)) {
+  factory UILoadingConfig.fromMap(Map attributes, [String prefix]) {
+    prefix ??= '';
+
+    var type = parseString(attributes['${prefix}type']);
+    var inline = parseString(attributes['${prefix}inline']);
+    var color = parseString(attributes['${prefix}color']);
+    var zoom = parseString(attributes['${prefix}zoom']);
+    var text = parseString(attributes['${prefix}text']);
+    var textZoom = parseString(attributes['${prefix}text-zoom']);
+
+    if (isNotEmptyString(type, trim: true) ||
+        isNotEmptyString(color, trim: true) ||
+        isNotEmptyString(text, trim: true) ||
+        isNotEmptyString(zoom, trim: true)) {
       return UILoadingConfig(
-          type: loadingType,
-          inline: parseBool(loadingInline),
-          color: loadingColor,
-          zoom: parseDouble(loadingZoom),
-          text: loadingText,
-          textZoom: parseDouble(loadingTextZoom));
+          type: getUILoadingType(type),
+          inline: parseBool(inline),
+          color: color,
+          zoom: parseDouble(zoom),
+          text: text,
+          textZoom: parseDouble(textZoom));
     }
 
     return null;
+  }
+
+  factory UILoadingConfig.parse(String config, [String prefix]) {
+    if (isEmptyString(config)) return null;
+    var map = parseFromInlineProperties(config);
+    return UILoadingConfig.fromMap(map, prefix);
   }
 
   String get text => _text?.text;
@@ -617,4 +640,26 @@ class UILoadingConfig {
   DIVElement asDIVElement() => UILoading.asDIVElement(type, config: this);
 
   DivElement asDivElement() => UILoading.asDivElement(type, config: this);
+
+  @override
+  DOMElement get asDOMElement => asDIVElement();
+
+  String toInlineProperties() {
+    var color = _color.text;
+    var text = _text.text;
+
+    return [
+      if (type != null) 'type: ${EnumToString.convertToString(type)}',
+      if (inline != null) 'inline: $inline',
+      if (isNotEmptyString(color, trim: true)) 'color: $color',
+      if (zoom != null) 'zoom: $zoom',
+      if (textZoom != null) 'textZoom: $textZoom',
+      if (isNotEmptyString(text, trim: true)) 'text: $text',
+    ].join('; ');
+  }
+
+  @override
+  String toString() {
+    return 'UILoadingConfig{${toInlineProperties()}}';
+  }
 }
