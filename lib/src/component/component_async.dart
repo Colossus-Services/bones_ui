@@ -99,11 +99,10 @@ class UIComponentAsync extends UIComponent {
     if ((!cacheRenderAsync && _asyncContentRenderCount > 1) ||
         !UIAsyncContent.isValid(_asyncContent, properties)) {
       _asyncContent = UIAsyncContent.provider(
-          () => _renderAsync(renderProperties()),
-          loadingContent,
-          errorContent,
-          refreshInterval,
-          properties);
+          () => _renderAsync(renderProperties()), loadingContent,
+          errorContent: errorContent,
+          refreshInterval: refreshInterval,
+          properties: properties);
       _asyncContent.onLoadContent.listen((content) {
         onLoadAsyncContent.add(content);
         onChange.add(content);

@@ -252,12 +252,14 @@ DOMElement $ui_button_loader(
     Map<String, String> attributes,
     content,
     bool commented,
+    bool withProgress,
     dynamic loadingConfig}) {
   return $tag('ui-button-loader',
       id: id,
       attributes: {
         if (buttonClasses != null) 'button-classes': buttonClasses,
         if (buttonClasses != null) 'button-style': buttonStyle,
+        if (withProgress != null) 'with-progress': '$withProgress',
         if (loadingConfig != null)
           'loading-config': (loadingConfig is UILoadingConfig
               ? loadingConfig.toInlineProperties()
@@ -279,6 +281,7 @@ class UIButtonLoader extends UIButtonBase {
     var loadedTextError = attributes['loaded-text-error'];
     var buttonClasses = attributes['button-classes'];
     var buttonStyle = attributes['button-style'];
+    var withProgress = parseBool(attributes['with-progress']);
     var loadingConfig =
         UILoadingConfig.parse(attributes['loading-config']?.value);
 
@@ -287,6 +290,7 @@ class UIButtonLoader extends UIButtonBase {
         loadedTextErrorStyle: loadedTextErrorStyle,
         loadedTextOK: loadedTextOK,
         loadedTextError: loadedTextError,
+        withProgress: withProgress,
         loadingConfig: loadingConfig,
         buttonClasses: buttonClasses,
         buttonStyle: buttonStyle);
@@ -318,6 +322,8 @@ class UIButtonLoader extends UIButtonBase {
   final TextProvider _buttonClasses;
   final TextProvider _buttonStyle;
 
+  final bool withProgress;
+
   UIButtonLoader(
     Element parent,
     String text, {
@@ -336,6 +342,7 @@ class UIButtonLoader extends UIButtonBase {
     dynamic style,
     dynamic style2,
     dynamic buttonStyle,
+    bool withProgress,
   })  : loadingConfig = loadingConfig,
         _loadedTextOK = TextProvider.from(loadedTextOK),
         _loadedTextError = TextProvider.from(loadedTextError),
@@ -343,6 +350,7 @@ class UIButtonLoader extends UIButtonBase {
         _loadedTextErrorStyle = TextProvider.from(loadedTextErrorStyle),
         _buttonClasses = TextProvider.from(buttonClasses),
         _buttonStyle = TextProvider.from(buttonStyle),
+        withProgress = withProgress ?? false,
         super(parent,
             navigate: navigate,
             navigateParameters: navigateParameters,
@@ -366,7 +374,7 @@ class UIButtonLoader extends UIButtonBase {
     }
   }
 
-  DOMElement _button;
+  dynamic _button;
 
   DivElement _loadingDiv;
 
@@ -381,19 +389,27 @@ class UIButtonLoader extends UIButtonBase {
     }
 
     _loadingDiv ??= UILoading.asDivElement(UILoadingType.ring,
-        zoom: 0.50, cssContext: content, config: loadingConfig)
+        zoom: 0.50,
+        textZoom: 1.5,
+        cssContext: content,
+        withProgress: withProgress,
+        config: loadingConfig)
       ..style.display = 'none';
 
-    _button ??= $button(
-        classes: _buttonClasses?.text,
-        style: _buttonStyle?.text,
-        content: text);
+    _button ??= renderButtonElement();
 
     _loadedMessage ??= DivElement()..style.display = 'none';
 
     _setLoadedMessageStyle();
 
     return [_button, _loadingDiv, _loadedMessage];
+  }
+
+  dynamic renderButtonElement() {
+    return $button(
+        classes: _buttonClasses?.text,
+        style: _buttonStyle?.text,
+        content: text);
   }
 
   void _setLoadedMessageStyle({bool error = false}) {
@@ -420,7 +436,8 @@ class UIButtonLoader extends UIButtonBase {
     if (_loadingDiv == null) return;
 
     _loadingDiv.style.display = 'inline-block';
-    var button = _button.runtimeNode as Element;
+    var button =
+        (_button is DOMElement ? _button.runtimeNode : _button) as Element;
     button.style.display = 'none';
 
     _loadedMessage.style.display = 'none';
@@ -429,7 +446,8 @@ class UIButtonLoader extends UIButtonBase {
   void stopLoading(bool loadOK, {String okMessage, String errorMessage}) {
     if (_loadingDiv == null) return;
 
-    var button = _button.runtimeNode as Element;
+    var button =
+        (_button is DOMElement ? _button.runtimeNode : _button) as Element;
 
     if (loadOK == null) {
       _setLoadedMessageStyle();
@@ -462,6 +480,24 @@ class UIButtonLoader extends UIButtonBase {
       } else {
         _loadedMessage.style.display = 'none';
       }
+    }
+  }
+
+  /// Sets the progress of loading.
+  void setProgress(double ratio) {
+    var progressDiv = _loadingDiv.querySelector('.ui-loading-progress');
+    if (progressDiv == null) {
+      progressDiv = DivElement()..classes.add('ui-loading-progress');
+      var loadingDiv = _loadingDiv.querySelector('.ui-loading');
+      loadingDiv.append(progressDiv);
+      return;
+    }
+
+    if (ratio == null) {
+      progressDiv.text = '';
+    } else {
+      var percent = formatPercent(ratio, precision: 0, isRatio: true);
+      progressDiv.text = percent;
     }
   }
 }

@@ -24,7 +24,10 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       DOMNode domNode,
       Map<String, DOMAttribute> attributes,
       Node contentHolder,
-      List<DOMNode> contentNodes) {
+      List<DOMNode> contentNodes,
+      DOMContext<Node> domContext) {
+    domContext ??= domGenerator.domContext;
+
     var element = DivElement();
 
     setElementAttributes(element, attributes);
@@ -33,48 +36,60 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
     var html = contentNodes.map((e) => e.buildHTML(withIndent: true)).join('');
 
-    if (html.contains('{{')) {
+    if (DOMTemplate.possiblyATemplate(html)) {
       try {
-        var template = DOMTemplate.parse(html);
-        var variables = getTemplateVariables(domGenerator, attributes);
+        var template = DOMTemplate.tryParse(html);
 
-        var asyncValues = deepCatchesMapValues(variables, (c, k, v) {
-          return v is AsyncValue;
-        });
+        if (template == null) {
+          domNode.clearNodes();
+          _generateElementContentFromHTML(
+              domGenerator, treeMap, html, domNode, element);
+        } else {
+          var variables =
+              getTemplateVariables(domGenerator, attributes, domContext);
 
-        if (asyncValues.isNotEmpty) {
-          var futures =
-              asyncValues.whereType<AsyncValue>().map((e) => e.future).toList();
+          var asyncValues = deepCatchesMapValues(variables, (c, k, v) {
+            return v is AsyncValue;
+          });
 
-          var loadingConfig = UILoadingConfig.fromMap(attributes, 'loading-');
+          if (asyncValues.isNotEmpty) {
+            var futures = asyncValues
+                .whereType<AsyncValue>()
+                .map((e) => e.future)
+                .toList();
 
-          DivElement uiLoading;
-          if (loadingConfig != null) {
-            uiLoading = loadingConfig.asDivElement();
-            element.append(uiLoading);
-          }
+            var loadingConfig = UILoadingConfig.fromMap(attributes, 'loading-');
 
-          Future.wait(futures).then((_) {
-            _normalizeVariables(variables);
+            DivElement uiLoading;
+            if (loadingConfig != null) {
+              uiLoading = loadingConfig.asDivElement();
+              element.append(uiLoading);
+            }
 
+            Future.wait(futures).then((_) {
+              _normalizeVariables(variables, domContext);
+
+              html = template.build(variables,
+                  elementProvider: (q) => queryElementProvider(treeMap, q),
+                  intlMessageResolver: domContext?.intlMessageResolver);
+
+              uiLoading?.remove();
+
+              domNode.clearNodes();
+
+              _generateElementContentFromHTML(
+                  domGenerator, treeMap, html, domNode, element);
+            });
+          } else {
             html = template.build(variables,
-                elementProvider: (q) => queryElementProvider(treeMap, q));
-
-            uiLoading?.remove();
+                elementProvider: (q) => queryElementProvider(treeMap, q),
+                intlMessageResolver: domContext?.intlMessageResolver);
 
             domNode.clearNodes();
 
             _generateElementContentFromHTML(
                 domGenerator, treeMap, html, domNode, element);
-          });
-        } else {
-          html = template.build(variables,
-              elementProvider: (q) => queryElementProvider(treeMap, q));
-
-          domNode.clearNodes();
-
-          _generateElementContentFromHTML(
-              domGenerator, treeMap, html, domNode, element);
+          }
         }
       } catch (e, s) {
         print(e);
@@ -130,11 +145,12 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
         setTreeMapRoot: false);
   }
 
-  Map<String, dynamic> getTemplateVariables(
-      DOMGenerator domGenerator, Map<String, DOMAttribute> attributes) {
-    if (domGenerator.domContext == null) return {};
+  Map<String, dynamic> getTemplateVariables(DOMGenerator domGenerator,
+      Map<String, DOMAttribute> attributes, DOMContext<Node> domContext) {
+    domContext ??= domGenerator.domContext;
+    if (domContext == null) return {};
 
-    var variables = domGenerator.domContext.variables;
+    var variables = domContext.variables;
 
     var routeParameters = UINavigator.currentNavigation?.parameters;
 
@@ -147,7 +163,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     variables['attributes'] =
         attributes.map((key, value) => MapEntry('$key', '$value'));
 
-    _normalizeVariables(variables);
+    _normalizeVariables(variables, domContext);
 
     var attributesResolved = variables['attributes'] as Map<String, String>;
 
@@ -157,7 +173,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       variables['data'] = AsyncValue.from(dataSourceResponse);
     }
 
-    _normalizeVariables(variables);
+    _normalizeVariables(variables, domContext);
 
     return variables;
   }
@@ -188,11 +204,13 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     return null;
   }
 
-  void _normalizeVariables(Map<String, dynamic> variables) {
+  void _normalizeVariables(
+      Map<String, dynamic> variables, DOMContext domContext) {
     deepReplaceValues(variables, (c, k, v) {
       return v is Function;
     }, (c, k, v) {
-      return v();
+      var f = v as Function;
+      return f();
     });
 
     deepReplaceValues(variables, (c, k, v) {
@@ -209,10 +227,11 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     });
 
     deepReplaceValues(variables, (c, k, v) {
-      return v is String && v.contains('{{') && v.contains('}}');
+      return v is String && DOMTemplate.possiblyATemplate(v);
     }, (c, k, v) {
       var template = DOMTemplate.parse(v);
-      var v2 = template.build(variables);
+      var v2 = template.build(variables,
+          intlMessageResolver: domContext?.intlMessageResolver);
       return v2;
     });
   }

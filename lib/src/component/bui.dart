@@ -27,7 +27,8 @@ class BUIElementGenerator extends ElementGeneratorBase {
       DOMNode domNode,
       Map<String, DOMAttribute> attributes,
       Node contentHolder,
-      List<DOMNode> contentNodes) {
+      List<DOMNode> contentNodes,
+      DOMContext<Node> domContext) {
     var buiElement = DivElement();
 
     setElementAttributes(buiElement, attributes);
@@ -286,13 +287,7 @@ class BUIRender extends UINavigableComponent {
 
   Element get renderedRoot => _renderedRoot;
 
-  Element _renderContainer;
-
-  set renderContainer(Element value) {
-    _renderContainer = value;
-  }
-
-  Element get renderContainer => _renderContainer;
+  Element renderContainer;
 
   DivElement get renderViewportElement => content;
 
@@ -324,13 +319,13 @@ class BUIRender extends UINavigableComponent {
   dynamic _render() {
     updateSourcesFromViewProvider();
 
-    if (_renderContainer == null) {
-      _renderContainer = createDivInlineBlock();
-      _renderContainer.style.cssText = '';
-      _renderContainer.style.width = '100%';
-      _renderContainer.style.height = '100%';
+    if (renderContainer == null) {
+      renderContainer = createDivInlineBlock();
+      renderContainer.style.cssText = '';
+      renderContainer.style.width = '100%';
+      renderContainer.style.height = '100%';
     } else {
-      var nodes = List<Node>.from(_renderContainer.nodes);
+      var nodes = List<Node>.from(renderContainer.nodes);
 
       for (var node in nodes) {
         if (node != _navbarElement) {
@@ -339,8 +334,8 @@ class BUIRender extends UINavigableComponent {
       }
     }
 
-    if (!content.contains(_renderContainer)) {
-      content.append(_renderContainer);
+    if (!content.contains(renderContainer)) {
+      content.append(renderContainer);
     }
 
     _renderNavbar();
@@ -365,7 +360,7 @@ class BUIRender extends UINavigableComponent {
 
     _renderedRoot.classes.add('bui-root');
 
-    return _renderContainer;
+    return renderContainer;
   }
 
   void _renderNavbar() {
@@ -477,8 +472,8 @@ class BUIRender extends UINavigableComponent {
     var svgStyles = '';
     if (includeDocumentStyles) {
       var rules = getAllCssStyleSheet()
-          .where((e) => e != null)
           .map((e) => e.rules)
+          .whereType<List<CssRule>>()
           .expand((e) => e)
           .toList();
 
@@ -1174,7 +1169,7 @@ class BUIManifest {
 
   Map<String, DataSource> _dataSources;
 
-  void _loadDataSources() async {
+  Future<void> _loadDataSources() async {
     var manifestTree = await getManifestTree() ?? {};
 
     var dataSourcesJSON = manifestTree['data-sources'] ?? [];

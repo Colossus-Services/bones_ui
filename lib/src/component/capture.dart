@@ -7,7 +7,18 @@ import 'package:bones_ui/src/bones_ui_base.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
-enum CaptureType { PHOTO, PHOTO_SELFIE, VIDEO, VIDEO_SELFIE, AUDIO, JSON, FILE }
+enum CaptureType {
+  PHOTO,
+  PHOTO_SELFIE,
+  PHOTO_FILE,
+  VIDEO,
+  VIDEO_SELFIE,
+  VIDEO_FILE,
+  AUDIO_RECORD,
+  AUDIO_FILE,
+  JSON,
+  FILE
+}
 
 enum CaptureDataFormat {
   STRING,
@@ -96,6 +107,11 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
           capture = 'user';
           break;
         }
+      case CaptureType.PHOTO_FILE:
+        {
+          accept = 'image/*';
+          break;
+        }
       case CaptureType.VIDEO:
         {
           accept = 'video/*';
@@ -108,7 +124,18 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
           capture = 'user';
           break;
         }
-      case CaptureType.AUDIO:
+      case CaptureType.VIDEO_FILE:
+        {
+          accept = 'video/*';
+          break;
+        }
+      case CaptureType.AUDIO_RECORD:
+        {
+          accept = 'audio/*';
+          capture = 'environment';
+          break;
+        }
+      case CaptureType.AUDIO_FILE:
         {
           accept = 'audio/*';
           break;
@@ -130,7 +157,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     var input = '<input field="$fieldName" type="file"';
 
     input += accept != null ? " accept='$accept'" : '';
-    input += capture != null ? " capture='$capture'" : ' capture';
+    input += capture != null ? " capture='$capture'" : '';
 
     input += ' hidden>';
 
@@ -304,7 +331,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     _removeExifFromImage = value ?? false;
   }
 
-  void _readFile(FileUploadInputElement input) async {
+  Future<void> _readFile(FileUploadInputElement input) async {
     if (input != null && input.files.isNotEmpty) {
       var file = input.files.first;
 
@@ -470,6 +497,7 @@ class UIButtonCapturePhoto extends UICapture {
 
   UIButtonCapturePhoto(Element parent,
       {this.text,
+      CaptureType captureType,
       this.buttonContent,
       String fieldName,
       String navigate,
@@ -481,7 +509,7 @@ class UIButtonCapturePhoto extends UICapture {
       dynamic style,
       bool small = false,
       this.fontSize})
-      : super(parent, CaptureType.PHOTO,
+      : super(parent, captureType ?? CaptureType.PHOTO,
             fieldName: fieldName,
             navigate: navigate,
             navigateParameters: navigateParameters,
@@ -589,6 +617,8 @@ class UIButtonCapturePhoto extends UICapture {
       _selectedImageElements.add(BRElement());
     }
     _selectedImageElements.add(img);
+
+    img.onClick.listen((e) => fireClickEvent(e));
 
     content.children.addAll(_selectedImageElements);
   }

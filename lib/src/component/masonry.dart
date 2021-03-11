@@ -125,11 +125,11 @@ class UIMasonry extends UIComponent {
     this.itemsMargin = itemsMargin;
     this.dimensionTolerance = dimensionTolerance;
 
-    _masonryWidthSize = NNField(0,
+    _masonryWidthSize = NNField<int>(0,
         filter: (n) => n != null && n > 10 ? n : null,
         resolver: computeMasonryWidthSize);
 
-    _masonryHeightSize = NNField(0,
+    _masonryHeightSize = NNField<int>(0,
         filter: (n) => n != null && n > 10 ? n : null,
         resolver: computeMasonryHeightSize);
 

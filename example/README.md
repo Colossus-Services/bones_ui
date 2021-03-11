@@ -19,13 +19,13 @@ $> cd ./bones_ui
 Run Dart `pub get` to get the dependencies:  
 
 ```shell script
-$> pub get  
+$> dart pub get  
 ```
 
 Run `webdev serve` at `example` to build the project and run the Web server at port `8080`:
 
 ```shell script
-$> pub global run webdev serve example 
+$> dart pub global run webdev serve example 
 ```
 
 Open http://127.0.0.1:8080 in your browser.

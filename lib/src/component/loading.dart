@@ -497,6 +497,7 @@ abstract class UILoading {
       String text,
       double textZoom,
       dynamic cssContext,
+      bool withProgress,
       UILoadingConfig config}) {
     if (config != null) {
       if (config.type != null) type = config.type;
@@ -504,6 +505,7 @@ abstract class UILoading {
       if (config.zoom != null) zoom = config.zoom;
       if (config.text != null) text = config.text;
       if (config.textZoom != null) textZoom = config.textZoom;
+      if (config.withProgress != null) withProgress = config.withProgress;
     }
 
     type ??= UILoadingType.ring;
@@ -542,11 +544,26 @@ abstract class UILoading {
       div.style.put('zoom', '$zoom');
     }
 
+    var fontSize = textZoom != null && textZoom > 0 && textZoom != 1
+        ? '; font-size: ${textZoom * 100}%'
+        : '';
+
     if (isNotEmptyString(text)) {
-      var fontSize = textZoom != null && textZoom > 0 && textZoom != 1
-          ? '; font-size: ${textZoom * 100}%'
-          : '';
-      div.add('<div style="margin: auto; color: $color$fontSize">$text</div>');
+      div.add(
+        $div(
+            classes: 'ui-loading-text',
+            style: 'margin: auto; color: $color$fontSize',
+            content: text),
+      );
+    }
+
+    if (withProgress ?? false) {
+      div.add(
+        $div(
+            classes: 'ui-loading-progress',
+            style: 'margin: auto; color: $color$fontSize',
+            content: '0%'),
+      );
     }
 
     return div;
@@ -559,6 +576,7 @@ abstract class UILoading {
       String text,
       double textZoom,
       dynamic cssContext,
+      bool withProgress,
       UILoadingConfig config}) {
     var div = asDIVElement(type,
         inline: inline,
@@ -567,6 +585,7 @@ abstract class UILoading {
         text: text,
         textZoom: textZoom,
         cssContext: cssContext,
+        withProgress: withProgress,
         config: config);
     return div.buildDOM(generator: UIComponent.domGenerator) as DivElement;
   }
@@ -579,6 +598,7 @@ class UILoadingConfig implements AsDOMElement {
   final double zoom;
   final TextProvider _text;
   final double textZoom;
+  final bool withProgress;
 
   UILoadingConfig(
       {UILoadingType type,
@@ -586,13 +606,15 @@ class UILoadingConfig implements AsDOMElement {
       dynamic color,
       dynamic zoom,
       dynamic text,
-      dynamic textZoom})
+      dynamic textZoom,
+      bool withProgress})
       : type = getUILoadingType(type) ?? UILoadingType.ring,
         inline = parseBool(inline),
         _color = TextProvider.from(color),
         zoom = parseDouble(zoom),
         _text = TextProvider.from(text),
-        textZoom = parseDouble(textZoom);
+        textZoom = parseDouble(textZoom),
+        withProgress = withProgress ?? false;
 
   factory UILoadingConfig.from(dynamic o, [String prefix]) {
     if (o == null) return null;
@@ -610,6 +632,7 @@ class UILoadingConfig implements AsDOMElement {
     var zoom = parseString(attributes['${prefix}zoom']);
     var text = parseString(attributes['${prefix}text']);
     var textZoom = parseString(attributes['${prefix}text-zoom']);
+    var withProgress = parseBool(attributes['${prefix}with-progress']);
 
     if (isNotEmptyString(type, trim: true) ||
         isNotEmptyString(color, trim: true) ||
@@ -621,7 +644,8 @@ class UILoadingConfig implements AsDOMElement {
           color: color,
           zoom: parseDouble(zoom),
           text: text,
-          textZoom: parseDouble(textZoom));
+          textZoom: parseDouble(textZoom),
+          withProgress: withProgress);
     }
 
     return null;

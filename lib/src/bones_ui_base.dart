@@ -428,7 +428,7 @@ class UIConsole {
     consoleText.style.overflow = 'scroll';
 
     var html = '<pre>\n'
-        '${allLogs}'
+        '$allLogs'
         '</pre>';
 
     setElementInnerHTML(consoleText, html);
@@ -497,7 +497,7 @@ class UIConsole {
     var allLogs = _allLogs();
 
     if (_contentClipboard != null) {
-      _contentClipboard.innerHtml = '<pre>${allLogs}</pre>';
+      _contentClipboard.innerHtml = '<pre>$allLogs</pre>';
       _copyElementToClipboard(_contentClipboard);
       _contentClipboard.text = '';
     }
@@ -779,7 +779,8 @@ class UIComponentGenerator<C extends UIComponent>
       DOMNode domNode,
       Map<String, DOMAttribute> attributes,
       Node contentHolder,
-      List<DOMNode> contentNodes) {
+      List<DOMNode> contentNodes,
+      DOMContext<Node> domContext) {
     var component =
         instantiator(parent, attributes, contentHolder, contentNodes);
     var anySet = component.appendAttributes(attributes.values);
@@ -957,6 +958,7 @@ abstract class UIComponent extends UIEventHandler {
       dynamic style2,
       UIComponentClearParent clearParent,
       bool inline = true,
+      bool construct,
       bool renderOnConstruction,
       bool preserveRender,
       this.id,
@@ -965,6 +967,23 @@ abstract class UIComponent extends UIEventHandler {
         _parent = parent ?? createDivInline(),
         clearParent = clearParent,
         _generator = generator {
+    if (construct ?? true) {
+      _construct(preserveRender, inline, classes, classes2, componentClass,
+          style, style2, componentStyle, renderOnConstruction ?? false);
+    }
+  }
+
+  void _construct(
+    bool preserveRender,
+    bool inline,
+    classes,
+    classes2,
+    componentClass,
+    style,
+    style2,
+    componentStyle,
+    bool renderOnConstruction,
+  ) {
     _constructing = true;
     try {
       if (preserveRender != null) {
@@ -973,7 +992,7 @@ abstract class UIComponent extends UIEventHandler {
 
       onPreConstruct();
 
-      _content = createContentElement(inline);
+      _content ??= createContentElement(inline);
 
       _setParentUIComponent(_getUIComponentByContent(_parent));
 
@@ -984,14 +1003,12 @@ abstract class UIComponent extends UIEventHandler {
       configureClasses(classes, classes2, componentClass);
       configureStyle(style, style2, componentStyle);
 
-      configure();
-
-      if (this.clearParent == UIComponentClearParent.onConstruct) {
+      if (clearParent == UIComponentClearParent.onConstruct) {
         _parent.nodes.clear();
       }
       _parent.append(_content);
 
-      renderOnConstruction ??= false;
+      configure();
 
       if (renderOnConstruction) {
         callRender();
@@ -999,6 +1016,17 @@ abstract class UIComponent extends UIEventHandler {
     } finally {
       _constructing = false;
     }
+  }
+
+  void addTo(Element parent) {
+    if (parent == null) return;
+    _setParentImpl(parent, true);
+  }
+
+  void insertTo(int index, Element parent) {
+    if (parent == null) return;
+    _setParentImpl(parent, true);
+    parent.nodes.insert(index, content);
   }
 
   /// Called by constructor to register this component in the [UIRoot] tree.
@@ -1020,29 +1048,33 @@ abstract class UIComponent extends UIEventHandler {
     if (parent == null) throw StateError('Null parent');
 
     if (_content != null) {
-      if (identical(_parent, parent)) return _parent;
-
-      _content.remove();
-
-      if (_parent != null) {
-        _parent.children.remove(_content);
+      if (identical(_parent, parent)) {
+        if (!identical(_content.parent, _parent)) {
+          _parent.append(_content);
+        }
+        parentUIComponent;
+        return _parent;
+      } else if (identical(_content.parent, parent)) {
+        _parentUIComponent = null;
+        _parent = parent;
+        parentUIComponent;
+        return _parent;
+      } else {
+        _content.remove();
       }
     }
 
+    _parentUIComponent = null;
     _parent = parent;
 
     if (_content != null && addToParent) {
-      _parent.children.add(_content);
-
+      _parent.append(_content);
       clear();
     }
 
-    if (_parent != null) {
-      var parentUI = _getUIComponentByContent(_parent);
-      _setParentUIComponent(parentUI);
-    }
+    parentUIComponent;
 
-    return parent;
+    return _parent;
   }
 
   /// Returns a [List] of sub [UIComponent].
@@ -1064,7 +1096,8 @@ abstract class UIComponent extends UIEventHandler {
 
     var myParentElem = parent;
 
-    var foundParent = _getUIComponentByContent(myParentElem);
+    var foundParent = _getUIComponentByContent(myParentElem) ??
+        _getUIComponentByChild(myParentElem);
 
     if (foundParent != null) {
       _setParentUIComponent(foundParent);
@@ -1388,12 +1421,8 @@ abstract class UIComponent extends UIEventHandler {
         .toList();
   }
 
-  dynamic getRenderedUIComponentByType(Type type, [bool deep]) {
-    if (type == null) return null;
-    return getRenderedUIComponents(deep)
-        .where((e) => e.runtimeType == type)
-        .toList();
-  }
+  List<T> getRenderedUIComponentByType<T>([bool deep]) =>
+      getRenderedUIComponents(deep).whereType<T>().toList();
 
   List<UIComponent> getRenderedUIComponents([bool deep]) =>
       (deep ?? false) ? subUIComponentsDeeply : subUIComponents;
@@ -1415,6 +1444,8 @@ abstract class UIComponent extends UIEventHandler {
         }
       }
     }
+
+    _renderedAsyncContents.clear();
 
     var elements = List.from(_content.children);
     elements.forEach((e) => e.remove());
@@ -1504,12 +1535,42 @@ abstract class UIComponent extends UIEventHandler {
     return _renderLocale != currentLocale;
   }
 
+  bool deviceSizeChangedFromLastRender(
+      {double tolerance = 0.10,
+      bool onlyWidth = false,
+      bool onlyHeight = false}) {
+    if (_renderDeviceWidth == null || _renderDeviceHeight == null) {
+      return false;
+    }
+
+    tolerance ??= 0.10;
+
+    var w = deviceWidth;
+    var h = deviceHeight;
+
+    var rw = Math.max(_renderDeviceWidth / w, w / _renderDeviceWidth) - 1;
+    var rh = Math.max(_renderDeviceHeight / h, h / _renderDeviceHeight) - 1;
+
+    //print('deviceSizeChangedFromLastRender>> $_renderDeviceWidth / $w ; $_renderDeviceHeight / $h > $rw ; $rh > $tolerance');
+
+    if (onlyWidth ?? false) {
+      return rw > tolerance;
+    } else if (onlyHeight ?? false) {
+      return rh > tolerance;
+    } else {
+      return rw > tolerance || rh > tolerance;
+    }
+  }
+
   static bool get isAnyComponentRendering =>
       UIRoot.getInstance()?.isAnyComponentRendering ?? false;
 
-  static UIComponent _getUIComponentByContent(Element content,
-      [bool findUIRootTree = true]) {
+  static UIComponent _getUIComponentByContent(Element content) {
     return UIRoot.getInstance()?.getUIComponentByContent(content);
+  }
+
+  static UIComponent _getUIComponentByChild(Element content) {
+    return UIRoot.getInstance()?.getUIComponentByChild(content);
   }
 
   UIComponent findUIComponentByID(String id) {
@@ -1687,11 +1748,15 @@ abstract class UIComponent extends UIEventHandler {
   int get preserveRenderCount => _preserveRenderCount;
 
   String _renderLocale;
+  int _renderDeviceWidth;
+  int _renderDeviceHeight;
 
   void _doRender() {
     var currentLocale = UIRoot.getCurrentLocale();
 
     _renderLocale = currentLocale;
+    _renderDeviceWidth = deviceWidth;
+    _renderDeviceHeight = deviceHeight;
 
     try {
       if (!isAccessible()) {
@@ -1777,7 +1842,7 @@ abstract class UIComponent extends UIEventHandler {
         var subElements = [];
 
         for (var child in e.children) {
-          var uiComponent = _getUIComponentByContent(child, false);
+          var uiComponent = _getUIComponentByContent(child);
 
           if (uiComponent != null) {
             uiComponent.ensureRendered();
@@ -2045,6 +2110,9 @@ abstract class UIComponent extends UIEventHandler {
     } else if (value is AsDOMNode) {
       var node = value.asDOMNode;
       return node.buildDOM(generator: domGenerator, parent: content);
+    } else if (value is String) {
+      var nodes = $html(value);
+      return nodes;
     } else if (value is Map ||
         (value is List &&
             listMatchesAll(value, (e) => e != null && e is Map))) {
@@ -2058,11 +2126,11 @@ abstract class UIComponent extends UIEventHandler {
       var asyncContent = UIAsyncContent.future(
         value,
         () => renderLoading() ?? '...',
-        (error) {
+        errorContent: (error) {
           markRenderedWithError();
           return renderError(error) ?? '[error: $error]';
         },
-        {'__Future__': value},
+        properties: {'__Future__': value},
       );
       return asyncContent;
     } else {
@@ -2092,9 +2160,6 @@ abstract class UIComponent extends UIEventHandler {
       for (var elem in value) {
         prevElemIndex = _buildRenderList(elem, renderedList, prevElemIndex);
       }
-    } else if (value is String) {
-      prevElemIndex =
-          _addStringToRenderList(value, renderedList, prevElemIndex);
     } else if (value is Function) {
       try {
         var result = value();
@@ -2113,10 +2178,27 @@ abstract class UIComponent extends UIEventHandler {
     return prevElemIndex;
   }
 
+  void _callPosAsyncRender() {
+    try {
+      posAsyncRender();
+    } catch (e, s) {
+      UIConsole.error('$this posAsyncRender error', e, s);
+    }
+  }
+
+  void posAsyncRender() {}
+
   Map<UIAsyncContent, List> _renderedAsyncContents = {};
+  final Set<UIAsyncContent> _loadingAsyncContents = {};
+
+  bool get isLoadingUIAsyncContent => _loadingAsyncContents.isNotEmpty;
 
   void _resolveUIAsyncContentLoaded(UIAsyncContent asyncContent) {
     if (!asyncContent.isLoaded) return;
+
+    if (asyncContent.isLoaded && !asyncContent.hasAutoRefresh) {
+      _loadingAsyncContents.remove(asyncContent);
+    }
 
     var prevRendered = _renderedAsyncContents[asyncContent];
     if (prevRendered == null) return;
@@ -2125,30 +2207,33 @@ abstract class UIComponent extends UIEventHandler {
       return;
     }
 
-    var minRenderedIdx;
+    var minRenderedElementsIdx;
 
     for (var e in prevRendered) {
       if (e == null) continue;
       var idx = _renderedElements.indexOf(e);
       if (idx >= 0) {
         _renderedElements.removeAt(idx);
-        if (minRenderedIdx == null || idx < minRenderedIdx) {
-          minRenderedIdx = idx;
+        if (minRenderedElementsIdx == null || idx < minRenderedElementsIdx) {
+          minRenderedElementsIdx = idx;
         }
       }
     }
 
-    var prevElements = prevRendered.where((e) => e != null).toSet();
+    var prevElements = prevRendered
+        .where((e) => e != null)
+        .map((e) => e is UIComponent ? e.content : e)
+        .toSet();
 
-    int minElementIdx;
+    int maxContentIdx;
 
     for (var node in content.nodes.toList()) {
       if (prevElements.contains(node)) {
         var idx = content.nodes.indexOf(node);
         if (idx >= 0) {
           content.nodes.removeAt(idx);
-          if (minElementIdx == null || minElementIdx < idx) {
-            minElementIdx = idx;
+          if (maxContentIdx == null || idx > maxContentIdx) {
+            maxContentIdx = idx;
           }
         }
       }
@@ -2157,27 +2242,41 @@ abstract class UIComponent extends UIEventHandler {
     var loadedContent = asyncContent.content;
 
     var renderedList = [];
-    if (minElementIdx == null || minElementIdx >= content.nodes.length) {
+    if (maxContentIdx == null || maxContentIdx >= content.nodes.length) {
       _buildRenderList(loadedContent, renderedList, content.nodes.length - 1);
 
       _renderedElements.addAll(renderedList);
     } else {
-      var tail = content.nodes.sublist(minElementIdx).toList();
+      var tail = content.nodes.sublist(maxContentIdx).toList();
       tail.forEach((e) => content.nodes.remove(e));
 
       _buildRenderList(loadedContent, renderedList, content.nodes.length - 1);
 
       content.nodes.addAll(tail);
 
-      _renderedElements.insertAll(minRenderedIdx, renderedList);
+      _renderedElements.insertAll(minRenderedElementsIdx, renderedList);
+    }
+
+    _ensureAllRendered(renderedList);
+
+    try {
+      _parseAttributes(content.children);
+      _parseAttributesPosRender(content.children);
+    } catch (e, s) {
+      UIConsole.error('$this _parseAttributesPosRender(...) error', e, s);
     }
 
     _renderedAsyncContents[asyncContent] = renderedList;
+
+    _callPosAsyncRender();
   }
 
   int _addUIAsyncContentToRenderList(
       UIAsyncContent asyncContent, List renderedList, int prevElemIndex) {
-    if ((!asyncContent.isLoaded || asyncContent.hasAutoRefresh)) {
+    if (!asyncContent.isLoaded ||
+        asyncContent.isExpired ||
+        asyncContent.hasAutoRefresh) {
+      _loadingAsyncContents.add(asyncContent);
       asyncContent.onLoadContent.listen((c) {
         _resolveUIAsyncContentLoaded(asyncContent);
       }, singletonIdentifier: this);
@@ -2210,60 +2309,16 @@ abstract class UIComponent extends UIEventHandler {
     var idx = content.nodes.indexOf(element);
 
     if (idx < 0) {
-      content.children.add(element);
+      content.append(element);
       idx = content.nodes.indexOf(element);
     } else if (idx < prevElemIndex) {
       element.remove();
-      content.children.add(element);
+      content.append(element);
       idx = content.nodes.indexOf(element);
     }
 
     prevElemIndex = idx;
     renderedList.add(value);
-
-    return prevElemIndex;
-  }
-
-  int _addStringToRenderList(String s, List renderedList, int prevElemIndex) {
-    var content = this.content;
-
-    if (prevElemIndex < 0) {
-      setElementInnerHTML(content, s);
-      prevElemIndex = content.nodes.length - 1;
-      renderedList.addAll(content.nodes);
-    } else {
-      var preAppendSize = content.nodes.length;
-      appendElementInnerHTML(content, s);
-
-      var appendedElements =
-          content.nodes.sublist(preAppendSize, content.nodes.length);
-
-      if (prevElemIndex == preAppendSize - 1) {
-        prevElemIndex = content.nodes.length - 1;
-      } else {
-        if (appendedElements.isNotEmpty) {
-          for (var elem in appendedElements) {
-            elem.remove();
-          }
-
-          var restDyn = copyList(content.nodes.length >= prevElemIndex
-              ? content.nodes.sublist(prevElemIndex + 1)
-              : null);
-
-          var rest = restDyn.cast<Node>();
-          for (var elem in rest) {
-            elem.remove();
-          }
-
-          appendedElements.forEach((n) => content.append(n));
-          rest.forEach((n) => content.append(n));
-
-          prevElemIndex = content.nodes.indexOf(appendedElements[0]);
-        }
-      }
-
-      renderedList.addAll(appendedElements);
-    }
 
     return prevElemIndex;
   }
@@ -2669,15 +2724,11 @@ abstract class UIComponent extends UIEventHandler {
     if (uiComponent is UIField) {
       var uiField = uiComponent as UIField;
       var fieldValue = uiField.getFieldValue();
-      return fieldValue != null
-          ? MapProperties.toStringValue(fieldValue)
-          : null;
+      return MapProperties.toStringValue(fieldValue);
     } else if (uiComponent is UIFieldMap) {
       var uiFieldMap = uiComponent as UIFieldMap;
       var fieldValue = uiFieldMap.getFieldMap();
-      return fieldValue != null
-          ? MapProperties.toStringValue(fieldValue)
-          : null;
+      return MapProperties.toStringValue(fieldValue);
     } else if (element is TextAreaElement) {
       return element.value;
     } else if (element is SelectElement) {
@@ -2687,6 +2738,9 @@ abstract class UIComponent extends UIEventHandler {
     } else if (element is InputElement) {
       var type = element.type;
       switch (type) {
+        case 'checkbox':
+        case 'radio':
+          return parseBool(element.checked, false) ? element.value : null;
         case 'file':
           return MapProperties.toStringValue(element.files.map((f) => f.name));
         default:
@@ -2728,7 +2782,9 @@ abstract class UIComponent extends UIEventHandler {
       var key = entry.key;
       if (fieldsValues.containsKey(key)) continue;
       var value = parseChildElementValue(entry.value);
-      fieldsValues[key] = value;
+      if (value != null) {
+        fieldsValues[key] = value;
+      }
     }
 
     return fieldsValues;
@@ -2943,7 +2999,8 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
 
     domActionExecutor = UIDOMActionExecutor();
 
-    domContext = DOMContext<Node>();
+    domContext = DOMContext<Node>()..intlMessageResolver = resolveIntlMessage;
+
     setupContextVariables();
   }
 
@@ -2954,6 +3011,16 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       'currentRoute': () => _currentRouteEntry(),
       'locale': () => UIRoot.getCurrentLocale(),
     };
+  }
+
+  String resolveIntlMessage(String key, [Map<String, dynamic> parameters]) {
+    var uiRoot = UIRoot.getInstance();
+    var msgResolver = uiRoot?.intlMessageResolver;
+    var msg = msgResolver != null ? msgResolver(key, parameters) : null;
+    if (isEmptyString(msg)) {
+      msg = IntlBasicDictionary.msg(key, IntlLocale.getDefaultIntlLocale());
+    }
+    return msg;
   }
 
   Map<String, dynamic> _currentRouteEntry() {
@@ -3056,15 +3123,48 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
           UIRoot.getInstance().findUIComponentByChild(futureElementResolved);
       if (parentComponent != null) {
         parentComponent._parseAttributes([futureElementResolved]);
+        parentComponent._ensureAllRendered([futureElementResolved]);
       }
     }
   }
 
   @override
+  List<Node> toElements(elements) {
+    if (elements is UIComponent) {
+      return [elements.content];
+    } else if (elements is UIAsyncContent) {
+      return [elements.content];
+    } else {
+      return super.toElements(elements);
+    }
+  }
+
+  @override
+  bool replaceChildElement(Node parent, Node child1, List<Node> child2) {
+    var ok = super.replaceChildElement(parent, child1, child2);
+
+    if (ok && child2 != null && child2.isNotEmpty) {
+      for (var e in child2) {
+        var uiRoot = UIRoot.getInstance();
+        var uiComponent =
+            uiRoot.getUIComponentByContent(e, includePurgedEntries: true);
+        if (uiComponent != null) {
+          uiComponent.setParent(parent);
+          uiComponent.ensureRendered();
+        }
+      }
+    }
+
+    return ok;
+  }
+
+  @override
   void finalizeGeneratedTree(DOMTreeMap<Node> treeMap) {
     var rootElement = treeMap.rootElement;
-    setElementsBGBlur(rootElement);
-    setElementsDivCentered(rootElement);
+    if (rootElement is Element) {
+      setElementsBGBlur(rootElement);
+      setElementsDivCentered(rootElement);
+    }
   }
 }
 
@@ -3106,7 +3206,7 @@ abstract class UINavigableContent extends UINavigableComponent {
     addAllToList(allRendered, contentRendered);
     addAllToList(allRendered, footRendered);
 
-    if (_findRoutes != null && _findRoutes) {
+    if (findRoutes != null && findRoutes) {
       updateRoutes();
     }
 
@@ -3246,11 +3346,11 @@ class UIAsyncContent {
 
   Future<dynamic> _asyncContentFuture;
 
-  dynamic _loadingContent;
+  final dynamic _loadingContent;
 
-  dynamic _errorContent;
+  final dynamic _errorContent;
 
-  Duration _refreshInterval;
+  final Duration _refreshInterval;
 
   _Content _loadedContent;
 
@@ -3292,17 +3392,6 @@ class UIAsyncContent {
     }
   }
 
-  bool equalsCurrentLocale() => _locale == IntlLocale.getDefaultLocale();
-
-  bool equalsLocale(String locale) => _locale == locale;
-
-  bool equalsProperties(Map<String, dynamic> properties) {
-    properties ??= {};
-    return isEqualsDeep(_properties, properties);
-  }
-
-  final EventStream<dynamic> onLoadContent = EventStream();
-
   /// Constructs an [UIAsyncContent] using [_asyncContentProvider] ([Function]), that returns the content.
   ///
   /// [loadingContent] Content to show while loading.
@@ -3310,14 +3399,14 @@ class UIAsyncContent {
   /// [_refreshInterval] Interval to refresh the content.
   /// [properties] Properties of this content.
   UIAsyncContent.provider(this._asyncContentProvider, dynamic loadingContent,
-      [dynamic errorContent,
-      this._refreshInterval,
-      Map<String, dynamic> properties])
+      {dynamic errorContent,
+      Duration refreshInterval,
+      Map<String, dynamic> properties})
       : _locale = IntlLocale.getDefaultLocale(),
-        _properties = properties ?? {} {
-    _loadingContent = _normalizeContent(loadingContent);
-    _errorContent = _normalizeContent(errorContent);
-
+        _refreshInterval = refreshInterval,
+        _properties = properties ?? {},
+        _loadingContent = _normalizeContent(loadingContent),
+        _errorContent = _normalizeContent(errorContent) {
     _callContentProvider(false);
   }
 
@@ -3328,14 +3417,27 @@ class UIAsyncContent {
   /// [_refreshInterval] Interval to refresh the content.
   /// [properties] Properties of this content.
   UIAsyncContent.future(Future<dynamic> contentFuture, dynamic loadingContent,
-      [dynamic errorContent, Map<String, dynamic> properties])
+      {dynamic errorContent,
+      Duration refreshInterval,
+      Map<String, dynamic> properties})
       : _locale = IntlLocale.getDefaultLocale(),
-        _properties = properties ?? {} {
-    _loadingContent = _normalizeContent(loadingContent);
-    _errorContent = _normalizeContent(errorContent);
-
+        _refreshInterval = refreshInterval,
+        _properties = properties ?? {},
+        _loadingContent = _normalizeContent(loadingContent),
+        _errorContent = _normalizeContent(errorContent) {
     _setAsyncContentFuture(contentFuture);
   }
+
+  bool equalsCurrentLocale() => _locale == IntlLocale.getDefaultLocale();
+
+  bool equalsLocale(String locale) => _locale == locale;
+
+  bool equalsProperties(Map<String, dynamic> properties) {
+    properties ??= {};
+    return isEqualsDeep(_properties, properties);
+  }
+
+  final EventStream<dynamic> onLoadContent = EventStream();
 
   Map<String, dynamic> get properties => Map<String, dynamic>.from(_properties);
 
@@ -3352,7 +3454,7 @@ class UIAsyncContent {
     }
   }
 
-  dynamic _normalizeContent(dynamic content) {
+  static dynamic _normalizeContent(dynamic content) {
     if (content is Function) {
       return content;
     } else {
@@ -3568,12 +3670,16 @@ abstract class UIRoot extends UIComponent {
 
   Future<bool> _futureInitializeLocale;
 
-  UIRoot(Element rootContainer, {dynamic classes})
+  UIRoot(Element rootContainer, {dynamic style, dynamic classes})
       : super(rootContainer,
+            style: style,
             classes: classes,
             componentClass: 'ui-root',
+            construct: false,
             clearParent: UIComponentClearParent.onInitialRender) {
     _initializeAll();
+
+    _content ??= createContentElement(true);
 
     _uiComponentsTree = DOMTreeReferenceMap(content,
         keepPurgedKeys: true,
@@ -3581,6 +3687,8 @@ abstract class UIRoot extends UIComponent {
         purgedEntriesTimeout: Duration(minutes: 1));
 
     _rootInstance = this;
+
+    _construct(false, true, classes, null, 'ui-root', style, null, null, false);
 
     _localesManager = createLocalesManager(initializeLocale, _onDefineLocale);
     _localesManager.onPreDefineLocale.add(onPrefDefineLocale);
@@ -3595,24 +3703,47 @@ abstract class UIRoot extends UIComponent {
   @override
   void registerInUIRoot() {}
 
+  IntlMessageResolver _intlMessageResolver;
+
+  IntlMessageResolver get intlMessageResolver => _intlMessageResolver;
+
+  set intlMessageResolver(dynamic resolver) {
+    if (resolver is IntlMessages) {
+      _intlMessageResolver = resolver.buildMsg;
+    } else {
+      _intlMessageResolver = toIntlMessageResolver(resolver);
+    }
+  }
+
   bool get isAnyComponentRendering => _uiComponentsTree.validEntries
       .where((e) => e.value.isRendering)
       .isNotEmpty;
 
-  UIComponent getUIComponentByContent(Element uiComponentContent) {
+  UIComponent getUIComponentByContent(Element uiComponentContent,
+      {bool includePurgedEntries = false}) {
     if (uiComponentContent == null) return null;
-    return _uiComponentsTree.get(uiComponentContent);
+    if (includePurgedEntries ?? false) {
+      return _uiComponentsTree.getAlsoFromPurgedEntries(uiComponentContent);
+    } else {
+      return _uiComponentsTree.get(uiComponentContent);
+    }
   }
 
-  UIComponent getUIComponentByChild(Element child) {
-    return _uiComponentsTree.getParentValue(child);
+  UIComponent getUIComponentByChild(Element child,
+      {bool includePurgedEntries = false}) {
+    return _uiComponentsTree.getParentValue(child,
+        includePurgedEntries: includePurgedEntries);
   }
 
-  List<UIComponent> getSubUIComponentsByElement(Element element) {
-    if (element == null || !_uiComponentsTree.isInTree(element)) {
+  List<UIComponent> getSubUIComponentsByElement(Element element,
+      {bool includePurgedEntries = false}) {
+    if (element == null ||
+        (!_uiComponentsTree.isInTree(element) &&
+            !(includePurgedEntries ?? false))) {
       return null;
     }
-    return _uiComponentsTree.getSubValues(element);
+    return _uiComponentsTree.getSubValues(element,
+        includePurgedEntries: includePurgedEntries);
   }
 
   void registerUIComponentInTree(UIComponent uiComponent) {
@@ -3650,7 +3781,7 @@ abstract class UIRoot extends UIComponent {
   }
 
   Future<bool> initializeLocale(String locale) {
-    return null;
+    return Future.value(false);
   }
 
   String getPreferredLocale() {
@@ -3799,7 +3930,7 @@ abstract class UINavigableComponent extends UIComponent {
 
   List<String> _routes;
 
-  bool _findRoutes;
+  bool findRoutes;
 
   String _currentRoute;
 
@@ -3855,12 +3986,6 @@ abstract class UINavigableComponent extends UIComponent {
     _currentTitle = value ?? '';
   }
 
-  bool get findRoutes => _findRoutes;
-
-  set findRoutes(bool value) {
-    _findRoutes = value;
-  }
-
   void _normalizeRoutes() {
     // ignore: omit_local_variable_types
     List<String> routesOk = [];
@@ -3885,7 +4010,7 @@ abstract class UINavigableComponent extends UIComponent {
       }
     }
 
-    _findRoutes = findRoutes;
+    this.findRoutes = findRoutes;
 
     UIConsole.log('_normalizeRoutes: $_routes -> $routesOk');
 
@@ -3952,7 +4077,7 @@ abstract class UINavigableComponent extends UIComponent {
       }
     }
 
-    if (_findRoutes != null && _findRoutes) {
+    if (findRoutes != null && findRoutes) {
       return _findNewRoutes(route);
     }
 
@@ -3984,7 +4109,7 @@ abstract class UINavigableComponent extends UIComponent {
     var currentRouteParameters = _currentRouteParameters;
     var rendered = renderRoute(currentRoute, currentRouteParameters);
 
-    if (_findRoutes != null && _findRoutes) {
+    if (findRoutes != null && findRoutes) {
       updateRoutes();
     }
 
@@ -4161,13 +4286,16 @@ class UINavigator {
       [bool Function(String route) isNotLoggedRoute]) {
     isNotLoggedRoute ??= (r) => !isLoggedRoute(r);
 
+    var currentRoute = UINavigator.currentRoute;
+    var emptyRoute = isEmptyString(currentRoute, trim: true);
+
     if (isLogged()) {
-      if (!isLoggedRoute(UINavigator.currentRoute)) {
+      if (emptyRoute || !isLoggedRoute(currentRoute)) {
         UINavigator.navigateToAsync(mainRouteLogged);
         return true;
       }
     } else {
-      if (!isNotLoggedRoute(UINavigator.currentRoute)) {
+      if (emptyRoute || !isNotLoggedRoute(currentRoute)) {
         UINavigator.navigateToAsync(mainRouteNotLogged);
         return true;
       }

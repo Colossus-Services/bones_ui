@@ -865,7 +865,7 @@ class UILayout {
     if (evaluated is Element) {
       return valueFromElement(evaluated);
     }
-    return '${evaluated}';
+    return '$evaluated';
   }
 
   Map<String, int> _buildEvaluationContext() {

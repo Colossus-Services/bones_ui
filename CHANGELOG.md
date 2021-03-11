@@ -1,3 +1,10 @@
+## 2.0.0-nullsafety.0
+
+- Initial compatibility with Null Safety.
+- Better render of async content.
+- `dom_builder` compatibility.
+- removed PWA support (waiting null safety of package `service_worker`). 
+
 ## 1.2.0
 
 - `UIComponent`:

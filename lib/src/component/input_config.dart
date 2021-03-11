@@ -25,7 +25,7 @@ class InputConfig {
 
   String _type;
 
-  String _value;
+  String value;
 
   String _placeholder;
 
@@ -114,7 +114,7 @@ class InputConfig {
     _id = id;
     _label = label;
     _type = type;
-    _value = value;
+    this.value = value;
     _placeholder = placeholder;
 
     _attributes = attributes;
@@ -141,10 +141,6 @@ class InputConfig {
   String get label => _label;
 
   String get type => _type;
-
-  String get value => _value;
-
-  set value(String value) => _value = value;
 
   String get placeholder => _placeholder;
 
@@ -378,23 +374,18 @@ class UIInputTable extends UIComponent {
   UIInputTable(Element parent, this._inputs,
       {this.actionListenerComponent,
       this.actionListener,
-      String inputErrorClass,
+      this.inputErrorClass,
       bool showLabels,
       dynamic classes,
       dynamic style})
-      : _inputErrorClass = inputErrorClass,
-        showLabels = showLabels ?? true,
+      : showLabels = showLabels ?? true,
         super(parent,
             componentClass: 'ui-infos-table', classes: classes, style: style);
 
-  String _inputErrorClass;
-
-  String get inputErrorClass => _inputErrorClass;
-
-  set inputErrorClass(String value) => _inputErrorClass = value;
+  String inputErrorClass;
 
   bool canHighlightInputs() =>
-      _inputErrorClass == null || _inputErrorClass.isEmpty;
+      inputErrorClass == null || inputErrorClass.isEmpty;
 
   int highlightEmptyInputs() {
     if (canHighlightInputs()) return -1;
@@ -417,7 +408,7 @@ class UIInputTable extends UIComponent {
     var fieldElement = getFieldElement(fieldName);
     if (fieldElement == null) return false;
 
-    fieldElement.classes.add(_inputErrorClass);
+    fieldElement.classes.add(inputErrorClass);
     return true;
   }
 
@@ -427,7 +418,7 @@ class UIInputTable extends UIComponent {
     var fieldElement = getFieldElement(fieldName);
     if (fieldElement == null) return false;
 
-    fieldElement.classes.remove(_inputErrorClass);
+    fieldElement.classes.remove(inputErrorClass);
     return true;
   }
 

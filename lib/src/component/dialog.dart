@@ -8,7 +8,7 @@ import 'package:swiss_knife/swiss_knife.dart';
 
 /// Component that renders a dialog.
 abstract class UIDialogBase extends UIComponent {
-  static final rootParent = document.documentElement;
+  static final rootParent = document.body;
 
   final bool hideUIRoot;
   final int backgroundGrey;
@@ -28,13 +28,16 @@ abstract class UIDialogBase extends UIComponent {
       bool fullScreen,
       int backgroundGrey,
       double backgroundAlpha,
+      bool renderOnConstruction,
       this.backgroundBlur})
       : padding = padding ?? '6px',
         fullScreen = fullScreen ?? true,
         backgroundGrey = clipNumber(backgroundGrey, 0, 255) ?? 0,
         backgroundAlpha = clipNumber(backgroundAlpha, 0.0, 1.0) ?? 0.80,
-        super(addToParent ?? show ?? false ? rootParent : null,
-            componentClass: 'ui-dialog', classes: classes) {
+        super((addToParent ?? show ?? false) ? rootParent : null,
+            componentClass: 'ui-dialog',
+            classes: classes,
+            renderOnConstruction: renderOnConstruction) {
     _myConfigure(style);
   }
 
@@ -114,10 +117,17 @@ abstract class UIDialogBase extends UIComponent {
     _hideOnDialogButtonClick = value ?? true;
   }
 
+  bool _removeOnDialogButtonClick = false;
+
+  bool get removeOnDialogButtonClick => _removeOnDialogButtonClick;
+
+  set removeOnDialogButtonClick(bool value) {
+    _removeOnDialogButtonClick = value ?? false;
+  }
+
   void _callOnDialogButtonClick(MouseEvent event) {
     if (_hideOnDialogButtonClick) {
       var clickedElement = event.target;
-
       if (clickedElement != null && isCancelButton(clickedElement)) {
         cancel();
       } else {
@@ -125,6 +135,10 @@ abstract class UIDialogBase extends UIComponent {
           hide();
         }
       }
+    }
+
+    if (_removeOnDialogButtonClick) {
+      content.remove();
     }
 
     onDialogButtonClick(event);
@@ -170,8 +184,8 @@ abstract class UIDialogBase extends UIComponent {
 
   void onDialogButtonClick(MouseEvent event) {}
 
-  final EventStream<UIDialog> onHide = EventStream();
-  final EventStream<UIDialog> onShow = EventStream();
+  final EventStream<UIDialogBase> onHide = EventStream();
+  final EventStream<UIDialogBase> onShow = EventStream();
 
   void _callOnShow() {
     if (hideUIRoot) {
@@ -265,8 +279,8 @@ abstract class UIDialogBase extends UIComponent {
     hide();
   }
 
-  final Map<Completer, StreamSubscription<UIDialog>> _showAndWaitHideListeners =
-      {};
+  final Map<Completer, StreamSubscription<UIDialogBase>>
+      _showAndWaitHideListeners = {};
 
   Future<bool> showAndWait() async {
     show();

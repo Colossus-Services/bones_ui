@@ -199,7 +199,7 @@ String htmlAsSvgContent(String html,
   html = htmlRoot.buildHTML(xhtml: true);
 
   var svg =
-      '''<svg viewBox="0 0 ${width} ${height}" width="${width}px" height="${height}px" xmlns="http://www.w3.org/2000/svg">
+      '''<svg viewBox="0 0 $width $height" width="${width}px" height="${height}px" xmlns="http://www.w3.org/2000/svg">
 <foreignObject x="0" y="0" width="$width" height="$height">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head xmlns="http://www.w3.org/1999/xhtml">

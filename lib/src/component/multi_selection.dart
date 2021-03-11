@@ -21,9 +21,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
         cleaner: (c) => c._options = null),
     UIComponentAttributeHandler<UIMultiSelection, dynamic>('multi-selection',
         parser: parseBool,
-        getter: (c) => c._multiSelection,
-        setter: (c, v) => c._multiSelection = v,
-        cleaner: (c) => c._multiSelection = null)
+        getter: (c) => c.multiSelection,
+        setter: (c, v) => c.multiSelection = v,
+        cleaner: (c) => c.multiSelection = null)
   ], hasChildrenElements: false, contentAsText: false);
 
   static void register() {
@@ -32,8 +32,8 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
 
   Map _options;
 
-  bool _multiSelection;
-  final bool _allowInputValue;
+  bool multiSelection;
+  final bool allowInputValue;
 
   final int optionsPanelMargin;
 
@@ -46,16 +46,14 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   final EventStream<UIMultiSelection> onSelect = EventStream();
 
   UIMultiSelection(Element parent, Map options,
-      {bool multiSelection = true,
-      bool allowInputValue,
+      {this.multiSelection = true,
+      this.allowInputValue = false,
       this.optionsPanelMargin = 20,
       this.separator = ' ; ',
       Duration selectionMaxDelay,
       dynamic classes,
       dynamic style})
       : _options = options ?? {},
-        _multiSelection = multiSelection ?? true,
-        _allowInputValue = allowInputValue ?? false,
         super(parent,
             componentClass: 'ui-multi-selection',
             classes: classes,
@@ -66,7 +64,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
         triggerDelay: selectionMaxDelay ?? Duration(seconds: 10),
         functionToTrigger: _notifySelection);
 
-    if (_allowInputValue) {
+    if (allowInputValue) {
       _inputInteractionCompleter = InteractionCompleter('input',
           triggerDelay: selectionMaxDelay ?? Duration(seconds: 10),
           functionToTrigger: _notifyInput);
@@ -85,12 +83,6 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   set options(Map value) {
     _options = value ?? {};
     refresh();
-  }
-
-  bool get multiSelection => _multiSelection;
-
-  set multiSelection(bool value) {
-    _multiSelection = value;
   }
 
   @override
@@ -120,7 +112,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
         return data[0];
       } else {
         return Map.fromEntries(data.map((e) {
-          return parseMapEntry(e, RegExp(r'\s*[:=]\s*'));
+          return parseMapEntryOfStrings(e, RegExp(r'\s*[:=]\s*'));
         }));
       }
     } else {
@@ -135,10 +127,6 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
   bool containsOption(dynamic key) => _options.containsKey(key);
 
   dynamic removeOption(dynamic key) => _options.remove(key);
-
-  bool get isMultiSelection => _multiSelection ?? true;
-
-  bool get allowInputValue => _allowInputValue;
 
   @override
   List<String> getFieldValue() {
@@ -563,7 +551,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
       List<MapEntry<dynamic, dynamic>> entriesFiltered) {
     var str = StringBuffer();
 
-    str.write('$isMultiSelection\n');
+    str.write('$multiSelection\n');
 
     entries.forEach((entry) {
       str.write('${entry.key}');
@@ -678,7 +666,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
 
     InputElementBase checkElem;
 
-    if (isMultiSelection) {
+    if (multiSelection) {
       var input = CheckboxInputElement();
       input.checked = check;
       checkElem = input;
