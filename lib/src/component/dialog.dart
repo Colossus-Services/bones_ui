@@ -10,30 +10,29 @@ import 'package:swiss_knife/swiss_knife.dart';
 abstract class UIDialogBase extends UIComponent {
   static final rootParent = document.body;
 
-  final bool hideUIRoot;
+  final bool/*!*/ hideUIRoot;
   final int backgroundGrey;
   final double backgroundAlpha;
   final int backgroundBlur;
-  final bool fullScreen;
+  final bool/*!*/ fullScreen;
 
-  final String padding;
+  final String/*!*/ padding;
 
   UIDialogBase(
       {this.hideUIRoot = false,
-      bool show = false,
-      bool addToParent = false,
+      bool/*!*/ show = false,
+      bool/*!*/ addToParent = false,
       dynamic classes,
       dynamic style,
-      String padding,
-      bool fullScreen,
-      int backgroundGrey,
-      double backgroundAlpha,
-      bool renderOnConstruction,
+      this.padding = '6px',
+      this.fullScreen = true,
+      int/*!*/ backgroundGrey = 0,
+      double/*!*/ backgroundAlpha = 0.80,
+      bool/*!*/ renderOnConstruction = false ,
       this.backgroundBlur})
-      : padding = padding ?? '6px',
-        fullScreen = fullScreen ?? true,
-        backgroundGrey = clipNumber(backgroundGrey, 0, 255) ?? 0,
-        backgroundAlpha = clipNumber(backgroundAlpha, 0.0, 1.0) ?? 0.80,
+      :
+        backgroundGrey = clipNumber(backgroundGrey, 0, 255)/*!*/ ,
+        backgroundAlpha = clipNumber(backgroundAlpha, 0.0, 1.0)/*!*/,
         super((addToParent ?? show ?? false) ? rootParent : null,
             componentClass: 'ui-dialog',
             classes: classes,
@@ -319,17 +318,17 @@ class UIDialog extends UIDialogBase {
   dynamic renderContent;
 
   UIDialog(this.renderContent,
-      {bool hideUIRoot = false,
-      bool show = false,
-      bool addToParent = false,
-      bool showCloseButton = false,
+      {bool/*!*/ hideUIRoot = false,
+      bool/*!*/ show = false,
+      bool/*!*/ addToParent = false,
+      bool/*!*/ showCloseButton = false,
       dynamic classes,
       dynamic style,
-      String padding,
-      bool fullScreen,
-      int backgroundGrey,
-      double backgroundAlpha,
-      int backgroundBlur})
+      String/*!*/ padding = '6px',
+      bool/*!*/ fullScreen = true,
+      int/*!*/ backgroundGrey = 0,
+      double/*!*/ backgroundAlpha = 0.80,
+      int/*?*/ backgroundBlur})
       : super(
             hideUIRoot: hideUIRoot,
             classes: classes,
@@ -452,15 +451,15 @@ class UIDialogInput extends UIDialog {
       String inputClasses,
       String inputStyle,
       String value,
-      bool hideUIRoot = false,
-      bool showCloseButton = false,
+      bool/*!*/ hideUIRoot = false,
+      bool/*!*/ showCloseButton = false,
       dynamic classes,
       dynamic style,
-      String padding,
+      String/*!*/ padding = '6px',
       bool fullScreen = false,
-      int backgroundGrey,
-      double backgroundAlpha,
-      int backgroundBlur})
+      int/*!*/ backgroundGrey = 0,
+      double/*!*/ backgroundAlpha = 0.80,
+      int/*?*/ backgroundBlur})
       : super(
             _buildContent(
                 label,
@@ -504,16 +503,16 @@ class UIDialogAlert extends UIDialog {
   }
 
   UIDialogAlert(String text, String buttonLabel,
-      {String buttonClasses,
-      bool hideUIRoot = false,
-      bool showCloseButton = false,
+      {String/*!*/ buttonClasses,
+      bool/*!*/ hideUIRoot = false,
+      bool/*!*/ showCloseButton = false,
       dynamic classes,
       dynamic style,
-      String padding,
-      bool fullScreen = false,
-      int backgroundGrey,
-      double backgroundAlpha,
-      int backgroundBlur})
+      String/*!*/ padding = '6px',
+      bool/*!*/ fullScreen = false,
+      int/*!*/ backgroundGrey = 0,
+      double/*!*/ backgroundAlpha = 0.80,
+      int/*?*/ backgroundBlur})
       : super(_buildContent(text, buttonLabel, buttonClasses),
             hideUIRoot: hideUIRoot,
             showCloseButton: showCloseButton,
@@ -543,11 +542,11 @@ class UIDialogLoading extends UIDialog {
       bool show = false,
       dynamic classes,
       dynamic style,
-      String padding,
-      bool fullScreen = false,
-      int backgroundGrey,
-      double backgroundAlpha,
-      int backgroundBlur})
+      String/*!*/ padding = '6px',
+      bool/*!*/ fullScreen = false,
+      int/*!*/ backgroundGrey = 0,
+      double/*!*/ backgroundAlpha = 0.80,
+      int/*?*/ backgroundBlur})
       : super(_buildContent(loadingType, text),
             hideUIRoot: hideUIRoot,
             showCloseButton: showCloseButton,

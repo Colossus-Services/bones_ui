@@ -152,7 +152,7 @@ class BUIRender extends UINavigableComponent {
   }
 
   Future<bool> ensureIntlMessagesLoaded() async {
-    Future<bool> navFuture;
+    Future<bool /*!*/ > navFuture;
     if (_navbarSource?.hasIntlPath ?? false) {
       navFuture = _navbarSource.ensureIntlMessagesLoaded();
     }
@@ -519,7 +519,8 @@ String parseBUIAttribute(String buiCode, String attributeName) {
 typedef BUIViewPropertyProvider = String Function(BUIView view);
 
 class BUIView {
-  static Map<String, BUIView> toViewsMap(Iterable<BUIView> views) =>
+  static Map<String /*!*/, BUIView /*!*/ > toViewsMap(
+          Iterable<BUIView> views) =>
       Map.fromEntries((views ?? [])
           .where((e) => e != null)
           .map((v) => MapEntry(v.route, v)));
@@ -546,13 +547,15 @@ class BUIView {
 
   String get name => _nameImp ?? _routeImp;
 
-  String get _nameImp => _name?.text ?? parseBUIAttribute(buiCode, 'name');
+  String /*?*/ get _nameImp =>
+      _name?.text ?? parseBUIAttribute(buiCode, 'name');
 
   set name(dynamic value) => _name = TextProvider.from(value);
 
   String get route => _routeImp ?? _nameImp;
 
-  String get _routeImp => _route?.text ?? parseBUIAttribute(buiCode, 'route');
+  String /*?*/ get _routeImp =>
+      _route?.text ?? parseBUIAttribute(buiCode, 'route');
 
   set route(dynamic value) => _route = TextProvider.from(value);
 
@@ -562,7 +565,7 @@ class BUIView {
 
   set intl(dynamic value) => _intl = TextProvider.from(value);
 
-  bool get isHideFromMenu =>
+  bool /*!*/ get isHideFromMenu =>
       parseBool(parseBUIAttribute(buiCode, 'hide-from-menu'), false);
 
   IntlMessagesLoader _intlMessagesLoader;
@@ -578,7 +581,7 @@ class BUIView {
   }
 
   @override
-  String toString() => buiCode;
+  String toString() => buiCode ?? '';
 }
 
 abstract class BUIViewProviderBase {
@@ -599,22 +602,25 @@ abstract class BUIViewProviderBase {
 
   String getRouteName(String route);
 
-  String currentRoute;
+  String /*?*/ currentRoute;
 
-  List<String> routes;
+  List<String /*!*/ > /*?*/ routes;
 
-  List<String> menuRoutes;
+  List<String /*!*/ > /*?*/ menuRoutes;
 
-  Map<String, String> get routesAndNames => Map.fromEntries(routes.map((r) {
-        var routeName = getRouteName(r);
-        return MapEntry(r, routeName ?? r);
-      }));
+  Map<String, String> get routesAndNames => routes == null
+      ? <String, String>{}
+      : Map.fromEntries(routes.map((r) {
+          var routeName = getRouteName(r);
+          return MapEntry(r, routeName ?? r);
+        }));
 
-  Map<String, String> get menuRoutesAndNames =>
-      Map.fromEntries(menuRoutes.map((r) {
-        var routeName = getRouteName(r);
-        return MapEntry(r, routeName ?? r);
-      }));
+  Map<String, String> get menuRoutesAndNames => menuRoutes == null
+      ? <String, String>{}
+      : Map.fromEntries(menuRoutes.map((r) {
+          var routeName = getRouteName(r);
+          return MapEntry(r, routeName ?? r);
+        }));
 }
 
 class BUIViewProvider extends BUIViewProviderBase {
@@ -804,7 +810,7 @@ class BUIViewProvider extends BUIViewProviderBase {
   BUIView getFooter(String name) => footers[name];
 
   @override
-  BUIView getView(String route) => views[route];
+  BUIView getView(String /*!*/ route) => views[route];
 
   @override
   bool containsView(String route) => views.containsKey(route);
@@ -835,10 +841,10 @@ class BUIViewProvider extends BUIViewProviderBase {
   String currentRoute;
 
   @override
-  List<String> get routes => views.values.map((e) => e.route).toList();
+  List<String /*!*/ > get routes => views.values.map((e) => e.route).toList();
 
   @override
-  List<String> get menuRoutes =>
+  List<String /*!*/ > get menuRoutes =>
       views.values.where((e) => !e.isHideFromMenu).map((e) => e.route).toList();
 
   @override
@@ -1048,7 +1054,7 @@ class BUIRenderSource {
     onIntlLoad.add(this);
   }
 
-  String get sourceAsHTML {
+  String /*!*/ get sourceAsHTML {
     if (_source == null) {
       return '';
     } else if (_source is String || _source is BUIView) {
@@ -1125,7 +1131,7 @@ class BUIRenderSource {
 
   @override
   String toString() {
-    return sourceAsHTML;
+    return sourceAsHTML ?? '';
   }
 }
 

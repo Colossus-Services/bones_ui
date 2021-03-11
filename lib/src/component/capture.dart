@@ -413,28 +413,35 @@ class URLFileReader {
   URLFileReader(this._file) {
     var fileReader = FileReader();
 
+    fileReader.onError.listen((event) {
+      _notifyOnLoad(null);
+    });
+
     fileReader.onLoad.listen((e) {
-      var dataURL = fileReader.result;
-
-      try {
-        onLoad(dataURL, _file.type);
-      } catch (e) {
-        UIConsole.error('Error calling onLoad', e);
-      }
-
-      try {
-        onLoadData.add(dataURL);
-      } catch (e) {
-        UIConsole.error('Error calling onLoadData controler', e);
-      }
+      String dataURL = fileReader.result;
+      _notifyOnLoad(dataURL);
     });
 
     fileReader.readAsDataUrl(_file);
   }
 
-  final EventStream<String> onLoadData = EventStream();
+  void _notifyOnLoad(String dataURL) {
+    try {
+      onLoad(dataURL, _file.type);
+    } catch (e) {
+      UIConsole.error('Error calling onLoad', e);
+    }
 
-  void onLoad(String dataURL, String type) {}
+    try {
+      onLoadData.add(dataURL);
+    } catch (e) {
+      UIConsole.error('Error calling onLoadData controler', e);
+    }
+  }
+
+  final EventStream<String /*?*/ > onLoadData = EventStream();
+
+  void onLoad(String /*?*/ dataURL, String type) {}
 }
 
 class ImageFileReader extends URLFileReader {

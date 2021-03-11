@@ -111,7 +111,7 @@ abstract class EventHandlerPrivate {
   final Map<String, List<UIEventListener>> _eventListeners = {};
 
   void _registerEventListener(String type, UIEventListener listener) {
-    var events = _eventListeners[type];
+    List<UIEventListener> /*?*/ events = _eventListeners[type];
     if (events == null) _eventListeners[type] = events = [];
     events.add(listener);
   }
@@ -464,7 +464,7 @@ class UIConsole {
     var fontSize = fontSizeProp == null || fontSizeProp.isEmpty
         ? 100
         : double.parse(fontSizeProp.replaceFirst('%', ''));
-    var size = fontSize * change;
+    double size = fontSize * change;
 
     size = size.toInt().toDouble();
 
@@ -648,7 +648,7 @@ typedef ParametersProvider = Map<String, String> Function();
 
 /// For a [UIComponent] that is a field (has a value).
 abstract class UIField<V> {
-  V getFieldValue();
+  V /*?*/ getFieldValue();
 }
 
 /// For a [UIComponent] that is a field with a Map value.
@@ -662,16 +662,16 @@ typedef UIComponentInstantiator<C extends UIComponent> = C Function(
     Node contentHolder,
     List<DOMNode> contentNodes);
 
-typedef UIComponentAttributeParser<T> = T Function(dynamic value);
+typedef UIComponentAttributeParser<T> = T /*?*/ Function(dynamic value);
 
-typedef UIComponentAttributeGetter<C extends UIComponent, T> = T Function(
+typedef UIComponentAttributeGetter<C extends UIComponent, T> = T /*?*/ Function(
     C uiComponent);
 
 typedef UIComponentAttributeSetter<C extends UIComponent, T> = void Function(
-    C uiComponent, T value);
+    C uiComponent, T /*?*/ value);
 
 typedef UIComponentAttributeAppender<C extends UIComponent, T> = void Function(
-    C uiComponent, T value);
+    C uiComponent, T /*?*/ value);
 
 typedef UIComponentAttributeCleaner<C extends UIComponent, T> = void Function(
     C uiComponent);
@@ -686,15 +686,15 @@ class UIComponentAttributeHandler<C extends UIComponent, T> {
   }
 
   final String name;
-  final UIComponentAttributeParser<T> parser;
+  final UIComponentAttributeParser<T /*!*/ > parser;
 
-  final UIComponentAttributeGetter<C, T> getter;
+  final UIComponentAttributeGetter<C /*!*/, T /*!*/ > getter;
 
-  final UIComponentAttributeSetter<C, T> setter;
+  final UIComponentAttributeSetter<C /*!*/, T /*!*/ > setter;
 
-  final UIComponentAttributeAppender<C, T> appender;
+  final UIComponentAttributeAppender<C /*!*/, T /*!*/ > appender;
 
-  final UIComponentAttributeCleaner<C, T> cleaner;
+  final UIComponentAttributeCleaner<C /*!*/, T /*!*/ > cleaner;
 
   UIComponentAttributeHandler(String name,
       {this.parser,
@@ -729,7 +729,7 @@ class UIComponentAttributeHandler<C extends UIComponent, T> {
 /// A generator of [UIComponent] based in a HTML tag,
 /// for `dom_builder` (extends [ElementGenerator]).
 class UIComponentGenerator<C extends UIComponent>
-    extends ElementGenerator<Element> {
+    extends ElementGenerator<Element /*!*/ > {
   @override
   final String tag;
   @override
@@ -745,7 +745,7 @@ class UIComponentGenerator<C extends UIComponent>
   final DOMAttributeValueCSS componentStyle;
 
   final UIComponentInstantiator<C> instantiator;
-  final Map<String, UIComponentAttributeHandler> attributes;
+  final Map<String /*!*/, UIComponentAttributeHandler> attributes;
 
   UIComponentGenerator(
       this.tag,
@@ -940,7 +940,7 @@ abstract class UIComponent extends UIEventHandler {
 
   UIComponent _parentUIComponent;
 
-  Element _parent;
+  Element /*?*/ _parent;
   final UIComponentClearParent clearParent;
 
   Element _content;
@@ -958,9 +958,9 @@ abstract class UIComponent extends UIEventHandler {
       dynamic style2,
       UIComponentClearParent clearParent,
       bool inline = true,
-      bool construct,
-      bool renderOnConstruction,
-      bool preserveRender,
+      bool construct = true,
+      bool /*!*/ renderOnConstruction = false,
+      bool preserveRender = false,
       this.id,
       UIComponentGenerator generator})
       : globalID = ++_globalIDCount,
@@ -1364,7 +1364,8 @@ abstract class UIComponent extends UIEventHandler {
     return null;
   }
 
-  List getAllRenderedElements(FilterRendered filter, [bool deep]) {
+  List getAllRenderedElements(FilterRendered filter,
+      [bool /*!*/ deep = false]) {
     if (_renderedElements == null) return null;
 
     var elements = <dynamic>{};
@@ -1402,11 +1403,12 @@ abstract class UIComponent extends UIEventHandler {
     return elements.toList();
   }
 
-  dynamic getRenderedElementById(dynamic id, [bool deep]) => getRenderedElement(
-      (elem) =>
-          (elem is UIComponent && elem.id == id) ||
-          (elem is Element && elem.id == id),
-      deep);
+  dynamic getRenderedElementById(dynamic id, [bool /*!*/ deep = false]) =>
+      getRenderedElement(
+          (elem) =>
+              (elem is UIComponent && elem.id == id) ||
+              (elem is Element && elem.id == id),
+          deep);
 
   dynamic getRenderedUIComponentById(dynamic id, [bool deep]) {
     if (id == null) return null;
@@ -1508,7 +1510,7 @@ abstract class UIComponent extends UIEventHandler {
     content.remove();
   }
 
-  void ensureRendered([bool force]) {
+  void ensureRendered([bool /*!*/ force = false]) {
     if (!isRendered) {
       callRender();
     } else if (localeChangedFromLastRender) {
@@ -1670,7 +1672,7 @@ abstract class UIComponent extends UIEventHandler {
 
   bool _callingRender = false;
 
-  void callRender([bool clear]) {
+  void callRender([bool /*!*/ clear = false]) {
     if (_callingRender) return;
 
     _callingRender = true;
@@ -1691,7 +1693,7 @@ abstract class UIComponent extends UIEventHandler {
 
   int get renderCount => _renderCount;
 
-  void _callRenderImpl(bool clear) {
+  void _callRenderImpl(bool /*!*/ clear) {
     _renderCount++;
 
     var content = this.content;
@@ -1885,7 +1887,7 @@ abstract class UIComponent extends UIEventHandler {
 
   EventStream<dynamic> onChange = EventStream();
 
-  static int _lastRenderTime;
+  static int _lastRenderTime = DateTime.now().millisecondsSinceEpoch;
 
   static bool _renderFinished = true;
 
@@ -2114,8 +2116,7 @@ abstract class UIComponent extends UIEventHandler {
       var nodes = $html(value);
       return nodes;
     } else if (value is Map ||
-        (value is List &&
-            listMatchesAll(value, (e) => e != null && e is Map))) {
+        (value is List && listMatchesAll(value, (e) => e is Map))) {
       var jsonRender = JSONRender.fromJSON(value)
         ..renderMode = JSONRenderMode.VIEW
         ..addAllKnownTypeRenders();
@@ -2657,7 +2658,7 @@ abstract class UIComponent extends UIEventHandler {
     var map = <String, Element>{};
 
     for (var elem in fieldsElements) {
-      var fieldName = getElementAttribute(elem, 'field');
+      var fieldName = getElementAttribute(elem, 'field') /*!*/;
 
       var include = specificFields ? fields.contains(fieldName) : true;
 
@@ -3074,7 +3075,8 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   }
 
   @override
-  List<Node> addExternalElementToElement(Node element, externalElement) {
+  List<Node /*!*/ > /*?*/ addExternalElementToElement(
+      Node element, externalElement) {
     if (externalElement is List) {
       if (externalElement.isEmpty) return null;
       var children = <Node>[];
@@ -3129,7 +3131,7 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   }
 
   @override
-  List<Node> toElements(elements) {
+  List<Node /*1*/ > /*?*/ toElements(elements) {
     if (elements is UIComponent) {
       return [elements.content];
     } else if (elements is UIAsyncContent) {
@@ -3144,8 +3146,9 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
     var ok = super.replaceChildElement(parent, child1, child2);
 
     if (ok && child2 != null && child2.isNotEmpty) {
-      for (var e in child2) {
-        var uiRoot = UIRoot.getInstance();
+      var uiRoot = UIRoot.getInstance();
+
+      for (var e in child2.whereType<Element>()) {
         var uiComponent =
             uiRoot.getUIComponentByContent(e, includePurgedEntries: true);
         if (uiComponent != null) {
@@ -3171,10 +3174,10 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
 /// A `Bones_UI` component for navigable contents by routes.
 abstract class UINavigableContent extends UINavigableComponent {
   /// Optional top margin (in px) for the content.
-  int topMargin;
+  int /*!*/ topMargin;
 
   UINavigableContent(Element parent, List<String> routes,
-      {this.topMargin,
+      {this.topMargin = 0,
       dynamic classes,
       dynamic classes2,
       bool inline = true,
@@ -3227,14 +3230,14 @@ abstract class UINavigableContent extends UINavigableComponent {
 /// Base class for content components.
 abstract class UIContent extends UIComponent {
   /// Optional top margin (in px) for the content.
-  int topMargin;
+  int /*!*/ topMargin;
 
   UIContent(Element parent,
-      {this.topMargin,
+      {this.topMargin = 0,
       dynamic classes,
       dynamic classes2,
       bool inline = true,
-      bool renderOnConstruction})
+      bool renderOnConstruction = false})
       : super(parent,
             classes: classes,
             classes2: classes2,
@@ -3505,7 +3508,7 @@ class UIAsyncContent {
     _setAsyncContentFuture(contentFuture);
   }
 
-  void _ignoreRefresh([bool inDOM]) {
+  void _ignoreRefresh([bool /*?*/ inDOM]) {
     _ignoredRefreshCount++;
     if (_ignoredRefreshCount < _maxIgnoredRefreshCount) {
       if (inDOM == null || inDOM) {
@@ -4017,7 +4020,7 @@ abstract class UINavigableComponent extends UIComponent {
     _routes = routesOk;
   }
 
-  bool updateRoutes([List<String> foundRoutes]) {
+  bool updateRoutes([List<String /*!*/ > /*?*/ foundRoutes]) {
     foundRoutes ??= UINavigator.get().findElementNavigableRoutes(content);
 
     UIConsole.log('Found navigate routes: $foundRoutes');
@@ -4035,8 +4038,8 @@ abstract class UINavigableComponent extends UIComponent {
     return changed;
   }
 
-  void setRoutes(List<String> routes) {
-    _routes = List<String>.from(routes ?? []);
+  void setRoutes(List<String /*!*/ > /*?*/ routes) {
+    _routes = List<String>.from(routes ?? <String>[]);
   }
 
   /// Returns a [route] name.
@@ -4078,13 +4081,13 @@ abstract class UINavigableComponent extends UIComponent {
     }
 
     if (findRoutes != null && findRoutes) {
-      return _findNewRoutes(route);
+      return _findNewRoute(route);
     }
 
     return false;
   }
 
-  bool _findNewRoutes(String route) {
+  bool _findNewRoute(String /*!*/ route) {
     var canHandleNewRoute = this.canHandleNewRoute(route);
     if (!canHandleNewRoute) return false;
     updateRoutes([route]);
@@ -4148,7 +4151,7 @@ abstract class UINavigableComponent extends UIComponent {
     return true;
   }
 
-  final EventStream<String> onChangeRoute = EventStream();
+  final EventStream<String /*!*/ > onChangeRoute = EventStream();
 
   String _notifiedChangeRoute;
 
@@ -4173,7 +4176,7 @@ abstract class UINavigableComponent extends UIComponent {
 /// Represents a navigation ([route] + [parameters]).
 class Navigation {
   /// The route ID/name.
-  final String route;
+  final String /*!*/ route;
 
   /// The route parameters.
   final Map<String, String> parameters;
@@ -4225,12 +4228,12 @@ class Navigation {
 class UINavigator {
   static UINavigator _instance;
 
-  static UINavigator get() {
-    _instance ??= UINavigator._internal();
+  static UINavigator /*!*/ get() {
+    _instance ??= UINavigator._();
     return _instance;
   }
 
-  UINavigator._internal() {
+  UINavigator._() {
     window.onHashChange.listen((e) => _onChangeRoute(e));
 
     var href = window.location.href;
@@ -4249,7 +4252,7 @@ class UINavigator {
   }
 
   /// Returns [true] if this device is online.
-  static bool get isOnline => window.navigator.onLine;
+  static bool get isOnline => window.navigator.onLine ?? false;
 
   /// Returns [true] if this device is off-line.
   static bool get isOffline => !isOnline;
@@ -4259,7 +4262,7 @@ class UINavigator {
   /// See: [https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts]
   static bool get isSecureContext {
     try {
-      return window.isSecureContext;
+      return window.isSecureContext ?? false;
     } catch (e, s) {
       logger.e('Error calling `window.isSecureContext`', e, s);
       return false;
@@ -4661,7 +4664,7 @@ class UINavigator {
       List.from(get()._navigables);
 
   /// Finds a [UINavigableComponent] that responds for [route].
-  UINavigableComponent findNavigable(String route) {
+  UINavigableComponent findNavigable(String /*!*/ route) {
     for (var nav in _navigables) {
       if (nav.canNavigateTo(route)) return nav;
     }
@@ -4702,7 +4705,7 @@ class UINavigator {
   }
 
   void _findElementNavigableRoutes(
-      List<Element> elements, List<String> routes) {
+      List<Element /*!*/ > elements, List<String> routes) {
     for (var elem in elements) {
       var navigateRoute = elem.getAttribute('navigate');
       if (navigateRoute != null &&
@@ -4790,7 +4793,7 @@ class UINavigator {
       return true;
     }
 
-    return null;
+    return false;
   }
 
   /// Returns the current `navigate` property of [element].
@@ -4859,7 +4862,7 @@ class TextProvider {
     if (text is Function) return true;
     if (ElementProvider.accepts(text)) return true;
 
-    return null;
+    return false;
   }
 
   bool _singleCall = false;

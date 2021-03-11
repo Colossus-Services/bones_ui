@@ -17,10 +17,10 @@ class UIColorPickerInput extends UIComponent {
 
   UIColorPickerInput(Element parent,
       {this.placeholder,
-      String fieldName,
-      String value,
-      int pickerWidth,
-      int pickerHeight})
+      String/*!*/ fieldName = '',
+      String/*!*/ value = '',
+      int pickerWidth = 200 ,
+      int pickerHeight = 200})
       : _fieldName = fieldName ?? '',
         _initialValue = value ?? '',
         _pickerWidth = pickerWidth ?? 200,
@@ -186,7 +186,7 @@ class UIColorPicker extends UIComponent {
   int _pointSize = 6;
 
   UIColorPicker(Element parent,
-      {Color color, int width, int height, int pointSize})
+      {Color/*?*/ color, int width = 200, int height = 200, int pointSize = 6})
       : super(parent, componentClass: 'ui-color-picker') {
     this.color = color ?? Color.BLUE;
     _width = width ?? 200;
@@ -196,7 +196,7 @@ class UIColorPicker extends UIComponent {
 
   EventStream<UIColorPicker> onFocus = EventStream();
 
-  EventStream<Color> onClickColor = EventStream();
+  EventStream<Color/*!*/> onClickColor = EventStream();
 
   @override
   void configure() {
@@ -227,14 +227,14 @@ class UIColorPicker extends UIComponent {
 
   HSLColor _hslColor;
 
-  Color _baseColor;
+  Color/*?*/ _baseColor;
 
   set color(Color color) {
     color ??= Color.BLACK;
 
     _color = color;
-    _hsvColor = HSVColor.fromColor(_color);
-    _hslColor = HSLColor.fromColor(_color);
+    _hsvColor = HSVColor.fromColor(color);
+    _hslColor = HSLColor.fromColor(color);
     _baseColor = HSLColor.fromAHSL(1, _hsvColor.hue, 1, 0.50).toColor();
 
     _notifyColorChange();
@@ -278,10 +278,10 @@ class UIColorPicker extends UIComponent {
 
   HSLColor get hslColor => _hslColor;
 
-  DivElement _panel_ViewColor_Saturation;
+  DivElement/*?*/ _panel_ViewColor_Saturation;
   DivElement _panel_Saturation_Luma_Square;
 
-  DivElement _viewColor;
+  DivElement/*?*/ _viewColor;
 
   DivElement _saturation;
 
@@ -291,13 +291,13 @@ class UIColorPicker extends UIComponent {
 
   DivElement _hue;
 
-  DivElement _point;
+  DivElement/*?*/ _point;
 
-  DivElement _saturationBar;
+  DivElement/*?*/ _saturationBar;
 
-  DivElement _lumaBar;
+  DivElement/*?*/ _lumaBar;
 
-  DivElement _hueBar;
+  DivElement/*?*/ _hueBar;
 
   bool _squarePressed = false;
 
@@ -489,8 +489,8 @@ class UIColorPicker extends UIComponent {
   void _squareClick(MouseEvent event) {
     var target = event.target;
     if (target == _square) {
-      var x = event.offset.x;
-      var y = event.offset.y;
+      var x = event.offset.x.toInt();
+      var y = event.offset.y.toInt();
       _adjustPoint(x, y);
     }
   }
@@ -510,7 +510,7 @@ class UIColorPicker extends UIComponent {
   void _lumaClick(MouseEvent event) {
     var target = event.target;
     if (target == _luma || target == _square) {
-      var y = event.offset.y;
+      var y = event.offset.y.toInt();
       _adjustLumaBar(y);
     }
   }
@@ -526,7 +526,7 @@ class UIColorPicker extends UIComponent {
   void _saturationClick(MouseEvent event) {
     var target = event.target;
     if (target == _saturation || target == _square) {
-      var x = event.offset.x;
+      var x = event.offset.x.toInt();
       _adjustSaturationBar(x);
     }
   }
@@ -540,7 +540,7 @@ class UIColorPicker extends UIComponent {
   void _hueClick(MouseEvent event) {
     var target = event.target;
     if (target == _hue || target == _square || target == _luma) {
-      var x = event.offset.x;
+      var x = event.offset.x.toInt();
       if (target == _square) {
         x += _barSize;
       }
@@ -647,7 +647,7 @@ class UIColorPicker extends UIComponent {
     this.hsvColor = hsvColor;
   }
 
-  num _clip(num n, num min, num max) {
+  N _clip<N extends num>(N n, N min, N max) {
     if (n < min) return min;
     if (n > max) return max;
     return n;

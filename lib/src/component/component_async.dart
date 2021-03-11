@@ -52,7 +52,7 @@ class UIComponentAsync extends UIComponent {
   UIComponentAsync(Element parent, this._renderPropertiesProvider,
       this._renderAsync, this.loadingContent, this.errorContent,
       {this.refreshInterval,
-      bool cacheRenderAsync,
+      bool cacheRenderAsync = true,
       dynamic componentClass,
       dynamic componentStyle,
       dynamic classes,
@@ -61,7 +61,7 @@ class UIComponentAsync extends UIComponent {
       dynamic style2,
       dynamic id,
       UIComponentGenerator generator,
-      bool renderOnConstruction})
+      bool/*!*/ renderOnConstruction = false})
       : cacheRenderAsync = cacheRenderAsync ?? true,
         super(parent,
             componentClass: componentClass,

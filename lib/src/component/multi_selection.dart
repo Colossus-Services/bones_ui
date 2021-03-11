@@ -17,12 +17,16 @@ class UIMultiSelection extends UIComponent implements UIField<List<String>> {
     UIComponentAttributeHandler<UIMultiSelection, dynamic>('options',
         parser: parseJSON,
         getter: (c) => c._options,
-        setter: (c, v) => c._options = v ?? '',
+        setter: (c, v) => c._options = v is Map
+            ? v
+            : (parseFromInlineMap(parseString(v), RegExp(r'\s*[,;]\s*'),
+                    RegExp(r'\s*[:=]\s*')) ??
+                {}),
         cleaner: (c) => c._options = null),
     UIComponentAttributeHandler<UIMultiSelection, dynamic>('multi-selection',
         parser: parseBool,
         getter: (c) => c.multiSelection,
-        setter: (c, v) => c.multiSelection = v,
+        setter: (c, v) => c.multiSelection = v as bool,
         cleaner: (c) => c.multiSelection = null)
   ], hasChildrenElements: false, contentAsText: false);
 
