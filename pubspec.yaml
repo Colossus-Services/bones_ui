@@ -1,26 +1,27 @@
 name: bones_ui
 description: Bones_UI - Simple and easy Web User Interface Framework for Dart
-version: 2.0.0-nullsafety.0
+version: 2.0.1
 homepage: https://github.com/Colossus-Services/bones_ui
 
 environment:
-  sdk: '>=2.7.0 <3.0.0'
+  sdk: '>=2.12.0 <3.0.0'
 
 dependencies:
   expressions: ^0.2.0
   swiss_knife: ^3.0.5
-  dynamic_call: ^2.0.0-nullsafety.2
-  mercury_client: ^2.0.0-nullsafety.3
-  intl_messages: ^2.0.0-nullsafety.2
-  dom_tools: ^2.0.0-nullsafety.1
+  dynamic_call: ^2.0.1
+  mercury_client: ^2.0.1
+  intl_messages: ^2.0.1
+  dom_tools: ^2.0.1
   dom_builder: ^2.0.1
-  json_render: ^2.0.0-nullsafety.2
+  json_render: ^2.0.1
   json_object_mapper: ^2.0.0
-  html_unescape: ^2.0.0-nullsafety.0
+  html_unescape: ^2.0.0
   intl: ^0.17.0
-  enum_to_string: ^2.0.0-nullsafety.1
+  enum_to_string: ^2.0.1
   yaml: ^3.1.0
   archive: ^3.1.2
+  collection: ^1.15.0
   #service_worker: ^0.2.4
 
 dev_dependencies:
@@ -38,6 +39,8 @@ dev_dependencies:
 #    path: ../mercury_client
 #  intl_messages:
 #    path: ../intl_messages
+#  dom_builder:
+#    path: ../dom_builder
 #  dom_tools:
 #    path: ../dom_tools
 #  dom_builder:

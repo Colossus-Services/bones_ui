@@ -30,13 +30,13 @@ enum CaptureDataFormat {
 abstract class UICapture extends UIButtonBase implements UIField<String> {
   final CaptureType captureType;
 
-  final String _fieldName;
+  final String? _fieldName;
 
-  UICapture(Element container, this.captureType,
-      {String fieldName,
-      String navigate,
-      Map<String, String> navigateParameters,
-      ParametersProvider navigateParametersProvider,
+  UICapture(Element? container, this.captureType,
+      {String? fieldName,
+      String? navigate,
+      Map<String, String>? navigateParameters,
+      ParametersProvider? navigateParametersProvider,
       dynamic classes,
       dynamic classes2,
       dynamic style,
@@ -53,46 +53,49 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   String get fieldName => _fieldName ?? 'capture';
 
-  Set<String> _acceptFilesExtensions;
+  Set<String>? _acceptFilesExtensions;
 
-  Set<String> get acceptFilesExtensions => isEmptyObject(_acceptFilesExtensions)
-      ? null
-      : Set.from(_acceptFilesExtensions);
+  Set<String>? get acceptFilesExtensions =>
+      isEmptyObject(_acceptFilesExtensions)
+          ? null
+          : Set.from(_acceptFilesExtensions!);
 
   void addAcceptFileExtension(String extension) {
     extension = _normalizeExtension(extension);
     if (extension.isEmpty) return;
     _acceptFilesExtensions ??= {};
-    _acceptFilesExtensions.add(extension);
+    _acceptFilesExtensions!.add(extension);
   }
 
   bool removeAcceptFileExtension(String extension) {
     if (isEmptyObject(_acceptFilesExtensions)) return false;
     extension = _normalizeExtension(extension);
     if (extension.isEmpty) return false;
-    return _acceptFilesExtensions.remove(extension);
+    return _acceptFilesExtensions!.remove(extension);
   }
 
   bool containsAcceptFileExtension(String extension) {
     if (isEmptyObject(_acceptFilesExtensions)) return false;
     extension = _normalizeExtension(extension);
-    return _acceptFilesExtensions.contains(extension);
+    return _acceptFilesExtensions!.contains(extension);
   }
 
   void clearAcceptFilesExtensions() {
     if (isEmptyObject(_acceptFilesExtensions)) return;
-    _acceptFilesExtensions.clear();
+    _acceptFilesExtensions!.clear();
   }
 
-  String _normalizeExtension(String extension) {
+  String _normalizeExtension(String? extension) {
     if (extension == null) return '';
-    return extension.trim().toLowerCase().replaceAll(RegExp(r'\W'), '');
+    extension = extension.trim();
+    if (extension.isEmpty) return '';
+    return extension.toLowerCase().replaceAll(RegExp(r'\W'), '');
   }
 
   @override
   String renderHidden() {
-    String capture;
-    String accept;
+    String? capture;
+    String? accept;
 
     switch (captureType) {
       case CaptureType.PHOTO:
@@ -151,7 +154,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
     if (isNotEmptyObject(_acceptFilesExtensions)) {
       accept = accept == null ? '' : '$accept,';
-      accept += _acceptFilesExtensions.map((e) => '.$e').join(',');
+      accept += _acceptFilesExtensions!.map((e) => '.$e').join(',');
     }
 
     var input = '<input field="$fieldName" type="file"';
@@ -170,7 +173,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   void posRender() {
     super.posRender();
 
-    FileUploadInputElement fieldCapture = getInputCapture();
+    var fieldCapture = getInputCapture() as FileUploadInputElement;
     fieldCapture.onChange.listen((e) => _call_onCapture(fieldCapture, e));
   }
 
@@ -193,36 +196,36 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   }
 
   @override
-  String getFieldValue() {
+  String? getFieldValue() {
     return selectedFileDataAsDataURLBase64;
   }
 
   final EventStream<UICapture> onCaptureData = EventStream();
 
-  File _selectedFile;
+  File? _selectedFile;
 
-  File get selectedFile => _selectedFile;
+  File? get selectedFile => _selectedFile;
 
   bool get hasSelectedFile => _selectedFile != null;
 
-  Object _selectedFileData;
+  Object? _selectedFileData;
 
-  Object get selectedFileData => _selectedFileData;
+  Object? get selectedFileData => _selectedFileData;
 
-  Uint8List get selectedFileDataAsArrayBuffer {
+  Uint8List? get selectedFileDataAsArrayBuffer {
     if (selectedFileData == null) return null;
 
-    if (_captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
-      var data = _selectedFileData as Uint8List;
+    if (captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+      var data = _selectedFileData as Uint8List?;
       return data;
-    } else if (_captureDataFormat == CaptureDataFormat.STRING) {
+    } else if (captureDataFormat == CaptureDataFormat.STRING) {
       var s = _selectedFileData as String;
-      var data = _dataEncoding.encode(s);
-      return data;
-    } else if (_captureDataFormat == CaptureDataFormat.BASE64) {
+      var data = _dataEncoding!.encode(s);
+      return data as Uint8List?;
+    } else if (captureDataFormat == CaptureDataFormat.BASE64) {
       var s = _selectedFileData as String;
       return data_convert.base64.decode(s);
-    } else if (_captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+    } else if (captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
       return DataURLBase64.parsePayloadAsArrayBuffer(
           _selectedFileData as String);
     }
@@ -230,11 +233,11 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     return null;
   }
 
-  data_convert.Encoding _dataEncoding;
+  data_convert.Encoding? _dataEncoding;
 
-  data_convert.Encoding get dataEncoding => _dataEncoding;
+  data_convert.Encoding? get dataEncoding => _dataEncoding;
 
-  set dataEncoding(data_convert.Encoding value) {
+  set dataEncoding(data_convert.Encoding? value) {
     _dataEncoding = value ?? data_convert.latin1;
   }
 
@@ -246,112 +249,100 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     _dataEncoding = data_convert.utf8;
   }
 
-  String get selectedFileDataAsString {
+  String? get selectedFileDataAsString {
     if (selectedFileData == null) return null;
 
-    if (_captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+    if (captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
       var data = _selectedFileData as Uint8List;
-      return _dataEncoding.decode(data);
-    } else if (_captureDataFormat == CaptureDataFormat.STRING) {
-      var s = _selectedFileData as String;
+      return _dataEncoding!.decode(data);
+    } else if (captureDataFormat == CaptureDataFormat.STRING) {
+      var s = _selectedFileData as String?;
       return s;
-    } else if (_captureDataFormat == CaptureDataFormat.BASE64) {
+    } else if (captureDataFormat == CaptureDataFormat.BASE64) {
       var s = _selectedFileData as String;
       var data = data_convert.base64.decode(s);
-      return _dataEncoding.decode(data);
-    } else if (_captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+      return _dataEncoding!.decode(data);
+    } else if (captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
       return DataURLBase64.parsePayloadAsString(_selectedFileData as String);
     }
 
     return null;
   }
 
-  String get selectedFileDataAsBase64 {
+  String? get selectedFileDataAsBase64 {
     if (selectedFileData == null) return null;
 
-    if (_captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+    if (captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
       var data = _selectedFileData as Uint8List;
       return data_convert.base64.encode(data);
-    } else if (_captureDataFormat == CaptureDataFormat.STRING) {
+    } else if (captureDataFormat == CaptureDataFormat.STRING) {
       var s = _selectedFileData as String;
-      var data = _dataEncoding.encode(s);
+      var data = _dataEncoding!.encode(s);
       return data_convert.base64.encode(data);
-    } else if (_captureDataFormat == CaptureDataFormat.BASE64) {
-      return _selectedFileData as String;
-    } else if (_captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
-      var s = _selectedFileData as String;
+    } else if (captureDataFormat == CaptureDataFormat.BASE64) {
+      return _selectedFileData as String?;
+    } else if (captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+      var s = _selectedFileData as String?;
       return DataURLBase64.parsePayloadAsBase64(s);
     }
 
     return null;
   }
 
-  String get selectedFileDataAsDataURLBase64 {
+  String? get selectedFileDataAsDataURLBase64 {
     if (selectedFileData == null) return null;
 
-    if (_captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
-      var s = _selectedFileData as String;
+    if (captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+      var s = _selectedFileData as String?;
       return s;
     }
 
-    String base64;
+    String? base64;
 
-    if (_captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+    if (captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
       var data = _selectedFileData as Uint8List;
       base64 = data_convert.base64.encode(data);
-    } else if (_captureDataFormat == CaptureDataFormat.STRING) {
+    } else if (captureDataFormat == CaptureDataFormat.STRING) {
       var s = _selectedFileData as String;
-      var data = _dataEncoding.encode(s);
+      var data = _dataEncoding!.encode(s);
       base64 = data_convert.base64.encode(data);
-    } else if (_captureDataFormat == CaptureDataFormat.BASE64) {
-      base64 = _selectedFileData as String;
+    } else if (captureDataFormat == CaptureDataFormat.BASE64) {
+      base64 = _selectedFileData as String?;
     } else {
       return null;
     }
 
-    var mediaType = getFileMimeType(_selectedFile);
+    var mediaType = getFileMimeType(_selectedFile!);
 
-    return toDataURLBase64(MimeType.asString(mediaType, ''), base64);
+    return toDataURLBase64(MimeType.asString(mediaType, ''), base64!);
   }
 
-  CaptureDataFormat _captureDataFormat = CaptureDataFormat.ARRAY_BUFFER;
-
-  CaptureDataFormat get captureDataFormat => _captureDataFormat;
-
-  set captureDataFormat(CaptureDataFormat dataFormat) {
-    _captureDataFormat = dataFormat ?? CaptureDataFormat.ARRAY_BUFFER;
-  }
+  CaptureDataFormat captureDataFormat = CaptureDataFormat.ARRAY_BUFFER;
 
   // Default true since not all popular browsers can't handle Exif yet:
-  bool _removeExifFromImage = true;
-
-  bool get removeExifFromImage => _removeExifFromImage;
-
-  set removeExifFromImage(bool value) {
-    _removeExifFromImage = value ?? false;
-  }
+  bool removeExifFromImage = true;
 
   Future<void> _readFile(FileUploadInputElement input) async {
-    if (input != null && input.files.isNotEmpty) {
-      var file = input.files.first;
+    if (input.files!.isNotEmpty) {
+      var file = input.files!.first;
 
       _selectedFile = file;
       _selectedFileData = null;
 
-      if (_captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
-        _selectedFileData = await readFileInputElementAsArrayBuffer(
-            input, _removeExifFromImage);
-      } else if (_captureDataFormat == CaptureDataFormat.STRING) {
+      if (captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
         _selectedFileData =
-            await readFileInputElementAsString(input, _removeExifFromImage);
-      } else if (_captureDataFormat == CaptureDataFormat.BASE64) {
+            await readFileInputElementAsArrayBuffer(input, removeExifFromImage);
+      } else if (captureDataFormat == CaptureDataFormat.STRING) {
         _selectedFileData =
-            await readFileInputElementAsBase64(input, _removeExifFromImage);
-      } else if (_captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+            await readFileInputElementAsString(input, removeExifFromImage);
+      } else if (captureDataFormat == CaptureDataFormat.BASE64) {
+        _selectedFileData =
+            await readFileInputElementAsBase64(input, removeExifFromImage);
+      } else if (captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
         _selectedFileData = await readFileInputElementAsDataURLBase64(
-            input, _removeExifFromImage);
+            input, removeExifFromImage);
       } else {
-        throw StateError("Can't capture data as format: $_captureDataFormat");
+        throw StateError("Can't capture data as format: $captureDataFormat");
       }
 
       onCaptureData.add(this);
@@ -360,17 +351,17 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   }
 
   @override
-  void onClickEvent(event, List params) {
-    FileUploadInputElement input = getInputCapture();
+  void onClickEvent(event, List? params) {
+    var input = getInputCapture() as FileUploadInputElement;
     input.value = null;
     input.click();
   }
 
-  Element getInputCapture() => getFieldElement(fieldName);
+  Element? getInputCapture() => getFieldElement(fieldName);
 
-  File getInputFile() {
-    FileUploadInputElement input = getInputCapture();
-    return input != null && input.files.isNotEmpty ? input.files[0] : null;
+  File? getInputFile() {
+    var input = getInputCapture() as FileUploadInputElement?;
+    return input != null && input.files!.isNotEmpty ? input.files![0] : null;
   }
 
   bool isFileImage() {
@@ -388,19 +379,19 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     return file != null && file.type.contains('audio');
   }
 
-  ImageFileReader getImageFileReader() {
+  ImageFileReader? getImageFileReader() {
     var file = getInputFile();
     if (file == null || !isFileImage()) return null;
     return ImageFileReader(file);
   }
 
-  VideoFileReader getVideoFileReader() {
+  VideoFileReader? getVideoFileReader() {
     var file = getInputFile();
     if (file == null || !isFileVideo()) return null;
     return VideoFileReader(file);
   }
 
-  AudioFileReader getAudioFileReader() {
+  AudioFileReader? getAudioFileReader() {
     var file = getInputFile();
     if (file == null || !isFileAudio()) return null;
     return AudioFileReader(file);
@@ -418,14 +409,14 @@ class URLFileReader {
     });
 
     fileReader.onLoad.listen((e) {
-      String dataURL = fileReader.result;
+      var dataURL = fileReader.result as String;
       _notifyOnLoad(dataURL);
     });
 
     fileReader.readAsDataUrl(_file);
   }
 
-  void _notifyOnLoad(String dataURL) {
+  void _notifyOnLoad(String? dataURL) {
     try {
       onLoad(dataURL, _file.type);
     } catch (e) {
@@ -439,16 +430,16 @@ class URLFileReader {
     }
   }
 
-  final EventStream<String /*?*/ > onLoadData = EventStream();
+  final EventStream<String?> onLoadData = EventStream();
 
-  void onLoad(String /*?*/ dataURL, String type) {}
+  void onLoad(String? dataURL, String type) {}
 }
 
 class ImageFileReader extends URLFileReader {
   ImageFileReader(File file) : super(file);
 
   @override
-  void onLoad(String dataURL, String type) {
+  void onLoad(String? dataURL, String type) {
     var img = ImageElement(src: dataURL);
     onLoadImage.add(img);
   }
@@ -460,12 +451,12 @@ class VideoFileReader extends URLFileReader {
   VideoFileReader(File file) : super(file);
 
   @override
-  void onLoad(String dataURL, String type) {
+  void onLoad(String? dataURL, String type) {
     var video = VideoElement();
     video.controls = true;
 
     var sourceElement = SourceElement();
-    sourceElement.src = dataURL;
+    sourceElement.src = dataURL!;
     sourceElement.type = type;
 
     video.children.add(sourceElement);
@@ -480,12 +471,12 @@ class AudioFileReader extends URLFileReader {
   AudioFileReader(File file) : super(file);
 
   @override
-  void onLoad(String dataURL, String type) {
+  void onLoad(String? dataURL, String type) {
     var audio = AudioElement();
     audio.controls = true;
 
     var sourceElement = SourceElement();
-    sourceElement.src = dataURL;
+    sourceElement.src = dataURL!;
     sourceElement.type = type;
 
     audio.children.add(sourceElement);
@@ -497,19 +488,19 @@ class AudioFileReader extends URLFileReader {
 }
 
 class UIButtonCapturePhoto extends UICapture {
-  final String text;
+  final String? text;
   final dynamic buttonContent;
 
-  final String fontSize;
+  final String? fontSize;
 
-  UIButtonCapturePhoto(Element parent,
+  UIButtonCapturePhoto(Element? parent,
       {this.text,
-      CaptureType captureType,
+      CaptureType? captureType,
       this.buttonContent,
-      String fieldName,
-      String navigate,
-      Map<String, String> navigateParameters,
-      ParametersProvider navigateParametersProvider,
+      String? fieldName,
+      String? navigate,
+      Map<String, String>? navigateParameters,
+      ParametersProvider? navigateParametersProvider,
       dynamic classes,
       dynamic classes2,
       dynamic componentClass,
@@ -533,15 +524,15 @@ class UIButtonCapturePhoto extends UICapture {
 
   @override
   void configure() {
-    content.style.verticalAlign = 'middle';
+    content!.style.verticalAlign = 'middle';
   }
 
   @override
   dynamic renderButton() {
     if (disabled) {
-      content.style.opacity = '0.7';
+      content!.style.opacity = '0.7';
     } else {
-      content.style.opacity = null;
+      content!.style.opacity = '';
     }
 
     if (isNotEmptyString(text)) {
@@ -561,28 +552,16 @@ class UIButtonCapturePhoto extends UICapture {
 
   int selectedImageMaxHeight = 100;
 
-  bool _onlyShowSelectedImageInButton = false;
+  bool onlyShowSelectedImageInButton = false;
 
-  bool get onlyShowSelectedImageInButton => _onlyShowSelectedImageInButton;
+  bool showSelectedImageInButton = true;
 
-  set onlyShowSelectedImageInButton(bool value) {
-    _onlyShowSelectedImageInButton = value ?? false;
-  }
-
-  bool _showSelectedImageInButton = true;
-
-  bool get showSelectedImageInButton => _showSelectedImageInButton;
-
-  set showSelectedImageInButton(bool value) {
-    _showSelectedImageInButton = value ?? false;
-  }
-
-  List<String> selectedImageClasses;
-  String selectedImageStyle;
+  List<String>? selectedImageClasses;
+  String? selectedImageStyle;
 
   @override
   void onCaptureFile(FileUploadInputElement input, Event event) {
-    if (_showSelectedImageInButton) {
+    if (showSelectedImageInButton) {
       showSelectedImage();
     }
   }
@@ -593,62 +572,62 @@ class UIButtonCapturePhoto extends UICapture {
     var dataURL = selectedFileDataAsDataURLBase64;
     if (dataURL == null) return;
 
-    _selectedImageElements.forEach((e) => content.children.remove(e));
+    _selectedImageElements.forEach((e) => content!.children.remove(e));
 
-    if (_onlyShowSelectedImageInButton) {
-      content.children.removeWhere((e) => !e.hidden);
+    if (onlyShowSelectedImageInButton) {
+      content!.children.removeWhere((e) => !e.hidden);
     }
 
     var img = ImageElement(src: dataURL)
       ..style.padding = '2px 4px'
       ..style.maxHeight = '100%';
 
-    if (selectedImageMaxWidth != null) {
+    if (selectedImageMaxWidth > 0) {
       img.style.maxWidth = '${selectedImageMaxWidth}px';
     }
 
-    if (selectedImageMaxHeight != null) {
+    if (selectedImageMaxHeight > 0) {
       img.style.maxHeight = '${selectedImageMaxHeight}px';
     }
 
     if (isNotEmptyObject(selectedImageClasses)) {
-      img.classes.addAll(selectedImageClasses);
+      img.classes.addAll(selectedImageClasses!);
     }
 
     if (isNotEmptyString(selectedImageStyle, trim: true)) {
-      img.style.cssText += '; $selectedImageStyle';
+      img.style.cssText = (img.style.cssText ?? '') + '; $selectedImageStyle';
     }
 
     _selectedImageElements.clear();
-    if (!_onlyShowSelectedImageInButton) {
+    if (!onlyShowSelectedImageInButton) {
       _selectedImageElements.add(BRElement());
     }
     _selectedImageElements.add(img);
 
     img.onClick.listen((e) => fireClickEvent(e));
 
-    content.children.addAll(_selectedImageElements);
+    content!.children.addAll(_selectedImageElements);
   }
 
   void setWideButton() {
-    content.style.width = '80%';
+    content!.style.width = '80%';
   }
 
   void setNormalButton() {
-    content.style.width = null;
+    content!.style.width = null;
   }
 }
 
 class UIButtonCapture extends UICapture {
   final String text;
 
-  final String fontSize;
+  final String? fontSize;
 
   UIButtonCapture(Element parent, this.text, CaptureType captureType,
-      {String fieldName,
-      String navigate,
-      Map<String, String> navigateParameters,
-      ParametersProvider navigateParametersProvider,
+      {String? fieldName,
+      String? navigate,
+      Map<String, String>? navigateParameters,
+      ParametersProvider? navigateParametersProvider,
       dynamic classes,
       dynamic classes2,
       dynamic componentClass,
@@ -670,15 +649,15 @@ class UIButtonCapture extends UICapture {
 
   @override
   void configure() {
-    content.style.verticalAlign = 'middle';
+    content!.style.verticalAlign = 'middle';
   }
 
   @override
   String renderButton() {
     if (disabled) {
-      content.style.opacity = '0.7';
+      content!.style.opacity = '0.7';
     } else {
-      content.style.opacity = null;
+      content!.style.opacity = '';
     }
 
     if (fontSize != null) {
@@ -688,17 +667,11 @@ class UIButtonCapture extends UICapture {
     }
   }
 
-  bool _showSelectedFileInButton = true;
-
-  bool get showSelectedFileInButton => _showSelectedFileInButton;
-
-  set showSelectedFileInButton(bool value) {
-    _showSelectedFileInButton = value ?? false;
-  }
+  bool showSelectedFileInButton = true;
 
   @override
   void onCaptureFile(FileUploadInputElement input, Event event) {
-    if (_showSelectedFileInButton) {
+    if (showSelectedFileInButton) {
       showSelectedFile();
     }
   }
@@ -707,21 +680,21 @@ class UIButtonCapture extends UICapture {
     var dataURL = selectedFileDataAsDataURLBase64;
     if (dataURL == null) return;
 
-    content.children.removeWhere((e) => (e is SpanElement || e is BRElement));
+    content!.children.removeWhere((e) => (e is SpanElement || e is BRElement));
 
-    var fileName = selectedFile != null ? selectedFile.name : null;
+    var fileName = selectedFile != null ? selectedFile!.name : null;
 
     if (fileName != null && fileName.isNotEmpty) {
-      content.children.add(BRElement());
-      content.children.add(SpanElement()..text = fileName);
+      content!.children.add(BRElement());
+      content!.children.add(SpanElement()..text = fileName);
     }
   }
 
   void setWideButton() {
-    content.style.width = '80%';
+    content!.style.width = '80%';
   }
 
   void setNormalButton() {
-    content.style.width = null;
+    content!.style.width = null;
   }
 }

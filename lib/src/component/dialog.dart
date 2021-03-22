@@ -10,30 +10,29 @@ import 'package:swiss_knife/swiss_knife.dart';
 abstract class UIDialogBase extends UIComponent {
   static final rootParent = document.body;
 
-  final bool/*!*/ hideUIRoot;
+  final bool hideUIRoot;
   final int backgroundGrey;
   final double backgroundAlpha;
-  final int backgroundBlur;
-  final bool/*!*/ fullScreen;
+  final int? backgroundBlur;
+  final bool fullScreen;
 
-  final String/*!*/ padding;
+  final String padding;
 
   UIDialogBase(
       {this.hideUIRoot = false,
-      bool/*!*/ show = false,
-      bool/*!*/ addToParent = false,
+      bool show = false,
+      bool? addToParent,
       dynamic classes,
       dynamic style,
       this.padding = '6px',
       this.fullScreen = true,
-      int/*!*/ backgroundGrey = 0,
-      double/*!*/ backgroundAlpha = 0.80,
-      bool/*!*/ renderOnConstruction = false ,
+      int backgroundGrey = 0,
+      double backgroundAlpha = 0.80,
+      bool renderOnConstruction = false,
       this.backgroundBlur})
-      :
-        backgroundGrey = clipNumber(backgroundGrey, 0, 255)/*!*/ ,
-        backgroundAlpha = clipNumber(backgroundAlpha, 0.0, 1.0)/*!*/,
-        super((addToParent ?? show ?? false) ? rootParent : null,
+      : backgroundGrey = clipNumber(backgroundGrey, 0, 255)!,
+        backgroundAlpha = clipNumber(backgroundAlpha, 0.0, 1.0)!,
+        super((addToParent ?? show) ? rootParent : null,
             componentClass: 'ui-dialog',
             classes: classes,
             renderOnConstruction: renderOnConstruction) {
@@ -41,7 +40,7 @@ abstract class UIDialogBase extends UIComponent {
   }
 
   void _myConfigure(dynamic style) {
-    content.style
+    content!.style
       ..position = 'fixed'
       ..float = 'top'
       ..clear = 'both'
@@ -52,20 +51,20 @@ abstract class UIDialogBase extends UIComponent {
       ..zIndex = '999999999';
 
     if (fullScreen) {
-      content.style
+      content!.style
         ..width = '100%'
         ..height = '100%'
         ..left = '0px'
         ..top = '0px';
     } else {
-      content.style
+      content!.style
         ..left = '50%'
         ..top = '50%'
         ..transform = 'translate(-50%, -50%)';
     }
 
-    if (backgroundBlur != null && backgroundBlur > 0) {
-      setElementBackgroundBlur(content, backgroundBlur);
+    if (backgroundBlur != null && backgroundBlur! > 0) {
+      setElementBackgroundBlur(content!, backgroundBlur);
     }
 
     configureStyle(style);
@@ -76,68 +75,43 @@ abstract class UIDialogBase extends UIComponent {
   static final String dialogButtonClass = 'ui-dialog-button';
   static final String dialogButtonCancelClass = 'ui-dialog-button-cancel';
 
-  bool _onClickListenOnlyForDialogButtonClass = false;
-
-  bool get onClickListenOnlyForDialogButtonClass =>
-      _onClickListenOnlyForDialogButtonClass;
-
-  set onClickListenOnlyForDialogButtonClass(bool value) {
-    _onClickListenOnlyForDialogButtonClass = value ?? false;
-  }
+  bool onClickListenOnlyForDialogButtonClass = false;
 
   @override
   void posRender() {
-    var selectors = _onClickListenOnlyForDialogButtonClass
+    var selectors = onClickListenOnlyForDialogButtonClass
         ? '.$dialogButtonClass'
         : '.$dialogButtonClass, button';
 
-    var buttons = content.querySelectorAll(selectors);
+    var buttons = content!.querySelectorAll(selectors);
 
-    if (buttons != null && buttons.isNotEmpty) {
+    if (buttons.isNotEmpty) {
       for (var button in buttons) {
         button.onClick.listen(_callOnDialogButtonClick);
       }
     }
   }
 
-  bool _onlyHideOnCancelButton = false;
+  bool onlyHideOnCancelButton = false;
 
-  bool get onlyHideOnCancelButton => _onlyHideOnCancelButton;
+  bool hideOnDialogButtonClick = true;
 
-  set onlyHideOnCancelButton(bool value) {
-    _onlyHideOnCancelButton = value ?? false;
-  }
-
-  bool _hideOnDialogButtonClick = true;
-
-  bool get hideOnDialogButtonClick => _hideOnDialogButtonClick;
-
-  set hideOnDialogButtonClick(bool value) {
-    _hideOnDialogButtonClick = value ?? true;
-  }
-
-  bool _removeOnDialogButtonClick = false;
-
-  bool get removeOnDialogButtonClick => _removeOnDialogButtonClick;
-
-  set removeOnDialogButtonClick(bool value) {
-    _removeOnDialogButtonClick = value ?? false;
-  }
+  bool removeOnDialogButtonClick = false;
 
   void _callOnDialogButtonClick(MouseEvent event) {
-    if (_hideOnDialogButtonClick) {
+    if (hideOnDialogButtonClick) {
       var clickedElement = event.target;
-      if (clickedElement != null && isCancelButton(clickedElement)) {
+      if (clickedElement != null && isCancelButton(clickedElement as Element)) {
         cancel();
       } else {
-        if (!_onlyHideOnCancelButton) {
+        if (!onlyHideOnCancelButton) {
           hide();
         }
       }
     }
 
-    if (_removeOnDialogButtonClick) {
-      content.remove();
+    if (removeOnDialogButtonClick) {
+      content!.remove();
     }
 
     onDialogButtonClick(event);
@@ -148,8 +122,6 @@ abstract class UIDialogBase extends UIComponent {
   List<String> get cancelButtonClasses => _cancelButtonClasses;
 
   bool isCancelButton(Element clickedElement) {
-    if (clickedElement == null) return false;
-
     if (_isElementOfClass(clickedElement, dialogButtonCancelClass)) {
       return true;
     }
@@ -170,7 +142,7 @@ abstract class UIDialogBase extends UIComponent {
       return true;
     }
 
-    var elementsWithClass = content.querySelectorAll('.$className');
+    var elementsWithClass = content!.querySelectorAll('.$className');
 
     for (var elem in elementsWithClass) {
       if (elem == element || elem.contains(element)) {
@@ -208,39 +180,39 @@ abstract class UIDialogBase extends UIComponent {
 
   @override
   bool get isShowing {
-    return rootParent.contains(content) &&
-        !content.hidden &&
-        content.style.display != 'none' &&
-        content.style.visibility != 'hidden';
+    return rootParent!.contains(content) &&
+        !content!.hidden &&
+        content!.style.display != 'none' &&
+        content!.style.visibility != 'hidden';
   }
 
-  String _styleDisplayPrevValue;
+  String? _styleDisplayPrevValue;
 
-  String _styleVisibilityPrevValue;
+  String? _styleVisibilityPrevValue;
 
   @override
   void show() {
     if (!isShowing) {
-      var parent = this.parent ?? rootParent;
+      var parent = this.parent ?? rootParent!;
 
       if (!isInDOM(parent)) {
-        rootParent.append(parent);
+        rootParent!.append(parent);
       }
 
       if (!parent.contains(content)) {
-        parent.append(content);
+        parent.append(content!);
       }
 
-      if (content.hidden) {
-        content.hidden = false;
+      if (content!.hidden) {
+        content!.hidden = false;
       }
 
-      if (content.style.display == 'none') {
-        content.style.display = _styleDisplayPrevValue ?? '';
+      if (content!.style.display == 'none') {
+        content!.style.display = _styleDisplayPrevValue ?? '';
       }
 
-      if (content.style.visibility == 'hidden') {
-        content.style.visibility = _styleVisibilityPrevValue ?? '';
+      if (content!.style.visibility == 'hidden') {
+        content!.style.visibility = _styleVisibilityPrevValue ?? '';
       }
 
       ensureRendered();
@@ -252,16 +224,16 @@ abstract class UIDialogBase extends UIComponent {
   void hide() {
     var showing = isShowing;
 
-    content.hidden = true;
+    content!.hidden = true;
 
-    if (content.style.display != 'none') {
-      _styleDisplayPrevValue = content.style.display;
-      content.style.display = 'none';
+    if (content!.style.display != 'none') {
+      _styleDisplayPrevValue = content!.style.display;
+      content!.style.display = 'none';
     }
 
-    if (content.style.visibility != 'hidden') {
-      _styleVisibilityPrevValue = content.style.visibility;
-      content.style.visibility = 'hidden';
+    if (content!.style.visibility != 'hidden') {
+      _styleVisibilityPrevValue = content!.style.visibility;
+      content!.style.visibility = 'hidden';
     }
 
     if (showing) {
@@ -304,8 +276,8 @@ class UIDialog extends UIDialogBase {
   static final UIComponentGenerator<UIDialog> GENERATOR =
       UIComponentGenerator<UIDialog>('ui-dialog', 'div', 'ui-dialog', '',
           (parent, attributes, contentHolder, contentNodes) {
-    var show = parseBool(attributes['show'], false);
-    var showCloseButton = parseBool(attributes['show-close-button'], true);
+    var show = parseBool(attributes['show'], false)!;
+    var showCloseButton = parseBool(attributes['show-close-button'], true)!;
 
     return UIDialog(contentNodes,
         show: show, showCloseButton: showCloseButton, addToParent: true);
@@ -318,17 +290,17 @@ class UIDialog extends UIDialogBase {
   dynamic renderContent;
 
   UIDialog(this.renderContent,
-      {bool/*!*/ hideUIRoot = false,
-      bool/*!*/ show = false,
-      bool/*!*/ addToParent = false,
-      bool/*!*/ showCloseButton = false,
+      {bool hideUIRoot = false,
+      bool show = false,
+      bool addToParent = false,
+      bool showCloseButton = false,
       dynamic classes,
       dynamic style,
-      String/*!*/ padding = '6px',
-      bool/*!*/ fullScreen = true,
-      int/*!*/ backgroundGrey = 0,
-      double/*!*/ backgroundAlpha = 0.80,
-      int/*?*/ backgroundBlur})
+      String padding = '6px',
+      bool fullScreen = true,
+      int backgroundGrey = 0,
+      double backgroundAlpha = 0.80,
+      int? backgroundBlur})
       : super(
             hideUIRoot: hideUIRoot,
             classes: classes,
@@ -339,7 +311,7 @@ class UIDialog extends UIDialogBase {
             backgroundAlpha: backgroundAlpha,
             backgroundBlur: backgroundBlur) {
     this.showCloseButton = showCloseButton;
-    if (show ?? false) {
+    if (show) {
       this.show();
     } else {
       hide();
@@ -350,17 +322,11 @@ class UIDialog extends UIDialogBase {
   void configure() {
     super.configure();
 
-    content.style.display = 'none';
-    content.style.textAlign = 'center';
+    content!.style.display = 'none';
+    content!.style.textAlign = 'center';
   }
 
-  bool _showCloseButton = false;
-
-  bool get showCloseButton => _showCloseButton;
-
-  set showCloseButton(bool value) {
-    _showCloseButton = value ?? false;
-  }
+  bool showCloseButton = false;
 
   @override
   dynamic render() {
@@ -378,17 +344,17 @@ class UIDialog extends UIDialogBase {
   }
 
   dynamic renderCloseButton() {
-    var color = content.style.color;
+    var color = content!.style.color;
 
     if (isEmptyString(color, trim: true)) {
-      color = content.getComputedStyle().color;
+      color = content!.getComputedStyle().color;
     }
 
     if (isEmptyString(color, trim: true)) {
       color = '#000';
     }
 
-    var shadowColor = CSSColor.from(color).inverse.toString();
+    var shadowColor = CSSColor.from(color)!.inverse.toString();
 
     return $button(
         classes: [
@@ -407,14 +373,14 @@ class UIDialogInput extends UIDialog {
   static DIVElement _buildContent(
       String label,
       String buttonLabel,
-      String buttonClasses,
-      String buttonCancelLabel,
-      String buttonCancelClasses,
-      String inputType,
-      String inputPlaceholder,
-      String inputClasses,
-      String inputStyle,
-      String value) {
+      String? buttonClasses,
+      String? buttonCancelLabel,
+      String? buttonCancelClasses,
+      String? inputType,
+      String? inputPlaceholder,
+      String? inputClasses,
+      String? inputStyle,
+      String? value) {
     inputType ??= 'text';
 
     var div = $div(content: [
@@ -443,23 +409,23 @@ class UIDialogInput extends UIDialog {
   }
 
   UIDialogInput(String label, String buttonLabel,
-      {String buttonClasses,
-      String buttonCancelLabel,
-      String buttonCancelClasses,
-      String inputType,
-      String inputPlaceholder,
-      String inputClasses,
-      String inputStyle,
-      String value,
-      bool/*!*/ hideUIRoot = false,
-      bool/*!*/ showCloseButton = false,
+      {String? buttonClasses,
+      String? buttonCancelLabel,
+      String? buttonCancelClasses,
+      String? inputType,
+      String? inputPlaceholder,
+      String? inputClasses,
+      String? inputStyle,
+      String? value,
+      bool hideUIRoot = false,
+      bool showCloseButton = false,
       dynamic classes,
       dynamic style,
-      String/*!*/ padding = '6px',
+      String padding = '6px',
       bool fullScreen = false,
-      int/*!*/ backgroundGrey = 0,
-      double/*!*/ backgroundAlpha = 0.80,
-      int/*?*/ backgroundBlur})
+      int backgroundGrey = 0,
+      double backgroundAlpha = 0.80,
+      int? backgroundBlur})
       : super(
             _buildContent(
                 label,
@@ -477,12 +443,12 @@ class UIDialogInput extends UIDialog {
             classes: classes,
             style: style,
             padding: padding,
-            fullScreen: fullScreen ?? false,
+            fullScreen: fullScreen,
             backgroundGrey: backgroundGrey,
             backgroundAlpha: backgroundAlpha,
             backgroundBlur: backgroundBlur);
 
-  Future<String> ask() async {
+  Future<String?> ask() async {
     var ok = await showAndWait();
     if (!ok) return null;
     var value = getField(DIALOG_INPUT_FIELD);
@@ -492,7 +458,7 @@ class UIDialogInput extends UIDialog {
 
 class UIDialogAlert extends UIDialog {
   static DIVElement _buildContent(
-      String text, String buttonLabel, String buttonClasses) {
+      String text, String buttonLabel, String? buttonClasses) {
     var div = $div(content: [
       $label(content: text),
       $br(),
@@ -503,23 +469,23 @@ class UIDialogAlert extends UIDialog {
   }
 
   UIDialogAlert(String text, String buttonLabel,
-      {String/*!*/ buttonClasses,
-      bool/*!*/ hideUIRoot = false,
-      bool/*!*/ showCloseButton = false,
+      {String? buttonClasses,
+      bool hideUIRoot = false,
+      bool showCloseButton = false,
       dynamic classes,
       dynamic style,
-      String/*!*/ padding = '6px',
-      bool/*!*/ fullScreen = false,
-      int/*!*/ backgroundGrey = 0,
-      double/*!*/ backgroundAlpha = 0.80,
-      int/*?*/ backgroundBlur})
+      String padding = '6px',
+      bool fullScreen = false,
+      int backgroundGrey = 0,
+      double backgroundAlpha = 0.80,
+      int? backgroundBlur})
       : super(_buildContent(text, buttonLabel, buttonClasses),
             hideUIRoot: hideUIRoot,
             showCloseButton: showCloseButton,
             classes: classes,
             style: style,
             padding: padding,
-            fullScreen: fullScreen ?? false,
+            fullScreen: fullScreen,
             backgroundGrey: backgroundGrey,
             backgroundAlpha: backgroundAlpha,
             backgroundBlur: backgroundBlur);
@@ -542,11 +508,11 @@ class UIDialogLoading extends UIDialog {
       bool show = false,
       dynamic classes,
       dynamic style,
-      String/*!*/ padding = '6px',
-      bool/*!*/ fullScreen = false,
-      int/*!*/ backgroundGrey = 0,
-      double/*!*/ backgroundAlpha = 0.80,
-      int/*?*/ backgroundBlur})
+      String padding = '6px',
+      bool fullScreen = false,
+      int backgroundGrey = 0,
+      double backgroundAlpha = 0.80,
+      int? backgroundBlur})
       : super(_buildContent(loadingType, text),
             hideUIRoot: hideUIRoot,
             showCloseButton: showCloseButton,
@@ -554,7 +520,7 @@ class UIDialogLoading extends UIDialog {
             classes: classes,
             style: style,
             padding: padding,
-            fullScreen: fullScreen ?? false,
+            fullScreen: fullScreen,
             backgroundGrey: backgroundGrey,
             backgroundAlpha: backgroundAlpha,
             backgroundBlur: backgroundBlur);

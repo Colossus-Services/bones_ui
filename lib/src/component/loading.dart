@@ -254,19 +254,35 @@ const Map<String, String> _CSS_LOADING = {
 @keyframes ui-loading-ripple {
   0% {
     border-width: 1px;
-    top: 37px;
-    left: 37px;
+    top: 40px;
+    left: 40px;
+    width: 0px;
+    height: 0px;
+    opacity: 0.0;
+  }
+  5% {
+    border-width: 1px;
+    top: 39px;
+    left: 39px;
     width: 2px;
     height: 2px;
-    opacity: 1;
+    opacity: 0.0;
+  }
+  10% {
+    border-width: 1px;
+    top: 35px;
+    left: 35px;
+    width: 8px;
+    height: 8px;
+    opacity: 0.9;
   }
   100% {
     border-width: 4px;
-    top: 2px;
-    left: 2px;
-    width: 72px;
-    height: 72px;
-    opacity: 0;
+    top: 4px;
+    left: 4px;
+    width: 70px;
+    height: 70px;
+    opacity: 0.0;
   }
 }
 ''',
@@ -367,8 +383,7 @@ const Map<String, String> _CSS_LOADING = {
 ''',
 };
 
-String _loadCSS(String loadingClass, String color) {
-  if (loadingClass == null) return null;
+String? _loadCSS(String loadingClass, String? color) {
   var cssCode = _CSS_LOADING[loadingClass];
   if (cssCode == null) return null;
 
@@ -391,7 +406,7 @@ String _loadCSS(String loadingClass, String color) {
 
 enum UILoadingType { ring, dualRing, roller, spinner, ripple, blocks, ellipsis }
 
-UILoadingType getUILoadingType(dynamic type) {
+UILoadingType? getUILoadingType(dynamic type) {
   if (type == null) return null;
 
   if (type is UILoadingType) return type;
@@ -418,8 +433,7 @@ UILoadingType getUILoadingType(dynamic type) {
   }
 }
 
-String getUILoadingTypeClass(UILoadingType type) {
-  if (type == null) return null;
+String? getUILoadingTypeClass(UILoadingType type) {
   switch (type) {
     case UILoadingType.ring:
       return 'ui-loading-ring';
@@ -441,7 +455,6 @@ String getUILoadingTypeClass(UILoadingType type) {
 }
 
 int _getUILoadingTypeSubDivs(UILoadingType type) {
-  if (type == null) return null;
   switch (type) {
     case UILoadingType.ring:
       return 4;
@@ -463,7 +476,7 @@ int _getUILoadingTypeSubDivs(UILoadingType type) {
 }
 
 abstract class UILoading {
-  static void resolveLoadingElements([Element root]) {
+  static void resolveLoadingElements([Element? root]) {
     root ??= document.documentElement;
 
     for (var type in UILoadingType.values) {
@@ -471,34 +484,35 @@ abstract class UILoading {
     }
   }
 
-  static void resolveLoadingElementsOfType(UILoadingType type, [Element root]) {
+  static void resolveLoadingElementsOfType(UILoadingType type,
+      [Element? root]) {
     root ??= document.documentElement;
 
     var loadingClass = getUILoadingTypeClass(type);
     if (loadingClass == null) return;
 
-    var sel = root.querySelectorAll('.$loadingClass');
+    var sel = root!.querySelectorAll('.$loadingClass');
 
     for (var elem in sel) {
       var color = ensureNotEmptyString(elem.style.color, trim: true);
       var text = ensureNotEmptyString(elem.text, trim: true);
 
-      var loading = asDivElement(type, color: color, text: text);
+      var loading = asDivElement(type, color: color, text: text)!;
 
       elem.nodes.clear();
       elem.append(loading);
     }
   }
 
-  static DIVElement asDIVElement(UILoadingType type,
+  static DIVElement? asDIVElement(UILoadingType? type,
       {bool inline = true,
-      String color,
-      double zoom,
-      String text,
-      double textZoom,
+      String? color,
+      double? zoom,
+      String? text,
+      double? textZoom,
       dynamic cssContext,
-      bool withProgress,
-      UILoadingConfig config}) {
+      bool? withProgress,
+      UILoadingConfig? config}) {
     if (config != null) {
       if (config.type != null) type = config.type;
       if (isNotEmptyString(config.color, trim: true)) color = config.color;
@@ -536,7 +550,7 @@ abstract class UILoading {
 
     var div = $div(content: [divLoading]);
 
-    if (inline ?? true) {
+    if (inline) {
       div.style.put('display', 'inline-block');
     }
 
@@ -569,15 +583,15 @@ abstract class UILoading {
     return div;
   }
 
-  static DivElement asDivElement(UILoadingType type,
+  static DivElement? asDivElement(UILoadingType? type,
       {bool inline = true,
-      String color,
-      double zoom,
-      String text,
-      double textZoom,
+      String? color,
+      double? zoom,
+      String? text,
+      double? textZoom,
       dynamic cssContext,
-      bool withProgress,
-      UILoadingConfig config}) {
+      bool? withProgress,
+      UILoadingConfig? config}) {
     var div = asDIVElement(type,
         inline: inline,
         color: color,
@@ -586,44 +600,44 @@ abstract class UILoading {
         textZoom: textZoom,
         cssContext: cssContext,
         withProgress: withProgress,
-        config: config);
-    return div.buildDOM(generator: UIComponent.domGenerator) as DivElement;
+        config: config)!;
+    return div.buildDOM(generator: UIComponent.domGenerator) as DivElement?;
   }
 }
 
 class UILoadingConfig implements AsDOMElement {
-  final UILoadingType type;
-  final bool inline;
-  final TextProvider _color;
-  final double zoom;
-  final TextProvider _text;
-  final double textZoom;
-  final bool withProgress;
+  final UILoadingType? type;
+  final bool? inline;
+  final TextProvider? _color;
+  final double? zoom;
+  final TextProvider? _text;
+  final double? textZoom;
+  final bool? withProgress;
 
   UILoadingConfig(
-      {UILoadingType type,
+      {UILoadingType? type,
       dynamic inline,
       dynamic color,
       dynamic zoom,
       dynamic text,
       dynamic textZoom,
-      bool withProgress})
+      bool? withProgress})
       : type = getUILoadingType(type) ?? UILoadingType.ring,
         inline = parseBool(inline),
         _color = TextProvider.from(color),
         zoom = parseDouble(zoom),
         _text = TextProvider.from(text),
         textZoom = parseDouble(textZoom),
-        withProgress = withProgress ?? false;
+        withProgress = withProgress;
 
-  factory UILoadingConfig.from(dynamic o, [String prefix]) {
+  static UILoadingConfig? from(dynamic o, [String? prefix]) {
     if (o == null) return null;
     if (o is UILoadingConfig) return o;
     if (o is Map) return UILoadingConfig.fromMap(o, prefix);
     return UILoadingConfig.parse(o.toString(), prefix);
   }
 
-  factory UILoadingConfig.fromMap(Map attributes, [String prefix]) {
+  static UILoadingConfig? fromMap(Map attributes, [String? prefix]) {
     prefix ??= '';
 
     var type = parseString(attributes['${prefix}type']);
@@ -651,29 +665,29 @@ class UILoadingConfig implements AsDOMElement {
     return null;
   }
 
-  factory UILoadingConfig.parse(String config, [String prefix]) {
+  static UILoadingConfig? parse(String? config, [String? prefix]) {
     if (isEmptyString(config)) return null;
-    var map = parseFromInlineProperties(config);
+    var map = parseFromInlineProperties(config!)!;
     return UILoadingConfig.fromMap(map, prefix);
   }
 
-  String get text => _text?.text;
+  String? get text => _text?.text;
 
-  String get color => _color?.text;
+  String? get color => _color?.text;
 
-  DIVElement asDIVElement() => UILoading.asDIVElement(type, config: this);
+  DIVElement? asDIVElement() => UILoading.asDIVElement(type, config: this);
 
-  DivElement asDivElement() => UILoading.asDivElement(type, config: this);
+  DivElement? asDivElement() => UILoading.asDivElement(type, config: this);
 
   @override
-  DOMElement get asDOMElement => asDIVElement();
+  DOMElement get asDOMElement => asDIVElement()!;
 
   String toInlineProperties() {
-    var color = _color.text;
-    var text = _text.text;
+    var color = _color?.text;
+    var text = _text?.text;
 
     return [
-      if (type != null) 'type: ${EnumToString.convertToString(type)}',
+      'type: ${EnumToString.convertToString(type)}',
       if (inline != null) 'inline: $inline',
       if (isNotEmptyString(color, trim: true)) 'color: $color',
       if (zoom != null) 'zoom: $zoom',

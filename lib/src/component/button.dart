@@ -9,17 +9,17 @@ import 'package:swiss_knife/swiss_knife.dart';
 abstract class UIButtonBase extends UIComponent {
   static final EVENT_CLICK = 'CLICK';
 
-  UIButtonBase(Element parent,
-      {String navigate,
-      Map<String, String> navigateParameters,
-      ParametersProvider navigateParametersProvider,
+  UIButtonBase(Element? parent,
+      {String? navigate,
+      Map<String, String>? navigateParameters,
+      ParametersProvider? navigateParametersProvider,
       dynamic classes,
       dynamic classes2,
       dynamic componentClass,
       dynamic style,
       dynamic style2,
       dynamic componentStyle,
-      UIComponentGenerator generator})
+      UIComponentGenerator? generator})
       : super(parent,
             classes: classes,
             classes2: classes2,
@@ -44,32 +44,32 @@ abstract class UIButtonBase extends UIComponent {
     refreshInternal();
   }
 
-  StreamSubscription _navigateOnClick_Subscription;
+  StreamSubscription? _navigateOnClick_Subscription;
 
   void cancelNavigate() {
     if (_navigateOnClick_Subscription != null) {
-      _navigateOnClick_Subscription.cancel();
+      _navigateOnClick_Subscription!.cancel();
       _navigateOnClick_Subscription = null;
     }
   }
 
   void navigate(String navigate,
-      [Map<String, String> navigateParameters,
-      ParametersProvider navigateParametersProvider]) {
+      [Map<String, String>? navigateParameters,
+      ParametersProvider? navigateParametersProvider]) {
     cancelNavigate();
     _navigateOnClick_Subscription = UINavigator.navigateOnClick(
-        content, navigate, navigateParameters, navigateParametersProvider);
+        content!, navigate, navigateParameters, navigateParametersProvider);
   }
 
   void registerClickListener(UIEventListener listener) {
     registerEventListener(EVENT_CLICK, listener);
   }
 
-  Point _prevClickEvent_point;
+  Point? _prevClickEvent_point;
 
-  num _prevClickEvent_time;
+  num? _prevClickEvent_time;
 
-  void fireClickEvent(MouseEvent event, [List params]) {
+  void fireClickEvent(MouseEvent event, [List? params]) {
     if (disabled) return;
 
     var p = event.page;
@@ -88,7 +88,7 @@ abstract class UIButtonBase extends UIComponent {
 
   final EventStream<MouseEvent> onClick = EventStream();
 
-  void onClickEvent(dynamic event, List params) {}
+  void onClickEvent(dynamic event, List? params) {}
 
   @override
   dynamic render() {
@@ -119,7 +119,7 @@ abstract class UIButtonBase extends UIComponent {
     }
 
     if (!clickSet && !_content_onClick_listening) {
-      content.onClick.listen((e) => fireClickEvent(e));
+      content!.onClick.listen((e) => fireClickEvent(e));
       _content_onClick_listening = true;
     }
   }
@@ -140,13 +140,13 @@ class UIButton extends UIButtonBase {
           'ui-button',
           '',
           (parent, attributes, contentHolder, contentNodes) =>
-              UIButton(parent, contentHolder.text),
+              UIButton(parent, contentHolder?.text),
           [
             UIComponentAttributeHandler<UIButton, String>('text',
                 parser: parseString,
                 getter: (c) => c._text,
                 setter: (c, v) => c._text = v ?? '',
-                appender: (c, v) => c._text += v ?? '',
+                appender: (c, v) => c._text = (c._text ?? '') + (v ?? ''),
                 cleaner: (c) => c._text = '')
           ],
           hasChildrenElements: false,
@@ -157,22 +157,22 @@ class UIButton extends UIButtonBase {
   }
 
   /// Text/label of the button.
-  String _text;
+  String? _text;
 
   /// Font size of the button.
-  String _fontSize;
+  String? _fontSize;
 
-  UIButton(Element parent, String text,
-      {String navigate,
-      Map<String, String> navigateParameters,
-      ParametersProvider navigateParametersProvider,
+  UIButton(Element? parent, String? text,
+      {String? navigate,
+      Map<String, String>? navigateParameters,
+      ParametersProvider? navigateParametersProvider,
       dynamic classes,
       dynamic classes2,
       dynamic componentClass,
       dynamic style,
       dynamic style2,
       bool small = false,
-      String fontSize})
+      String? fontSize})
       : super(parent,
             navigate: navigate,
             navigateParameters: navigateParameters,
@@ -190,9 +190,9 @@ class UIButton extends UIButtonBase {
     this.fontSize = fontSize;
   }
 
-  String get text => _text;
+  String? get text => _text;
 
-  set text(String value) {
+  set text(String? value) {
     value ??= '';
     if (value != _text) {
       _text = value;
@@ -200,9 +200,9 @@ class UIButton extends UIButtonBase {
     }
   }
 
-  String get fontSize => _fontSize;
+  String? get fontSize => _fontSize;
 
-  set fontSize(String value) {
+  set fontSize(String? value) {
     if (isEmptyString(value)) {
       value = null;
     }
@@ -219,14 +219,14 @@ class UIButton extends UIButtonBase {
   }
 
   @override
-  String renderButton() {
+  String? renderButton() {
     if (disabled) {
-      content.style.opacity = '0.7';
+      content!.style.opacity = '0.7';
     } else {
-      content.style.opacity = null;
+      content!.style.opacity = '';
     }
 
-    if (fontSize != null && fontSize.isNotEmpty) {
+    if (fontSize != null && fontSize!.isNotEmpty) {
       return "<span style='font-size: $fontSize'>$text</span>";
     } else {
       return text;
@@ -234,31 +234,33 @@ class UIButton extends UIButtonBase {
   }
 
   void setWideButton() {
-    content.style.width = '80%';
+    content!.style.width = '80%';
   }
 
   void setNormalButton() {
-    content.style.width = null;
+    content!.style.width = null;
   }
 }
 
 DOMElement $ui_button_loader(
-    {DOMNodeValidator validate,
+    {DOMNodeValidator? validate,
     id,
     classes,
     style,
     buttonClasses,
     buttonStyle,
-    Map<String, String> attributes,
+    Map<String, String>? attributes,
     content,
-    bool commented,
-    bool withProgress,
+    bool commented = false,
+    bool? withProgress,
     dynamic loadingConfig}) {
   return $tag('ui-button-loader',
       id: id,
       attributes: {
-        if (buttonClasses != null) 'button-classes': buttonClasses,
-        if (buttonClasses != null) 'button-style': buttonStyle,
+        if (buttonClasses != null)
+          'button-classes':
+              parseStringFromInlineList(buttonClasses)?.join(',') ?? '',
+        if (buttonClasses != null) 'button-style': CSS(buttonStyle).style,
         if (withProgress != null) 'with-progress': '$withProgress',
         if (loadingConfig != null)
           'loading-config': (loadingConfig is UILoadingConfig
@@ -285,7 +287,7 @@ class UIButtonLoader extends UIButtonBase {
     var loadingConfig =
         UILoadingConfig.parse(attributes['loading-config']?.value);
 
-    return UIButtonLoader(parent, contentHolder.text,
+    return UIButtonLoader(parent, contentHolder?.text,
         loadedTextStyle: loadedTextStyle,
         loadedTextErrorStyle: loadedTextErrorStyle,
         loadedTextOK: loadedTextOK,
@@ -299,7 +301,7 @@ class UIButtonLoader extends UIButtonBase {
         parser: parseString,
         getter: (c) => c._text,
         setter: (c, v) => c._text = v ?? '',
-        appender: (c, v) => c._text += v ?? '',
+        appender: (c, v) => c._text = (c._text ?? '') + (v ?? ''),
         cleaner: (c) => c._text = '')
   ], hasChildrenElements: false, contentAsText: true);
 
@@ -307,34 +309,34 @@ class UIButtonLoader extends UIButtonBase {
     UIComponent.registerGenerator(GENERATOR);
   }
 
-  final UILoadingConfig loadingConfig;
+  final UILoadingConfig? loadingConfig;
 
   /// Text/label of the button.
-  String _text;
+  String? _text;
 
-  final TextProvider _loadedTextOK;
+  final TextProvider? _loadedTextOK;
 
-  final TextProvider _loadedTextError;
+  final TextProvider? _loadedTextError;
 
-  final TextProvider _loadedTextStyle;
-  final TextProvider _loadedTextErrorStyle;
+  final TextProvider? _loadedTextStyle;
+  final TextProvider? _loadedTextErrorStyle;
 
-  final TextProvider _buttonClasses;
-  final TextProvider _buttonStyle;
+  final TextProvider? _buttonClasses;
+  final TextProvider? _buttonStyle;
 
   final bool withProgress;
 
   UIButtonLoader(
-    Element parent,
-    String text, {
-    UILoadingConfig loadingConfig,
+    Element? parent,
+    String? text, {
+    UILoadingConfig? loadingConfig,
     dynamic loadedTextOK,
     dynamic loadedTextError,
     dynamic loadedTextStyle,
     dynamic loadedTextErrorStyle,
-    String navigate,
-    Map<String, String> navigateParameters,
-    ParametersProvider navigateParametersProvider,
+    String? navigate,
+    Map<String, String>? navigateParameters,
+    ParametersProvider? navigateParametersProvider,
     dynamic classes,
     dynamic classes2,
     dynamic componentClass,
@@ -342,7 +344,7 @@ class UIButtonLoader extends UIButtonBase {
     dynamic style,
     dynamic style2,
     dynamic buttonStyle,
-    bool withProgress,
+    bool? withProgress,
   })  : loadingConfig = loadingConfig,
         _loadedTextOK = TextProvider.from(loadedTextOK),
         _loadedTextError = TextProvider.from(loadedTextError),
@@ -364,9 +366,9 @@ class UIButtonLoader extends UIButtonBase {
     this.text = text;
   }
 
-  String get text => _text;
+  String? get text => _text;
 
-  set text(String value) {
+  set text(String? value) {
     value ??= '';
     if (value != _text) {
       _text = value;
@@ -376,16 +378,16 @@ class UIButtonLoader extends UIButtonBase {
 
   dynamic _button;
 
-  DivElement _loadingDiv;
+  DivElement? _loadingDiv;
 
-  DivElement _loadedMessage;
+  DivElement? _loadedMessage;
 
   @override
   dynamic renderButton() {
     if (disabled) {
-      content.style.opacity = '0.7';
+      content!.style.opacity = '0.7';
     } else {
-      content.style.opacity = null;
+      content!.style.opacity = '';
     }
 
     _loadingDiv ??= UILoading.asDivElement(UILoadingType.ring,
@@ -393,7 +395,7 @@ class UIButtonLoader extends UIButtonBase {
         textZoom: 1.5,
         cssContext: content,
         withProgress: withProgress,
-        config: loadingConfig)
+        config: loadingConfig)!
       ..style.display = 'none';
 
     _button ??= renderButtonElement();
@@ -419,12 +421,12 @@ class UIButtonLoader extends UIButtonBase {
     }
 
     if (isNotEmptyString(style, trim: true)) {
-      _loadedMessage.style.cssText = style;
+      _loadedMessage!.style.cssText = style;
     }
   }
 
   @override
-  void fireClickEvent(MouseEvent event, [List params]) {
+  void fireClickEvent(MouseEvent event, [List? params]) {
     if (!disabled) {
       startLoading();
     }
@@ -435,60 +437,60 @@ class UIButtonLoader extends UIButtonBase {
   void startLoading() {
     if (_loadingDiv == null) return;
 
-    _loadingDiv.style.display = 'inline-block';
+    _loadingDiv!.style.display = 'inline-block';
     var button =
         (_button is DOMElement ? _button.runtimeNode : _button) as Element;
     button.style.display = 'none';
 
-    _loadedMessage.style.display = 'none';
+    _loadedMessage!.style.display = 'none';
   }
 
-  void stopLoading(bool loadOK, {String okMessage, String errorMessage}) {
+  void stopLoading(bool? loadOK, {String? okMessage, String? errorMessage}) {
     if (_loadingDiv == null) return;
 
     var button =
-        (_button is DOMElement ? _button.runtimeNode : _button) as Element;
+        (_button is DOMElement ? _button.runtimeNode : _button) as Element?;
 
     if (loadOK == null) {
       _setLoadedMessageStyle();
 
-      _loadingDiv.style.display = 'none';
-      button.style.display = '';
-      _loadedMessage.style.display = 'none';
+      _loadingDiv!.style.display = 'none';
+      button!.style.display = '';
+      _loadedMessage!.style.display = 'none';
     } else if (loadOK) {
       _setLoadedMessageStyle();
 
-      _loadingDiv.style.display = 'none';
-      button.style.display = 'none';
+      _loadingDiv!.style.display = 'none';
+      button!.style.display = 'none';
 
       var okMsg = okMessage ?? _loadedTextOK?.text ?? 'OK';
-      setElementInnerHTML(_loadedMessage, okMsg);
-      _loadedMessage.style.display = '';
+      setElementInnerHTML(_loadedMessage!, okMsg);
+      _loadedMessage!.style.display = '';
 
       _disabled = true;
     } else {
       _setLoadedMessageStyle(error: true);
 
-      _loadingDiv.style.display = 'none';
-      button.style.display = '';
+      _loadingDiv!.style.display = 'none';
+      button!.style.display = '';
 
       var errorMsg = errorMessage ?? _loadedTextError?.text;
 
       if (isNotEmptyString(errorMsg)) {
-        setElementInnerHTML(_loadedMessage, errorMsg);
-        _loadedMessage.style.display = '';
+        setElementInnerHTML(_loadedMessage!, errorMsg!);
+        _loadedMessage!.style.display = '';
       } else {
-        _loadedMessage.style.display = 'none';
+        _loadedMessage!.style.display = 'none';
       }
     }
   }
 
   /// Sets the progress of loading.
-  void setProgress(double ratio) {
-    var progressDiv = _loadingDiv.querySelector('.ui-loading-progress');
+  void setProgress(double? ratio) {
+    var progressDiv = _loadingDiv!.querySelector('.ui-loading-progress');
     if (progressDiv == null) {
       progressDiv = DivElement()..classes.add('ui-loading-progress');
-      var loadingDiv = _loadingDiv.querySelector('.ui-loading');
+      var loadingDiv = _loadingDiv!.querySelector('.ui-loading')!;
       loadingDiv.append(progressDiv);
       return;
     }

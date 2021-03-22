@@ -8,40 +8,40 @@ import 'package:swiss_knife/swiss_knife.dart';
 
 import 'capture.dart';
 
-typedef FieldValueProvider = dynamic Function(String field);
+typedef FieldValueProvider = dynamic Function(String? field);
 
 /// Configuration for an input.
 class InputConfig {
   static List<InputConfig> listFromMap(Map map) {
-    return map
-        .map((k, v) => MapEntry(k, InputConfig.from(v, '$k')))
-        .values
+    return map.entries
+        .map((e) => InputConfig.from(e.value, '${e.key}'))
+        .whereType<InputConfig>()
         .toList();
   }
 
-  String _id;
+  String? _id;
 
-  String _label;
+  String? _label;
 
-  String _type;
+  String? _type;
 
-  String value;
+  String? value;
 
-  String _placeholder;
+  String? _placeholder;
 
-  Map<String, String> _attributes;
+  Map<String, String>? _attributes;
 
   List<String> classes = ['form-control'];
 
-  String style;
+  String? style;
 
-  Map<String, String> _options;
+  Map<String, String>? _options;
 
-  bool _optional;
+  bool? _optional;
 
-  FieldValueProvider _valueProvider;
+  FieldValueProvider? _valueProvider;
 
-  factory InputConfig.from(dynamic config, [String id]) {
+  static InputConfig? from(dynamic config, [String? id]) {
     if (config is List) {
       config = config.join(' ; ');
     }
@@ -71,7 +71,7 @@ class InputConfig {
         options = asMapOfString(options);
       }
 
-      return InputConfig(id, label,
+      return InputConfig(id!, label,
           type: type,
           value: value,
           attributes: attributes,
@@ -84,16 +84,16 @@ class InputConfig {
     return null;
   }
 
-  InputConfig(String id, String label,
-      {String type = 'text',
-      String value = '',
-      String placeholder = '',
-      Map<String, String> attributes,
-      Map<String, String> options,
-      bool optional = false,
-      List<String> classes,
-      String style,
-      FieldValueProvider valueProvider}) {
+  InputConfig(String id, String? label,
+      {String? type = 'text',
+      String? value = '',
+      String? placeholder = '',
+      Map<String, String>? attributes,
+      Map<String, String>? options,
+      bool? optional = false,
+      List<String>? classes,
+      String? style,
+      FieldValueProvider? valueProvider}) {
     if (type == null || type.isEmpty) type = 'text';
     if (value == null || value.isEmpty) value = null;
     if (placeholder == null || placeholder.isEmpty) placeholder = null;
@@ -106,10 +106,8 @@ class InputConfig {
       }
     }
 
-    id ??= label;
-
-    if (id == null || id.isEmpty) throw ArgumentError('Invalid ID');
-    if (label == null || label.isEmpty) throw ArgumentError('Invalid Label');
+    if (id.isEmpty) throw ArgumentError('Invalid ID');
+    if (label.isEmpty) throw ArgumentError('Invalid Label');
 
     _id = id;
     _label = label;
@@ -124,7 +122,7 @@ class InputConfig {
     _valueProvider = valueProvider;
 
     if (classes != null) {
-      classes.removeWhere((e) => e == null);
+      classes.removeWhere((e) => e.isEmpty);
       this.classes = classes;
     }
 
@@ -134,36 +132,36 @@ class InputConfig {
     }
   }
 
-  String get id => _id;
+  String? get id => _id;
 
-  String get fieldName => _id;
+  String? get fieldName => _id;
 
-  String get label => _label;
+  String? get label => _label;
 
-  String get type => _type;
+  String? get type => _type;
 
-  String get placeholder => _placeholder;
+  String? get placeholder => _placeholder;
 
-  Map<String, String> get attributes => _attributes;
+  Map<String, String>? get attributes => _attributes;
 
-  Map<String, String> get options => _options;
+  Map<String, String>? get options => _options;
 
-  bool get optional => _optional;
+  bool? get optional => _optional;
 
-  bool get required => !_optional;
+  bool get required => !_optional!;
 
-  FieldValueProvider get valueProvider => _valueProvider;
+  FieldValueProvider? get valueProvider => _valueProvider;
 
-  dynamic renderInput([FieldValueProvider fieldValueProvider]) {
+  dynamic renderInput([FieldValueProvider? fieldValueProvider]) {
     var inputID = id;
     var inputType = type;
     var inputValue = fieldValueProvider != null
         ? (fieldValueProvider(fieldName) ?? value)
         : value;
 
-    Element inputElement;
-    UIComponent inputComponent;
-    Element element;
+    Element? inputElement;
+    UIComponent? inputComponent;
+    Element? element;
 
     if (inputType == 'textarea') {
       inputElement = _render_textArea(inputValue);
@@ -174,7 +172,7 @@ class InputConfig {
       inputComponent = capture;
     } else if (inputType == 'color') {
       var picker = UIColorPickerInput(null,
-          fieldName: inputID,
+          fieldName: inputID!,
           placeholder: placeholder,
           value: inputValue,
           pickerWidth: 150,
@@ -185,9 +183,9 @@ class InputConfig {
     } else if (inputType == 'html') {
       inputElement = createHTML(inputValue);
       inputElement.onClick.listen((event) {
-        var value = inputElement.getAttribute('element_value');
+        var value = inputElement!.getAttribute('element_value');
         if (isNotEmptyObject(value)) {
-          inputElement.setAttribute('field_value', value);
+          inputElement.setAttribute('field_value', value!);
         }
       });
     } else {
@@ -196,13 +194,13 @@ class InputConfig {
 
     if (inputElement != null) {
       _configureElementStyle(inputElement);
-      _configureInputElement(inputElement, inputID);
+      _configureInputElement(inputElement, inputID!);
       _configureElementAttribute(inputElement);
       return inputElement;
     } else if (element != null) {
-      var input = element.querySelector('input');
+      var input = element.querySelector('input')!;
       _configureElementStyle(element);
-      _configureInputElement(input, inputID);
+      _configureInputElement(input, inputID!);
       _configureElementAttribute(element);
       return element;
     } else if (inputComponent != null) {
@@ -225,10 +223,10 @@ class InputConfig {
   }
 
   void _configureElementAttribute(Element inputElement) {
-    if (attributes != null && attributes.isNotEmpty) {
-      for (var attrKey in attributes.keys) {
-        var attrVal = attributes[attrKey];
-        if (attrKey.isNotEmpty && attrVal.isNotEmpty) {
+    if (attributes != null && attributes!.isNotEmpty) {
+      for (var attrKey in attributes!.keys) {
+        var attrVal = attributes![attrKey];
+        if (attrKey.isNotEmpty && attrVal!.isNotEmpty) {
           inputElement.setAttribute(attrKey, attrVal);
         }
       }
@@ -241,11 +239,11 @@ class InputConfig {
     inputElement.setAttribute('field', inputID);
 
     if (placeholder != null) {
-      inputElement.setAttribute('placeholder', placeholder);
+      inputElement.setAttribute('placeholder', placeholder!);
     }
   }
 
-  DivElement _render_inputPath(String fieldName, String inputValue) {
+  DivElement? _render_inputPath(String? fieldName, String? inputValue) {
     var input = $input(style: 'width: auto', value: inputValue);
     var button;
 
@@ -256,7 +254,7 @@ class InputConfig {
           content: 'File')
         ..onClick.listen((_) async {
           if (_valueProvider != null) {
-            var ret = _valueProvider(fieldName) ?? '';
+            var ret = _valueProvider!(fieldName) ?? '';
             var value;
             if (ret is Future) {
               value = await ret;
@@ -275,7 +273,7 @@ class InputConfig {
     var div = $div(content: [input, button])
         .buildDOM(generator: UIComponent.domGenerator);
 
-    return div;
+    return div as DivElement?;
   }
 
   TextAreaElement _render_textArea(inputValue) {
@@ -284,7 +282,7 @@ class InputConfig {
     return textArea;
   }
 
-  Element _render_generic_input(String inputType, inputValue) {
+  Element _render_generic_input(String? inputType, inputValue) {
     var input = InputElement()
       ..type = inputType ?? 'text'
       ..value = inputValue ?? ''
@@ -296,9 +294,9 @@ class InputConfig {
   SelectElement _render_select(inputValue) {
     var select = SelectElement();
 
-    if (options != null && options.isNotEmpty) {
-      for (var optKey in options.keys) {
-        var optVal = options[optKey];
+    if (options != null && options!.isNotEmpty) {
+      for (var optKey in options!.keys) {
+        var optVal = options![optKey];
         var selected = false;
 
         if (optKey.endsWith('*')) {
@@ -325,7 +323,7 @@ class InputConfig {
   }
 
   List<Element> renderElementsWithInputValues(String html,
-      [FieldValueProvider fieldValueProvider]) {
+      [FieldValueProvider? fieldValueProvider]) {
     var inputID = id;
     var inputType = type;
     var inputValue = fieldValueProvider != null
@@ -334,11 +332,11 @@ class InputConfig {
 
     var elements = <Element>[];
 
-    var keys = <String>[];
+    var keys = <String?>[];
 
     if (inputType == 'select') {
-      if (options != null && options.isNotEmpty) {
-        keys = options.keys
+      if (options != null && options!.isNotEmpty) {
+        keys = options!.keys
             .map((k) => k.replaceFirst(RegExp(r'\s*\*\s*$'), ''))
             .toList();
       } else if (inputValue != null && inputValue.isNotEmpty) {
@@ -350,7 +348,7 @@ class InputConfig {
     }
 
     for (var key in keys) {
-      var renderHtml = html;
+      String? renderHtml = html;
 
       if (html.contains('{{') && html.contains('}}')) {
         renderHtml = buildStringPattern(html, {inputID: key});
@@ -358,7 +356,7 @@ class InputConfig {
 
       var elem = createHTML(renderHtml);
 
-      elem.setAttribute('element_value', key);
+      elem.setAttribute('element_value', key!);
       elements.add(elem);
     }
 
@@ -371,21 +369,21 @@ class UIInputTable extends UIComponent {
   final List<InputConfig> _inputs;
   final bool showLabels;
 
-  UIInputTable(Element parent, this._inputs,
+  UIInputTable(Element? parent, this._inputs,
       {this.actionListenerComponent,
       this.actionListener,
       this.inputErrorClass,
-      bool showLabels,
+      bool? showLabels,
       dynamic classes,
       dynamic style})
       : showLabels = showLabels ?? true,
         super(parent,
             componentClass: 'ui-infos-table', classes: classes, style: style);
 
-  String inputErrorClass;
+  String? inputErrorClass;
 
   bool canHighlightInputs() =>
-      inputErrorClass == null || inputErrorClass.isEmpty;
+      inputErrorClass == null || inputErrorClass!.isEmpty;
 
   int highlightEmptyInputs() {
     if (canHighlightInputs()) return -1;
@@ -402,13 +400,13 @@ class UIInputTable extends UIComponent {
         (fieldElement) => fieldElement.classes.remove('ui-input-error'));
   }
 
-  bool highlightField(String fieldName) {
+  bool highlightField(String? fieldName) {
     if (canHighlightInputs()) return false;
 
     var fieldElement = getFieldElement(fieldName);
     if (fieldElement == null) return false;
 
-    fieldElement.classes.add(inputErrorClass);
+    fieldElement.classes.add(inputErrorClass!);
     return true;
   }
 
@@ -484,18 +482,18 @@ class UIInputTable extends UIComponent {
   }
 
   /// Redirects [action] calls to an [UIComponent].
-  UIComponent actionListenerComponent;
+  UIComponent? actionListenerComponent;
 
   /// Function to call when an [action] is triggered.
-  void Function(String) actionListener;
+  void Function(String)? actionListener;
 
   @override
   void action(String action) {
     if (actionListener != null) {
-      actionListener(action);
+      actionListener!(action);
     }
     if (actionListenerComponent != null) {
-      actionListenerComponent.action(action);
+      actionListenerComponent!.action(action);
     }
   }
 
@@ -506,9 +504,7 @@ class UIInputTable extends UIComponent {
   Duration get onChangeTriggerDelay => _onChangeTriggerDelay;
 
   set onChangeTriggerDelay(Duration value) {
-    if (value == null) {
-      value = defaultOnChangeTriggerDelay;
-    } else if (value.inMilliseconds < 500) {
+    if (value.inMilliseconds < 500) {
       value = Duration(milliseconds: 500);
     }
     _onChangeTriggerDelay = value;
@@ -520,7 +516,7 @@ class UIInputTable extends UIComponent {
   void posRender() {
     var fields = getFieldsElementsMap();
 
-    if (fields != null && fields.isNotEmpty) {
+    if (fields.isNotEmpty) {
       for (var entry in fields.entries) {
         var fieldName = entry.key;
         var elem = entry.value;

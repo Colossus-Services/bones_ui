@@ -10,10 +10,10 @@ void main() async {
 
 // `Bones_UI` root.
 class MyRoot extends UIRoot {
-  MyRoot(Element rootContainer) : super(rootContainer);
+  MyRoot(Element? rootContainer) : super(rootContainer);
 
-  MyMenu _menu;
-  MyNavigable _navigable;
+  MyMenu? _menu;
+  MyNavigable? _navigable;
 
   @override
   void configure() {
@@ -23,16 +23,16 @@ class MyRoot extends UIRoot {
 
   // Returns the menu component.
   @override
-  UIComponent renderMenu() => _menu;
+  UIComponent? renderMenu() => _menu;
 
   // Returns the content component.
   @override
-  UIComponent renderContent() => _navigable;
+  UIComponent? renderContent() => _navigable;
 }
 
 // Top menu.
 class MyMenu extends UIComponent {
-  MyMenu(Element parent) : super(parent);
+  MyMenu(Element? parent) : super(parent);
 
   // Renders a fixed top menu with sections 'home' and 'help'.
   @override
@@ -53,10 +53,10 @@ class MyMenu extends UIComponent {
 
 // Navigable content, that changes by current `route`.
 class MyNavigable extends UINavigableComponent {
-  MyNavigable(Element parent) : super(parent, ['home', 'help']);
+  MyNavigable(Element? parent) : super(parent, ['home', 'help']);
 
   @override
-  dynamic renderRoute(String route, Map<String, String> parameters) {
+  dynamic renderRoute(String? route, Map<String, String>? parameters) {
     print('renderRoute> $route');
     switch (route) {
       case 'home':
@@ -71,7 +71,7 @@ class MyNavigable extends UINavigableComponent {
 
 // The `home` route.
 class MyHome extends UIComponent {
-  MyHome(Element parent) : super(parent);
+  MyHome(Element? parent) : super(parent);
 
   @override
   dynamic render() {
@@ -92,7 +92,7 @@ class MyHome extends UIComponent {
 
 // The `help` route.
 class MyHelp extends UIComponent {
-  MyHelp(Element parent) : super(parent);
+  MyHelp(Element? parent) : super(parent);
 
   @override
   dynamic render() {

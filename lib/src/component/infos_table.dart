@@ -7,13 +7,13 @@ import 'package:swiss_knife/swiss_knife.dart';
 /// Component that renders a table with information.
 class UIInfosTable extends UIComponent {
   final Map _infos;
-  final List<String> headerColumnsNames;
+  final List<String>? headerColumnsNames;
 
-  final String headerColor;
-  final String rowsStyles;
-  final String cellsStyles;
+  final String? headerColor;
+  final String? rowsStyles;
+  final String? cellsStyles;
 
-  List<String> rowsColors;
+  List<String>? rowsColors;
 
   UIInfosTable(Element parent, this._infos,
       {this.headerColumnsNames,
@@ -51,11 +51,11 @@ class UIInfosTable extends UIComponent {
         headRow.style.cssText = rowsStyles;
       }
 
-      if (headerColor.isNotEmpty) {
+      if (headerColor!.isNotEmpty) {
         headRow.style.backgroundColor = headerColor;
       }
 
-      for (var columnName in headerColumnsNames) {
+      for (var columnName in headerColumnsNames!) {
         var cel = headRow.addCell();
         if (isNotEmptyObject(cellsStyles)) {
           cel.style.cssText = cellsStyles;

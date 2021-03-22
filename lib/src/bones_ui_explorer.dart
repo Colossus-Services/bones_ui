@@ -19,30 +19,30 @@ import 'component/input_config.dart';
 final ResourceContentCache _resourceContentCache = ResourceContentCache();
 
 abstract class ResourceConfig<D extends ConfigDocument> {
-  ResourceContent _resourceContent;
+  ResourceContent? _resourceContent;
 
-  EventStream<String> _onLoad;
+  EventStream<String?>? _onLoad;
 
-  ResourceConfig(ResourceContent resourceContent) {
+  ResourceConfig(ResourceContent? resourceContent) {
     if (resourceContent != null) {
       _resourceContent = _resourceContentCache.get(resourceContent);
-      _onLoad = _resourceContent.onLoad;
+      _onLoad = _resourceContent!.onLoad;
     } else {
       _onLoad = EventStream();
     }
   }
 
-  ResourceContent get resourceContent {
+  ResourceContent? get resourceContent {
     if (_resourceContent == null) return null;
-    if (_resourceContent.uri == null) return _resourceContent;
+    if (_resourceContent!.uri == null) return _resourceContent;
     return _resourceContentCache.get(_resourceContent);
   }
 
-  EventStream<String> get onLoad => _onLoad;
+  EventStream<String?>? get onLoad => _onLoad;
 
   D loadDocument(String content);
 
-  D _document;
+  D? _document;
 
   bool _loaded = false;
 
@@ -51,13 +51,13 @@ abstract class ResourceConfig<D extends ConfigDocument> {
     _loaded = _document != null;
 
     if (_loaded) {
-      onLoad.add(doc.asString());
+      onLoad!.add(doc.asString());
     }
   }
 
   bool get isLoaded => _loaded;
 
-  Future<D> load() async {
+  Future<D?> load() async {
     if (!_loaded) {
       var resourceContent = this.resourceContent;
       if (resourceContent == null) return null;
@@ -69,14 +69,14 @@ abstract class ResourceConfig<D extends ConfigDocument> {
     return _document;
   }
 
-  Future<D> getDocument() async {
+  Future<D?> getDocument() async {
     if (!_loaded) {
       await load();
     }
     return _document;
   }
 
-  D getDocumentIfLoaded() {
+  D? getDocumentIfLoaded() {
     if (!_loaded) {
       var resourceContent = this.resourceContent;
       if (resourceContent == null) return null;
@@ -100,12 +100,12 @@ abstract class ResourceConfig<D extends ConfigDocument> {
   @override
   int get hashCode => _resourceContent != null ? _resourceContent.hashCode : 0;
 
-  Uri get uri => _resourceContent != null ? _resourceContent.uri : null;
+  Uri? get uri => _resourceContent != null ? _resourceContent!.uri : null;
 
-  Future<Uri> get uriResolved =>
-      _resourceContent != null ? _resourceContent.uriResolved : null;
+  Future<Uri?>? get uriResolved =>
+      _resourceContent != null ? _resourceContent!.uriResolved : null;
 
-  Future<Uri> resolveURL(String url) =>
+  Future<Uri?> resolveURL(String url) =>
       ResourceContent.resolveURLFromReference(resourceContent, url);
 
   @override
@@ -117,37 +117,37 @@ abstract class ResourceConfig<D extends ConfigDocument> {
 abstract class ConfigDocument {
   dynamic get(String key, [dynamic def]);
 
-  Map getAsMap(String key, [Map def]) => get(key, def) as Map;
+  Map? getAsMap(String key, [Map? def]) => get(key, def) as Map?;
 
-  List getAsList(String key, [List def]) => get(key, def) as List;
+  List? getAsList(String key, [List? def]) => get(key, def) as List?;
 
-  List<String> getAsStringList(String key, [List<String> def]) =>
-      getAsList(key, def).cast();
+  List<String> getAsStringList(String key, [List<String>? def]) =>
+      getAsList(key, def)!.cast();
 
-  List<int> getAsIntList(String key, [List<int> def]) =>
-      getAsList(key, def).cast();
+  List<int> getAsIntList(String key, [List<int>? def]) =>
+      getAsList(key, def)!.cast();
 
-  List<num> getAsNumList(String key, [List<num> def]) =>
-      getAsList(key, def).cast();
+  List<num> getAsNumList(String key, [List<num>? def]) =>
+      getAsList(key, def)!.cast();
 
-  List<double> getAsDoubleList(String key, [List<double> def]) =>
-      getAsList(key, def).cast();
+  List<double> getAsDoubleList(String key, [List<double>? def]) =>
+      getAsList(key, def)!.cast();
 
-  List<bool> getAsBoolList(String key, [List<bool> def]) =>
-      getAsList(key, def).cast();
+  List<bool> getAsBoolList(String key, [List<bool>? def]) =>
+      getAsList(key, def)!.cast();
 
-  String getAsString(String key, [String def]) => parseString(get(key), def);
+  String? getAsString(String key, [String? def]) => parseString(get(key), def);
 
-  int getAsInt(String key, [int def]) => parseInt(get(key), def);
+  int? getAsInt(String key, [int? def]) => parseInt(get(key), def);
 
-  num getAsNum(String key, [num def]) => parseNum(get(key), def);
+  num? getAsNum(String key, [num? def]) => parseNum(get(key), def);
 
-  double getAsDouble(String key, [double def]) => parseDouble(get(key), def);
+  double? getAsDouble(String key, [double? def]) => parseDouble(get(key), def);
 
-  bool getAsBool(String key, [bool def]) => parseBool(get(key), def);
+  bool? getAsBool(String key, [bool? def]) => parseBool(get(key), def);
 
   dynamic getPath(List<String> keys, [dynamic def]) {
-    if (keys == null || keys.isEmpty) return def;
+    if (keys.isEmpty) return def;
 
     if (keys.length == 1) return get(keys[0]);
 
@@ -239,7 +239,7 @@ class JSONConfig extends ResourceConfig<JSONConfigDocument> {
     setDocument(doc);
   }
 
-  factory JSONConfig.fromJSON(dynamic json) {
+  static JSONConfig? fromJSON(dynamic json) {
     if (json == null) return null;
     var doc = json is String
         ? JSONConfigDocument.loadFromJSONString(json)
@@ -262,7 +262,7 @@ class ExplorerModel {
 
   ExplorerModel(this.resourceConfig);
 
-  factory ExplorerModel.from(dynamic resourceConfigSource) {
+  static ExplorerModel? from(dynamic resourceConfigSource) {
     if (resourceConfigSource == null) return null;
     if (resourceConfigSource is ExplorerModel) return resourceConfigSource;
     if (resourceConfigSource is ResourceConfig) {
@@ -277,7 +277,7 @@ class ExplorerModel {
     return ExplorerModel.fromURI(resourceConfigSource.toString());
   }
 
-  factory ExplorerModel.fromJSON(dynamic json) {
+  static ExplorerModel? fromJSON(dynamic json) {
     var config = JSONConfig.fromJSON(json);
     return config != null ? ExplorerModel(config) : null;
   }
@@ -304,22 +304,22 @@ class ExplorerModel {
     return ExplorerModel(resourceConfig);
   }
 
-  Uri get uri => resourceConfig.uri;
+  Uri? get uri => resourceConfig.uri;
 
-  Future<Uri> get uriResolved => resourceConfig.uriResolved;
+  Future<Uri?>? get uriResolved => resourceConfig.uriResolved;
 
-  Future<Uri> resolveURL(String url) => resourceConfig.resolveURL(url);
+  Future<Uri?> resolveURL(String url) => resourceConfig.resolveURL(url);
 
-  Future<ConfigDocument> load() => resourceConfig.load();
+  Future<ConfigDocument?> load() => resourceConfig.load();
 
-  Future<ConfigDocument> getConfigDocument() => resourceConfig.getDocument();
+  Future<ConfigDocument?> getConfigDocument() => resourceConfig.getDocument();
 
-  ConfigDocument get configDocument => resourceConfig.getDocumentIfLoaded();
+  ConfigDocument? get configDocument => resourceConfig.getDocumentIfLoaded();
 
   String get modelType {
     var doc = configDocument;
     if (doc == null) return '';
-    return doc.getAsString('model', '').trim().toLowerCase();
+    return doc.getAsString('model', '')!.trim().toLowerCase();
   }
 }
 
@@ -330,7 +330,7 @@ class UIExplorer extends UIComponentAsync {
 
   UIExplorer(Element parent, dynamic model,
       {loadingContent, errorContent, dynamic classes})
-      : model = ExplorerModel.from(model),
+      : model = ExplorerModel.from(model)!,
         super(parent, null, null, loadingContent, errorContent,
             classes: CLASS, classes2: classes);
 
@@ -344,9 +344,9 @@ class UIExplorer extends UIComponentAsync {
     await model.load();
 
     var modelType = model.modelType;
-    if (modelType == null || modelType.isEmpty) return null;
+    if (modelType.isEmpty) return null;
 
-    content.classes.add('$CLASS-$modelType');
+    content!.classes.add('$CLASS-$modelType');
 
     if (modelType == 'document') {
       return await render_document();
@@ -358,7 +358,7 @@ class UIExplorer extends UIComponentAsync {
   }
 
   Future<dynamic> render_document() async {
-    var doc = model.configDocument;
+    var doc = model.configDocument!;
 
     var content = doc.getAsString('content');
     if (content != null) {
@@ -385,7 +385,7 @@ class UIExplorer extends UIComponentAsync {
 
     var localeUrlPattern = doc.getAsString('locale_url_pattern');
 
-    ResourceContent resourceContent;
+    ResourceContent? resourceContent;
     if (localeUrlPattern != null) {
       var intlResourceUri =
           IntlResourceUri(RegExp(localeUrlPattern), url, _resourceContentCache);
@@ -395,44 +395,42 @@ class UIExplorer extends UIComponentAsync {
       resourceContent = _resourceContentCache.get(resourceContent);
     }
 
-    var urlContent = await resourceContent.getContent();
+    var urlContent = await resourceContent!.getContent();
     if (urlContent == null) return null;
 
-    var extension = getPathExtension(url).toLowerCase().trim();
+    var extension = getPathExtension(url)!.toLowerCase().trim();
 
-    if (extension != null) {
-      var language = getLanguageByExtension(extension);
+    var language = getLanguageByExtension(extension);
 
-      if (language == 'html') {
-        return urlContent;
-      } else if (language == 'text') {
-        return '<pre>\n$urlContent\n</pre>';
-      } else if (language == 'markdown') {
-        var div = markdownToDiv(urlContent);
-        div.style.overflowWrap = 'break-word';
-        return div;
-      } else if (language == 'json') {
-        var jsonRender = JSONRender.fromJSONAsString(urlContent);
-        jsonRender.addAllKnownTypeRenders();
-        var div = jsonRender.render();
-        div.style.overflowWrap = 'break-word';
-        return div;
-      }
+    if (language == 'html') {
+      return urlContent;
+    } else if (language == 'text') {
+      return '<pre>\n$urlContent\n</pre>';
+    } else if (language == 'markdown') {
+      var div = markdownToDiv(urlContent);
+      div.style.overflowWrap = 'break-word';
+      return div;
+    } else if (language == 'json') {
+      var jsonRender = JSONRender.fromJSONAsString(urlContent);
+      jsonRender.addAllKnownTypeRenders();
+      var div = jsonRender.render();
+      div.style.overflowWrap = 'break-word';
+      return div;
     }
 
     return urlContent;
   }
 
   Future<dynamic> render_query() async {
-    var conf = model.configDocument;
+    var conf = model.configDocument!;
 
-    var inputs = conf.getAsMap('inputs');
+    var inputs = conf.getAsMap('inputs')!;
 
     var inputConfigs = InputConfig.listFromMap(inputs);
 
-    var executor = MapProperties.fromMap(conf.getAsMap('executor'));
+    var executor = MapProperties.fromMap(conf.getAsMap('executor')!);
 
-    var viewer = MapProperties.fromMap(conf.getAsMap('viewer'));
+    var viewer = MapProperties.fromMap(conf.getAsMap('viewer')!);
 
     return _UIExplorerQuery(content, inputConfigs, executor, viewer,
         loadingContent: '${IntlBasicDictionary.msg('loading')}...',
@@ -440,20 +438,20 @@ class UIExplorer extends UIComponentAsync {
   }
 
   Future<dynamic> render_catalog() async {
-    var conf = model.configDocument;
+    var conf = model.configDocument!;
 
     var documentInputConfigs =
-        InputConfig.listFromMap(conf.getAsMap('document'));
+        InputConfig.listFromMap(conf.getAsMap('document')!);
 
     var documentViewer =
-        MapProperties.fromMap(conf.getAsMap('document_viewer'));
+        MapProperties.fromMap(conf.getAsMap('document_viewer')!);
 
     var documentPreview =
-        MapProperties.fromMap(conf.getAsMap('document_preview'));
+        MapProperties.fromMap(conf.getAsMap('document_preview')!);
     var documentStorage =
-        MapProperties.fromMap(conf.getAsMap('document_storage'));
+        MapProperties.fromMap(conf.getAsMap('document_storage')!);
     var documentListing =
-        MapProperties.fromMap(conf.getAsMap('document_listing'));
+        MapProperties.fromMap(conf.getAsMap('document_listing')!);
 
     return _UIExplorerCatalog(content, documentInputConfigs, documentViewer,
         documentPreview, documentStorage, documentListing);
@@ -465,6 +463,7 @@ class _UIExplorerCatalog extends UIComponent {
 
   final MapProperties _documentViewer;
 
+  // ignore: unused_field
   final MapProperties _documentPreview;
 
   final MapProperties _documentStorage;
@@ -472,7 +471,7 @@ class _UIExplorerCatalog extends UIComponent {
   final MapProperties _documentListing;
 
   _UIExplorerCatalog(
-      Element parent,
+      Element? parent,
       this.documentInputConfig,
       this._documentViewer,
       this._documentPreview,
@@ -496,7 +495,7 @@ class _UIExplorerCatalog extends UIComponent {
   }
 
   Map<String, dynamic> _listingProperties() {
-    var navigation = UINavigator.currentNavigation;
+    var navigation = UINavigator.currentNavigation!;
 
     var page = navigation.parameterAsInt('page', 0);
 
@@ -509,7 +508,7 @@ class _UIExplorerCatalog extends UIComponent {
 
     var response = await httpRequester.doRequest();
 
-    var viewerRender = _ViewerRender(_documentViewer ?? _documentPreview);
+    var viewerRender = _ViewerRender(_documentViewer);
 
     var responseType =
         httpRequester.config.getPropertyAsStringTrimLC('response');
@@ -547,7 +546,7 @@ class _UIExplorerCatalog extends UIComponent {
     var response = await httpRequester.doRequest();
 
     if (response == null) {
-      var elementError = getFieldElement('send-error');
+      var elementError = getFieldElement('send-error')!;
       elementError.hidden = false;
     } else {
       refresh();
@@ -563,7 +562,7 @@ class _UIExplorerQuery extends UIControlledComponent {
   final MapProperties _viewer;
 
   _UIExplorerQuery(
-      Element parent, this.inputConfig, this._executor, this._viewer,
+      Element? parent, this.inputConfig, this._executor, this._viewer,
       {dynamic loadingContent, dynamic errorContent, dynamic classes})
       : super(parent, loadingContent, errorContent,
             controllersPropertiesType: ControllerPropertiesType.IMPLEMENTATION,
@@ -573,7 +572,7 @@ class _UIExplorerQuery extends UIControlledComponent {
   MapProperties getControllersProperties() {
     var mapValues = inputConfig.asMap().map((k, v) => MapEntry(v.id, v.value));
 
-    var inputTable = getController('table') as UIInputTable;
+    var inputTable = getController('table') as UIInputTable?;
 
     if (inputTable != null) {
       var controllersValues = inputTable.getFields();
@@ -581,7 +580,7 @@ class _UIExplorerQuery extends UIControlledComponent {
       controllersValues.forEach((k, v) => mapValues[k] ??= v);
     }
 
-    return MapProperties.fromStringProperties(mapValues);
+    return MapProperties.fromStringProperties(mapValues as Map<String, String>);
   }
 
   @override
@@ -592,18 +591,18 @@ class _UIExplorerQuery extends UIControlledComponent {
 
   @override
   bool isValidControllersSetup(
-      MapProperties properties, Map<String, dynamic> controllers) {
-    var inputTable = controllers['table'] as UIInputTable;
+      MapProperties properties, Map<String, dynamic>? controllers) {
+    var inputTable = controllers!['table'] as UIInputTable;
     return inputTable.checkFields();
   }
 
   @override
   Future<bool> setupControllers(
-      MapProperties properties, Map<String, dynamic> controllers) async {
-    var inputTable = controllers['table'] as UIInputTable;
+      MapProperties properties, Map<String, dynamic>? controllers) async {
+    var inputTable = controllers!['table'] as UIInputTable?;
 
     properties.forEach((k, v) {
-      inputTable.setField(k, v);
+      inputTable!.setField(k, v);
     });
 
     return true;
@@ -619,7 +618,7 @@ class _UIExplorerQuery extends UIControlledComponent {
   }
 
   @override
-  void onChangeController(Map<String, dynamic> controllers,
+  void onChangeController(Map<String, dynamic>? controllers,
       bool validControllersSetup, dynamic changedController) {
     if (!validControllersSetup) return;
 
@@ -647,8 +646,8 @@ class _UIExplorerQuery extends UIControlledComponent {
     }
   }
 
-  Future<dynamic> executeQuery_http(MapProperties executor, String type,
-      MapProperties properties, int page) async {
+  Future<dynamic> executeQuery_http(MapProperties executor, String? type,
+      MapProperties properties, int? page) async {
     var httpRequester = HttpRequester(executor, properties);
     return httpRequester.doRequest();
   }
@@ -660,7 +659,7 @@ class _ViewerRender {
   _ViewerRender(this.config);
 
   Future<dynamic> render(
-      Element output, String contentType, dynamic content) async {
+      Element? output, String? contentType, dynamic content) async {
     var type = config.getPropertyAsStringTrimLC('type', 'html');
 
     if (type == 'html') {
@@ -678,7 +677,8 @@ class _ViewerRender {
     return null;
   }
 
-  DivElement render_json(Element output, String contentType, dynamic content) {
+  DivElement render_json(
+      Element? output, String? contentType, dynamic content) {
     var jsonRender = content is String
         ? JSONRender.fromJSONAsString(content)
         : JSONRender.fromJSON(content);
@@ -693,9 +693,9 @@ class _ViewerRender {
 
     jsonRender.addAllKnownTypeRenders();
 
-    var showNodeArrow = config.getPropertyAsBool('show_node_arrow', true);
+    var showNodeArrow = config.getPropertyAsBool('show_node_arrow', true)!;
     var showNodeOpenerAndCloser =
-        config.getPropertyAsBool('show_node_opener_and_closer', true);
+        config.getPropertyAsBool('show_node_opener_and_closer', true)!;
 
     jsonRender.showNodeArrow = showNodeArrow;
     jsonRender.showNodeOpenerAndCloser = showNodeOpenerAndCloser;

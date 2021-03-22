@@ -9,7 +9,7 @@ import 'package:swiss_knife/swiss_knife.dart';
 class URLLink {
   final String url;
 
-  final String target;
+  final String? target;
 
   URLLink(this.url, [this.target]);
 
@@ -22,8 +22,7 @@ class URLLink {
 typedef URLFilter = URLLink Function(String url);
 
 /// Returns a document language by [extension].
-String getLanguageByExtension(String extension) {
-  if (extension == null) return null;
+String? getLanguageByExtension(String extension) {
   extension = extension.trim().toLowerCase();
   if (extension.isEmpty) return null;
   extension = extension.replaceAll(RegExp(r'\W+'), '');
@@ -92,13 +91,13 @@ class UIDocument extends UIComponentAsync {
           (parent, attributes, contentHolder, contentNodes) {
     var src = attributes['src']?.toString();
 
-    ResourceContent resourceContent;
+    ResourceContent? resourceContent;
     if (isNotEmptyString(src)) {
       resourceContent = ResourceContent.from(src);
     } else {
       var type = attributes['type']?.toString() ?? '.md';
       resourceContent =
-          ResourceContent.fromURI('file.$type', contentHolder.text);
+          ResourceContent.fromURI('file.$type', contentHolder?.text);
     }
 
     return UIDocument(parent, resourceContent);
@@ -115,9 +114,9 @@ class UIDocument extends UIComponentAsync {
     UIComponent.registerGenerator(GENERATOR);
   }
 
-  ResourceContent _resourceContent;
+  ResourceContent? _resourceContent;
 
-  UIDocument(Element parent, ResourceContent resourceContent,
+  UIDocument(Element? parent, ResourceContent? resourceContent,
       {loadingContent,
       errorContent,
       dynamic classes,
@@ -135,7 +134,7 @@ class UIDocument extends UIComponentAsync {
             id: id,
             generator: GENERATOR);
 
-  ResourceContent get resourceContent => _resourceContent;
+  ResourceContent? get resourceContent => _resourceContent;
 
   set resourceContent(dynamic value) {
     var resourceContent = ResourceContent.from(value);
@@ -147,20 +146,20 @@ class UIDocument extends UIComponentAsync {
 
   @override
   Map<String, dynamic> renderPropertiesProvider() {
-    return {'uri': resourceContent.uri};
+    return {'uri': resourceContent!.uri};
   }
 
   @override
   Future<dynamic> renderAsync(Map<String, dynamic> properties) async {
-    await resourceContent.load();
+    await resourceContent!.load();
 
-    var type = resourceContent.uriMimeType.subType;
+    var type = resourceContent!.uriMimeType!.subType;
     if (isEmptyString(type)) return null;
 
-    var docContent = await resourceContent.getContent();
+    var docContent = await resourceContent!.getContent();
     if (docContent == null) return null;
 
-    var extension = resourceContent.uriFileExtension.toLowerCase().trim();
+    var extension = resourceContent!.uriFileExtension!.toLowerCase().trim();
 
     if (isNotEmptyString(extension)) {
       var language = getLanguageByExtension(extension);

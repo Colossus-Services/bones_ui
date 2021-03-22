@@ -12,10 +12,10 @@ class UIDataSource extends UIComponent {
           'ui-data-source',
           '',
           (parent, attributes, contentHolder, contentNodes) =>
-              UIDataSource(parent, contentHolder.text),
+              UIDataSource(parent, contentHolder?.text),
           [
             UIComponentAttributeHandler<UIDataSource, String>('data-source',
-                getter: (c) => c._dataSource.toJson(true),
+                getter: (c) => c._dataSource!.toJson(true),
                 setter: (c, v) => c.dataSource = v,
                 cleaner: (c) => c.dataSource = null)
           ],
@@ -26,7 +26,7 @@ class UIDataSource extends UIComponent {
     UIComponent.registerGenerator(GENERATOR);
   }
 
-  UIDataSource(Element parent, dynamic dataSource)
+  UIDataSource(Element? parent, dynamic dataSource)
       : _dataSource = DataSourceHttp.from(dataSource),
         super(parent, componentClass: 'ui-data-source');
 
@@ -39,10 +39,10 @@ class UIDataSource extends UIComponent {
     return div;
   }
 
-  DataSourceHttp _dataSource;
+  DataSourceHttp? _dataSource;
 
   @override
-  DataSourceHttp get dataSource => _dataSource;
+  DataSourceHttp? get dataSource => _dataSource;
 
   set dataSource(dynamic dataSource) {
     _dataSource = DataSourceHttp.from(dataSource);
@@ -50,12 +50,12 @@ class UIDataSource extends UIComponent {
 
   @override
   void configure() {
-    content.hidden = true;
+    content!.hidden = true;
   }
 
   @override
   dynamic render() {
-    var json = dataSource.toJson(true);
+    var json = dataSource!.toJson(true);
     return PreElement().text = '\n$json\n';
   }
 }

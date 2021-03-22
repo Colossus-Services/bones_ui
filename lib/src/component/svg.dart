@@ -13,10 +13,10 @@ class UISVG extends UIComponent {
       ResourceContentCache();
 
   /// Source for the SVG.
-  final String src;
+  final String? src;
 
   /// SVG tag to render.
-  final String svgContent;
+  final String? svgContent;
 
   /// Width of the SVG.
   final String width;
@@ -25,36 +25,34 @@ class UISVG extends UIComponent {
   final String height;
 
   /// Title of the SVG.
-  final String title;
+  final String? title;
 
   /// Color to render the SVG.
-  final String color;
+  final String? color;
 
-  UISVG(Element parent,
+  UISVG(Element? parent,
       {this.src,
       this.svgContent,
       this.width = '20px',
       this.height = '20px',
       this.title,
       this.color,
-      String classes,
-      String style})
+      String? classes,
+      String? style})
       : super(parent, componentClass: 'ui-svg', classes: classes, style: style);
 
-  CSSLength get widthAsCSSLength => CSSLength.parse(width);
+  CSSLength? get widthAsCSSLength => CSSLength.parse(width);
 
-  CSSLength get heightAsCSSLength => CSSLength.parse(height);
+  CSSLength? get heightAsCSSLength => CSSLength.parse(height);
 
-  String get widthAsCSSValue =>
-      (CSSLength.parse(width) ?? width ?? 'auto').toString();
+  String get widthAsCSSValue => (CSSLength.parse(width) ?? width).toString();
 
-  String get heightAsCSSValue =>
-      (CSSLength.parse(height) ?? height ?? 'auto').toString();
+  String get heightAsCSSValue => (CSSLength.parse(height) ?? height).toString();
 
-  Element _renderedElement;
+  Element? _renderedElement;
 
   /// Returns the [Element] rendered.
-  Element get renderedElement => _renderedElement;
+  Element? get renderedElement => _renderedElement;
 
   /// Returns [true] if it was rendered as an [ImageElement].
   bool get isRenderedAsImage => _renderedElement is ImageElement;
@@ -64,7 +62,7 @@ class UISVG extends UIComponent {
 
   @override
   dynamic render() {
-    if (svgContent != null && svgContent.isNotEmpty) {
+    if (svgContent != null && svgContent!.isNotEmpty) {
       return _renderFromSVGContent();
     } else {
       return _renderFromSRC();
@@ -75,10 +73,10 @@ class UISVG extends UIComponent {
     return buildSVGElement(svgContent);
   }
 
-  Element _renderFromSRC() {
-    if (src == null || src.isEmpty) return null;
+  Element? _renderFromSRC() {
+    if (src == null || src!.isEmpty) return null;
 
-    var resourceContent = _resourceContentCache.get(src);
+    var resourceContent = _resourceContentCache.get(src)!;
 
     Element element;
 
@@ -100,20 +98,20 @@ class UISVG extends UIComponent {
   static final NodeValidatorBuilder _svgNodeValidator =
       createStandardNodeValidator(svg: true, allowSvgForeignObject: true);
 
-  dart_svg.SvgElement buildSVGElement([String content]) {
+  dart_svg.SvgElement buildSVGElement([String? content]) {
     content ??= svgContent;
 
     var svg = createHTML(content, _svgNodeValidator) as dart_svg.SvgElement;
 
     _applyDimension(svg);
 
-    if (color != null && color.isNotEmpty) {
-      svg.style.cssText += 'fill: $color';
+    if (color != null && color!.isNotEmpty) {
+      svg.style.cssText = (svg.style.cssText ?? '') + 'fill: $color';
     }
 
-    if (title != null && title.isNotEmpty) {
+    if (title != null && title!.isNotEmpty) {
       svg.setAttribute('data-toggle', 'tooltip');
-      svg.setAttribute('title', title);
+      svg.setAttribute('title', title!);
     }
 
     return svg;
@@ -122,7 +120,8 @@ class UISVG extends UIComponent {
   ImageElement buildSVGImg() {
     ImageElement img;
     if (isEmptyObject(src) && isNotEmptyObject(svgContent)) {
-      var svgDataURL = 'data:image/svg+xml;base64,' + Base64.encode(svgContent);
+      var svgDataURL =
+          'data:image/svg+xml;base64,' + Base64.encode(svgContent!);
       img = ImageElement(src: svgDataURL);
     } else {
       img = ImageElement(src: src);
@@ -130,7 +129,7 @@ class UISVG extends UIComponent {
 
     _applyDimension(img);
 
-    if (title != null && title.isNotEmpty) img.title = title;
+    if (title != null && title!.isNotEmpty) img.title = title;
 
     return img;
   }
@@ -139,11 +138,11 @@ class UISVG extends UIComponent {
     elem.removeAttribute('width');
     elem.removeAttribute('height');
 
-    if (width != null && width.isNotEmpty) {
+    if (width.isNotEmpty) {
       var w = widthAsCSSValue;
       elem.style.width = w;
     }
-    if (height != null && height.isNotEmpty) {
+    if (height.isNotEmpty) {
       var h = heightAsCSSValue;
       elem.style.height = h;
     }
@@ -163,8 +162,8 @@ class UISVG extends UIComponent {
   }
 
   ImageElement _drawImageToCanvas(ImageElement img) {
-    var w = widthAsCSSLength.value.toInt();
-    var h = heightAsCSSLength.value.toInt();
+    var w = widthAsCSSLength!.value.toInt();
+    var h = heightAsCSSLength!.value.toInt();
 
     var canvas = CanvasElement(width: w, height: h);
 
@@ -181,8 +180,8 @@ class UISVG extends UIComponent {
   }
 }
 
-String htmlAsSvgContent(String html,
-    {int width, int height, String rootClass, String style}) {
+String? htmlAsSvgContent(String html,
+    {int? width, int? height, String? rootClass, String? style}) {
   print(style);
   var htmlRoot = $htmlRoot(html);
   if (htmlRoot == null) return null;

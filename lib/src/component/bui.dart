@@ -21,19 +21,19 @@ class BUIElementGenerator extends ElementGeneratorBase {
   DivElement generate(
       DOMGenerator<Node> domGenerator,
       DOMTreeMap<Node> treeMap,
-      String tag,
-      DOMElement domParent,
-      Node parent,
+      String? tag,
+      DOMElement? domParent,
+      Node? parent,
       DOMNode domNode,
       Map<String, DOMAttribute> attributes,
-      Node contentHolder,
-      List<DOMNode> contentNodes,
-      DOMContext<Node> domContext) {
+      Node? contentHolder,
+      List<DOMNode>? contentNodes,
+      DOMContext<Node>? domContext) {
     var buiElement = DivElement();
 
     setElementAttributes(buiElement, attributes);
 
-    buiElement.nodes.addAll(contentHolder.nodes);
+    buiElement.nodes.addAll(contentHolder!.nodes);
 
     return buiElement;
   }
@@ -44,8 +44,8 @@ class BUIElementGenerator extends ElementGeneratorBase {
   }
 
   @override
-  DOMElement revert(DOMGenerator domGenerator, DOMTreeMap treeMap,
-      DOMElement domParent, Node parent, Node node) {
+  DOMElement? revert(DOMGenerator domGenerator, DOMTreeMap? treeMap,
+      DOMElement? domParent, Node? parent, Node? node) {
     if (node is DivElement) {
       var bui =
           $tag(tag, classes: node.classes.join(' '), style: node.style.cssText);
@@ -68,18 +68,18 @@ class BUIElementGenerator extends ElementGeneratorBase {
 
 class BUIRender extends UINavigableComponent {
   final DOMGenerator<Node> domGenerator;
-  final DataAssets _dataAssets;
+  final DataAssets? _dataAssets;
 
-  BUIRenderSource _navbarSource;
-  BUIRenderSource _renderSource;
+  BUIRenderSource? _navbarSource;
+  BUIRenderSource? _renderSource;
 
   final EventStream<BUIRender> onChangeSource = EventStream();
 
-  BUIRender(Element parent,
+  BUIRender(Element? parent,
       {dynamic source,
-      DOMGenerator<Node> domGenerator,
-      DataAssets dataAssets,
-      BUIViewProviderBase viewProvider,
+      DOMGenerator<Node>? domGenerator,
+      DataAssets? dataAssets,
+      BUIViewProviderBase? viewProvider,
       dynamic classes,
       dynamic style,
       bool renderOnConstruction = true})
@@ -97,26 +97,27 @@ class BUIRender extends UINavigableComponent {
     _renderSource = BUIRenderSource(
         this.domGenerator, () => renderContainer, notifySourceChange, refresh);
 
-    _renderSource.onIntlLoad.listen(_onIntlLoad);
-    _navbarSource.onIntlLoad.listen(_onIntlLoad);
+    _renderSource!.onIntlLoad.listen(_onIntlLoad);
+    _navbarSource!.onIntlLoad.listen(_onIntlLoad);
 
-    _renderSource.source = source;
+    _renderSource!.source = source;
 
-    this.domGenerator.sourceResolver = _sourceResolver;
+    this.domGenerator.sourceResolver =
+        _sourceResolver as String Function(String)?;
 
     if (this.domGenerator.domContext == null) {
       this.domGenerator.domContext = DOMContext(resolveCSSURL: true);
     }
 
-    var domContext = this.domGenerator.domContext;
+    var domContext = this.domGenerator.domContext!;
 
     domContext.resolveCSSURL = true;
-    domContext.cssURLResolver ??= _cssURLResolver;
+    domContext.cssURLResolver ??= _cssURLResolver as String Function(String?)?;
     domContext.namedElementProvider ??= _namedElementProvider;
 
     updateSourcesFromViewProvider();
 
-    if (renderOnConstruction ?? true) {
+    if (renderOnConstruction) {
       if (!hasIntlMessages) {
         callRender();
       } else {
@@ -137,35 +138,35 @@ class BUIRender extends UINavigableComponent {
 
   bool get hasIntlMessages {
     var navIntl = _navbarSource?.hasIntlPath ?? false;
-    var renderIntl = _renderSource.hasIntlPath ?? false;
+    var renderIntl = _renderSource!.hasIntlPath;
     return navIntl || renderIntl;
   }
 
   bool get isIntlLoaded {
     var navOk = _navbarSource == null ||
-        !_navbarSource.hasIntlPath ||
-        _navbarSource.isIntlLoaded;
+        !_navbarSource!.hasIntlPath ||
+        _navbarSource!.isIntlLoaded;
     var renderOk = _renderSource == null ||
-        !_renderSource.hasIntlPath ||
-        _renderSource.isIntlLoaded;
+        !_renderSource!.hasIntlPath ||
+        _renderSource!.isIntlLoaded;
     return navOk && renderOk;
   }
 
   Future<bool> ensureIntlMessagesLoaded() async {
-    Future<bool /*!*/ > navFuture;
+    Future<bool>? navFuture;
     if (_navbarSource?.hasIntlPath ?? false) {
-      navFuture = _navbarSource.ensureIntlMessagesLoaded();
+      navFuture = _navbarSource!.ensureIntlMessagesLoaded();
     }
 
-    Future<bool> renderFuture;
+    Future<bool?>? renderFuture;
     if (_renderSource?.hasIntlPath ?? false) {
-      renderFuture = _renderSource.ensureIntlMessagesLoaded();
+      renderFuture = _renderSource!.ensureIntlMessagesLoaded();
     }
 
     var navLoaded = navFuture != null ? await navFuture : true;
     var renderLoaded = renderFuture != null ? await renderFuture : true;
 
-    return navLoaded && renderLoaded;
+    return navLoaded && renderLoaded!;
   }
 
   final EventStream<UIComponent> onRenderChildComponent = EventStream();
@@ -176,9 +177,9 @@ class BUIRender extends UINavigableComponent {
   }
 
   @override
-  bool updateRoutes([List<String> foundRoutes]) {
+  bool updateRoutes([List<String>? foundRoutes]) {
     if (viewProvider != null) {
-      var routes = _viewProvider.routes;
+      var routes = _viewProvider!.routes;
       setRoutes(routes);
       return true;
     }
@@ -186,46 +187,46 @@ class BUIRender extends UINavigableComponent {
   }
 
   @override
-  String getRouteName(String route) {
+  String? getRouteName(String route) {
     return viewProvider?.getView(route)?.name;
   }
 
   @override
   bool isRouteHiddenFromMenu(String route) {
-    return viewProvider?.getView(route)?.isHideFromMenu;
+    return viewProvider?.getView(route)?.isHideFromMenu ?? false;
   }
 
   @override
-  String get currentRoute =>
+  String? get currentRoute =>
       super.currentRoute ??
       (_viewProvider != null
-          ? (_viewProvider.currentRoute ?? _viewProvider.getMainView().route)
+          ? (_viewProvider!.currentRoute ?? _viewProvider!.getMainView()!.route)
           : UINavigator.currentRoute);
 
-  void setCurrentRoute(String route) {
+  void setCurrentRoute(String? route) {
     if (_viewProvider != null) {
       if (isEmptyString(route)) {
-        var mainView = _viewProvider.getMainView();
+        var mainView = _viewProvider!.getMainView();
         if (mainView != null) {
           route = mainView.route;
         }
       }
 
-      _viewProvider.currentRoute = route;
+      _viewProvider!.currentRoute = route;
     }
   }
 
-  DataAssets get dataAssets => _dataAssets ?? viewProvider?.dataAssets;
+  DataAssets? get dataAssets => _dataAssets ?? viewProvider?.dataAssets;
 
-  String _sourceResolver(String url) => assetPathResolver(dataAssets, url);
+  String? _sourceResolver(String url) => assetPathResolver(dataAssets, url);
 
-  String _cssURLResolver(String url) => assetPathResolver(dataAssets, url);
+  String? _cssURLResolver(String? url) => assetPathResolver(dataAssets, url);
 
-  static String assetPathResolver(DataAssets dataAssets, String url) {
+  static String? assetPathResolver(DataAssets? dataAssets, String? url) {
     if (dataAssets == null) return url;
     if (isEmptyObject(url)) return url;
 
-    if (url.startsWith('assets/') ||
+    if (url!.startsWith('assets/') ||
         url.startsWith('./assets/') ||
         url.startsWith('/assets/')) {
       var idx = url.indexOf('assets/');
@@ -240,15 +241,15 @@ class BUIRender extends UINavigableComponent {
     return url;
   }
 
-  BUIRenderSource get navbarSource => _navbarSource;
+  BUIRenderSource? get navbarSource => _navbarSource;
 
-  BUIRenderSource get renderSource => _renderSource;
+  BUIRenderSource? get renderSource => _renderSource;
 
   void updateSourceFromDOMTreeMap() {
     var root = renderedTreeMap?.rootDOMNode;
     if (root != null) {
       var html = root.buildHTML(withIndent: true);
-      renderSource.source = html;
+      renderSource!.source = html;
     }
   }
 
@@ -256,40 +257,40 @@ class BUIRender extends UINavigableComponent {
     onChangeSource.add(this);
   }
 
-  dynamic get navbar => _navbarSource.source;
+  dynamic get navbar => _navbarSource!.source;
 
-  set navbar(dynamic navbarSource) => _navbarSource.source = navbarSource;
+  set navbar(dynamic navbarSource) => _navbarSource!.source = navbarSource;
 
-  dynamic get source => _renderSource.source;
+  dynamic get source => _renderSource!.source;
 
-  set source(dynamic source) => _renderSource.source = source;
+  set source(dynamic source) => _renderSource!.source = source;
 
-  DOMTreeMap _renderedTreeMap;
+  DOMTreeMap? _renderedTreeMap;
 
-  DOMTreeMap get renderedTreeMap => _renderedTreeMap;
+  DOMTreeMap? get renderedTreeMap => _renderedTreeMap;
 
-  DOMNode getMappedDOMNodeInTreeMap(dynamic element) {
+  DOMNode? getMappedDOMNodeInTreeMap(dynamic element) {
     return _renderedTreeMap != null
-        ? _renderedTreeMap.getMappedDOMNode(element)
+        ? _renderedTreeMap!.getMappedDOMNode(element)
         : null;
   }
 
   bool rebuildSourceFromDOMTreeMap(
       {bool withIndent = false, String indent = '  '}) {
     if (_renderedTreeMap == null) return false;
-    var rebuiltSource = _renderedTreeMap.rootDOMNode
+    var rebuiltSource = _renderedTreeMap!.rootDOMNode!
         .buildHTML(withIndent: withIndent, indent: indent);
     source = rebuiltSource;
     return true;
   }
 
-  Element _renderedRoot;
+  Element? _renderedRoot;
 
-  Element get renderedRoot => _renderedRoot;
+  Element? get renderedRoot => _renderedRoot;
 
-  Element renderContainer;
+  Element? renderContainer;
 
-  DivElement get renderViewportElement => content;
+  DivElement? get renderViewportElement => content as DivElement?;
 
   @override
   void preRenderClear() {}
@@ -298,34 +299,34 @@ class BUIRender extends UINavigableComponent {
   bool canHandleNewRoute(String route) {
     if (_viewProvider != null) {
       if (isEmptyString(route)) {
-        return _viewProvider.getMainView() != null;
+        return _viewProvider!.getMainView() != null;
       } else {
-        return _viewProvider.containsView(route);
+        return _viewProvider!.containsView(route);
       }
     }
     return super.canHandleNewRoute(route);
   }
 
   @override
-  dynamic renderRoute(String route, Map<String, String> parameters) {
+  dynamic renderRoute(String? route, Map<String, String>? parameters) {
     setCurrentRoute(route);
     return _render();
   }
 
-  Element _navbarElement;
+  Element? _navbarElement;
 
-  String _navbarElementHTML;
+  String? _navbarElementHTML;
 
   dynamic _render() {
     updateSourcesFromViewProvider();
 
     if (renderContainer == null) {
       renderContainer = createDivInlineBlock();
-      renderContainer.style.cssText = '';
-      renderContainer.style.width = '100%';
-      renderContainer.style.height = '100%';
+      renderContainer!.style.cssText = '';
+      renderContainer!.style.width = '100%';
+      renderContainer!.style.height = '100%';
     } else {
-      var nodes = List<Node>.from(renderContainer.nodes);
+      var nodes = List<Node>.from(renderContainer!.nodes);
 
       for (var node in nodes) {
         if (node != _navbarElement) {
@@ -334,43 +335,48 @@ class BUIRender extends UINavigableComponent {
       }
     }
 
-    if (!content.contains(renderContainer)) {
-      content.append(renderContainer);
+    if (!content!.contains(renderContainer)) {
+      content!.append(renderContainer!);
     }
 
     _renderNavbar();
 
     if (_renderedRoot != null) {
-      _renderedRoot.remove();
+      _renderedRoot!.remove();
     }
 
     var context = domGenerator.domContext?.copy() ?? DOMContext();
     context.namedElementProvider = _namedElementProvider;
 
     var treeMap =
-        _renderSource.generateTree(appendToContainer: true, context: context);
+        _renderSource!.generateTree(appendToContainer: true, context: context);
 
+    /*!!!*/
+    /*
     if (treeMap != null) {
       _renderedTreeMap = treeMap;
-      _renderedRoot = treeMap.rootElement;
+      _renderedRoot = treeMap.rootElement as Element?;
     } else {
       _renderedTreeMap = null;
-      _renderedRoot = _renderSource.sourceAsElement;
+      _renderedRoot = _renderSource!.sourceAsElement;
     }
+     */
+    _renderedTreeMap = treeMap;
+    _renderedRoot = treeMap.rootElement as Element?;
 
-    _renderedRoot.classes.add('bui-root');
+    _renderedRoot!.classes.add('bui-root');
 
     return renderContainer;
   }
 
   void _renderNavbar() {
-    if (_navbarSource.isNull) return;
+    if (_navbarSource!.isNull) return;
 
-    var navbarHTML = _navbarSource.sourceAsHTML;
+    var navbarHTML = _navbarSource!.sourceAsHTML;
 
     if (_navbarElementHTML != navbarHTML) {
       if (_navbarElement != null) {
-        _navbarElement.remove();
+        _navbarElement!.remove();
       }
 
       var context = domGenerator.domContext?.copy() ?? DOMContext();
@@ -390,18 +396,18 @@ class BUIRender extends UINavigableComponent {
         }
       };
 
-      var navbarTree =
-          _navbarSource.generateTree(appendToContainer: true, context: context);
-      _navbarElement = navbarTree.rootElement;
+      var navbarTree = _navbarSource!
+          .generateTree(appendToContainer: true, context: context);
+      _navbarElement = navbarTree.rootElement as Element?;
       _navbarElementHTML = navbarHTML;
     }
   }
 
-  BUIViewProviderBase _viewProvider;
+  BUIViewProviderBase? _viewProvider;
 
-  BUIViewProviderBase get viewProvider => _viewProvider;
+  BUIViewProviderBase? get viewProvider => _viewProvider;
 
-  set viewProvider(BUIViewProviderBase value) {
+  set viewProvider(BUIViewProviderBase? value) {
     _viewProvider = value;
     updateRoutes();
   }
@@ -409,65 +415,63 @@ class BUIRender extends UINavigableComponent {
   void updateSourcesFromViewProvider() {
     if (viewProvider == null) return;
 
-    var navbar = viewProvider.getNavbar();
+    var navbar = viewProvider!.getNavbar();
     this.navbar = navbar;
 
     var route = currentRoute;
-    var view = viewProvider.getView(route) ?? viewProvider.getMainView();
+    var view = viewProvider!.getView(route) ?? viewProvider!.getMainView();
 
     if (view != null) {
       source = view.buiCode;
     }
   }
 
-  Node _namedElementProvider(
+  Node? _namedElementProvider(
       String name,
-      DOMGenerator<dynamic> domGenerator,
+      DOMGenerator<dynamic>? domGenerator,
       DOMTreeMap<dynamic> treeMap,
-      DOMElement domParent,
+      DOMElement? domParent,
       dynamic parent,
-      String tag,
+      String? tag,
       Map<String, DOMAttribute> attributes) {
     if (viewProvider == null) return null;
 
-    BUIView view;
+    BUIView? view;
     if (tag == 'header') {
-      view = viewProvider.getHeader(name);
+      view = viewProvider!.getHeader(name);
     } else if (tag == 'footer') {
-      view = viewProvider.getFooter(name);
+      view = viewProvider!.getFooter(name);
     }
 
     if (view == null) return null;
 
-    var domContext = DOMContext<Node>(parent: domGenerator.domContext);
+    var domContext = DOMContext<Node?>(
+        parent: domGenerator!.domContext as DOMContext<Node?>?);
 
     var buiCode = view.buiCode;
 
     var intlPath = view.intl;
 
-    if (isNotEmptyString(intlPath, trim: true) && buiCode.contains('{{intl:')) {
-      var messages = view?.intlMessagesLoader?.intlMessages;
+    if (isNotEmptyString(intlPath, trim: true) &&
+        buiCode!.contains('{{intl:')) {
+      var messages = view.intlMessagesLoader?.intlMessages;
       if (messages != null) {
         buiCode = BUIRenderSource.resolveIntl(messages, buiCode);
       }
     }
 
-    return domGenerator.generateFromHTML(buiCode,
+    return domGenerator.generateFromHTML(buiCode!,
         parent: parent, context: domContext, finalizeTree: false);
   }
 
-  Future<ImageElement> renderThumbnail(
-      {String renderedHTML,
+  Future<ImageElement?> renderThumbnail(
+      {String? renderedHTML,
       bool includeDocumentStyles = true,
-      String styles,
-      int width,
-      int height}) async {
+      String? styles,
+      int? width = 800,
+      int? height = 600}) async {
     renderedHTML ??= domGenerator.generatedHTMLTrees.join('\n');
     if (isEmptyObject(renderedHTML)) return null;
-
-    includeDocumentStyles ??= true;
-    width ??= 800;
-    height ??= 600;
 
     var svgStyles = '';
     if (includeDocumentStyles) {
@@ -496,7 +500,7 @@ class BUIRender extends UINavigableComponent {
   }
 }
 
-String parseBUIAttribute(String buiCode, String attributeName) {
+String? parseBUIAttribute(String? buiCode, String attributeName) {
   if (buiCode == null) return null;
 
   var idx1 = buiCode.indexOf('<');
@@ -519,19 +523,16 @@ String parseBUIAttribute(String buiCode, String attributeName) {
 typedef BUIViewPropertyProvider = String Function(BUIView view);
 
 class BUIView {
-  static Map<String /*!*/, BUIView /*!*/ > toViewsMap(
-          Iterable<BUIView> views) =>
-      Map.fromEntries((views ?? [])
-          .where((e) => e != null)
-          .map((v) => MapEntry(v.route, v)));
+  static Map<String, BUIView> toViewsMap(Iterable<BUIView>? views) =>
+      Map.fromEntries((views ?? []).map(((v) => MapEntry(v.route!, v))));
 
-  TextProvider _route;
+  TextProvider? _route;
 
-  TextProvider _name;
+  TextProvider? _name;
 
-  TextProvider _buiCode;
+  TextProvider? _buiCode;
 
-  TextProvider _intl;
+  TextProvider? _intl;
 
   BUIView({
     dynamic route,
@@ -541,36 +542,34 @@ class BUIView {
         _name = TextProvider.from(name),
         _buiCode = TextProvider.from(buiCode);
 
-  String get buiCode => _buiCode?.text;
+  String? get buiCode => _buiCode?.text;
 
   set buiCode(dynamic value) => _buiCode = TextProvider.from(value);
 
-  String get name => _nameImp ?? _routeImp;
+  String? get name => _nameImp ?? _routeImp;
 
-  String /*?*/ get _nameImp =>
-      _name?.text ?? parseBUIAttribute(buiCode, 'name');
+  String? get _nameImp => _name?.text ?? parseBUIAttribute(buiCode, 'name');
 
   set name(dynamic value) => _name = TextProvider.from(value);
 
-  String get route => _routeImp ?? _nameImp;
+  String? get route => _routeImp ?? _nameImp;
 
-  String /*?*/ get _routeImp =>
-      _route?.text ?? parseBUIAttribute(buiCode, 'route');
+  String? get _routeImp => _route?.text ?? parseBUIAttribute(buiCode, 'route');
 
   set route(dynamic value) => _route = TextProvider.from(value);
 
-  String get intl => _intlImp;
+  String? get intl => _intlImp;
 
-  String get _intlImp => _intl?.text ?? parseBUIAttribute(buiCode, 'intl');
+  String? get _intlImp => _intl?.text ?? parseBUIAttribute(buiCode, 'intl');
 
   set intl(dynamic value) => _intl = TextProvider.from(value);
 
-  bool /*!*/ get isHideFromMenu =>
-      parseBool(parseBUIAttribute(buiCode, 'hide-from-menu'), false);
+  bool get isHideFromMenu =>
+      parseBool(parseBUIAttribute(buiCode, 'hide-from-menu'), false)!;
 
-  IntlMessagesLoader _intlMessagesLoader;
+  IntlMessagesLoader? _intlMessagesLoader;
 
-  IntlMessagesLoader get intlMessagesLoader {
+  IntlMessagesLoader? get intlMessagesLoader {
     if (_intlMessagesLoader == null) {
       var intl = this.intl;
       if (isNotEmptyString(intl)) {
@@ -585,39 +584,39 @@ class BUIView {
 }
 
 abstract class BUIViewProviderBase {
-  String name;
-  DataAssets dataAssets;
+  String? name;
+  DataAssets? dataAssets;
 
-  BUIView getHeader(String name);
+  BUIView? getHeader(String? name);
 
-  BUIView getFooter(String name);
+  BUIView? getFooter(String? name);
 
-  BUIView getView(String route);
+  BUIView? getView(String? route);
 
-  bool containsView(String route);
+  bool containsView(String? route);
 
-  BUIView getNavbar();
+  BUIView? getNavbar();
 
-  BUIView getMainView();
+  BUIView? getMainView();
 
-  String getRouteName(String route);
+  String? getRouteName(String? route);
 
-  String /*?*/ currentRoute;
+  String? currentRoute;
 
-  List<String /*!*/ > /*?*/ routes;
+  List<String>? routes;
 
-  List<String /*!*/ > /*?*/ menuRoutes;
+  List<String>? menuRoutes;
 
   Map<String, String> get routesAndNames => routes == null
       ? <String, String>{}
-      : Map.fromEntries(routes.map((r) {
+      : Map.fromEntries(routes!.map((r) {
           var routeName = getRouteName(r);
           return MapEntry(r, routeName ?? r);
         }));
 
   Map<String, String> get menuRoutesAndNames => menuRoutes == null
       ? <String, String>{}
-      : Map.fromEntries(menuRoutes.map((r) {
+      : Map.fromEntries(menuRoutes!.map((r) {
           var routeName = getRouteName(r);
           return MapEntry(r, routeName ?? r);
         }));
@@ -625,35 +624,35 @@ abstract class BUIViewProviderBase {
 
 class BUIViewProvider extends BUIViewProviderBase {
   @override
-  DataAssets dataAssets;
+  DataAssets? dataAssets;
 
   @override
-  String name;
+  String? name;
 
-  BUIView navbar;
+  BUIView? navbar;
   final Map<String, BUIView> headers = {};
   final Map<String, BUIView> footers = {};
-  final Map<String, BUIView> views = {};
+  final Map<String?, BUIView> views = {};
 
   BUIViewProvider(this.name,
       {this.dataAssets,
       this.navbar,
-      Iterable<BUIView> headers,
-      Iterable<BUIView> footers,
-      Iterable<BUIView> views}) {
+      Iterable<BUIView>? headers,
+      Iterable<BUIView>? footers,
+      Iterable<BUIView>? views}) {
     this.headers.addAll(BUIView.toViewsMap(headers));
     this.footers.addAll(BUIView.toViewsMap(footers));
     this.views.addAll(BUIView.toViewsMap(views));
   }
 
-  static Future<BUIViewProvider> fromManifestContent(
+  static Future<BUIViewProvider?> fromManifestContent(
       String manifestContent) async {
     if (isEncodedJSONMap(manifestContent)) {
       var manifestTree = parseJSON(manifestContent);
       return BUIViewProvider.fromManifestTree(manifestTree);
     } else {
       try {
-        var manifestTree = loadYaml(manifestContent) as Map;
+        var manifestTree = loadYaml(manifestContent) as Map?;
         print(encodeJSON(manifestTree));
         return BUIViewProvider.fromManifestTree(manifestTree);
       } catch (e) {
@@ -663,11 +662,11 @@ class BUIViewProvider extends BUIViewProviderBase {
     return null;
   }
 
-  static Future<BUIViewProvider> fromManifestTree(Map manifestTree,
-      {String baseURL}) async {
+  static Future<BUIViewProvider?> fromManifestTree(Map? manifestTree,
+      {String? baseURL}) async {
     if (manifestTree == null || manifestTree.isEmpty) return null;
 
-    var name = manifestTree['name'] as String;
+    var name = manifestTree['name'] as String?;
 
     var viewProvider = BUIViewProvider(name);
 
@@ -696,7 +695,7 @@ class BUIViewProvider extends BUIViewProviderBase {
     return viewProvider;
   }
 
-  static Future<String> _resolveContent(dynamic o) async {
+  static Future<String?> _resolveContent(dynamic o) async {
     if (o == null) return '';
     if (o is ResourceContent) {
       return await o.getContent();
@@ -706,8 +705,8 @@ class BUIViewProvider extends BUIViewProviderBase {
   }
 
   static Map<String, dynamic> _resolveViews(
-      Map manifestTree, String baseURL, List<String> keys,
-      [List<String> ignore]) {
+      Map manifestTree, String? baseURL, List<String> keys,
+      [List<String>? ignore]) {
     baseURL ??= './';
     ignore ??= [];
 
@@ -722,7 +721,7 @@ class BUIViewProvider extends BUIViewProviderBase {
       } else if (val is List) {
         list.addAll(val.where((e) =>
             e is String &&
-            !listMatchesAny(ignore, (p) => e.startsWith('$p/'))));
+            !listMatchesAny(ignore, (dynamic p) => e.startsWith('$p/'))));
       } else if (key.contains('/')) {
         var parts = key.split('/');
         var keyRoot = parts.removeAt(0);
@@ -735,7 +734,8 @@ class BUIViewProvider extends BUIViewProviderBase {
               e is String &&
               (e.startsWith('$key/') ||
                   e.startsWith('$restPath/') &&
-                      !listMatchesAny(ignore, (p) => e.startsWith('$p/')))));
+                      !listMatchesAny(
+                          ignore, (dynamic p) => e.startsWith('$p/')))));
         }
       }
     }
@@ -764,7 +764,7 @@ class BUIViewProvider extends BUIViewProviderBase {
       return ResourceContent(null, val);
     } else {
       var resourceContent =
-          ResourceContent.fromResolvedUrl(val, baseURL: baseURL);
+          ResourceContent.fromResolvedUrl(val, baseURL: baseURL)!;
       resourceContent.load();
       return resourceContent;
     }
@@ -774,8 +774,8 @@ class BUIViewProvider extends BUIViewProviderBase {
     return _loadBUIZipIntoViewProvider(name, bytes);
   }
 
-  void addFileViewContent(String type, String filePath, String content) {
-    var fileName = getPathFileName(filePath);
+  void addFileViewContent(String? type, String filePath, String? content) {
+    var fileName = getPathFileName(filePath)!;
     var fileRoute = fileName.replaceFirst(RegExp(r'\.bui$'), '');
 
     if (isEmptyString(type, trim: true)) {
@@ -801,27 +801,26 @@ class BUIViewProvider extends BUIViewProviderBase {
   }
 
   @override
-  BUIView getNavbar() => navbar;
+  BUIView? getNavbar() => navbar;
 
   @override
-  BUIView getHeader(String name) => headers[name];
+  BUIView? getHeader(String? name) => headers[name];
 
   @override
-  BUIView getFooter(String name) => footers[name];
+  BUIView? getFooter(String? name) => footers[name];
 
   @override
-  BUIView getView(String /*!*/ route) => views[route];
+  BUIView? getView(String? route) => views[route];
 
   @override
-  bool containsView(String route) => views.containsKey(route);
+  bool containsView(String? route) => views.containsKey(route);
 
   void addView(BUIView view) {
-    if (view == null) return;
     views[view.route] = view;
   }
 
   @override
-  BUIView getMainView() {
+  BUIView? getMainView() {
     if (views.isEmpty) return null;
 
     var view = views['main'];
@@ -838,24 +837,26 @@ class BUIViewProvider extends BUIViewProviderBase {
   }
 
   @override
-  String currentRoute;
+  String? currentRoute;
 
   @override
-  List<String /*!*/ > get routes => views.values.map((e) => e.route).toList();
+  List<String> get routes =>
+      views.values.map((e) => e.route).toList() as List<String>;
 
   @override
-  List<String /*!*/ > get menuRoutes =>
-      views.values.where((e) => !e.isHideFromMenu).map((e) => e.route).toList();
+  List<String> get menuRoutes =>
+      views.values.where((e) => !e.isHideFromMenu).map((e) => e.route).toList()
+          as List<String>;
 
   @override
-  String getRouteName(String route) => getView(route)?.name;
+  String? getRouteName(String? route) => getView(route)?.name;
 }
 
 BUIViewProvider _loadBUIZipIntoViewProvider(String fileName, Uint8List bytes,
-    [BUIViewProvider viewProvider]) {
+    [BUIViewProvider? viewProvider]) {
   final archive = ZipDecoder().decodeBytes(bytes);
 
-  DataAssets dataAssets;
+  DataAssets? dataAssets;
   if (viewProvider == null) {
     dataAssets = DataAssets();
     viewProvider = BUIViewProvider(fileName, dataAssets: dataAssets);
@@ -881,7 +882,7 @@ BUIViewProvider _loadBUIZipIntoViewProvider(String fileName, Uint8List bytes,
       if (filePath.startsWith('assets/')) {
         var fileID = filePath.substring(filePath.indexOf('/') + 1);
         var data = file.content as List<int>;
-        var mimeType = MimeType.byExtension(fileID);
+        var mimeType = MimeType.byExtension(fileID)!;
         dataAssets.putData(fileID, data, mimeType);
       } else if (filePath.startsWith('views/') && filePath.endsWith('.bui')) {
         var data = file.content as List<int>;
@@ -925,7 +926,7 @@ String _decodeBytesToString(List<int> bytes) {
 class BUIRenderSource {
   final DOMGenerator<Node> domGenerator;
 
-  final Element Function() renderContainer;
+  final Element? Function() renderContainer;
 
   final void Function() notifySourceChange;
 
@@ -951,9 +952,9 @@ class BUIRenderSource {
     }
   }
 
-  String _resolveBUICode(dynamic o) {
+  String? _resolveBUICode(dynamic o) {
     if (o == null) return null;
-    String code;
+    String? code;
     if (o is BUIView) {
       code = parseString(o.buiCode);
     } else {
@@ -962,14 +963,14 @@ class BUIRenderSource {
 
     var intlPath = this.intlPath;
 
-    if (isNotEmptyString(intlPath, trim: true) && code.contains('{{intl:')) {
+    if (isNotEmptyString(intlPath, trim: true) && code!.contains('{{intl:')) {
       code = _resolveIntl(code);
     }
 
     return code;
   }
 
-  String get intlPath {
+  String? get intlPath {
     if (_source is BUIView) {
       BUIView view = _source;
       return view.intl;
@@ -984,7 +985,7 @@ class BUIRenderSource {
 
   final EventStream<BUIRenderSource> onIntlLoad = EventStream();
 
-  String _resolveIntl(String code) {
+  String? _resolveIntl(String? code) {
     var messages = getIntlMessages();
     return resolveIntl(messages, code);
   }
@@ -992,18 +993,18 @@ class BUIRenderSource {
   static final RegExp INTL_MARK_PATTERN =
       RegExp(r'\{\{(intl:(\w+))\}\}', multiLine: false, caseSensitive: true);
 
-  static String resolveIntl(IntlMessages messages, String code) {
+  static String? resolveIntl(IntlMessages? messages, String? code) {
     code = replaceStringMarks(code, INTL_MARK_PATTERN, (key) {
-      key = key?.substring(5);
+      key = key.substring(5);
       if (isEmptyString(key)) return '';
-      var val = messages?.msg(key)?.build();
+      var val = messages?.msg(key).build();
       return val ?? '';
     });
 
     return code;
   }
 
-  IntlMessagesLoader _intlMessagesLoader;
+  IntlMessagesLoader? _intlMessagesLoader;
 
   bool get isIntlLoaded {
     return _intlMessagesLoader?.isLoaded ?? false;
@@ -1015,20 +1016,21 @@ class BUIRenderSource {
 
   Future<bool> ensureIntlMessagesLoaded() async {
     var messagesLoader = getIntlMessagesLoader();
-    return messagesLoader != null ? messagesLoader.ensureLoaded() : false;
+    if (messagesLoader == null) return false;
+    return messagesLoader.ensureLoaded();
   }
 
-  IntlMessagesLoader getIntlMessagesLoader() {
+  IntlMessagesLoader? getIntlMessagesLoader() {
     var intlPath = this.intlPath;
 
     if (_intlMessagesLoader == null ||
-        !_intlMessagesLoader.matchesPathPrefix(intlPath)) {
+        !_intlMessagesLoader!.matchesPathPrefix(intlPath!)) {
       if (isEmptyString(intlPath)) {
         _intlMessagesLoader = null;
         return null;
       }
 
-      IntlMessagesLoader messagesLoader;
+      IntlMessagesLoader? messagesLoader;
 
       if (_source is BUIView) {
         BUIView view = _source;
@@ -1039,14 +1041,14 @@ class BUIRenderSource {
 
       _intlMessagesLoader = messagesLoader;
 
-      messagesLoader.onLoad.listen(notifyOnIntlLoad,
+      messagesLoader!.onLoad.listen(notifyOnIntlLoad,
           singletonIdentifier: this, singletonIdentifyByInstance: true);
     }
 
     return _intlMessagesLoader;
   }
 
-  IntlMessages getIntlMessages() {
+  IntlMessages? getIntlMessages() {
     return getIntlMessagesLoader()?.intlMessages;
   }
 
@@ -1054,11 +1056,11 @@ class BUIRenderSource {
     onIntlLoad.add(this);
   }
 
-  String /*!*/ get sourceAsHTML {
+  String get sourceAsHTML {
     if (_source == null) {
       return '';
     } else if (_source is String || _source is BUIView) {
-      return _resolveBUICode(_source);
+      return _resolveBUICode(_source)!;
     } else if (_source is num || _source is bool) {
       return '$_source';
     } else if (_source is DOMElement) {
@@ -1066,13 +1068,13 @@ class BUIRenderSource {
       return dom.buildHTML(withIndent: true);
     } else if (_source is Element) {
       var elem = _source as Element;
-      return elem.outerHtml;
+      return elem.outerHtml!;
     } else {
       throw StateError("Can't convert source to HTML: $_source");
     }
   }
 
-  Element get sourceAsElement {
+  Element? get sourceAsElement {
     if (_source == null) {
       return null;
     } else if (_source is String || _source is BUIView) {
@@ -1081,16 +1083,16 @@ class BUIRenderSource {
       return createHTML('$_source');
     } else if (_source is DOMElement) {
       var dom = _source as DOMElement;
-      return domGenerator.generate(dom);
+      return domGenerator.generate(dom) as Element?;
     } else if (_source is Element) {
-      var elem = _source as Element;
+      var elem = _source as Element?;
       return elem;
     } else {
       throw StateError("Can't convert source to Element: $_source");
     }
   }
 
-  DOMElement get sourceAsDOMElement {
+  DOMElement? get sourceAsDOMElement {
     if (_source == null) {
       return null;
     } else if (_source is String || _source is BUIView) {
@@ -1098,7 +1100,7 @@ class BUIRenderSource {
     } else if (_source is num || _source is bool) {
       return $htmlRoot('$_source');
     } else if (_source is DOMElement) {
-      return _source as DOMElement;
+      return _source as DOMElement?;
     } else if (_source is Element) {
       var elem = _source as Element;
       return $htmlRoot(elem.outerHtml);
@@ -1110,14 +1112,13 @@ class BUIRenderSource {
   DOMTreeMap<Node> get sourceAsDOMTreeMap => generateTree();
 
   DOMTreeMap<Node> generateTree(
-      {bool appendToContainer = false, DOMContext<Node> context}) {
+      {bool appendToContainer = false, DOMContext<Node>? context}) {
     var rootNode = sourceAsDOMElement ?? DIVElement();
     return domGenerator.generateMapped(rootNode,
         parent: appendToContainer ? renderContainer() : null, context: context);
   }
 
   bool isSameSource(BUIRenderSource other) {
-    if (other == null) return false;
     if (identical(this, other)) return true;
     if (identical(_source, other._source)) return true;
     if (_source == other._source) return true;
@@ -1131,19 +1132,19 @@ class BUIRenderSource {
 
   @override
   String toString() {
-    return sourceAsHTML ?? '';
+    return sourceAsHTML;
   }
 }
 
 class BUIManifest {
-  final ResourceContent _resource;
+  final ResourceContent? _resource;
 
   BUIManifest(this._resource) {
-    _resource.onLoad.listen((_) => _onLoad());
-    _resource.load();
+    _resource!.onLoad.listen((_) => _onLoad());
+    _resource!.load();
   }
 
-  factory BUIManifest.from(dynamic manifest) {
+  static BUIManifest? from(dynamic manifest) {
     if (manifest == null) return null;
     if (manifest is BUIManifest) return manifest;
 
@@ -1173,7 +1174,7 @@ class BUIManifest {
     await _loadDataSources();
   }
 
-  Map<String, DataSource> _dataSources;
+  Map<String, DataSource>? _dataSources;
 
   Future<void> _loadDataSources() async {
     var manifestTree = await getManifestTree() ?? {};
@@ -1182,13 +1183,13 @@ class BUIManifest {
 
     if (dataSourcesJSON is String) {
       var resourceContent =
-          ResourceContent.fromResolvedUrl(dataSourcesJSON, baseURL: './');
+          ResourceContent.fromResolvedUrl(dataSourcesJSON, baseURL: './')!;
       var content = await resourceContent.getContent();
       dataSourcesJSON = parseTree(content);
     }
 
     if (dataSourcesJSON is Map) {
-      dataSourcesJSON = (dataSourcesJSON as Map).values.toList();
+      dataSourcesJSON = dataSourcesJSON.values.toList();
     }
 
     if (dataSourcesJSON is List) {
@@ -1200,7 +1201,7 @@ class BUIManifest {
       var dataSources = <String, DataSource>{};
 
       for (var src in dataSourcesJSON) {
-        var dataSource = DataSourceHttp.from(src);
+        var dataSource = DataSourceHttp.from(src)!;
         dataSources[dataSource.id] = dataSource;
       }
 
@@ -1208,16 +1209,16 @@ class BUIManifest {
     }
   }
 
-  String _manifestContent;
+  String? _manifestContent;
 
-  Future<String> getManifestContent() async {
-    _manifestContent ??= await _resource.getContent();
+  Future<String?> getManifestContent() async {
+    _manifestContent ??= await _resource!.getContent();
     return _manifestContent;
   }
 
-  Map _manifestTree;
+  Map? _manifestTree;
 
-  Future<Map> getManifestTree() async {
+  Future<Map?> getManifestTree() async {
     if (_manifestTree == null) {
       var manifestContent = await getManifestContent();
       _manifestTree = parseTree<Map>(manifestContent);
@@ -1225,12 +1226,12 @@ class BUIManifest {
     return _manifestTree;
   }
 
-  static T parseTree<T>(String manifestContent) {
+  static T? parseTree<T>(String? manifestContent) {
     if (isEncodedJSONMap(manifestContent)) {
-      return parseJSON(manifestContent) as T;
+      return parseJSON(manifestContent) as T?;
     } else {
       try {
-        return loadYaml(manifestContent) as T;
+        return loadYaml(manifestContent!) as T?;
       } catch (e) {
         print(e);
       }
@@ -1238,9 +1239,9 @@ class BUIManifest {
     return null;
   }
 
-  BUIViewProvider _viewProvider;
+  BUIViewProvider? _viewProvider;
 
-  Future<BUIViewProvider> getViewProvider() async {
+  Future<BUIViewProvider?> getViewProvider() async {
     if (_viewProvider == null) {
       var tree = await getManifestTree();
       _viewProvider = await BUIViewProvider.fromManifestTree(tree);
@@ -1253,11 +1254,11 @@ class BUIManifestRender extends UIComponentAsync {
   final BUIManifest _manifest;
 
   static dynamic _buildLoading(
-      UILoadingType loadingType,
-      String loadingColor,
-      double loadingZoom,
-      String loadingText,
-      double loadingTextZoom,
+      UILoadingType? loadingType,
+      String? loadingColor,
+      double? loadingZoom,
+      String? loadingText,
+      double? loadingTextZoom,
       dynamic loadingContent) {
     var demandsLoading = loadingType != null || isNotEmptyString(loadingColor);
     var hasContent = loadingContent != null;
@@ -1289,17 +1290,17 @@ class BUIManifestRender extends UIComponentAsync {
     }
   }
 
-  EventStreamDelegator<String> _onChangeRoute;
+  EventStreamDelegator<String>? _onChangeRoute;
 
   BUIManifestRender(Element parent, dynamic manifest,
-      {UILoadingType loadingType,
+      {UILoadingType? loadingType,
       dynamic loadingContent,
-      String loadingColor,
-      double loadingZoom,
-      String loadingText,
-      double loadingTextZoom,
-      String errorMessage})
-      : _manifest = BUIManifest.from(manifest),
+      String? loadingColor,
+      double? loadingZoom,
+      String? loadingText,
+      double? loadingTextZoom,
+      String? errorMessage})
+      : _manifest = BUIManifest.from(manifest)!,
         super(
             parent,
             null,
@@ -1315,7 +1316,7 @@ class BUIManifestRender extends UIComponentAsync {
 
   @override
   void configure() {
-    content.style.width = '100%';
+    content!.style.width = '100%';
   }
 
   @override
@@ -1323,11 +1324,11 @@ class BUIManifestRender extends UIComponentAsync {
     return {};
   }
 
-  BUIRender _buiRender;
+  BUIRender? _buiRender;
 
-  BUIRender get buiRender => _buiRender;
+  BUIRender? get buiRender => _buiRender;
 
-  EventStream<String> get onChangeRoute => _onChangeRoute;
+  EventStream<String>? get onChangeRoute => _onChangeRoute;
 
   final EventStream<UIComponent> onRenderChildComponent = EventStream();
 
@@ -1336,9 +1337,9 @@ class BUIManifestRender extends UIComponentAsync {
     onRenderChildComponent.add(child);
   }
 
-  BUIViewProviderBase get viewProviderBase => _buiRender?.viewProvider;
+  BUIViewProviderBase? get viewProviderBase => _buiRender?.viewProvider;
 
-  String get currentRoute => _buiRender?.viewProvider?.currentRoute;
+  String? get currentRoute => _buiRender?.viewProvider?.currentRoute;
 
   @override
   Future<dynamic> renderAsync(Map<String, dynamic> properties) async {
@@ -1350,9 +1351,9 @@ class BUIManifestRender extends UIComponentAsync {
         ..onRenderChildComponent
             .listen((event) => onRenderChildComponent.add(event));
 
-      _onChangeRoute.flush();
+      _onChangeRoute!.flush();
 
-      await _buiRender.renderSource.ensureIntlMessagesLoaded();
+      await _buiRender!.renderSource!.ensureIntlMessagesLoaded();
     }
 
     return _buiRender;

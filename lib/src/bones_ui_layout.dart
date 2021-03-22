@@ -1,5 +1,6 @@
 import 'dart:html';
 
+import 'package:collection/collection.dart' show IterableExtension;
 import 'package:expressions/expressions.dart';
 
 import 'bones_ui_base.dart';
@@ -9,7 +10,7 @@ typedef ElementPropertyResolver = dynamic Function(
     dynamic element, String property);
 
 class ValueUnitExpression extends SimpleExpression {
-  static String getUnit(Expression a, Expression b) {
+  static String? getUnit(Expression? a, Expression? b) {
     if (a is ValueUnitExpression && b is ValueUnitExpression) {
       var unitA = a.unit;
       var unitB = b.unit;
@@ -30,7 +31,7 @@ class ValueUnitExpression extends SimpleExpression {
 
   final dynamic value;
 
-  final String unit;
+  final String? unit;
 
   ValueUnitExpression(this.value, this.unit);
 
@@ -55,7 +56,7 @@ class ValueUnitExpression extends SimpleExpression {
 class ElementExpression extends SimpleExpression {
   final dynamic element;
 
-  final Identifier property;
+  final Identifier? property;
 
   ElementExpression(this.element, this.property);
 
@@ -112,7 +113,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     return resolved;
   }
 
-  Expression _toExpression(dynamic o) {
+  Expression? _toExpression(dynamic o) {
     if (o == null) return null;
     if (o is Expression) return o;
     if (o is num) return Literal(o);
@@ -124,9 +125,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     }
   }
 
-  String _getIdentifierName(Identifier o) {
-    return o != null ? o.name : null;
-  }
+  String? _getIdentifierName(Identifier? o) => o?.name;
 
   @override
   dynamic evalBinaryExpression(
@@ -170,11 +169,11 @@ class UILayoutEvaluator extends ExpressionEvaluator {
       // ignore: omit_local_variable_types
       Expression leftValue = left is ValueUnitExpression
           ? left.valueAsLiteral
-          : _toExpression(left);
+          : _toExpression(left)!;
       // ignore: omit_local_variable_types
       Expression rightValue = right is ValueUnitExpression
           ? right.valueAsLiteral
-          : _toExpression(right);
+          : _toExpression(right)!;
 
       var expression2 =
           BinaryExpression(expression.operator, leftValue, rightValue);
@@ -185,7 +184,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
       return ValueUnitExpression(evaluated, unit);
     } else if (changed) {
       var expression2 = BinaryExpression(
-          expression.operator, _toExpression(left), _toExpression(right));
+          expression.operator, _toExpression(left)!, _toExpression(right)!);
       return super.evalBinaryExpression(expression2, context);
     } else {
       return super.evalBinaryExpression(expression, context);
@@ -217,7 +216,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     if (arg is ValueUnitExpression) {
       // ignore: omit_local_variable_types
       Expression leftValue =
-          arg is ValueUnitExpression ? arg.valueAsLiteral : _toExpression(arg);
+          arg is ValueUnitExpression ? arg.valueAsLiteral : _toExpression(arg)!;
       var expression2 = UnaryExpression(expression.operator, leftValue,
           prefix: expression.prefix);
 
@@ -226,7 +225,8 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 
       return ValueUnitExpression(evaluated, unit);
     } else if (changed) {
-      var expression2 = UnaryExpression(expression.operator, _toExpression(arg),
+      var expression2 = UnaryExpression(
+          expression.operator, _toExpression(arg)!,
           prefix: expression.prefix);
       return super.evalUnaryExpression(expression2, context);
     } else {
@@ -270,9 +270,9 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     return val;
   }
 
-  Expression resolveThisExpression(
+  Expression? resolveThisExpression(
       ThisExpression expression, Map<String, dynamic> context,
-      [String subProperty]) {
+      [String? subProperty]) {
     var element = _requestElement('_', false);
     if (element == null) return null;
     var elemProperty = subProperty != null ? Identifier(subProperty) : null;
@@ -285,23 +285,23 @@ class UILayoutEvaluator extends ExpressionEvaluator {
   }
 
   dynamic _evalThisImpl(ThisExpression expression, Map<String, dynamic> context,
-      [String subProperty]) {
+      [String? subProperty]) {
     var expressionResolved =
         resolveThisExpression(expression, context, subProperty);
 
     if (expressionResolved is ElementExpression) {
       return evalElementExpression(expressionResolved, context);
     } else {
-      return eval(expressionResolved, context);
+      return eval(expressionResolved!, context);
     }
   }
 
   static final RegExp _patternNumberPlaceHolder =
       RegExp(r'^__(\d+)(?:D(\d+))?__$');
 
-  Expression resolveMemberExpression(
+  Expression? resolveMemberExpression(
       MemberExpression expression, Map<String, dynamic> context,
-      [String subProperty, bool fromIndexExpression = false]) {
+      [String? subProperty, bool? fromIndexExpression = false]) {
     dynamic o = expression.object;
 
     if (o is Variable) {
@@ -327,17 +327,11 @@ class UILayoutEvaluator extends ExpressionEvaluator {
           decimal = '.$decimal';
         }
 
-        if (expression.property != null) {
-          var unit = expression.property.name;
-          dynamic n = decimal.isNotEmpty
-              ? double.parse('$number$decimal')
-              : int.parse(number);
-          return ValueUnitExpression(n, unit);
-        } else {
-          var s = '$number$decimal';
-          return Literal(
-              decimal.isNotEmpty ? double.parse(s) : int.parse(s), s);
-        }
+        var unit = expression.property.name;
+        dynamic n = decimal.isNotEmpty
+            ? double.parse('$number$decimal')
+            : int.parse(number!);
+        return ValueUnitExpression(n, unit);
       }
     }
 
@@ -352,7 +346,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 
   dynamic _evalMemberExpressionImpl(
       MemberExpression expression, Map<String, dynamic> context,
-      [String subProperty, bool fromIndexExpression]) {
+      [String? subProperty, bool? fromIndexExpression]) {
     var expressionResolved = resolveMemberExpression(
         expression, context, subProperty, fromIndexExpression);
 
@@ -384,7 +378,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
         return evaluated;
       }
     } else {
-      return eval(expressionResolved, context);
+      return eval(expressionResolved!, context);
     }
   }
 
@@ -393,7 +387,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     var elem = expression.element;
 
     if (expression.property != null) {
-      return _requestElementProperty(elem, expression.property.name);
+      return _requestElementProperty(elem, expression.property!.name);
     } else {
       return elem;
     }
@@ -406,7 +400,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 
   bool evalValue_calling = false;
 
-  dynamic evalValue(dynamic value, String property) {
+  dynamic evalValue(dynamic value, String? property) {
     if (property == null) return value;
 
     if (!evalValue_calling && isProvidedElement(value)) {
@@ -434,7 +428,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
   static final RegExp _patternNumber = RegExp(r'^(\d+(?:\.\d+)?)$');
 
   dynamic processLayout(String expressionStr, Map<String, dynamic> context,
-      [String unit, dynamic defaultValue]) {
+      [String? unit, dynamic defaultValue]) {
     reset();
 
     var expression = _parse(expressionStr);
@@ -483,9 +477,9 @@ class UILayoutEvaluator extends ExpressionEvaluator {
         .replaceAllMapped(RegExp(r'(\d+)(?:\.(\d+))?([a-zA-Z_]+)'), (m) {
       var gDecimal = m.group(2);
       if (gDecimal != null && gDecimal.isNotEmpty) {
-        return '__' + m.group(1) + 'D' + gDecimal + '__.' + m.group(3);
+        return '__' + m.group(1)! + 'D' + gDecimal + '__.' + m.group(3)!;
       } else {
-        return '__' + m.group(1) + '__.' + m.group(3);
+        return '__' + m.group(1)! + '__.' + m.group(3)!;
       }
     });
 
@@ -517,7 +511,7 @@ class UILayout {
 
   final String layout;
 
-  UILayoutEvaluator _uiLayoutEvaluator;
+  late UILayoutEvaluator _uiLayoutEvaluator;
 
   UILayout(this.parent, this.element, this.layout) {
     _uiLayoutEvaluator =
@@ -532,13 +526,13 @@ class UILayout {
 
     var content = parent.content;
     if (all) {
-      return content.querySelectorAll('#$id');
+      return content!.querySelectorAll('#$id');
     } else {
-      return content.querySelector('#$id');
+      return content!.querySelector('#$id');
     }
   }
 
-  dynamic _getElementProperty(dynamic elem, String property) {
+  dynamic _getElementProperty(dynamic elem, String? property) {
     if (property == null) return null;
 
     if (elem is Element) {
@@ -566,14 +560,14 @@ class UILayout {
   }
 
   int _getElementIndex(Element elem) {
-    var idx = elem.parent.children.indexOf(elem);
+    var idx = elem.parent!.children.indexOf(elem);
     return idx;
   }
 
   int _getElementIndexByID(Element elem) {
     var elemID = elem.id;
-    List<Element> elemsSameID = elem.parent.querySelectorAll('#$elemID');
-    if (elemsSameID == null || elemsSameID.isEmpty) return -1;
+    List<Element> elemsSameID = elem.parent!.querySelectorAll('#$elemID');
+    if (elemsSameID.isEmpty) return -1;
     var idx = elemsSameID.indexOf(elem);
     return idx;
   }
@@ -590,7 +584,7 @@ class UILayout {
     return {'x': x2, 'y': y2};
   }
 
-  Window _registeredWindow;
+  Window? _registeredWindow;
 
   void _registerWindowResize() {
     if (_registeredWindow != window) {
@@ -618,13 +612,13 @@ class UILayout {
 
   static bool someInstanceNeedsRefresh() {
     // ignore: omit_local_variable_types
-    UILayout uiLayout =
-        _instances.values.firstWhere((u) => u.needsRefresh, orElse: () => null);
+    UILayout? uiLayout =
+        _instances.values.firstWhereOrNull((u) => u.needsRefresh);
     return uiLayout != null;
   }
 
   bool _checkRegistration() {
-    if (element.isConnected) {
+    if (element.isConnected!) {
       _register();
       return true;
     } else {
@@ -683,7 +677,7 @@ class UILayout {
     parts.forEach(_command);
   }
 
-  void _command(String cmd) {
+  void _command(String? cmd) {
     if (cmd == null) return;
     cmd = cmd.trim();
     if (cmd.isEmpty) return;
@@ -780,14 +774,14 @@ class UILayout {
   String _value_XY(String value, ElementCoordsValue valueCenter,
       ValueFromElement valueFromElement) {
     if (_patternElementID.hasMatch(value)) {
-      var sel = element.parent.querySelector(value);
+      var sel = element.parent!.querySelector(value);
       if (sel == null) return '0px';
       return valueFromElement(sel);
     } else if (value == '*') {
       var w = element.offsetWidth;
       var h = element.offsetHeight;
 
-      var parent = element.offsetParent;
+      var parent = element.offsetParent!;
       var pw = parent.offsetWidth;
       var ph = parent.offsetHeight;
 
@@ -830,12 +824,12 @@ class UILayout {
     var w = element.offsetWidth;
     var h = element.offsetHeight;
 
-    var parent = element.offsetParent;
+    var parent = element.offsetParent!;
     var pw = parent.offsetWidth;
     var ph = parent.offsetHeight;
 
     if (_patternElementID.hasMatch(value)) {
-      var sel = element.parent.querySelector(value);
+      var sel = element.parent!.querySelector(value);
       if (sel == null) return '0px';
       return valueFromElement(sel);
     } else if (value == '*') {
@@ -876,7 +870,7 @@ class UILayout {
     return context;
   }
 
-  int _parseValuePx(String val) {
+  int? _parseValuePx(String val) {
     if (val.endsWith('px')) {
       var n = int.parse(val.substring(0, val.length - 2));
       return n;

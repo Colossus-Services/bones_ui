@@ -5,37 +5,38 @@ import 'package:bones_ui/src/bones_ui_base.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 typedef RenderPropertiesProvider = Map<String, dynamic> Function();
-typedef RenderAsync = Future<dynamic> Function(Map<String, dynamic> properties);
+typedef RenderAsync = Future<dynamic>? Function(
+    Map<String, dynamic> properties);
 
 /// A component that renders a content asynchronously.
 ///
 /// Useful to render a content that is loading.
 class UIComponentAsync extends UIComponent {
-  static bool isValidComponentAsync(UIComponentAsync asyncContent,
-      [Map<String, dynamic> properties]) {
+  static bool isValidComponentAsync(UIComponentAsync? asyncContent,
+      [Map<String, dynamic>? properties]) {
     if (asyncContent == null || asyncContent._asyncContent == null) {
       return false;
     }
     return UIAsyncContent.isValid(asyncContent._asyncContent, properties);
   }
 
-  static bool isValidLocaleComponentAsync(UIComponentAsync asyncContent,
-      [Map<String, dynamic> properties]) {
+  static bool isValidLocaleComponentAsync(UIComponentAsync? asyncContent,
+      [Map<String, dynamic>? properties]) {
     if (asyncContent == null || asyncContent._asyncContent == null) {
       return false;
     }
     return UIAsyncContent.isValidLocale(asyncContent._asyncContent);
   }
 
-  RenderPropertiesProvider _renderPropertiesProvider;
+  RenderPropertiesProvider? _renderPropertiesProvider;
 
-  RenderAsync _renderAsync;
+  RenderAsync? _renderAsync;
 
   final dynamic loadingContent;
 
   final dynamic errorContent;
 
-  final Duration refreshInterval;
+  final Duration? refreshInterval;
 
   final bool cacheRenderAsync;
 
@@ -49,7 +50,7 @@ class UIComponentAsync extends UIComponent {
   /// [loadingContent] Content to show while loading.
   /// [errorContent] Content to show on error.
   /// [refreshInterval] Refresh interval [Duration].
-  UIComponentAsync(Element parent, this._renderPropertiesProvider,
+  UIComponentAsync(Element? parent, this._renderPropertiesProvider,
       this._renderAsync, this.loadingContent, this.errorContent,
       {this.refreshInterval,
       bool cacheRenderAsync = true,
@@ -60,9 +61,9 @@ class UIComponentAsync extends UIComponent {
       dynamic style,
       dynamic style2,
       dynamic id,
-      UIComponentGenerator generator,
-      bool/*!*/ renderOnConstruction = false})
-      : cacheRenderAsync = cacheRenderAsync ?? true,
+      UIComponentGenerator? generator,
+      bool renderOnConstruction = false})
+      : cacheRenderAsync = cacheRenderAsync,
         super(parent,
             componentClass: componentClass,
             componentStyle: componentStyle,
@@ -76,18 +77,18 @@ class UIComponentAsync extends UIComponent {
     _renderPropertiesProvider ??= renderPropertiesProvider;
     _renderAsync ??= renderAsync;
 
-    if (renderOnConstruction != null && renderOnConstruction) {
+    if (renderOnConstruction) {
       callRender();
     }
   }
 
   Map<String, dynamic> renderPropertiesProvider() => {};
 
-  Future<dynamic> renderAsync(Map<String, dynamic> properties) => null;
+  Future<dynamic>? renderAsync(Map<String, dynamic> properties) => null;
 
   final EventStream<dynamic> onLoadAsyncContent = EventStream();
 
-  UIAsyncContent _asyncContent;
+  UIAsyncContent? _asyncContent;
   int _asyncContentRenderCount = 0;
 
   @override
@@ -99,11 +100,11 @@ class UIComponentAsync extends UIComponent {
     if ((!cacheRenderAsync && _asyncContentRenderCount > 1) ||
         !UIAsyncContent.isValid(_asyncContent, properties)) {
       _asyncContent = UIAsyncContent.provider(
-          () => _renderAsync(renderProperties()), loadingContent,
+          () => _renderAsync!(renderProperties()), loadingContent,
           errorContent: errorContent,
           refreshInterval: refreshInterval,
           properties: properties);
-      _asyncContent.onLoadContent.listen((content) {
+      _asyncContent!.onLoadContent.listen((content) {
         onLoadAsyncContent.add(content);
         onChange.add(content);
       });
@@ -121,46 +122,46 @@ class UIComponentAsync extends UIComponent {
 
   /// Stops
   void stop() {
-    if (_asyncContent != null) _asyncContent.stop();
+    if (_asyncContent != null) _asyncContent!.stop();
   }
 
   void refreshAsyncContent() {
-    if (_asyncContent != null && !_asyncContent.stopped) {
-      _asyncContent.refresh();
+    if (_asyncContent != null && !_asyncContent!.stopped) {
+      _asyncContent!.refresh();
     }
   }
 
   void reset([bool refresh = true]) {
-    if (_asyncContent != null) _asyncContent.reset(refresh);
+    if (_asyncContent != null) _asyncContent!.reset(refresh);
   }
 
   bool get hasAutoRefresh => refreshInterval != null;
 
-  bool get stopped => _asyncContent != null ? _asyncContent.stopped : false;
+  bool get stopped => _asyncContent != null ? _asyncContent!.stopped : false;
 
-  bool get isLoaded => _asyncContent != null ? _asyncContent.isLoaded : false;
+  bool get isLoaded => _asyncContent != null ? _asyncContent!.isLoaded : false;
 
-  bool get isOK => _asyncContent != null ? _asyncContent.isOK : false;
+  bool get isOK => _asyncContent != null ? _asyncContent!.isOK : false;
 
   bool get isWithError =>
-      _asyncContent != null ? _asyncContent.isWithError : false;
+      _asyncContent != null ? _asyncContent!.isWithError : false;
 
-  DateTime get loadTime =>
-      _asyncContent != null ? _asyncContent.loadTime : null;
+  DateTime? get loadTime =>
+      _asyncContent != null ? _asyncContent!.loadTime : null;
 
-  int get loadCount => _asyncContent != null ? _asyncContent.loadCount : 0;
+  int get loadCount => _asyncContent != null ? _asyncContent!.loadCount : 0;
 
-  Map<String, dynamic> get asyncContentProperties =>
-      _asyncContent != null ? _asyncContent.properties : null;
+  Map<String, dynamic>? get asyncContentProperties =>
+      _asyncContent != null ? _asyncContent!.properties : null;
 
   bool asyncContentEqualsProperties(Map<String, dynamic> properties) =>
       _asyncContent != null
-          ? _asyncContent.equalsProperties(properties)
+          ? _asyncContent!.equalsProperties(properties)
           : false;
 
   Map<String, dynamic> renderProperties() {
     var properties =
-        _renderPropertiesProvider != null ? _renderPropertiesProvider() : null;
+        _renderPropertiesProvider != null ? _renderPropertiesProvider!() : null;
     properties ??= {};
     return properties;
   }

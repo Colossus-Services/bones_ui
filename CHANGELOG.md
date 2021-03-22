@@ -1,3 +1,15 @@
+## 2.0.1
+
+- Sound null safety compatibility.
+- dynamic_call: ^2.0.1
+- mercury_client: ^2.0.1
+- intl_messages: ^2.0.1
+- dom_tools: ^2.0.1
+- json_render: ^2.0.1
+- html_unescape: ^2.0.0
+- enum_to_string: ^2.0.1
+- collection: ^1.15.0
+
 ## 2.0.0-nullsafety.0
 
 - Initial compatibility with Null Safety.

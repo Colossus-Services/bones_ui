@@ -18,14 +18,14 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   Element generate(
       DOMGenerator<Node> domGenerator,
       DOMTreeMap<Node> treeMap,
-      String tag,
-      DOMElement domParent,
-      Node parent,
+      String? tag,
+      DOMElement? domParent,
+      Node? parent,
       DOMNode domNode,
       Map<String, DOMAttribute> attributes,
-      Node contentHolder,
-      List<DOMNode> contentNodes,
-      DOMContext<Node> domContext) {
+      Node? contentHolder,
+      List<DOMNode>? contentNodes,
+      DOMContext<Node>? domContext) {
     domContext ??= domGenerator.domContext;
 
     var element = DivElement();
@@ -34,7 +34,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
     domGenerator.addChildToElement(parent, element);
 
-    var html = contentNodes.map((e) => e.buildHTML(withIndent: true)).join('');
+    var html = contentNodes!.map((e) => e.buildHTML(withIndent: true)).join('');
 
     if (DOMTemplate.possiblyATemplate(html)) {
       try {
@@ -43,7 +43,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
         if (template == null) {
           domNode.clearNodes();
           _generateElementContentFromHTML(
-              domGenerator, treeMap, html, domNode, element);
+              domGenerator, treeMap, html, domNode as DOMElement, element);
         } else {
           var variables =
               getTemplateVariables(domGenerator, attributes, domContext);
@@ -60,10 +60,10 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
             var loadingConfig = UILoadingConfig.fromMap(attributes, 'loading-');
 
-            DivElement uiLoading;
+            DivElement? uiLoading;
             if (loadingConfig != null) {
               uiLoading = loadingConfig.asDivElement();
-              element.append(uiLoading);
+              element.append(uiLoading!);
             }
 
             Future.wait(futures).then((_) {
@@ -71,24 +71,24 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
               html = template.build(variables,
                   elementProvider: (q) => queryElementProvider(treeMap, q),
-                  intlMessageResolver: domContext?.intlMessageResolver);
+                  intlMessageResolver: domContext?.intlMessageResolver)!;
 
               uiLoading?.remove();
 
               domNode.clearNodes();
 
               _generateElementContentFromHTML(
-                  domGenerator, treeMap, html, domNode, element);
+                  domGenerator, treeMap, html, domNode as DOMElement, element);
             });
           } else {
             html = template.build(variables,
                 elementProvider: (q) => queryElementProvider(treeMap, q),
-                intlMessageResolver: domContext?.intlMessageResolver);
+                intlMessageResolver: domContext?.intlMessageResolver)!;
 
             domNode.clearNodes();
 
             _generateElementContentFromHTML(
-                domGenerator, treeMap, html, domNode, element);
+                domGenerator, treeMap, html, domNode as DOMElement, element);
           }
         }
       } catch (e, s) {
@@ -98,13 +98,13 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
         domNode.clearNodes();
 
         _generateElementContentFromHTML(
-            domGenerator, treeMap, html, domNode, element);
+            domGenerator, treeMap, html, domNode as DOMElement, element);
       }
     } else {
       domNode.clearNodes();
 
       _generateElementContentFromHTML(
-          domGenerator, treeMap, html, domNode, element);
+          domGenerator, treeMap, html, domNode as DOMElement, element);
     }
 
     return element;
@@ -116,12 +116,12 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       RegExp(r'''^\s*<[\w-]+\s(?:".*?"|'.*?'|\s+|[^>\s]+)*>''');
   static final RegExp REGEXP_TAG_CLOSE = RegExp(r'''<\/[\w-]+\s*>\s*$''');
 
-  String queryElementProvider(DOMTreeMap<Node> treeMap, String query) {
+  String? queryElementProvider(DOMTreeMap<Node> treeMap, String query) {
     if (isEmptyString(query)) return null;
 
     var rootDOMNode = treeMap.rootDOMNode as DOMElement;
 
-    var node = rootDOMNode.select(query);
+    var node = rootDOMNode.select(query)!;
 
     var html = node.buildHTML();
 
@@ -146,8 +146,8 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   }
 
   Map<String, dynamic> getTemplateVariables(DOMGenerator domGenerator,
-      Map<String, DOMAttribute> attributes, DOMContext<Node> domContext) {
-    domContext ??= domGenerator.domContext;
+      Map<String, DOMAttribute> attributes, DOMContext<Node>? domContext) {
+    domContext ??= domGenerator.domContext as DOMContext<Node>?;
     if (domContext == null) return {};
 
     var variables = domContext.variables;
@@ -191,12 +191,12 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     }
   }
 
-  Map parseAttributeVariables(Map<String, DOMAttribute> attributes) {
+  Map? parseAttributeVariables(Map<String, DOMAttribute> attributes) {
     var value = attributes['variables']?.toString();
 
     if (isNotEmptyString(value, trim: true)) {
       if (isJSONMap(value)) {
-        return parseJSON(value) as Map;
+        return parseJSON(value) as Map?;
       } else {
         return decodeQueryString(value);
       }
@@ -205,7 +205,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   }
 
   void _normalizeVariables(
-      Map<String, dynamic> variables, DOMContext domContext) {
+      Map<String, dynamic> variables, DOMContext? domContext) {
     deepReplaceValues(variables, (c, k, v) {
       return v is Function;
     }, (c, k, v) {
@@ -229,14 +229,14 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     deepReplaceValues(variables, (c, k, v) {
       return v is String && DOMTemplate.possiblyATemplate(v);
     }, (c, k, v) {
-      var template = DOMTemplate.parse(v);
+      var template = DOMTemplate.parse(v as String);
       var v2 = template.build(variables,
           intlMessageResolver: domContext?.intlMessageResolver);
       return v2;
     });
   }
 
-  Future<dynamic> getDataSourceResponse(Map<String, String> attributes) {
+  Future<dynamic>? getDataSourceResponse(Map<String, String> attributes) {
     var daraSourceCallAttr = attributes['data-source'];
     if (daraSourceCallAttr == null) return null;
     var dataSourceCall = DataSourceCall.from(daraSourceCallAttr);
@@ -260,8 +260,8 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   }
 
   @override
-  DOMElement revert(DOMGenerator domGenerator, DOMTreeMap treeMap,
-      DOMElement domParent, Node parent, Node node) {
+  DOMElement? revert(DOMGenerator domGenerator, DOMTreeMap? treeMap,
+      DOMElement? domParent, Node? parent, Node? node) {
     if (node is DivElement) {
       var domElement =
           $tag(tag, classes: node.classes.join(' '), style: node.style.cssText);

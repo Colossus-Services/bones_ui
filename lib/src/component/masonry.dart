@@ -1,6 +1,7 @@
 import 'dart:html';
 
 import 'package:bones_ui/bones_ui.dart';
+import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
@@ -8,9 +9,9 @@ import 'package:swiss_knife/swiss_knife.dart';
 class MasonryItem {
   final dynamic element;
 
-  int _width;
+  int? _width;
 
-  int _height;
+  int? _height;
 
   MasonryItem(this.element, this._width, this._height);
 
@@ -30,17 +31,17 @@ class MasonryItem {
 
   factory MasonryItem.fromDOMElement(DOMElement element) {
     var domElement = UIComponent.domGenerator.generate(element);
-    return MasonryItem.fromElement(domElement);
+    return MasonryItem.fromElement(domElement as Element?);
   }
 
-  factory MasonryItem.fromElement(Element element) {
+  factory MasonryItem.fromElement(Element? element) {
     return MasonryItem(
         element, _getElementWidth(element), _getElementHeight(element));
   }
 
-  int get width => _width;
+  int? get width => _width;
 
-  int get height => _height;
+  int? get height => _height;
 
   bool checkChangedDimension() {
     var w = _getElementWidth(element);
@@ -58,66 +59,66 @@ class MasonryItem {
   }
 }
 
-int _getElementWidth(dynamic element) {
+int? _getElementWidth(dynamic element) {
   if (element == null) return null;
   if (element is Element) {
     return getElementWidth(element);
   } else if (element is UIComponent) {
-    return getElementWidth(element.content);
+    return getElementWidth(element.content!);
   } else if (element is DOMElement) {
-    return parseCSSLength(element['width'] ?? element.style.width,
-        unit: 'px', allowPXWithoutSuffix: true);
+    return parseCSSLength(element['width'] ?? element.style.width as String,
+        unit: 'px', allowPXWithoutSuffix: true) as int?;
   }
   return 0;
 }
 
-int _getElementHeight(dynamic element) {
+int? _getElementHeight(dynamic element) {
   if (element == null) return null;
   if (element is Element) {
     return getElementHeight(element);
   } else if (element is UIComponent) {
-    return getElementHeight(element.content);
+    return getElementHeight(element.content!);
   } else if (element is DOMElement) {
-    return parseCSSLength(element['height'] ?? element.style.height,
-        unit: 'px', allowPXWithoutSuffix: true);
+    return parseCSSLength(element['height'] ?? element.style.height as String,
+        unit: 'px', allowPXWithoutSuffix: true) as int?;
   }
   return 0;
 }
 
 class UIMasonry extends UIComponent {
-  List<MasonryItem> _items;
+  List<MasonryItem> items;
 
-  final NNField<String> _width =
+  final NNField<String?> _width =
       NNField('100%', filter: (s) => isNotEmptyString(s) ? s : null);
 
-  final NNField<String> _height =
+  final NNField<String?> _height =
       NNField('100%', filter: (s) => isNotEmptyString(s) ? s : null);
 
-  final NNField<int> _itemsMargin =
+  final NNField<int?> _itemsMargin =
       NNField(0, filter: (n) => n != null ? clipNumber(n, 0, 1000) : null);
 
-  final NNField<double> _dimensionTolerance =
+  final NNField<double?> _dimensionTolerance =
       NNField(0, filter: (n) => n != null ? clipNumber(n, 0, 10) : null);
 
-  final List<String> scrollbarColors;
+  final List<String>? scrollbarColors;
 
-  NNField<int> _masonryWidthSize;
-  NNField<int> _masonryHeightSize;
+  late NNField<int?> _masonryWidthSize;
+  late NNField<int?> _masonryHeightSize;
 
-  CachedComputation<int, Parameters2<List<int>, double>,
+  late CachedComputation<int, Parameters2<List<int?>, double?>,
       Parameters2<List<int>, double>> _computeGCDCache;
 
   UIMasonry(Element parent, Iterable<MasonryItem> items,
-      {int masonryWidthSize,
-      int masonryHeightSize,
-      int itemsMargin,
-      double dimensionTolerance,
-      String width,
-      String height,
+      {int? masonryWidthSize,
+      int? masonryHeightSize,
+      int? itemsMargin,
+      double? dimensionTolerance,
+      String? width,
+      String? height,
       this.scrollbarColors,
       dynamic classes,
       dynamic style})
-      : _items = List<MasonryItem>.from(items ?? []),
+      : items = List<MasonryItem>.from(items),
         super(parent,
             componentClass: 'ui-masonry', classes: classes, style: style) {
     this.width = width;
@@ -125,27 +126,30 @@ class UIMasonry extends UIComponent {
     this.itemsMargin = itemsMargin;
     this.dimensionTolerance = dimensionTolerance;
 
-    _masonryWidthSize = NNField<int>(0,
+    _masonryWidthSize = NNField<int?>(0,
         filter: (n) => n != null && n > 10 ? n : null,
         resolver: computeMasonryWidthSize);
 
-    _masonryHeightSize = NNField<int>(0,
+    _masonryHeightSize = NNField<int?>(0,
         filter: (n) => n != null && n > 10 ? n : null,
         resolver: computeMasonryHeightSize);
 
     _masonryWidthSize.set(masonryWidthSize);
     _masonryHeightSize.set(masonryHeightSize);
-    _computeGCDCache = CachedComputation(_computeGCDImpl);
+    _computeGCDCache = CachedComputation(
+        _computeGCDImpl as int Function(Parameters2<List<int?>, double?>));
   }
 
-  int computeMasonryWidthSize(int masonrySize) => _computeMasonryDimensionSize(
-      masonrySize, () => _getItemsDimension((item) => item.width));
+  int? computeMasonryWidthSize(int? masonrySize) =>
+      _computeMasonryDimensionSize(
+          masonrySize!, () => _getItemsDimension((item) => item.width));
 
-  int computeMasonryHeightSize(int masonrySize) => _computeMasonryDimensionSize(
-      masonrySize, () => _getItemsDimension((item) => item.height));
+  int? computeMasonryHeightSize(int? masonrySize) =>
+      _computeMasonryDimensionSize(
+          masonrySize!, () => _getItemsDimension((item) => item.height));
 
-  int _computeMasonryDimensionSize(
-      int masonrySize, List<int> Function() dimensionsGetter) {
+  int? _computeMasonryDimensionSize(
+      int masonrySize, List<int?> Function() dimensionsGetter) {
     if (masonrySize <= 0) {
       var dimensions = dimensionsGetter();
       if (dimensions.isEmpty) {
@@ -159,7 +163,7 @@ class UIMasonry extends UIComponent {
     }
   }
 
-  int _computeGCD(List<int> ns, double tolerance) =>
+  int _computeGCD(List<int?> ns, double? tolerance) =>
       _computeGCDCache.compute(Parameters2(ns, tolerance));
 
   int _computeGCDImpl(Parameters2<List<int>, double> parameters) {
@@ -191,7 +195,7 @@ class UIMasonry extends UIComponent {
           if (rest2 < rest) rest = rest2;
 
           var overRatio = rest / i;
-          if (overRatio > ratios[i]) {
+          if (overRatio > ratios[i]!) {
             ratios[i] = overRatio;
           }
 
@@ -219,8 +223,9 @@ class UIMasonry extends UIComponent {
     return minRatioEntry.key;
   }
 
-  List<int> _getItemsDimension(int Function(MasonryItem item) dimensionGetter) {
-    var dimension = <int>{};
+  List<int?> _getItemsDimension(
+      int? Function(MasonryItem item) dimensionGetter) {
+    var dimension = <int?>{};
     for (var item in items) {
       var n = dimensionGetter(item);
       dimension.add(n);
@@ -230,77 +235,74 @@ class UIMasonry extends UIComponent {
     return list;
   }
 
-  List<MasonryItem> get items => _items;
+  String? get width => _width.value;
 
-  set items(List<MasonryItem> value) => _items = value ?? [];
+  set width(String? value) => _width.value = value;
 
-  String get width => _width.value;
+  String? get height => _height.value;
 
-  set width(String value) => _width.value = value;
-
-  String get height => _height.value;
-
-  set height(String value) => _height.value = value;
+  set height(String? value) => _height.value = value;
 
   int get masonryWidthSizeWithItemsMargin =>
-      _masonryWidthSize.value + (itemsMargin * 1);
+      _masonryWidthSize.value! + (itemsMargin! * 1);
 
   int get masonryHeightSizeWithItemsMargin =>
-      _masonryHeightSize.value + (itemsMargin * 1);
+      _masonryHeightSize.value! + (itemsMargin! * 1);
 
-  int get masonryWidthSize => _masonryWidthSize.value;
+  int? get masonryWidthSize => _masonryWidthSize.value;
 
-  set masonryWidthSize(int value) => _masonryWidthSize.value = value;
+  set masonryWidthSize(int? value) => _masonryWidthSize.value = value;
 
-  int get masonryHeightSize => _masonryHeightSize.value;
+  int? get masonryHeightSize => _masonryHeightSize.value;
 
-  set masonryHeightSize(int value) => _masonryHeightSize.value = value;
+  set masonryHeightSize(int? value) => _masonryHeightSize.value = value;
 
-  int get itemsMargin => _itemsMargin.value;
+  int? get itemsMargin => _itemsMargin.value;
 
-  set itemsMargin(int value) => _itemsMargin.value = value;
+  set itemsMargin(int? value) => _itemsMargin.value = value;
 
-  double get dimensionTolerance => _dimensionTolerance.value;
+  double? get dimensionTolerance => _dimensionTolerance.value;
 
-  set dimensionTolerance(double value) => _dimensionTolerance.value = value;
+  set dimensionTolerance(double? value) => _dimensionTolerance.value = value;
 
   static final TrackElementResize _resizeTracker = TrackElementResize();
 
   @override
   void configure() {
-    _resizeTracker.track(content, (_) => _onResize());
+    _resizeTracker.track(content!, (_) => _onResize());
   }
 
   void _onResize() {
     refresh();
   }
 
-  List<_MasonryLine> _renderedLines;
+  List<_MasonryLine>? _renderedLines;
 
   @override
   dynamic render() {
-    content
+    content!
       ..style.textAlign = 'center'
       ..style.width = width
       ..style.height = height
       ..style.overflowY = 'auto';
 
     if (isNotEmptyObject(scrollbarColors)) {
-      var buttonColor = scrollbarColors[0].trim();
-      var bgColor = scrollbarColors.length > 1 ? scrollbarColors[1].trim() : '';
+      var buttonColor = scrollbarColors![0].trim();
+      var bgColor =
+          scrollbarColors!.length > 1 ? scrollbarColors![1].trim() : '';
 
-      setElementScrollColors(content, 8, buttonColor, bgColor);
+      setElementScrollColors(content!, 8, buttonColor, bgColor);
     }
 
     var renderItems = <_MasonryRenderItem>[];
 
-    for (var i = 0; i < _items.length; ++i) {
-      var item = _items[i];
+    for (var i = 0; i < items.length; ++i) {
+      var item = items[i];
       var renderItem = _MasonryRenderItem(this, i + 1, item);
       renderItems.add(renderItem);
     }
 
-    var renderBounds = content.getBoundingClientRect();
+    var renderBounds = content!.getBoundingClientRect();
 
     var lineMaxWidth = renderBounds.width ~/ masonryWidthSizeWithItemsMargin;
 
@@ -344,18 +346,17 @@ class UIMasonry extends UIComponent {
 
   bool checkChangedDimension() {
     return _renderedLines != null &&
-        _renderedLines.firstWhere((e) => e.checkChangedDimension(),
-                orElse: () => null) !=
+        _renderedLines!.firstWhereOrNull((e) => e.checkChangedDimension()) !=
             null;
   }
 
   void updateDimensions() {
     if (_renderedLines != null) {
-      _renderedLines.forEach((e) => e.updateDimensions());
+      _renderedLines!.forEach((e) => e.updateDimensions());
     }
   }
 
-  int _sortItems(a, b) {
+  int? _sortItems(a, b) {
     var h1 = a.masonryHeight;
     var h2 = b.masonryHeight;
     var cmp = h2.compareTo(h1);
@@ -369,13 +370,14 @@ class UIMasonry extends UIComponent {
 
   List<_MasonryLine> _buildLines(
       List<_MasonryRenderItem> renderItems, int lineMaxWidth) {
-    renderItems.sort(_sortItems);
+    renderItems.sort(
+        _sortItems as int Function(_MasonryRenderItem, _MasonryRenderItem)?);
 
     var lines = <_MasonryLine>[];
     var line = _MasonryLine(this);
 
     while (renderItems.isNotEmpty) {
-      _MasonryRenderable item;
+      _MasonryRenderable? item;
 
       if (line.isEmpty) {
         item = renderItems.removeAt(0);
@@ -408,12 +410,12 @@ class UIMasonry extends UIComponent {
       lines.add(line);
     }
 
-    lines.sort(_sortLines);
+    lines.sort(_sortLines as int Function(_MasonryLine, _MasonryLine)?);
 
     return lines;
   }
 
-  int _sortLines(l1, l2) {
+  int? _sortLines(l1, l2) {
     var w1 = l1.masonryWidth;
     var w2 = l2.masonryWidth;
 
@@ -428,7 +430,7 @@ class UIMasonry extends UIComponent {
     return cmp;
   }
 
-  _MasonryRenderItem _findItemExactMatch(
+  _MasonryRenderItem? _findItemExactMatch(
       List<_MasonryRenderItem> renderItems, int width, int height) {
     for (var i = 0; i < renderItems.length; ++i) {
       var item = renderItems[i];
@@ -440,19 +442,19 @@ class UIMasonry extends UIComponent {
     return null;
   }
 
-  _MasonryRenderItem _findItemNearWidth(
+  _MasonryRenderItem? _findItemNearWidth(
       List<_MasonryRenderItem> renderItems, int width, int height) {
     for (var i = 0; i < renderItems.length; ++i) {
       var item = renderItems[i];
 
-      if (item.masonryWidth <= width && item.masonryHeight == height) {
+      if (item.masonryWidth! <= width && item.masonryHeight == height) {
         return renderItems.removeAt(i);
       }
     }
     return null;
   }
 
-  _MasonryRenderGroup _buildGroup(
+  _MasonryRenderGroup? _buildGroup(
       List<_MasonryRenderItem> renderItems, int width, int height) {
     var group = _buildGroupImpl(renderItems, width, height, false);
     if (group == null) return null;
@@ -461,9 +463,9 @@ class UIMasonry extends UIComponent {
     return group;
   }
 
-  _MasonryRenderGroup _buildGroupImpl(List<_MasonryRenderItem> renderItems,
+  _MasonryRenderGroup? _buildGroupImpl(List<_MasonryRenderItem> renderItems,
       int width, int height, bool exactDimension) {
-    if (renderItems == null || renderItems.isEmpty) return null;
+    if (renderItems.isEmpty) return null;
     if (width <= 0 || height <= 0) return null;
 
     var w = width;
@@ -548,8 +550,6 @@ class UIMasonry extends UIComponent {
 
   void _removeGroupItems(
       List<_MasonryRenderItem> renderItems, _MasonryRenderGroup group) {
-    if (renderItems == null || group == null) return;
-
     for (var item in group.items) {
       if (item is _MasonryRenderGroup) {
         _removeGroupItems(renderItems, item);
@@ -570,7 +570,7 @@ class _MasonryLine {
 
   _MasonryLine(this.masonry);
 
-  int get itemsMargin => masonry.itemsMargin;
+  int? get itemsMargin => masonry.itemsMargin;
 
   int get masonryWidthSizeWithItemsMargin =>
       masonry.masonryWidthSizeWithItemsMargin;
@@ -578,9 +578,9 @@ class _MasonryLine {
   int get masonryHeightSizeWithItemsMargin =>
       masonry.masonryHeightSizeWithItemsMargin;
 
-  int get masonryWidthSize => masonry.masonryWidthSize;
+  int? get masonryWidthSize => masonry.masonryWidthSize;
 
-  int get masonryHeightSize => masonry.masonryHeightSize;
+  int? get masonryHeightSize => masonry.masonryHeightSize;
 
   bool get isEmpty => _elements.isEmpty;
 
@@ -598,7 +598,7 @@ class _MasonryLine {
   int get masonryWidth => _masonryWidth;
 
   bool add(_MasonryRenderable elem) {
-    var masonryWidth = elem.masonryWidth;
+    var masonryWidth = elem.masonryWidth!;
 
     _masonryWidth += masonryWidth;
 
@@ -609,7 +609,7 @@ class _MasonryLine {
       changedMax = true;
     }
 
-    var height = elem.masonryHeight;
+    var height = elem.masonryHeight!;
 
     if (height > _maxMasonryHeight) {
       _maxMasonryHeight = height;
@@ -621,7 +621,7 @@ class _MasonryLine {
     return changedMax;
   }
 
-  int get lowestID => minInIterable(_elements.map((e) => e.id));
+  int? get lowestID => minInIterable(_elements.map((e) => e.id)) as int?;
 
   void sort() {
     _elements.sort();
@@ -650,9 +650,7 @@ class _MasonryLine {
   }
 
   bool checkChangedDimension() {
-    return _elements.firstWhere((e) => e.checkChangedDimension(),
-            orElse: () => null) !=
-        null;
+    return _elements.firstWhereOrNull((e) => e.checkChangedDimension()) != null;
   }
 
   void updateDimensions() {
@@ -665,21 +663,21 @@ abstract class _MasonryRenderable implements Comparable<_MasonryRenderable> {
 
   _MasonryRenderable(this.masonry);
 
-  int calcMasonryWidth(int elemSize) =>
+  int calcMasonryWidth(int? elemSize) =>
       calcMasonryDimension(elemSize, masonryWidthSizeWithItemsMargin);
 
-  int calcMasonryHeight(int elemSize) =>
+  int calcMasonryHeight(int? elemSize) =>
       calcMasonryDimension(elemSize, masonryHeightSizeWithItemsMargin);
 
-  int calcMasonryDimension(int elemSize, int masonrySize) {
+  int calcMasonryDimension(int? elemSize, int masonrySize) {
     elemSize ??= 0;
-    elemSize += itemsMargin * 2;
+    elemSize += itemsMargin! * 2;
 
     var size = elemSize ~/ masonrySize;
 
     if (size <= 0) return 1;
 
-    var tolerance = masonry.dimensionTolerance;
+    var tolerance = masonry.dimensionTolerance!;
     if (tolerance > 0) {
       var rest = elemSize - (size * masonrySize);
       var overRatio = rest / masonrySize;
@@ -691,7 +689,7 @@ abstract class _MasonryRenderable implements Comparable<_MasonryRenderable> {
     }
   }
 
-  int get itemsMargin => masonry.itemsMargin;
+  int? get itemsMargin => masonry.itemsMargin;
 
   int get masonryWidthSizeWithItemsMargin =>
       masonry.masonryWidthSizeWithItemsMargin;
@@ -699,20 +697,20 @@ abstract class _MasonryRenderable implements Comparable<_MasonryRenderable> {
   int get masonryHeightSizeWithItemsMargin =>
       masonry.masonryHeightSizeWithItemsMargin;
 
-  int get masonryWidthSize => masonry.masonryWidthSize;
+  int? get masonryWidthSize => masonry.masonryWidthSize;
 
-  int get masonryHeightSize => masonry.masonryHeightSize;
+  int? get masonryHeightSize => masonry.masonryHeightSize;
 
   int get id;
 
-  int get masonryWidth;
+  int? get masonryWidth;
 
-  int get masonryHeight;
+  int? get masonryHeight;
 
   @override
   int compareTo(_MasonryRenderable other) {
-    var h1 = masonryHeight;
-    var h2 = other.masonryHeight;
+    var h1 = masonryHeight!;
+    var h2 = other.masonryHeight!;
 
     var cmp = h2.compareTo(h1);
 
@@ -736,7 +734,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
 
   _MasonryRenderGroup(
       UIMasonry masonry, List<_MasonryRenderable> items, this.maxWidth)
-      : _items = items ?? [],
+      : _items = items,
         super(masonry);
 
   List<_MasonryRenderable> get items => _items.toList();
@@ -754,7 +752,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
     }
   }
 
-  factory _MasonryRenderGroup.withDimension(UIMasonry masonry,
+  static _MasonryRenderGroup? withDimension(UIMasonry masonry,
       List<_MasonryRenderItem> items, int width, int height) {
     for (var init = 0; init < items.length; ++init) {
       var groupItems = <_MasonryRenderItem>[];
@@ -762,7 +760,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
       for (var i = init; i < items.length; ++i) {
         var item = items[i];
 
-        if (item.masonryWidth <= width && item.masonryHeight <= height) {
+        if (item.masonryWidth! <= width && item.masonryHeight! <= height) {
           groupItems.add(item);
 
           var g = _MasonryRenderGroup(masonry, groupItems, width);
@@ -772,7 +770,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
 
             if (groupWidth == width && groupHeight == height && !g.hasGap) {
               return g;
-            } else if (groupWidth <= width &&
+            } else if (groupWidth! <= width &&
                 groupHeight < height &&
                 !g.hasGap) {
               continue;
@@ -789,29 +787,30 @@ class _MasonryRenderGroup extends _MasonryRenderable {
     return null;
   }
 
-  int get allWidth => sumIterable(_items.map((e) => e.masonryWidth));
+  int get allWidth => sumIterable(_items.map(
+      ((e) => e.masonryWidth!) as num Function(_MasonryRenderable))) as int;
 
   @override
-  int get masonryWidth {
-    var lineWidth = 0;
+  int? get masonryWidth {
+    int? lineWidth = 0;
 
-    var lineMaxWidth = 0;
+    int? lineMaxWidth = 0;
 
     for (var i = 0; i < _items.length; ++i) {
       var item = _items[i];
 
-      if (lineWidth >= maxWidth) {
-        if (lineWidth > lineMaxWidth) {
+      if (lineWidth! >= maxWidth) {
+        if (lineWidth > lineMaxWidth!) {
           lineMaxWidth = lineWidth;
         }
 
         lineWidth = item.masonryWidth;
       } else {
-        lineWidth += item.masonryWidth;
+        lineWidth += item.masonryWidth!;
       }
     }
 
-    if (lineWidth > lineMaxWidth) {
+    if (lineWidth! > lineMaxWidth!) {
       lineMaxWidth = lineWidth;
     }
 
@@ -820,36 +819,36 @@ class _MasonryRenderGroup extends _MasonryRenderable {
 
   @override
   int get masonryHeight {
-    var lineWidth = 0;
+    int? lineWidth = 0;
     var lineHeight = 0;
 
-    var lineMaxHeight = 0;
+    int? lineMaxHeight = 0;
 
     for (var i = 0; i < _items.length; ++i) {
       var item = _items[i];
 
-      if (lineWidth >= maxWidth) {
-        lineHeight += lineMaxHeight;
+      if (lineWidth! >= maxWidth) {
+        lineHeight += lineMaxHeight!;
 
         lineMaxHeight = item.masonryHeight;
         lineWidth = item.masonryWidth;
       } else {
-        lineWidth += item.masonryWidth;
-        if (item.masonryHeight > lineMaxHeight) {
+        lineWidth += item.masonryWidth!;
+        if (item.masonryHeight! > lineMaxHeight!) {
           lineMaxHeight = item.masonryHeight;
         }
       }
     }
 
-    lineHeight += lineMaxHeight;
+    lineHeight += lineMaxHeight!;
 
     return lineHeight;
   }
 
   bool get hasGap {
-    var lineWidth = 0;
-    var lineMaxWidth = 0;
-    var lineMaxHeight = 0;
+    int? lineWidth = 0;
+    int? lineMaxWidth = 0;
+    int? lineMaxHeight = 0;
 
     for (var i = 0; i < _items.length; ++i) {
       var item = _items[i];
@@ -860,7 +859,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
         }
       }
 
-      if (lineWidth >= maxWidth) {
+      if (lineWidth! >= maxWidth) {
         if (lineMaxWidth == 0) {
           lineMaxWidth = lineWidth;
         } else if (lineWidth != lineMaxWidth) {
@@ -870,7 +869,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
         lineMaxHeight = item.masonryHeight;
         lineWidth = item.masonryWidth;
       } else {
-        lineWidth += item.masonryWidth;
+        lineWidth += item.masonryWidth!;
 
         if (lineMaxHeight == 0) {
           lineMaxHeight = item.masonryHeight;
@@ -880,7 +879,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
       }
     }
 
-    if (lineMaxWidth > 0 && lineWidth != lineMaxWidth) {
+    if (lineMaxWidth! > 0 && lineWidth != lineMaxWidth) {
       return true;
     }
 
@@ -919,7 +918,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
       var elem = item.render();
       div.append(elem);
 
-      lineWidth += item.masonryWidth;
+      lineWidth += item.masonryWidth!;
     }
 
     return div;
@@ -927,9 +926,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
 
   @override
   bool checkChangedDimension() {
-    return _items.firstWhere((e) => e.checkChangedDimension(),
-            orElse: () => null) !=
-        null;
+    return _items.firstWhereOrNull((e) => e.checkChangedDimension()) != null;
   }
 
   @override
@@ -945,12 +942,12 @@ class _MasonryRenderItem extends _MasonryRenderable {
 
   _MasonryRenderItem(UIMasonry masonry, this.id, this.item) : super(masonry);
 
-  int _masonryWidth;
+  int? _masonryWidth;
 
-  int _masonryWidthInput;
+  int? _masonryWidthInput;
 
   @override
-  int get masonryWidth {
+  int? get masonryWidth {
     if (_masonryWidth == null || _masonryWidthInput != item.width) {
       _masonryWidthInput = item.width;
       _masonryWidth = calcMasonryWidth(_masonryWidthInput);
@@ -958,12 +955,12 @@ class _MasonryRenderItem extends _MasonryRenderable {
     return _masonryWidth;
   }
 
-  int _masonryHeight;
+  int? _masonryHeight;
 
-  int _masonryHeightInput;
+  int? _masonryHeightInput;
 
   @override
-  int get masonryHeight {
+  int? get masonryHeight {
     if (_masonryHeight == null || _masonryHeightInput != item.height) {
       _masonryHeightInput = item.height;
       _masonryHeight = calcMasonryHeight(_masonryHeightInput);
@@ -973,11 +970,11 @@ class _MasonryRenderItem extends _MasonryRenderable {
 
   @override
   Element render() {
-    var w2 = masonryWidth * masonryWidthSizeWithItemsMargin;
-    var h2 = masonryHeight * masonryHeightSizeWithItemsMargin;
+    var w2 = masonryWidth! * masonryWidthSizeWithItemsMargin;
+    var h2 = masonryHeight! * masonryHeightSizeWithItemsMargin;
 
-    var w = w2 - (itemsMargin * 1);
-    var h = h2 - (itemsMargin * 1);
+    var w = w2 - (itemsMargin! * 1);
+    var h = h2 - (itemsMargin! * 1);
 
     var div1 = DivElement()
       ..classes.add('ui-masonry-block')

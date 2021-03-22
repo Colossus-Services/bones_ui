@@ -9,22 +9,22 @@ class UIColorPickerInput extends UIComponent {
   final String _fieldName;
   final String _initialValue;
 
-  final String placeholder;
+  final String? placeholder;
 
   final int _pickerWidth;
 
   final int _pickerHeight;
 
-  UIColorPickerInput(Element parent,
+  UIColorPickerInput(Element? parent,
       {this.placeholder,
-      String/*!*/ fieldName = '',
-      String/*!*/ value = '',
-      int pickerWidth = 200 ,
+      String fieldName = '',
+      String value = '',
+      int pickerWidth = 200,
       int pickerHeight = 200})
-      : _fieldName = fieldName ?? '',
-        _initialValue = value ?? '',
-        _pickerWidth = pickerWidth ?? 200,
-        _pickerHeight = pickerHeight ?? 200,
+      : _fieldName = fieldName,
+        _initialValue = value,
+        _pickerWidth = pickerWidth,
+        _pickerHeight = pickerHeight,
         super(parent);
 
   String get fieldName => _fieldName;
@@ -35,7 +35,7 @@ class UIColorPickerInput extends UIComponent {
 
   @override
   dynamic render() {
-    content.style.width = '100%';
+    content!.style.width = '100%';
 
     var input = _render_generic_input('text', _initialValue);
     input.setAttribute('id', _fieldName);
@@ -43,7 +43,7 @@ class UIColorPickerInput extends UIComponent {
     input.setAttribute('field', _fieldName);
 
     if (placeholder != null) {
-      input.setAttribute('placeholder', placeholder);
+      input.setAttribute('placeholder', placeholder!);
     }
 
     var cssColor = CSSColor.parse(_initialValue) ?? CSSColorName('grey');
@@ -67,7 +67,7 @@ class UIColorPickerInput extends UIComponent {
 
     var picker = UIColorPicker(content,
         color: color, width: _pickerWidth, height: _pickerHeight)
-      ..content.style.display = 'none';
+      ..content!.style.display = 'none';
 
     var inputInteractionCompleter = InteractionCompleter('UIColorPickerInput',
         triggerDelay: Duration(seconds: 2), functionToTrigger: () {
@@ -99,10 +99,10 @@ class UIColorPickerInput extends UIComponent {
     });
 
     colorButton.onClick.listen((_) {
-      if (picker.content.style.display == 'none') {
-        picker.content.style.display = 'block';
+      if (picker.content!.style.display == 'none') {
+        picker.content!.style.display = 'block';
       } else {
-        picker.content.style.display = 'none';
+        picker.content!.style.display = 'none';
       }
     });
 
@@ -117,9 +117,9 @@ class UIColorPickerInput extends UIComponent {
 
     if (inputColor != null) {
       if (inputColor is CSSColorHEX) {
-        pickerColor = pickerColor.asCSSColorHEX;
+        pickerColor = pickerColor!.asCSSColorHEX;
       } else {
-        pickerColor = pickerColor.asCSSColorRGB;
+        pickerColor = pickerColor!.asCSSColorRGB;
       }
     }
 
@@ -143,7 +143,7 @@ class UIColorPickerInput extends UIComponent {
   void _updateColorFromInput(InputElement input, UIColorPicker picker) {
     var inputColor = CSSColor.from(input.value);
 
-    var color = picker.color;
+    var color = picker.color!;
     var pickerColor = CSSColor.from([color.red, color.green, color.blue]);
 
     if (inputColor != null && inputColor != pickerColor) {
@@ -174,80 +174,62 @@ class UIColorPickerInput extends UIComponent {
     ''';
 
     var input = createHTML(inputHtml);
-    return input;
+    return input as InputElement;
   }
 }
 
 class UIColorPicker extends UIComponent {
-  int _width = 200;
+  int width = 200;
 
-  int _height = 200;
+  int height = 200;
 
-  int _pointSize = 6;
+  int pointSize = 6;
 
-  UIColorPicker(Element parent,
-      {Color/*?*/ color, int width = 200, int height = 200, int pointSize = 6})
+  UIColorPicker(Element? parent,
+      {Color? color, int width = 200, int height = 200, int pointSize = 6})
       : super(parent, componentClass: 'ui-color-picker') {
     this.color = color ?? Color.BLUE;
-    _width = width ?? 200;
-    _height = height ?? 200;
-    _pointSize = pointSize ?? 6;
+    this.width = width;
+    this.height = height;
+    this.pointSize = pointSize;
   }
 
   EventStream<UIColorPicker> onFocus = EventStream();
 
-  EventStream<Color/*!*/> onClickColor = EventStream();
+  EventStream<Color> onClickColor = EventStream();
 
   @override
   void configure() {
-    content.style.backgroundColor = '#ffffff';
+    content!.style.backgroundColor = '#ffffff';
   }
 
-  int get width => _width;
+  Color? _color;
 
-  set width(int value) {
-    _width = value ?? 200;
-  }
+  HSVColor? _hsvColor;
 
-  int get height => _height;
+  HSLColor? _hslColor;
 
-  set height(int value) {
-    _height = value ?? 200;
-  }
+  Color? _baseColor;
 
-  int get pointSize => _pointSize;
-
-  set pointSize(int value) {
-    _pointSize = value ?? 6;
-  }
-
-  Color _color;
-
-  HSVColor _hsvColor;
-
-  HSLColor _hslColor;
-
-  Color/*?*/ _baseColor;
-
-  set color(Color color) {
+  set color(Color? color) {
     color ??= Color.BLACK;
 
     _color = color;
     _hsvColor = HSVColor.fromColor(color);
     _hslColor = HSLColor.fromColor(color);
-    _baseColor = HSLColor.fromAHSL(1, _hsvColor.hue, 1, 0.50).toColor();
+    _baseColor = HSLColor.fromAHSL(1, _hsvColor!.hue, 1, 0.50).toColor();
 
     _notifyColorChange();
 
     refresh();
   }
 
-  set hsvColor(HSVColor hsvColor) {
+  set hsvColor(HSVColor? hsvColor) {
     hsvColor ??= HSVColor.fromColor(Color.BLACK);
 
     _color = hsvColor.toColor();
     _hsvColor = hsvColor;
-    _hslColor = HSLColor.fromColor(_color);
+    _hslColor = HSLColor.fromColor(_color!);
     _baseColor = HSLColor.fromAHSL(1, hsvColor.hue, 1, 0.50).toColor();
 
     _notifyColorChange();
@@ -255,11 +237,11 @@ class UIColorPicker extends UIComponent {
     refresh();
   }
 
-  set hslColor(HSLColor hsvColor) {
+  set hslColor(HSLColor? hsvColor) {
     hsvColor ??= HSLColor.fromColor(Color.BLACK);
 
     _color = hsvColor.toColor();
-    _hsvColor = HSVColor.fromColor(_color);
+    _hsvColor = HSVColor.fromColor(_color!);
     _hslColor = hsvColor;
     _baseColor = HSLColor.fromAHSL(1, hsvColor.hue, 1, 0.50).toColor();
 
@@ -272,32 +254,32 @@ class UIColorPicker extends UIComponent {
     onChange.add(color);
   }
 
-  Color get color => _color;
+  Color? get color => _color;
 
-  HSVColor get hsvColor => _hsvColor;
+  HSVColor? get hsvColor => _hsvColor;
 
-  HSLColor get hslColor => _hslColor;
+  HSLColor? get hslColor => _hslColor;
 
-  DivElement/*?*/ _panel_ViewColor_Saturation;
-  DivElement _panel_Saturation_Luma_Square;
+  DivElement? _panel_ViewColor_Saturation;
+  DivElement? _panel_Saturation_Luma_Square;
 
-  DivElement/*?*/ _viewColor;
+  DivElement? _viewColor;
 
-  DivElement _saturation;
+  DivElement? _saturation;
 
-  DivElement _luma;
+  DivElement? _luma;
 
-  DivElement _square;
+  DivElement? _square;
 
-  DivElement _hue;
+  DivElement? _hue;
 
-  DivElement/*?*/ _point;
+  DivElement? _point;
 
-  DivElement/*?*/ _saturationBar;
+  DivElement? _saturationBar;
 
-  DivElement/*?*/ _lumaBar;
+  DivElement? _lumaBar;
 
-  DivElement/*?*/ _hueBar;
+  DivElement? _hueBar;
 
   bool _squarePressed = false;
 
@@ -307,9 +289,9 @@ class UIColorPicker extends UIComponent {
 
   bool _huePressed = false;
 
-  int get _barSize => Math.max(_width, _height) ~/ 8;
+  int get _barSize => Math.max(width, height) ~/ 8;
 
-  int get _pointSizeHalf => _pointSize ~/ 2;
+  int get _pointSizeHalf => pointSize ~/ 2;
 
   @override
   dynamic render() {
@@ -318,11 +300,11 @@ class UIColorPicker extends UIComponent {
 
     if (_square == null) {
       _panel_Saturation_Luma_Square = createDiv()
-        ..style.width = '${_width + barSize}px'
-        ..style.height = '${_height + barSize}px';
+        ..style.width = '${width + barSize}px'
+        ..style.height = '${height + barSize}px';
 
       _panel_ViewColor_Saturation = createDiv()
-        ..style.width = '${_width + barSize}px'
+        ..style.width = '${width + barSize}px'
         ..style.height = '${barSize}px';
 
       _viewColor = createDivInline()
@@ -330,28 +312,28 @@ class UIColorPicker extends UIComponent {
         ..style.height = '${barSize}px';
 
       _saturation = createDivInline()
-        ..style.width = '${_width}px'
+        ..style.width = '${width}px'
         ..style.height = '${barSize}px';
 
-      _panel_ViewColor_Saturation.children.add(_viewColor);
-      _panel_ViewColor_Saturation.children.add(_saturation);
+      _panel_ViewColor_Saturation!.children.add(_viewColor!);
+      _panel_ViewColor_Saturation!.children.add(_saturation!);
 
       _luma = createDivInline()
         ..style.width = '${barSize}px'
-        ..style.height = '${_height}px';
+        ..style.height = '${height}px';
 
       _square = createDivInline()
-        ..style.width = '${_width}px'
-        ..style.height = '${_height}px';
+        ..style.width = '${width}px'
+        ..style.height = '${height}px';
 
       _point = createDiv()
-        ..style.width = '${_pointSize}px'
-        ..style.height = '${_pointSize}px'
+        ..style.width = '${pointSize}px'
+        ..style.height = '${pointSize}px'
         ..style.borderRadius = '${pointSizeHalf}px'
         ..style.position = 'relative';
       ;
 
-      _square.children.add(_point);
+      _square!.children.add(_point!);
 
       _lumaBar = createDiv()
         ..style.width = '${barSize}px'
@@ -359,7 +341,7 @@ class UIColorPicker extends UIComponent {
         ..style.position = 'relative';
       ;
 
-      _luma.children.add(_lumaBar);
+      _luma!.children.add(_lumaBar!);
 
       _saturationBar = createDiv()
         ..style.width = '1px'
@@ -368,15 +350,15 @@ class UIColorPicker extends UIComponent {
         ..style.position = 'relative';
       ;
 
-      _saturation.children.add(_saturationBar);
+      _saturation!.children.add(_saturationBar!);
 
-      _panel_Saturation_Luma_Square.children.add(_panel_ViewColor_Saturation);
-      _panel_Saturation_Luma_Square.children.add(_luma);
-      _panel_Saturation_Luma_Square.children.add(_square);
+      _panel_Saturation_Luma_Square!.children.add(_panel_ViewColor_Saturation!);
+      _panel_Saturation_Luma_Square!.children.add(_luma!);
+      _panel_Saturation_Luma_Square!.children.add(_square!);
 
       _hue = createDiv()
         ..style.backgroundColor = 'red'
-        ..style.width = '${_width + barSize}px'
+        ..style.width = '${width + barSize}px'
         ..style.height = '${barSize}px'
         ..style.background =
             'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)';
@@ -387,101 +369,101 @@ class UIColorPicker extends UIComponent {
         ..style.position = 'relative';
       ;
 
-      _hue.children.add(_hueBar);
+      _hue!.children.add(_hueBar!);
 
       //
 
-      _viewColor.onClick.listen((_) {
-        onClickColor.add(color);
+      _viewColor!.onClick.listen((_) {
+        onClickColor.add(color!);
       });
 
       //
 
-      _square.onMouseDown.listen((event) {
+      _square!.onMouseDown.listen((event) {
         _squareDown(event);
         _squareDrag(event);
       });
-      _square.onMouseUp.listen(_squareUp);
-      _square.onMouseMove.listen(_squareDrag);
+      _square!.onMouseUp.listen(_squareUp);
+      _square!.onMouseMove.listen(_squareDrag);
 
-      redirect_onTouchStart_to_MouseEvent(_square);
-      _square.onTouchEnd.listen(_squareUp);
-      redirect_onTouchMove_to_MouseEvent(_square);
+      redirect_onTouchStart_to_MouseEvent(_square!);
+      _square!.onTouchEnd.listen(_squareUp);
+      redirect_onTouchMove_to_MouseEvent(_square!);
 
-      _square.onClick.listen(_squareClick);
-
-      //
-
-      _luma.onMouseDown.listen(_lumaDown);
-      _luma.onMouseUp.listen(_lumaUp);
-      _luma.onMouseMove.listen(_lumaDrag);
-
-      _luma.onTouchStart.listen(_lumaDown);
-      _luma.onTouchEnd.listen(_lumaUp);
-      redirect_onTouchMove_to_MouseEvent(_luma);
-
-      _luma.onClick.listen(_lumaClick);
+      _square!.onClick.listen(_squareClick);
 
       //
 
-      _saturation.onMouseDown.listen(_saturationDown);
-      _saturation.onMouseUp.listen(_saturationUp);
-      _saturation.onMouseMove.listen(_saturationDrag);
+      _luma!.onMouseDown.listen(_lumaDown);
+      _luma!.onMouseUp.listen(_lumaUp);
+      _luma!.onMouseMove.listen(_lumaDrag);
 
-      _saturation.onTouchStart.listen(_saturationDown);
-      _saturation.onTouchEnd.listen(_saturationUp);
-      redirect_onTouchMove_to_MouseEvent(_saturation);
+      _luma!.onTouchStart.listen(_lumaDown);
+      _luma!.onTouchEnd.listen(_lumaUp);
+      redirect_onTouchMove_to_MouseEvent(_luma!);
 
-      _saturation.onClick.listen(_saturationClick);
+      _luma!.onClick.listen(_lumaClick);
 
       //
 
-      _hue.onMouseDown.listen(_hueDown);
-      _hue.onMouseUp.listen(_hueUp);
+      _saturation!.onMouseDown.listen(_saturationDown);
+      _saturation!.onMouseUp.listen(_saturationUp);
+      _saturation!.onMouseMove.listen(_saturationDrag);
+
+      _saturation!.onTouchStart.listen(_saturationDown);
+      _saturation!.onTouchEnd.listen(_saturationUp);
+      redirect_onTouchMove_to_MouseEvent(_saturation!);
+
+      _saturation!.onClick.listen(_saturationClick);
+
+      //
+
+      _hue!.onMouseDown.listen(_hueDown);
+      _hue!.onMouseUp.listen(_hueUp);
       //_hue.onMouseLeave.listen(_hueUp);
-      _hue.onTouchStart.listen(_hueDown);
+      _hue!.onTouchStart.listen(_hueDown);
       //_hue.onTouchEnd.listen(_hueUp);
-      _hue.onClick.listen(_hueClick);
-      _hue.onMouseMove.listen(_hueDrag);
+      _hue!.onClick.listen(_hueClick);
+      _hue!.onMouseMove.listen(_hueDrag);
 
       //
 
-      content.onMouseLeave.listen(_allUp);
-      content.onTouchEnd.listen(_allUp);
+      content!.onMouseLeave.listen(_allUp);
+      content!.onTouchEnd.listen(_allUp);
     }
 
-    var saturationX = _clip((_hsvColor.saturation * _width), 0, _width);
-    var lumaY = _clip(((1 - _hsvColor.value) * _height), 0, _height);
-    var hueX = _clip(
-        ((_hsvColor.hue / 360) * (_width + barSize)), 0, _width + barSize);
+    var saturationX = _clip((_hsvColor!.saturation * width), 0, width);
+    var lumaY = _clip(((1 - _hsvColor!.value) * height), 0, height);
+    var hueX =
+        _clip(((_hsvColor!.hue / 360) * (width + barSize)), 0, width + barSize);
 
-    _point.style.left = '${saturationX - pointSizeHalf}px';
-    _point.style.top = '${lumaY - pointSizeHalf}px';
+    _point!.style.left = '${saturationX - pointSizeHalf}px';
+    _point!.style.top = '${lumaY - pointSizeHalf}px';
 
     var c = Color.fromARGB(
-        255, 255 - _color.red, 255 - _color.green, 255 - _color.blue);
-    _point.style.background = 'rgb(${c.red},${c.green},${c.blue})';
+        255, 255 - _color!.red, 255 - _color!.green, 255 - _color!.blue);
+    _point!.style.background = 'rgb(${c.red},${c.green},${c.blue})';
 
-    _saturationBar.style.left = '${saturationX}px';
-    _lumaBar.style.top = '${lumaY}px';
-    _hueBar.style.left = '${hueX}px';
+    _saturationBar!.style.left = '${saturationX}px';
+    _lumaBar!.style.top = '${lumaY}px';
+    _hueBar!.style.left = '${hueX}px';
 
-    _lumaBar.style.backgroundColor =
-        'rgb(${_baseColor.red},${_baseColor.green},${_baseColor.blue}';
+    _lumaBar!.style.backgroundColor =
+        'rgb(${_baseColor!.red},${_baseColor!.green},${_baseColor!.blue}';
 
-    _hueBar.style.backgroundColor =
-        'rgb(${255 - _baseColor.red},${255 - _baseColor.green},${255 - _baseColor.blue}';
+    _hueBar!.style.backgroundColor =
+        'rgb(${255 - _baseColor!.red},${255 - _baseColor!.green},${255 - _baseColor!.blue}';
 
-    _viewColor.style.backgroundColor =
-        'rgb(${_color.red},${_color.green},${_color.blue})';
+    _viewColor!.style.backgroundColor =
+        'rgb(${_color!.red},${_color!.green},${_color!.blue})';
 
-    _saturation.style.background =
-        'linear-gradient(90deg, rgba(0,0,0,0), rgba(${_baseColor.red},${_baseColor.green},${_baseColor.blue},1))';
+    _saturation!.style.background =
+        'linear-gradient(90deg, rgba(0,0,0,0), rgba(${_baseColor!.red},${_baseColor!.green},${_baseColor!.blue},1))';
 
-    _luma.style.background =
+    _luma!.style.background =
         'linear-gradient(0deg, rgba(0,0,0,1), rgba(0,0,0,0) )';
-    _square.style.background =
-        'linear-gradient(0deg, rgba(0,0,0,1), rgba(0,0,0,0) ), linear-gradient(270deg, rgb(${_baseColor.red},${_baseColor.green},${_baseColor.blue}), rgb(255,255,255))';
+    _square!.style.background =
+        'linear-gradient(0deg, rgba(0,0,0,1), rgba(0,0,0,0) ), linear-gradient(270deg, rgb(${_baseColor!.red},${_baseColor!.green},${_baseColor!.blue}), rgb(255,255,255))';
 
     return [_panel_Saturation_Luma_Square, _hue];
   }
@@ -615,21 +597,21 @@ class UIColorPicker extends UIComponent {
   }
 
   void _adjustLumaBar(int y) {
-    y = _clip(y, 0, _height);
+    y = _clip(y, 0, height);
 
-    var value = (_height - y) / _height;
+    var value = (height - y) / height;
     var hsvColor =
-        HSVColor.fromAHSV(1, _hsvColor.hue, _hsvColor.saturation, value);
+        HSVColor.fromAHSV(1, _hsvColor!.hue, _hsvColor!.saturation, value);
 
     this.hsvColor = hsvColor;
   }
 
   void _adjustSaturationBar(int x) {
-    x = _clip(x, 0, _width);
+    x = _clip(x, 0, width);
 
-    var saturation = x / _width;
+    var saturation = x / width;
     var hsvColor =
-        HSVColor.fromAHSV(1, _hsvColor.hue, saturation, _hsvColor.value);
+        HSVColor.fromAHSV(1, _hsvColor!.hue, saturation, _hsvColor!.value);
 
     this.hsvColor = hsvColor;
   }
@@ -637,12 +619,12 @@ class UIColorPicker extends UIComponent {
   void _adjustHueBar(int x) {
     var barSize = _barSize;
 
-    var hueWidth = _width + barSize;
+    var hueWidth = width + barSize;
     x = _clip(x, 0, hueWidth);
 
     var hue = x / hueWidth;
-    var hsvColor =
-        HSVColor.fromAHSV(1, hue * 360, _hsvColor.saturation, _hsvColor.value);
+    var hsvColor = HSVColor.fromAHSV(
+        1, hue * 360, _hsvColor!.saturation, _hsvColor!.value);
 
     this.hsvColor = hsvColor;
   }
@@ -654,12 +636,12 @@ class UIColorPicker extends UIComponent {
   }
 
   HSVColor _pickColorFromSquare(int x, int y) {
-    x = _clip(x, 0, _width);
-    y = _clip(y, 0, _height);
+    x = _clip(x, 0, width);
+    y = _clip(y, 0, height);
 
-    var hue = _hsvColor.hue;
-    var saturation = x / _width;
-    var value = (_height - y) / _height;
+    var hue = _hsvColor!.hue;
+    var saturation = x / width;
+    var value = (height - y) / height;
 
     return HSVColor.fromAHSV(1, hue, saturation, value);
   }
