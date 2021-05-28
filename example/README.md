@@ -22,6 +22,12 @@ Run Dart `pub get` to get the dependencies:
 $> dart pub get  
 ```
 
+Ensure that `webdev` is activated:
+
+```shell script
+$> dart pub global activate webdev
+```
+
 Run `webdev serve` at `example` to build the project and run the Web server at port `8080`:
 
 ```shell script

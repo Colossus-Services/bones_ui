@@ -1,3 +1,9 @@
+## 2.0.2
+
+- swiss_knife: ^3.0.7
+- mercury_client: ^2.0.3
+- sdk: '>=2.13.0 <3.0.0'
+
 ## 2.0.1
 
 - Sound null safety compatibility.
