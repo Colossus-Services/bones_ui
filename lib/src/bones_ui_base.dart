@@ -2042,22 +2042,35 @@ abstract class UIComponent extends UIEventHandler {
   List _toContentElementsImpl(dynamic rendered, bool append) {
     var renderableList = toRenderableList(rendered);
 
-    var content = this.content;
+    var content = this.content!;
 
     if (renderableList != null) {
       if (isListOfStrings(renderableList)) {
         var html = renderableList.join('\n');
 
+        var values = _normalizeRenderListValue(content, html);
+
+        var nodes = (values is List
+                ? values
+                : (values is Iterable ? values.toList() : [values]))
+            .expand((e) => e is List ? e : [e])
+            .map((e) {
+              return _normalizeRenderListValue(content, e);
+            })
+            .cast<Node>()
+            .toList();
+
         if (append) {
-          appendElementInnerHTML(content!, html);
+          content.nodes.addAll(nodes);
         } else {
-          setElementInnerHTML(content!, html);
+          content.nodes.clear();
+          content.nodes.addAll(nodes);
         }
 
-        var list = List.from(content.childNodes);
-        return list;
+        var renderedList = List.from(content.childNodes);
+        return renderedList;
       } else {
-        if (isListValuesIdentical(renderableList, content!.nodes.toList())) {
+        if (isListValuesIdentical(renderableList, content.nodes.toList())) {
           return List.from(renderableList);
         }
 
@@ -2076,7 +2089,7 @@ abstract class UIComponent extends UIEventHandler {
         return renderedList2;
       }
     } else {
-      return List.from(content!.childNodes);
+      return List.from(content.childNodes);
     }
   }
 
@@ -2103,7 +2116,9 @@ abstract class UIComponent extends UIEventHandler {
     } else if (value is Future) {
       var asyncContent = UIAsyncContent.future(
         value,
-        () => renderLoading() ?? '...',
+        () {
+          return renderLoading() ?? '...';
+        },
         errorContent: (error) {
           markRenderedWithError();
           return renderError(error) ?? '[error: $error]';
@@ -3384,7 +3399,7 @@ class UIAsyncContent {
         _properties = properties ?? {},
         _loadingContent = _normalizeContent(loadingContent),
         _errorContent = _normalizeContent(errorContent),
-        _constructionStackTrace = StackTrace.current {
+        _constructionStackTrace = _stackTraceSafe() {
     _callContentProvider(false);
   }
 
@@ -3403,7 +3418,7 @@ class UIAsyncContent {
         _properties = properties ?? {},
         _loadingContent = _normalizeContent(loadingContent),
         _errorContent = _normalizeContent(errorContent),
-        _constructionStackTrace = StackTrace.current {
+        _constructionStackTrace = _stackTraceSafe() {
     _setAsyncContentFuture(contentFuture);
   }
 
@@ -3505,7 +3520,7 @@ class UIAsyncContent {
     _asyncContentFuture = contentFuture;
 
     if (_asyncContentFuture != null) {
-      var parentStackTrace = StackTrace.current;
+      var parentStackTrace = _stackTraceSafe();
       _asyncContentFuture!
           .then(_onLoadedContent)
           .catchError((e, r) => _onLoadError(e, r, parentStackTrace));
@@ -3808,8 +3823,13 @@ abstract class UIRoot extends UIComponent {
   List render() {
     var menu = renderMenu();
     var content = renderContent();
+    var footer = renderFooter();
 
-    return [menu, content];
+    return [
+      if (menu != null) menu,
+      if (content != null) content,
+      if (footer != null) footer,
+    ];
   }
 
   Future<bool>? isReady() {
@@ -3889,17 +3909,16 @@ abstract class UIRoot extends UIComponent {
   }
 
   /// Called to render App status bar.
-  void buildAppStatusBar() {
-    return null;
-  }
+  void buildAppStatusBar() => null;
 
   /// Called to render UI menu.
-  UIComponent? renderMenu() {
-    return null;
-  }
+  UIComponent? renderMenu() => null;
 
   /// Called to render UI content.
   UIComponent? renderContent();
+
+  /// Called to render UI footer.
+  UIComponent? renderFooter() => null;
 
   static void alert(dynamic dialogContent) {
     getInstance()!.renderAlert(dialogContent);
@@ -3927,7 +3946,7 @@ abstract class UINavigableComponent extends UIComponent {
 
   Map<String, String>? _currentRouteParameters;
 
-  UINavigableComponent(Element? parent, List<String> routes,
+  UINavigableComponent(Element? parent, Iterable<String> routes,
       {dynamic componentClass,
       dynamic componentStyle,
       dynamic classes,
@@ -3936,7 +3955,7 @@ abstract class UINavigableComponent extends UIComponent {
       dynamic style2,
       bool inline = true,
       bool renderOnConstruction = false})
-      : _routes = routes,
+      : _routes = routes.toList(),
         super(parent,
             componentClass: [componentClass, COMPONENT_CLASS],
             classes: classes,
@@ -4318,6 +4337,12 @@ class UINavigator {
 
   /// Returns the current route.
   static String? get currentRoute => get()._currentRoute;
+
+  /// Returns the [currentRoute] or [defaultRoute].
+  static String getCurrentRoute({String defaultRoute = ''}) {
+    var route = currentRoute ?? '';
+    return route.isNotEmpty ? route : defaultRoute;
+  }
 
   /// Returns the current route parameters.
   static Map<String, String>? get currentRouteParameters =>
@@ -5046,6 +5071,17 @@ class CSSProvider {
   }
 }
 
+StackTrace _stackTraceSafe() {
+  try {
+    var s = StackTrace.current;
+    return s;
+  } catch (e) {
+    print('Error getting current StackTrace');
+    print(e);
+    return StackTrace.empty;
+  }
+}
+
 bool _initializedAll = false;
 
 void _initializeAll() {
@@ -5070,4 +5106,5 @@ void _registerAllComponents() {
   UIDataSource.register();
   UIDocument.register();
   UIDialog.register();
+  UISVG.register();
 }

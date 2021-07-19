@@ -9,26 +9,87 @@ import 'package:swiss_knife/swiss_knife.dart';
 
 /// Component to show a SVG.
 class UISVG extends UIComponent {
+  static final UIComponentGenerator<UISVG> GENERATOR =
+      UIComponentGenerator<UISVG>(
+          'ui-svg',
+          'div',
+          'ui-svg',
+          '',
+          (parent, attributes, contentHolder, contentNodes) => UISVG(
+                parent,
+                src: attributes['src']?.value,
+                svgContent: contentHolder?.text,
+                width: attributes['width']?.value ?? '20px',
+                height: attributes['height']?.value ?? '20px',
+                color: attributes['color']?.value,
+                title: attributes['title']?.value,
+              ),
+          [
+            UIComponentAttributeHandler<UISVG, String>('src',
+                parser: parseString,
+                getter: (c) => c.src,
+                setter: (c, v) => c.src = v,
+                appender: (c, v) => c.src = (c.src ?? '') + (v ?? ''),
+                cleaner: (c) => c.src = null),
+            UIComponentAttributeHandler<UISVG, String>('svg-content',
+                parser: parseString,
+                getter: (c) => c.svgContent,
+                setter: (c, v) => c.svgContent = v,
+                appender: (c, v) =>
+                    c.svgContent = (c.svgContent ?? '') + (v ?? ''),
+                cleaner: (c) => c.svgContent = null),
+            UIComponentAttributeHandler<UISVG, String>('color',
+                parser: parseString,
+                getter: (c) => c.color,
+                setter: (c, v) => c.color = v,
+                appender: (c, v) => c.color = (c.color ?? '') + (v ?? ''),
+                cleaner: (c) => c.color = null),
+            UIComponentAttributeHandler<UISVG, String>('title',
+                parser: parseString,
+                getter: (c) => c.title,
+                setter: (c, v) => c.title = v,
+                appender: (c, v) => c.title = (c.title ?? '') + (v ?? ''),
+                cleaner: (c) => c.title = null),
+            UIComponentAttributeHandler<UISVG, String>('width',
+                parser: parseString,
+                getter: (c) => c.width,
+                setter: (c, v) => c.width = v ?? '20px',
+                appender: (c, v) => c.width = v ?? '20px',
+                cleaner: (c) => c.width = '20px'),
+            UIComponentAttributeHandler<UISVG, String>('height',
+                parser: parseString,
+                getter: (c) => c.height,
+                setter: (c, v) => c.height = v ?? '20px',
+                appender: (c, v) => c.height = v ?? '20px',
+                cleaner: (c) => c.height = '20px'),
+          ],
+          hasChildrenElements: false,
+          contentAsText: true);
+
+  static void register() {
+    UIComponent.registerGenerator(GENERATOR);
+  }
+
   static final ResourceContentCache _resourceContentCache =
       ResourceContentCache();
 
   /// Source for the SVG.
-  final String? src;
+  String? src;
 
   /// SVG tag to render.
-  final String? svgContent;
+  String? svgContent;
 
   /// Width of the SVG.
-  final String width;
+  String width;
 
   /// Height of the SVG.
-  final String height;
+  String height;
 
   /// Title of the SVG.
-  final String? title;
+  String? title;
 
   /// Color to render the SVG.
-  final String? color;
+  String? color;
 
   UISVG(Element? parent,
       {this.src,

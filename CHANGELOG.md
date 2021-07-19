@@ -1,3 +1,16 @@
+## 2.0.3
+
+- `ui-template`:
+  - Allow DOM elements in template.
+  - `DSX` integration.
+  - Better resolution of variables and blocks.
+  - Allow simple variables outside `ui-template`.
+- `ui-button`:
+  - Added attributes: `loaded-text-class`, `loaded-text-error-class`, `loaded-text-error-classes`, `button-class`
+- New registered tag: `ui-svg` 
+- dom_builder: ^2.0.6
+- swiss_knife: ^3.0.8
+
 ## 2.0.2
 
 - swiss_knife: ^3.0.7

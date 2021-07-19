@@ -278,10 +278,14 @@ class UIButtonLoader extends UIButtonBase {
           'ui-button-loader', 'div', 'ui-button-loader', '',
           (parent, attributes, contentHolder, contentNodes) {
     var loadedTextStyle = attributes['loaded-text-style'];
+    var loadedTextClass = attributes['loaded-text-class'];
     var loadedTextErrorStyle = attributes['loaded-text-error-style'];
+    var loadedTextErrorClass = attributes['loaded-text-error-class'] ??
+        attributes['loaded-text-error-classes'];
     var loadedTextOK = attributes['loaded-text-ok'];
     var loadedTextError = attributes['loaded-text-error'];
-    var buttonClasses = attributes['button-classes'];
+    var buttonClasses =
+        attributes['button-class'] ?? attributes['button-classes'];
     var buttonStyle = attributes['button-style'];
     var withProgress = parseBool(attributes['with-progress']);
     var loadingConfig =
@@ -289,7 +293,9 @@ class UIButtonLoader extends UIButtonBase {
 
     return UIButtonLoader(parent, contentHolder?.text,
         loadedTextStyle: loadedTextStyle,
+        loadedTextClass: loadedTextClass,
         loadedTextErrorStyle: loadedTextErrorStyle,
+        loadedTextErrorClass: loadedTextErrorClass,
         loadedTextOK: loadedTextOK,
         loadedTextError: loadedTextError,
         withProgress: withProgress,
@@ -319,7 +325,10 @@ class UIButtonLoader extends UIButtonBase {
   final TextProvider? _loadedTextError;
 
   final TextProvider? _loadedTextStyle;
+  final TextProvider? _loadedTextClass;
+
   final TextProvider? _loadedTextErrorStyle;
+  final TextProvider? _loadedTextErrorClass;
 
   final TextProvider? _buttonClasses;
   final TextProvider? _buttonStyle;
@@ -333,7 +342,9 @@ class UIButtonLoader extends UIButtonBase {
     dynamic loadedTextOK,
     dynamic loadedTextError,
     dynamic loadedTextStyle,
+    dynamic loadedTextClass,
     dynamic loadedTextErrorStyle,
+    dynamic loadedTextErrorClass,
     String? navigate,
     Map<String, String>? navigateParameters,
     ParametersProvider? navigateParametersProvider,
@@ -349,7 +360,9 @@ class UIButtonLoader extends UIButtonBase {
         _loadedTextOK = TextProvider.from(loadedTextOK),
         _loadedTextError = TextProvider.from(loadedTextError),
         _loadedTextStyle = TextProvider.from(loadedTextStyle),
+        _loadedTextClass = TextProvider.from(loadedTextClass),
         _loadedTextErrorStyle = TextProvider.from(loadedTextErrorStyle),
+        _loadedTextErrorClass = TextProvider.from(loadedTextErrorClass),
         _buttonClasses = TextProvider.from(buttonClasses),
         _buttonStyle = TextProvider.from(buttonStyle),
         withProgress = withProgress ?? false,
@@ -415,13 +428,31 @@ class UIButtonLoader extends UIButtonBase {
   }
 
   void _setLoadedMessageStyle({bool error = false}) {
+    var loadedMessage = _loadedMessage!;
+
     var style = error ? _loadedTextErrorStyle?.text : _loadedTextStyle?.text;
     if (isEmptyString(style, trim: true)) {
       style = _loadedTextStyle?.text;
     }
 
     if (isNotEmptyString(style, trim: true)) {
-      _loadedMessage!.style.cssText = style;
+      loadedMessage.style.cssText = style;
+    }
+
+    var classesError = (_loadedTextErrorClass?.text ?? '')
+        .trim()
+        .split(RegExp(r'\s+'))
+          ..removeWhere((e) => e.isEmpty);
+
+    var classesOk = (_loadedTextClass?.text ?? '').trim().split(RegExp(r'\s+'))
+      ..removeWhere((e) => e.isEmpty);
+
+    if (error) {
+      loadedMessage.classes.removeAll(classesOk);
+      loadedMessage.classes.addAll(classesError);
+    } else {
+      loadedMessage.classes.removeAll(classesError);
+      loadedMessage.classes.addAll(classesOk);
     }
   }
 

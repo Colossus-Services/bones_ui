@@ -28,107 +28,111 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       DOMContext<Node>? domContext) {
     domContext ??= domGenerator.domContext;
 
+    var domElement = domNode as DOMElement;
+
     var element = DivElement();
 
     setElementAttributes(element, attributes);
 
     domGenerator.addChildToElement(parent, element);
 
-    var html = contentNodes!.map((e) => e.buildHTML(withIndent: true)).join('');
+    var hasUnresolvedTemplate =
+        contentNodes!.where((e) => e.hasUnresolvedTemplate).isNotEmpty;
 
-    if (DOMTemplate.possiblyATemplate(html)) {
-      try {
-        var template = DOMTemplate.tryParse(html);
-
-        if (template == null) {
-          domNode.clearNodes();
-          _generateElementContentFromHTML(
-              domGenerator, treeMap, html, domNode as DOMElement, element);
-        } else {
-          var variables =
-              getTemplateVariables(domGenerator, attributes, domContext);
-
-          var asyncValues = deepCatchesMapValues(variables, (c, k, v) {
-            return v is AsyncValue;
-          });
-
-          if (asyncValues.isNotEmpty) {
-            var futures = asyncValues
-                .whereType<AsyncValue>()
-                .map((e) => e.future)
-                .toList();
-
-            var loadingConfig = UILoadingConfig.fromMap(attributes, 'loading-');
-
-            DivElement? uiLoading;
-            if (loadingConfig != null) {
-              uiLoading = loadingConfig.asDivElement();
-              element.append(uiLoading!);
-            }
-
-            Future.wait(futures).then((_) {
-              _normalizeVariables(variables, domContext);
-
-              html = template.build(variables,
-                  elementProvider: (q) => queryElementProvider(treeMap, q),
-                  intlMessageResolver: domContext?.intlMessageResolver)!;
-
-              uiLoading?.remove();
-
-              domNode.clearNodes();
-
-              _generateElementContentFromHTML(
-                  domGenerator, treeMap, html, domNode as DOMElement, element);
-            });
-          } else {
-            html = template.build(variables,
-                elementProvider: (q) => queryElementProvider(treeMap, q),
-                intlMessageResolver: domContext?.intlMessageResolver)!;
-
-            domNode.clearNodes();
-
-            _generateElementContentFromHTML(
-                domGenerator, treeMap, html, domNode as DOMElement, element);
-          }
-        }
-      } catch (e, s) {
-        print(e);
-        print(s);
-
-        domNode.clearNodes();
-
-        _generateElementContentFromHTML(
-            domGenerator, treeMap, html, domNode as DOMElement, element);
-      }
+    if (hasUnresolvedTemplate) {
+      var html = _nodesToHTML(contentNodes);
+      _generateFromTemplateHTML(html, domGenerator, treeMap, domElement,
+          element, attributes, domContext);
     } else {
-      domNode.clearNodes();
-
-      _generateElementContentFromHTML(
-          domGenerator, treeMap, html, domNode as DOMElement, element);
+      domGenerator.generateWithRoot(domElement, element, contentNodes);
     }
 
     return element;
   }
 
-  static final RegExp REGEXP_TAG_REF =
-      RegExp(r'\{\{\s*([\w-]+|\*)\#([\w-]+)\s*\}\}');
-  static final RegExp REGEXP_TAG_OPEN =
-      RegExp(r'''^\s*<[\w-]+\s(?:".*?"|'.*?'|\s+|[^>\s]+)*>''');
-  static final RegExp REGEXP_TAG_CLOSE = RegExp(r'''<\/[\w-]+\s*>\s*$''');
+  String _nodesToHTML(List<DOMNode> contentNodes) {
+    return contentNodes.map((e) => e.buildHTML(withIndent: true)).join('');
+  }
 
-  String? queryElementProvider(DOMTreeMap<Node> treeMap, String query) {
-    if (isEmptyString(query)) return null;
+  void _generateFromTemplateHTML(
+      String html,
+      DOMGenerator<Node> domGenerator,
+      DOMTreeMap<Node> treeMap,
+      DOMElement domElement,
+      DivElement element,
+      Map<String, DOMAttribute> attributes,
+      DOMContext<Node>? domContext) {
+    try {
+      var template = DOMTemplate.tryParse(html);
 
-    var rootDOMNode = treeMap.rootDOMNode as DOMElement;
+      if (template == null) {
+        _generateElementContentFromHTML(
+            domGenerator, treeMap, html, domElement, element);
+      } else {
+        var variables =
+            getTemplateVariables(domGenerator, attributes, domContext);
 
-    var node = rootDOMNode.select(query)!;
+        var asyncValues = deepCatchesMapValues(variables, (c, k, v) {
+          return v is AsyncValue;
+        });
 
-    var html = node.buildHTML();
+        if (asyncValues.isNotEmpty) {
+          var futures =
+              asyncValues.whereType<AsyncValue>().map((e) => e.future).toList();
 
-    html = html.replaceFirst(REGEXP_TAG_OPEN, '');
-    html = html.replaceFirst(REGEXP_TAG_CLOSE, '');
+          var loadingConfig = UILoadingConfig.fromMap(attributes, 'loading-');
 
-    return html;
+          DivElement? uiLoading;
+          if (loadingConfig != null) {
+            uiLoading = loadingConfig.asDivElement();
+            element.append(uiLoading!);
+          }
+
+          Future.wait(futures).then((_) {
+            _normalizeVariables(variables, domContext);
+
+            uiLoading?.remove();
+
+            _generateElementContentFromTemplate(domGenerator, treeMap,
+                domContext, template, variables, domElement, element);
+          });
+        } else {
+          _generateElementContentFromTemplate(domGenerator, treeMap, domContext,
+              template, variables, domElement, element);
+        }
+      }
+    } catch (e, s) {
+      print(e);
+      print(s);
+
+      _generateElementContentFromHTML(
+          domGenerator, treeMap, html, domElement, element);
+    }
+  }
+
+  void _generateElementContentFromTemplate(
+      DOMGenerator<Node> domGenerator,
+      DOMTreeMap<Node> treeMap,
+      DOMContext<Node>? domContext,
+      DOMTemplateNode template,
+      Map<String, dynamic> variables,
+      DOMElement domElement,
+      DivElement element) {
+    var templateBuiltHTML = template.buildAsString(variables,
+        resolveDSX: false,
+        elementProvider: (q) => treeMap.queryElement(q),
+        intlMessageResolver: domContext?.intlMessageResolver);
+
+    var nodes = DOMNode.parseNodes(templateBuiltHTML);
+
+    _setElementAttributes(domElement, element);
+
+    domElement.clearNodes();
+
+    domGenerator.generateWithRoot(domElement, element, nodes,
+        treeMap: treeMap, finalizeTree: false, setTreeMapRoot: false);
+
+    return;
   }
 
   void _generateElementContentFromHTML(
@@ -137,12 +141,32 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       String html,
       DOMElement domElement,
       DivElement element) {
+    _setElementAttributes(domElement, element);
+
+    domElement.clearNodes();
+
     domGenerator.generateFromHTML(html,
         treeMap: treeMap,
         domParent: domElement,
         parent: element,
         finalizeTree: false,
         setTreeMapRoot: false);
+  }
+
+  void _setElementAttributes(DOMElement domElement, DivElement element) {
+    for (var attr in domElement.domAttributes.entries) {
+      var attrValue = attr.value;
+      if (attrValue.isBoolean && !attrValue.hasValue) {
+        continue;
+      } else {
+        var value = attrValue.value;
+        var valueStr = value.toString();
+
+        if (valueStr.isNotEmpty) {
+          element.setAttribute(attr.key, '$valueStr');
+        }
+      }
+    }
   }
 
   Map<String, dynamic> getTemplateVariables(DOMGenerator domGenerator,
@@ -231,6 +255,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     }, (c, k, v) {
       var template = DOMTemplate.parse(v as String);
       var v2 = template.build(variables,
+          resolveDSX: false,
           intlMessageResolver: domContext?.intlMessageResolver);
       return v2;
     });
