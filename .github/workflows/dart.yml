@@ -16,6 +16,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      - name: Dart version
+        run: |
+          dart --version
+          uname -a
       - name: APT update
         run: apt-get update
       - name: Install Firefox
@@ -30,10 +34,10 @@ jobs:
           chown -R tester:tester .
           ls -al
       - name: Pub Get
-        run: su -c 'cd $(< /tmp/test-dir.txt) && pub get' tester
+        run: su -c 'cd $(< /tmp/test-dir.txt) && dart pub get' tester
       - name: dartfmt
-        run: su -c 'cd $(< /tmp/test-dir.txt) && dartfmt -n --set-exit-if-changed .' tester
+        run: su -c 'cd $(< /tmp/test-dir.txt) && dart format -o none --set-exit-if-changed .' tester
       - name: dartanalyzer
-        run: su -c 'cd $(< /tmp/test-dir.txt) && dartanalyzer --fatal-infos --fatal-warnings .' tester
+        run: su -c 'cd $(< /tmp/test-dir.txt) && dart analyze --fatal-infos --fatal-warnings .' tester
       - name: Run tests
-        run: su -c 'DISPLAY=:0 cd $(< /tmp/test-dir.txt) && pub run test -p firefox' tester
+        run: su -c 'DISPLAY=:0 cd $(< /tmp/test-dir.txt) && dart test -p firefox' tester
