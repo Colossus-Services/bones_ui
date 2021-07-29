@@ -29,7 +29,7 @@ jobs:
           rm -rf .dart_tool .packages pubspec.lock
           chown -R tester:tester .
           ls -al
-     - name: Tester Runner
+      - name: Tester Runner
         run: |
           echo -e "#/bin/bash\n\nsu -c 'DISPLAY=:0 cd $(< /tmp/test-dir.txt) && $@' tester" > ./tester-run.sh
           cat ./tester-run.sh
