@@ -1,6 +1,6 @@
+@TestOn('browser')
 import 'dart:math' as math;
 
-@TestOn('browser')
 import 'package:bones_ui/src/bones_ui_layout.dart';
 import 'package:test/test.dart';
 
