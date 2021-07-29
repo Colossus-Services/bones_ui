@@ -31,7 +31,7 @@ jobs:
           ls -al
       - name: Tester Runner
         run: |
-          echo "#/bin/bash\nsu -c 'DISPLAY=:0 cd \$(< /tmp/test-dir.txt) && $1' tester \$1 \$@" > ./tester-run
+          echo "#/bin/bash\nsu -c 'DISPLAY=:0 cd \$(< /tmp/test-dir.txt) && $1' tester run \$@" > ./tester-run
           cat ./tester-run
           chmod 755 ./tester-run
       - name: Dart pub get
