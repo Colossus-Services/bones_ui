@@ -31,23 +31,20 @@ jobs:
           ls -al
       - name: Tester Runner
         run: |
-          echo "#/bin/bash\nsu -c 'DISPLAY=:0 cd \$(< /tmp/test-dir.txt) && \$@' tester \$1 \$@" > ./tester-run.sh
-          cat ./tester-run.sh
-          chmod 755 ./tester-run.sh
-          ./tester-run.sh date
-      - name: Pub Get test
-        run: ./tester-run.sh dart pub get
-      - name: Pub Get
-        run: su -c 'cd $(< /tmp/test-dir.txt) && dart pub get' tester
-      - name: dartfmt
-        run: su -c 'cd $(< /tmp/test-dir.txt) && dart format -o none --set-exit-if-changed .' tester
-      - name: dartanalyzer
-        run: su -c 'cd $(< /tmp/test-dir.txt) && dart analyze --fatal-infos --fatal-warnings .' tester
-      - name: Run tests VM
-        run: su -c 'DISPLAY=:0 cd $(< /tmp/test-dir.txt) && dart test -p vm' tester
+          echo "#/bin/bash\nsu -c 'DISPLAY=:0 cd \$(< /tmp/test-dir.txt) && \$@' tester \$1 \$@" > ./tester-run
+          cat ./tester-run
+          chmod 755 ./tester-run
+      - name: Dart pub get
+        run: ./tester-run dart pub get
+      - name: Dart format
+        run: ./tester-run dart format -o none --set-exit-if-changed .
+      - name: Dart analyze
+        run: ./tester-run dart analyze --fatal-infos --fatal-warnings .
+      - name: Run tests - VM
+        run: ./tester-run dart test -p vm
       - name: APT update
         run: apt-get update
       - name: Install Firefox
         run: apt-get install -y firefox-esr xorg
-      - name: Run tests Firefox
-        run: su -c 'DISPLAY=:0 cd $(< /tmp/test-dir.txt) && dart test -p firefox' tester
+      - name: Run tests - Firefox
+        run: ./tester-run dart test -p firefox
