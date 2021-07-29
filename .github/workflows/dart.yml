@@ -31,20 +31,20 @@ jobs:
           ls -al
       - name: Tester Runner
         run: |
-          echo "#/bin/bash\nsu -c 'DISPLAY=:0 cd \$(< /tmp/test-dir.txt) && \$@' tester \$1 \$@" > ./tester-run
+          echo "#/bin/bash\nsu -c 'DISPLAY=:0 cd \$(< /tmp/test-dir.txt) && $1' tester \$1 \$@" > ./tester-run
           cat ./tester-run
           chmod 755 ./tester-run
       - name: Dart pub get
-        run: ./tester-run dart pub get
+        run: ./tester-run 'dart pub get'
       - name: Dart format
-        run: ./tester-run dart format -o none --set-exit-if-changed .
+        run: ./tester-run 'dart format -o none --set-exit-if-changed .'
       - name: Dart analyze
-        run: ./tester-run dart analyze --fatal-infos --fatal-warnings .
+        run: ./tester-run 'dart analyze --fatal-infos --fatal-warnings .'
       - name: Run tests - VM
-        run: ./tester-run dart test -p vm
+        run: ./tester-run 'dart test -p vm'
       - name: APT update
         run: apt-get update
       - name: Install Firefox
         run: apt-get install -y firefox-esr xorg
       - name: Run tests - Firefox
-        run: ./tester-run dart test -p firefox
+        run: ./tester-run 'dart test -p firefox'
