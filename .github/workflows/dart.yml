@@ -31,9 +31,10 @@ jobs:
           ls -al
       - name: Tester Runner
         run: |
-          echo "#/bin/bash\n\nsu -c 'DISPLAY=:0 cd \$(< /tmp/test-dir.txt) && \$@' tester" > ./tester-run.sh
+          echo "#/bin/bash\nsu -c 'DISPLAY=:0 cd \$(< /tmp/test-dir.txt) && \$@' tester" > ./tester-run.sh
           cat ./tester-run.sh
           chmod 755 ./tester-run.sh
+          ./tester-run.sh date
       - name: Pub Get test
         run: ./tester-run.sh dart pub get
       - name: Pub Get
