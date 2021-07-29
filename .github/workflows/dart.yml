@@ -20,10 +20,6 @@ jobs:
         run: |
           dart --version
           uname -a
-      - name: APT update
-        run: apt-get update
-      - name: Install Firefox
-        run: apt-get install -y firefox-esr xorg
       - name: Current DIR
         run: pwd && pwd >/tmp/test-dir.txt
       - name: Add user tester
@@ -33,11 +29,24 @@ jobs:
           rm -rf .dart_tool .packages pubspec.lock
           chown -R tester:tester .
           ls -al
+     - name: Tester Runner
+        run: |
+          echo -e "#/bin/bash\n\nsu -c 'DISPLAY=:0 cd $(< /tmp/test-dir.txt) && $@' tester" > ./tester-run.sh
+          cat ./tester-run.sh
+          chmod 755 ./tester-run.sh
+      - name: Pub Get test
+          run: ./tester-run.sh dart pub get
       - name: Pub Get
         run: su -c 'cd $(< /tmp/test-dir.txt) && dart pub get' tester
       - name: dartfmt
         run: su -c 'cd $(< /tmp/test-dir.txt) && dart format -o none --set-exit-if-changed .' tester
       - name: dartanalyzer
         run: su -c 'cd $(< /tmp/test-dir.txt) && dart analyze --fatal-infos --fatal-warnings .' tester
-      - name: Run tests
+      - name: Run tests VM
+        run: su -c 'DISPLAY=:0 cd $(< /tmp/test-dir.txt) && dart test -p vm' tester
+      - name: APT update
+        run: apt-get update
+      - name: Install Firefox
+        run: apt-get install -y firefox-esr xorg
+      - name: Run tests Firefox
         run: su -c 'DISPLAY=:0 cd $(< /tmp/test-dir.txt) && dart test -p firefox' tester
