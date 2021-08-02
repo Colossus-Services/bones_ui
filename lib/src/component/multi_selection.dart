@@ -1,6 +1,6 @@
 import 'dart:html';
 
-import 'package:bones_ui/src/bones_ui_base.dart';
+import 'package:bones_ui/bones_ui.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
@@ -8,7 +8,7 @@ import 'package:swiss_knife/swiss_knife.dart';
 
 /// A component that renders a multi-selection input.
 class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
-  static final UIComponentGenerator<UIMultiSelection> GENERATOR =
+  static final UIComponentGenerator<UIMultiSelection> generator =
       UIComponentGenerator<UIMultiSelection>('ui-multi-selection', 'div',
           'ui-multi-selection', 'display: inline-block',
           (parent, attributes, contentHolder, contentNodes) {
@@ -32,7 +32,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   ], hasChildrenElements: false, contentAsText: false);
 
   static void register() {
-    UIComponent.registerGenerator(GENERATOR);
+    UIComponent.registerGenerator(generator);
   }
 
   Map? _options;
@@ -64,7 +64,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
             classes: classes,
             style: style,
             renderOnConstruction: false,
-            generator: GENERATOR) {
+            generator: generator) {
     _optionsPanelInteractionCompleter = InteractionCompleter('optionsPanel',
         triggerDelay: selectionMaxDelay ?? Duration(seconds: 10),
         functionToTrigger: _notifySelection);
@@ -260,7 +260,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
   dynamic getLabelID(dynamic label) {
     var entry = _options!.entries.firstWhereOrNull((e) => e.value == label);
-    return entry != null ? entry.key : null;
+    return entry?.key;
   }
 
   List<MapEntry> getOptionsEntriesFiltered(dynamic pattern) {
@@ -298,7 +298,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   }
 
   void _checkAllElements(bool check) {
-    _checkElements.forEach((e) => _setCheck(e, check));
+    for (var e in _checkElements) {
+      _setCheck(e, check);
+    }
   }
 
   String? get inputValue => _input?.value;
@@ -504,8 +506,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   dynamic _toggleDivOptions([bool? requestedHide]) {
     _updateDivOptionsPosition();
 
-    var hide;
-
+    bool hide;
     if (requestedHide != null) {
       hide = requestedHide;
     } else {
@@ -556,15 +557,15 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
     str.write('$multiSelection\n');
 
-    entries.forEach((entry) {
-      str.write('${entry.key}');
-      str.write('${entry.value}');
-    });
+    for (var entry in entries) {
+      str.write('${entry.key}=');
+      str.write('${entry.value}&');
+    }
 
-    entriesFiltered.forEach((entry) {
-      str.write('${entry.key}');
-      str.write('${entry.value}');
-    });
+    for (var entry in entriesFiltered) {
+      str.write('${entry.key}=');
+      str.write('${entry.value}&');
+    }
 
     return str.toString();
   }
@@ -585,8 +586,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
         entriesFiltered = getOptionsEntriesFiltered(elementValue2);
       }
 
-      entriesFiltered
-          .forEach((e1) => entries.removeWhere((e2) => e2.key == e1.key));
+      for (var e1 in entriesFiltered) {
+        entries.removeWhere((e2) => e2.key == e1.key);
+      }
     }
 
     return [entries, entriesFiltered];

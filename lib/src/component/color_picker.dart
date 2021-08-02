@@ -37,7 +37,7 @@ class UIColorPickerInput extends UIComponent {
   dynamic render() {
     content!.style.width = '100%';
 
-    var input = _render_generic_input('text', _initialValue);
+    var input = _renderGenericInput('text', _initialValue);
     input.setAttribute('id', _fieldName);
     input.setAttribute('name', _fieldName);
     input.setAttribute('field', _fieldName);
@@ -168,7 +168,7 @@ class UIColorPickerInput extends UIComponent {
     }
   }
 
-  InputElement _render_generic_input(String inputType, inputValue) {
+  InputElement _renderGenericInput(String inputType, inputValue) {
     var inputHtml = '''
       <input style='width: calc(100% - 20px)' type="$inputType" ${inputValue != null ? 'value="$inputValue"' : ''}>
     ''';
@@ -179,19 +179,16 @@ class UIColorPickerInput extends UIComponent {
 }
 
 class UIColorPicker extends UIComponent {
-  int width = 200;
+  int width;
 
-  int height = 200;
+  int height;
 
-  int pointSize = 6;
+  int pointSize;
 
   UIColorPicker(Element? parent,
-      {Color? color, int width = 200, int height = 200, int pointSize = 6})
+      {Color? color, this.width = 200, this.height = 200, this.pointSize = 6})
       : super(parent, componentClass: 'ui-color-picker') {
     this.color = color ?? Color.BLUE;
-    this.width = width;
-    this.height = height;
-    this.pointSize = pointSize;
   }
 
   EventStream<UIColorPicker> onFocus = EventStream();
@@ -260,7 +257,10 @@ class UIColorPicker extends UIComponent {
 
   HSLColor? get hslColor => _hslColor;
 
+  // ignore: non_constant_identifier_names
   DivElement? _panel_ViewColor_Saturation;
+
+  // ignore: non_constant_identifier_names
   DivElement? _panel_Saturation_Luma_Square;
 
   DivElement? _viewColor;
@@ -331,7 +331,6 @@ class UIColorPicker extends UIComponent {
         ..style.height = '${pointSize}px'
         ..style.borderRadius = '${pointSizeHalf}px'
         ..style.position = 'relative';
-      ;
 
       _square!.children.add(_point!);
 
@@ -339,7 +338,6 @@ class UIColorPicker extends UIComponent {
         ..style.width = '${barSize}px'
         ..style.height = '1px'
         ..style.position = 'relative';
-      ;
 
       _luma!.children.add(_lumaBar!);
 
@@ -348,7 +346,6 @@ class UIColorPicker extends UIComponent {
         ..style.height = '${barSize}px'
         ..style.backgroundColor = 'rgb(0,0,0)'
         ..style.position = 'relative';
-      ;
 
       _saturation!.children.add(_saturationBar!);
 
@@ -367,7 +364,6 @@ class UIColorPicker extends UIComponent {
         ..style.width = '1px'
         ..style.height = '${barSize}px'
         ..style.position = 'relative';
-      ;
 
       _hue!.children.add(_hueBar!);
 

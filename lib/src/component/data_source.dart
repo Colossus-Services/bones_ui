@@ -1,11 +1,11 @@
 import 'dart:html';
 
-import 'package:bones_ui/src/bones_ui_base.dart';
+import 'package:bones_ui/bones_ui.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
 
 class UIDataSource extends UIComponent {
-  static final UIComponentGenerator<UIDataSource> GENERATOR =
+  static final UIComponentGenerator<UIDataSource> generator =
       UIComponentGenerator<UIDataSource>(
           'ui-data-source',
           'div',
@@ -23,7 +23,7 @@ class UIDataSource extends UIComponent {
           contentAsText: false);
 
   static void register() {
-    UIComponent.registerGenerator(GENERATOR);
+    UIComponent.registerGenerator(generator);
   }
 
   UIDataSource(Element? parent, dynamic dataSource)

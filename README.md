@@ -14,6 +14,34 @@
 
 Bones_UI - A simple and easy Web User Interface framework for Dart.
 
+## CLI
+
+You can use the *__command-line interface (CLI)__* `bones_ui` to create or serve a project:
+
+To activate it globally:
+
+```bash
+  $> dart pub global activate bones_ui
+```
+
+Now you can use the CLI directly:
+
+```bash
+  $> bones_ui --help
+```
+
+To show the `Bones_UI` template information:
+
+```bash
+  $> bones_ui info
+```
+
+To create a `Bones_UI` project from the default template:
+
+```bash
+  $> bones_ui create -o /path/to/workspace -p project_name_dir=simple_project -p "project_name=Simple Project"
+```
+
 ## Usage
 
 A simple usage example:
@@ -95,6 +123,12 @@ Get the source
 ...and see the [Web Example][example] (just follow the README file for instructions).
 
 [example]: https://github.com/Colossus-Services/bones_ui/tree/master/example
+
+## Bones_UI App Example
+
+Also see the [App example @ GitHub][app_example]:
+
+[app_example]: https://github.com/Colossus-Services/bones_ui_app_example
 
 ## Bootstrap Integration
 

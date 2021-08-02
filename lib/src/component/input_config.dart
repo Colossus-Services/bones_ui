@@ -1,8 +1,7 @@
 import 'dart:html';
 
 import 'package:bones_ui/bones_ui.dart';
-import 'package:bones_ui/bones_ui_kit.dart';
-import 'package:bones_ui/src/bones_ui_base.dart';
+import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
@@ -86,7 +85,7 @@ class InputConfig {
 
   InputConfig(String id, String? label,
       {String? type = 'text',
-      String? value = '',
+      this.value = '',
       String? placeholder = '',
       Map<String, String>? attributes,
       Map<String, String>? options,
@@ -95,12 +94,12 @@ class InputConfig {
       String? style,
       FieldValueProvider? valueProvider}) {
     if (type == null || type.isEmpty) type = 'text';
-    if (value == null || value.isEmpty) value = null;
+    if (value == null || value!.isEmpty) value = null;
     if (placeholder == null || placeholder.isEmpty) placeholder = null;
 
     if (label == null || label.isEmpty) {
       if (value != null) {
-        label = value;
+        label = value!;
       } else {
         label = type;
       }
@@ -112,7 +111,7 @@ class InputConfig {
     _id = id;
     _label = label;
     _type = type;
-    this.value = value;
+
     _placeholder = placeholder;
 
     _attributes = attributes;
@@ -164,9 +163,9 @@ class InputConfig {
     Element? element;
 
     if (inputType == 'textarea') {
-      inputElement = _render_textArea(inputValue);
+      inputElement = _renderTextArea(inputValue);
     } else if (inputType == 'select') {
-      inputElement = _render_select(inputValue);
+      inputElement = _renderSelect(inputValue);
     } else if (inputType == 'image') {
       var capture = UIButtonCapturePhoto(null, text: label, fieldName: inputID);
       inputComponent = capture;
@@ -179,7 +178,7 @@ class InputConfig {
           pickerHeight: 100);
       inputComponent = picker;
     } else if (inputType == 'path') {
-      element = _render_inputPath(inputID, inputValue);
+      element = _renderInputPath(inputID, inputValue);
     } else if (inputType == 'html') {
       inputElement = createHTML(inputValue);
       inputElement.onClick.listen((event) {
@@ -189,7 +188,7 @@ class InputConfig {
         }
       });
     } else {
-      inputElement = _render_generic_input(inputType, inputValue);
+      inputElement = _renderGenericInput(inputType, inputValue);
     }
 
     if (inputElement != null) {
@@ -243,9 +242,9 @@ class InputConfig {
     }
   }
 
-  DivElement? _render_inputPath(String? fieldName, String? inputValue) {
+  DivElement? _renderInputPath(String? fieldName, String? inputValue) {
     var input = $input(style: 'width: auto', value: inputValue);
-    var button;
+    DOMElement? button;
 
     if (_valueProvider != null) {
       button = $button(
@@ -255,7 +254,7 @@ class InputConfig {
         ..onClick.listen((_) async {
           if (_valueProvider != null) {
             var ret = _valueProvider!(fieldName) ?? '';
-            var value;
+            dynamic value;
             if (ret is Future) {
               value = await ret;
             } else {
@@ -276,13 +275,13 @@ class InputConfig {
     return div as DivElement?;
   }
 
-  TextAreaElement _render_textArea(inputValue) {
+  TextAreaElement _renderTextArea(inputValue) {
     var textArea = TextAreaElement();
     textArea.value = inputValue;
     return textArea;
   }
 
-  Element _render_generic_input(String? inputType, inputValue) {
+  Element _renderGenericInput(String? inputType, inputValue) {
     var input = InputElement()
       ..type = inputType ?? 'text'
       ..value = inputValue ?? ''
@@ -291,7 +290,7 @@ class InputConfig {
     return input;
   }
 
-  SelectElement _render_select(inputValue) {
+  SelectElement _renderSelect(inputValue) {
     var select = SelectElement();
 
     if (options != null && options!.isNotEmpty) {

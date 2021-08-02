@@ -3,7 +3,7 @@ import 'dart:html';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:expressions/expressions.dart';
 
-import 'bones_ui_base.dart';
+import 'bones_ui_component.dart';
 
 typedef ElementProvider = dynamic Function(String id, bool all);
 typedef ElementPropertyResolver = dynamic Function(
@@ -239,7 +239,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
       IndexExpression expression, Map<String, dynamic> context) {
     var o = expression.object;
 
-    var list;
+    dynamic list;
     if (o is MemberExpression) {
       list = _evalMemberExpressionImpl(o, context, null, true);
     } else {
@@ -398,18 +398,18 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     return expression.toString();
   }
 
-  bool evalValue_calling = false;
+  bool _evalValueCalling = false;
 
   dynamic evalValue(dynamic value, String? property) {
     if (property == null) return value;
 
-    if (!evalValue_calling && isProvidedElement(value)) {
+    if (!_evalValueCalling && isProvidedElement(value)) {
       try {
-        evalValue_calling = true;
+        _evalValueCalling = true;
 
         return _requestElementProperty(value, property);
       } finally {
-        evalValue_calling = false;
+        _evalValueCalling = false;
       }
     }
 
@@ -446,7 +446,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
       return evaluated;
     }
 
-    if (!(evaluated is String)) {
+    if (evaluated is! String) {
       evaluated = '$evaluated';
     }
 
@@ -602,12 +602,16 @@ class UILayout {
   static void refreshAll() {
     //UIConsole.log("UILayout.refreshAll()") ;
     var list = List.from(_instances.values);
-    list.forEach((u) => u.refresh());
+    for (var u in list) {
+      u.refresh();
+    }
   }
 
   static void checkInstances() {
     var list = List.from(_instances.values);
-    list.forEach((u) => u._checkRegistration());
+    for (var u in list) {
+      u._checkRegistration();
+    }
   }
 
   static bool someInstanceNeedsRefresh() {
@@ -669,10 +673,10 @@ class UILayout {
     element.style.position = 'absolute';
 
     var commands = this.layout.split('\\s*;\\s*');
-    commands.forEach(_commands_parser);
+    commands.forEach(_commandsParser);
   }
 
-  void _commands_parser(String cmds) {
+  void _commandsParser(String cmds) {
     var parts = cmds.split(';');
     parts.forEach(_command);
   }
@@ -685,7 +689,7 @@ class UILayout {
     var idx1 = cmd.indexOf('(');
 
     if (idx1 < 0) {
-      _command_single(cmd);
+      _commandSingle(cmd);
       return;
     }
 
@@ -698,57 +702,57 @@ class UILayout {
     var name = cmd.substring(0, idx1).trim();
     var value = cmd.substring(idx1 + 1, idx2).trim();
 
-    _command_function(name, value);
+    _commandFunction(name, value);
   }
 
-  void _command_single(String cmd) {}
+  void _commandSingle(String cmd) {}
 
-  void _command_function(String name, String value) {
+  void _commandFunction(String name, String value) {
     name = name.toLowerCase();
 
     if (name == 'x') {
-      _command_function_X(value);
+      _commandFunctionX(value);
     } else if (name == 'y') {
-      _command_function_Y(value);
+      _commandFunctionY(value);
     } else if (name == 'centerx') {
-      _command_function_CENTERX(value);
+      _commandFunctionCenterX(value);
     } else if (name == 'centery') {
-      _command_function_CENTERY(value);
+      _commandFunctionCenterY(value);
     } else if (name == 'width') {
-      _command_function_WIDTH(value);
+      _commandFunctionWidth(value);
     } else if (name == 'height') {
-      _command_function_HEIGHT(value);
+      _commandFunctionHeight(value);
     }
   }
 
-  void _command_function_X(String value) {
-    var x = _command_function_X_value(value);
+  void _commandFunctionX(String value) {
+    var x = _commandFunctionXValue(value);
     element.style.left = x;
   }
 
-  String _command_function_X_value(String value) {
-    return _value_XY(
+  String _commandFunctionXValue(String value) {
+    return _valueXY(
         value,
         (pw, ph, w, h) => ((pw / 2) - (w / 2)).toStringAsFixed(0) + 'px',
-        (e) => '${e.style.left}');
+        (e) => e.style.left);
   }
 
-  void _command_function_Y(String value) {
-    var y = _command_function_Y_value(value);
+  void _commandFunctionY(String value) {
+    var y = _commandFunctionYValue(value);
     element.style.top = y;
   }
 
-  String _command_function_Y_value(String value) {
-    return _value_XY(
+  String _commandFunctionYValue(String value) {
+    return _valueXY(
         value,
         (pw, ph, w, h) => ((ph / 2) - (h / 2)).toStringAsFixed(0) + 'px',
-        (e) => '${e.style.top}');
+        (e) => e.style.top);
   }
 
-  void _command_function_CENTERX(String value) {
-    var x = _command_function_X_value(value);
+  void _commandFunctionCenterX(String value) {
+    var x = _commandFunctionXValue(value);
 
-    var xInt = _parseValuePx('$x');
+    var xInt = _parseValuePx(x);
 
     if (xInt != null) {
       var w = element.offsetWidth;
@@ -758,10 +762,10 @@ class UILayout {
     }
   }
 
-  void _command_function_CENTERY(String value) {
-    var y = _command_function_Y_value(value);
+  void _commandFunctionCenterY(String value) {
+    var y = _commandFunctionYValue(value);
 
-    var yInt = _parseValuePx('$y');
+    var yInt = _parseValuePx(y);
 
     if (yInt != null) {
       var h = element.offsetHeight;
@@ -771,7 +775,7 @@ class UILayout {
     }
   }
 
-  String _value_XY(String value, ElementCoordsValue valueCenter,
+  String _valueXY(String value, ElementCoordsValue valueCenter,
       ValueFromElement valueFromElement) {
     if (_patternElementID.hasMatch(value)) {
       var sel = element.parent!.querySelector(value);
@@ -796,27 +800,27 @@ class UILayout {
     }
   }
 
-  void _command_function_WIDTH(String value) {
-    var width = _value_WH(
+  void _commandFunctionWidth(String value) {
+    var width = _valueWH(
         value,
         (pw, ph, w, h) => '${pw}px',
         (pw, ph, p) => (pw * p).toStringAsFixed(0) + 'px',
-        (e) => '${e.style.width}');
+        (e) => e.style.width);
     element.style.width = width;
   }
 
-  void _command_function_HEIGHT(String value) {
-    var height = _value_WH(
+  void _commandFunctionHeight(String value) {
+    var height = _valueWH(
         value,
         (pw, ph, w, h) => '${ph}px',
         (pw, ph, p) => (ph * p).toStringAsFixed(0) + 'px',
-        (e) => '${e.style.height}');
+        (e) => e.style.height);
     element.style.height = height;
   }
 
   static final RegExp _patternElementID = RegExp(r'^#\w+$');
 
-  String _value_WH(
+  String _valueWH(
       String value,
       ElementCoordsValue valueFull,
       ElementPercentageValue valuePercentage,

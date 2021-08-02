@@ -352,7 +352,9 @@ class UIMasonry extends UIComponent {
 
   void updateDimensions() {
     if (_renderedLines != null) {
-      _renderedLines!.forEach((e) => e.updateDimensions());
+      for (var e in _renderedLines!) {
+        e.updateDimensions();
+      }
     }
   }
 
@@ -654,7 +656,9 @@ class _MasonryLine {
   }
 
   void updateDimensions() {
-    return _elements.forEach((e) => e.updateDimensions());
+    for (var e in _elements) {
+      e.updateDimensions();
+    }
   }
 }
 
@@ -931,7 +935,9 @@ class _MasonryRenderGroup extends _MasonryRenderable {
 
   @override
   void updateDimensions() {
-    return _items.forEach((e) => e.updateDimensions());
+    for (var e in _items) {
+      e.updateDimensions();
+    }
   }
 }
 

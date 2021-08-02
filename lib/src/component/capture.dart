@@ -3,28 +3,27 @@ import 'dart:html';
 import 'dart:typed_data';
 
 import 'package:bones_ui/bones_ui.dart';
-import 'package:bones_ui/src/bones_ui_base.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 enum CaptureType {
-  PHOTO,
-  PHOTO_SELFIE,
-  PHOTO_FILE,
-  VIDEO,
-  VIDEO_SELFIE,
-  VIDEO_FILE,
-  AUDIO_RECORD,
-  AUDIO_FILE,
-  JSON,
-  FILE
+  photo,
+  photoSelfie,
+  photoFile,
+  video,
+  videoSelfie,
+  videoFile,
+  audioRecord,
+  audioFile,
+  json,
+  file
 }
 
 enum CaptureDataFormat {
-  STRING,
-  ARRAY_BUFFER,
-  BASE64,
-  DATA_URL_BASE64,
+  string,
+  arrayBuffer,
+  base64,
+  dataUrlBase64,
 }
 
 abstract class UICapture extends UIButtonBase implements UIField<String> {
@@ -98,52 +97,52 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     String? accept;
 
     switch (captureType) {
-      case CaptureType.PHOTO:
+      case CaptureType.photo:
         {
           accept = 'image/*';
           capture = 'environment';
           break;
         }
-      case CaptureType.PHOTO_SELFIE:
+      case CaptureType.photoSelfie:
         {
           accept = 'image/*';
           capture = 'user';
           break;
         }
-      case CaptureType.PHOTO_FILE:
+      case CaptureType.photoFile:
         {
           accept = 'image/*';
           break;
         }
-      case CaptureType.VIDEO:
+      case CaptureType.video:
         {
           accept = 'video/*';
           capture = 'environment';
           break;
         }
-      case CaptureType.VIDEO_SELFIE:
+      case CaptureType.videoSelfie:
         {
           accept = 'video/*';
           capture = 'user';
           break;
         }
-      case CaptureType.VIDEO_FILE:
+      case CaptureType.videoFile:
         {
           accept = 'video/*';
           break;
         }
-      case CaptureType.AUDIO_RECORD:
+      case CaptureType.audioRecord:
         {
           accept = 'audio/*';
           capture = 'environment';
           break;
         }
-      case CaptureType.AUDIO_FILE:
+      case CaptureType.audioFile:
         {
           accept = 'audio/*';
           break;
         }
-      case CaptureType.JSON:
+      case CaptureType.json:
         {
           accept = 'application/json';
           break;
@@ -174,12 +173,12 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     super.posRender();
 
     var fieldCapture = getInputCapture() as FileUploadInputElement;
-    fieldCapture.onChange.listen((e) => _call_onCapture(fieldCapture, e));
+    fieldCapture.onChange.listen((e) => _callOnCapture(fieldCapture, e));
   }
 
   final EventStream<UICapture> onCapture = EventStream();
 
-  void _call_onCapture(FileUploadInputElement input, Event event) async {
+  void _callOnCapture(FileUploadInputElement input, Event event) async {
     await _readFile(input);
     onCaptureFile(input, event);
     onCapture.add(this);
@@ -215,17 +214,17 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   Uint8List? get selectedFileDataAsArrayBuffer {
     if (selectedFileData == null) return null;
 
-    if (captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+    if (captureDataFormat == CaptureDataFormat.arrayBuffer) {
       var data = _selectedFileData as Uint8List?;
       return data;
-    } else if (captureDataFormat == CaptureDataFormat.STRING) {
+    } else if (captureDataFormat == CaptureDataFormat.string) {
       var s = _selectedFileData as String;
       var data = _dataEncoding!.encode(s);
       return data as Uint8List?;
-    } else if (captureDataFormat == CaptureDataFormat.BASE64) {
+    } else if (captureDataFormat == CaptureDataFormat.base64) {
       var s = _selectedFileData as String;
       return data_convert.base64.decode(s);
-    } else if (captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+    } else if (captureDataFormat == CaptureDataFormat.dataUrlBase64) {
       return DataURLBase64.parsePayloadAsArrayBuffer(
           _selectedFileData as String);
     }
@@ -252,17 +251,17 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   String? get selectedFileDataAsString {
     if (selectedFileData == null) return null;
 
-    if (captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+    if (captureDataFormat == CaptureDataFormat.arrayBuffer) {
       var data = _selectedFileData as Uint8List;
       return _dataEncoding!.decode(data);
-    } else if (captureDataFormat == CaptureDataFormat.STRING) {
+    } else if (captureDataFormat == CaptureDataFormat.string) {
       var s = _selectedFileData as String?;
       return s;
-    } else if (captureDataFormat == CaptureDataFormat.BASE64) {
+    } else if (captureDataFormat == CaptureDataFormat.base64) {
       var s = _selectedFileData as String;
       var data = data_convert.base64.decode(s);
       return _dataEncoding!.decode(data);
-    } else if (captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+    } else if (captureDataFormat == CaptureDataFormat.dataUrlBase64) {
       return DataURLBase64.parsePayloadAsString(_selectedFileData as String);
     }
 
@@ -272,16 +271,16 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   String? get selectedFileDataAsBase64 {
     if (selectedFileData == null) return null;
 
-    if (captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+    if (captureDataFormat == CaptureDataFormat.arrayBuffer) {
       var data = _selectedFileData as Uint8List;
       return data_convert.base64.encode(data);
-    } else if (captureDataFormat == CaptureDataFormat.STRING) {
+    } else if (captureDataFormat == CaptureDataFormat.string) {
       var s = _selectedFileData as String;
       var data = _dataEncoding!.encode(s);
       return data_convert.base64.encode(data);
-    } else if (captureDataFormat == CaptureDataFormat.BASE64) {
+    } else if (captureDataFormat == CaptureDataFormat.base64) {
       return _selectedFileData as String?;
-    } else if (captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+    } else if (captureDataFormat == CaptureDataFormat.dataUrlBase64) {
       var s = _selectedFileData as String?;
       return DataURLBase64.parsePayloadAsBase64(s);
     }
@@ -292,21 +291,21 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   String? get selectedFileDataAsDataURLBase64 {
     if (selectedFileData == null) return null;
 
-    if (captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+    if (captureDataFormat == CaptureDataFormat.dataUrlBase64) {
       var s = _selectedFileData as String?;
       return s;
     }
 
     String? base64;
 
-    if (captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+    if (captureDataFormat == CaptureDataFormat.arrayBuffer) {
       var data = _selectedFileData as Uint8List;
       base64 = data_convert.base64.encode(data);
-    } else if (captureDataFormat == CaptureDataFormat.STRING) {
+    } else if (captureDataFormat == CaptureDataFormat.string) {
       var s = _selectedFileData as String;
       var data = _dataEncoding!.encode(s);
       base64 = data_convert.base64.encode(data);
-    } else if (captureDataFormat == CaptureDataFormat.BASE64) {
+    } else if (captureDataFormat == CaptureDataFormat.base64) {
       base64 = _selectedFileData as String?;
     } else {
       return null;
@@ -317,7 +316,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     return toDataURLBase64(MimeType.asString(mediaType, ''), base64!);
   }
 
-  CaptureDataFormat captureDataFormat = CaptureDataFormat.ARRAY_BUFFER;
+  CaptureDataFormat captureDataFormat = CaptureDataFormat.arrayBuffer;
 
   // Default true since not all popular browsers can't handle Exif yet:
   bool removeExifFromImage = true;
@@ -329,16 +328,16 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       _selectedFile = file;
       _selectedFileData = null;
 
-      if (captureDataFormat == CaptureDataFormat.ARRAY_BUFFER) {
+      if (captureDataFormat == CaptureDataFormat.arrayBuffer) {
         _selectedFileData =
             await readFileInputElementAsArrayBuffer(input, removeExifFromImage);
-      } else if (captureDataFormat == CaptureDataFormat.STRING) {
+      } else if (captureDataFormat == CaptureDataFormat.string) {
         _selectedFileData =
             await readFileInputElementAsString(input, removeExifFromImage);
-      } else if (captureDataFormat == CaptureDataFormat.BASE64) {
+      } else if (captureDataFormat == CaptureDataFormat.base64) {
         _selectedFileData =
             await readFileInputElementAsBase64(input, removeExifFromImage);
-      } else if (captureDataFormat == CaptureDataFormat.DATA_URL_BASE64) {
+      } else if (captureDataFormat == CaptureDataFormat.dataUrlBase64) {
         _selectedFileData = await readFileInputElementAsDataURLBase64(
             input, removeExifFromImage);
       } else {
@@ -507,7 +506,7 @@ class UIButtonCapturePhoto extends UICapture {
       dynamic style,
       bool small = false,
       this.fontSize})
-      : super(parent, captureType ?? CaptureType.PHOTO,
+      : super(parent, captureType ?? CaptureType.photo,
             fieldName: fieldName,
             navigate: navigate,
             navigateParameters: navigateParameters,
@@ -572,7 +571,9 @@ class UIButtonCapturePhoto extends UICapture {
     var dataURL = selectedFileDataAsDataURLBase64;
     if (dataURL == null) return;
 
-    _selectedImageElements.forEach((e) => content!.children.remove(e));
+    for (var e in _selectedImageElements) {
+      content!.children.remove(e);
+    }
 
     if (onlyShowSelectedImageInButton) {
       content!.children.removeWhere((e) => !e.hidden);

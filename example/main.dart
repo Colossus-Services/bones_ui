@@ -13,17 +13,23 @@ class MyRoot extends UIRoot {
   MyRoot(Element? rootContainer) : super(rootContainer);
 
   MyMenu? _menu;
+  MyFooter? _footer;
   MyNavigable? _navigable;
 
   @override
   void configure() {
     _menu = MyMenu(content);
+    _footer = MyFooter(content);
     _navigable = MyNavigable(content);
   }
 
   // Returns the menu component.
   @override
   UIComponent? renderMenu() => _menu;
+
+  // Returns the footer component.
+  @override
+  UIComponent? renderFooter() => _footer;
 
   // Returns the content component.
   @override
@@ -47,6 +53,24 @@ class MyMenu extends UIComponent {
           $span(attributes: {'navigate': 'home'}, content: 'Home'),
           '<span> &nbsp; | &nbsp; </span>',
           $span(attributes: {'navigate': 'help'}, content: 'Help')
+        ]);
+  }
+}
+
+// Footer
+class MyFooter extends UIComponent {
+  MyFooter(Element? parent) : super(parent);
+
+  // Renders a fixed top menu with sections 'home' and 'help'.
+  @override
+  dynamic render() {
+    return $div(
+        style:
+            'position: absolute; position: fixed; bottom: 0; left: 0; width: 100%; background-color: rgba(0,0,0, 0.05); color: black; padding: 4px',
+        content: [
+          $span(
+              content:
+                  '<span style="font-size: 90%;" navigate="home">Built with <a href="https://colossus-services.github.io/bones_ui/" target="_blank">Bones_UI</a></span>'),
         ]);
   }
 }

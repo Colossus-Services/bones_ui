@@ -4,8 +4,6 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:bones_ui/bones_ui.dart';
-import 'package:bones_ui/src/bones_ui_base.dart';
-import 'package:bones_ui/src/component/svg.dart';
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
@@ -28,7 +26,7 @@ class BUIElementGenerator extends ElementGeneratorBase {
       Map<String, DOMAttribute> attributes,
       Node? contentHolder,
       List<DOMNode>? contentNodes,
-      DOMContext<Node>? domContext) {
+      DOMContext<Node>? context) {
     var buiElement = DivElement();
 
     setElementAttributes(buiElement, attributes);
@@ -67,7 +65,7 @@ class BUIElementGenerator extends ElementGeneratorBase {
 }
 
 class BUIRender extends UINavigableComponent {
-  final DOMGenerator<Node> domGenerator;
+  final DOMGenerator<Node> renderDomGenerator;
   final DataAssets? _dataAssets;
 
   BUIRenderSource? _navbarSource;
@@ -83,7 +81,7 @@ class BUIRender extends UINavigableComponent {
       dynamic classes,
       dynamic style,
       bool renderOnConstruction = true})
-      : domGenerator =
+      : renderDomGenerator =
             domGenerator ?? DOMGeneratorDelegate(UIComponent.domGenerator),
         _dataAssets = dataAssets,
         _viewProvider = viewProvider,
@@ -93,23 +91,21 @@ class BUIRender extends UINavigableComponent {
             style: style,
             renderOnConstruction: false) {
     _navbarSource = BUIRenderSource(
-        this.domGenerator, () => renderContainer, notifySourceChange, refresh);
+        renderDomGenerator, () => renderContainer, notifySourceChange, refresh);
     _renderSource = BUIRenderSource(
-        this.domGenerator, () => renderContainer, notifySourceChange, refresh);
+        renderDomGenerator, () => renderContainer, notifySourceChange, refresh);
 
     _renderSource!.onIntlLoad.listen(_onIntlLoad);
     _navbarSource!.onIntlLoad.listen(_onIntlLoad);
 
     _renderSource!.source = source;
 
-    this.domGenerator.sourceResolver =
+    renderDomGenerator.sourceResolver =
         _sourceResolver as String Function(String)?;
 
-    if (this.domGenerator.domContext == null) {
-      this.domGenerator.domContext = DOMContext(resolveCSSURL: true);
-    }
+    renderDomGenerator.domContext ??= DOMContext(resolveCSSURL: true);
 
-    var domContext = this.domGenerator.domContext!;
+    var domContext = renderDomGenerator.domContext!;
 
     domContext.resolveCSSURL = true;
     domContext.cssURLResolver ??= _cssURLResolver as String Function(String?)?;
@@ -345,7 +341,7 @@ class BUIRender extends UINavigableComponent {
       _renderedRoot!.remove();
     }
 
-    var context = domGenerator.domContext?.copy() ?? DOMContext();
+    var context = renderDomGenerator.domContext?.copy() ?? DOMContext();
     context.namedElementProvider = _namedElementProvider;
 
     var treeMap =
@@ -379,7 +375,7 @@ class BUIRender extends UINavigableComponent {
         _navbarElement!.remove();
       }
 
-      var context = domGenerator.domContext?.copy() ?? DOMContext();
+      var context = renderDomGenerator.domContext?.copy() ?? DOMContext();
 
       context.namedElementProvider = _namedElementProvider;
 
@@ -470,7 +466,7 @@ class BUIRender extends UINavigableComponent {
       String? styles,
       int? width = 800,
       int? height = 600}) async {
-    renderedHTML ??= domGenerator.generatedHTMLTrees.join('\n');
+    renderedHTML ??= renderDomGenerator.generatedHTMLTrees.join('\n');
     if (isEmptyObject(renderedHTML)) return null;
 
     var svgStyles = '';
@@ -587,6 +583,8 @@ abstract class BUIViewProviderBase {
   String? name;
   DataAssets? dataAssets;
 
+  BUIViewProviderBase(this.name, {this.dataAssets});
+
   BUIView? getHeader(String? name);
 
   BUIView? getFooter(String? name);
@@ -623,23 +621,18 @@ abstract class BUIViewProviderBase {
 }
 
 class BUIViewProvider extends BUIViewProviderBase {
-  @override
-  DataAssets? dataAssets;
-
-  @override
-  String? name;
-
   BUIView? navbar;
   final Map<String, BUIView> headers = {};
   final Map<String, BUIView> footers = {};
   final Map<String?, BUIView> views = {};
 
-  BUIViewProvider(this.name,
-      {this.dataAssets,
+  BUIViewProvider(String? name,
+      {DataAssets? dataAssets,
       this.navbar,
       Iterable<BUIView>? headers,
       Iterable<BUIView>? footers,
-      Iterable<BUIView>? views}) {
+      Iterable<BUIView>? views})
+      : super(name, dataAssets: dataAssets) {
     this.headers.addAll(BUIView.toViewsMap(headers));
     this.footers.addAll(BUIView.toViewsMap(footers));
     this.views.addAll(BUIView.toViewsMap(views));
@@ -837,9 +830,6 @@ class BUIViewProvider extends BUIViewProviderBase {
   }
 
   @override
-  String? currentRoute;
-
-  @override
   List<String> get routes =>
       views.values.map((e) => e.route).toList() as List<String>;
 
@@ -990,11 +980,11 @@ class BUIRenderSource {
     return resolveIntl(messages, code);
   }
 
-  static final RegExp INTL_MARK_PATTERN =
+  static final RegExp intlMarkPattern =
       RegExp(r'\{\{(intl:(\w+))\}\}', multiLine: false, caseSensitive: true);
 
   static String? resolveIntl(IntlMessages? messages, String? code) {
-    code = replaceStringMarks(code, INTL_MARK_PATTERN, (key) {
+    code = replaceStringMarks(code, intlMarkPattern, (key) {
       key = key.substring(5);
       if (isEmptyString(key)) return '';
       var val = messages?.msg(key).build();

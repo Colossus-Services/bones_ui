@@ -2,14 +2,14 @@ import 'dart:async';
 import 'dart:html';
 import 'dart:svg' as dart_svg;
 
-import 'package:bones_ui/src/bones_ui_base.dart';
+import 'package:bones_ui/bones_ui.dart';
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 /// Component to show a SVG.
 class UISVG extends UIComponent {
-  static final UIComponentGenerator<UISVG> GENERATOR =
+  static final UIComponentGenerator<UISVG> generator =
       UIComponentGenerator<UISVG>(
           'ui-svg',
           'div',
@@ -67,7 +67,7 @@ class UISVG extends UIComponent {
           contentAsText: true);
 
   static void register() {
-    UIComponent.registerGenerator(GENERATOR);
+    UIComponent.registerGenerator(generator);
   }
 
   static final ResourceContentCache _resourceContentCache =

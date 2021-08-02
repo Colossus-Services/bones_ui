@@ -9,8 +9,9 @@ import 'package:mercury_client/mercury_client.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 import 'package:yaml/yaml.dart';
 
-import 'bones_ui_base.dart';
+import 'bones_ui_component.dart';
 import 'bones_ui_document.dart';
+import 'bones_ui_navigator.dart';
 import 'component/button.dart';
 import 'component/component_async.dart';
 import 'component/controlled_component.dart';
@@ -290,7 +291,7 @@ class ExplorerModel {
 
     extension = extension.trim().toLowerCase();
 
-    var resourceConfig;
+    ResourceConfig resourceConfig;
 
     if (extension == 'yaml') {
       resourceConfig = YAMLConfig(resourceConfigUri);
@@ -324,7 +325,7 @@ class ExplorerModel {
 }
 
 class UIExplorer extends UIComponentAsync {
-  static final String CLASS = 'ui-explorer';
+  static final String componentClass = 'ui-explorer';
 
   final ExplorerModel model;
 
@@ -332,7 +333,7 @@ class UIExplorer extends UIComponentAsync {
       {loadingContent, errorContent, dynamic classes})
       : model = ExplorerModel.from(model)!,
         super(parent, null, null, loadingContent, errorContent,
-            classes: CLASS, classes2: classes);
+            componentClass: componentClass, classes2: classes);
 
   @override
   Map<String, dynamic> renderPropertiesProvider() {
@@ -346,18 +347,18 @@ class UIExplorer extends UIComponentAsync {
     var modelType = model.modelType;
     if (modelType.isEmpty) return null;
 
-    content!.classes.add('$CLASS-$modelType');
+    content!.classes.add('$componentClass-$modelType');
 
     if (modelType == 'document') {
-      return await render_document();
+      return await renderDocument();
     } else if (modelType == 'query') {
-      return await render_query();
+      return await renderQuery();
     } else if (modelType == 'catalog') {
-      return await render_catalog();
+      return await renderCatalog();
     }
   }
 
-  Future<dynamic> render_document() async {
+  Future<dynamic> renderDocument() async {
     var doc = model.configDocument!;
 
     var content = doc.getAsString('content');
@@ -374,13 +375,13 @@ class UIExplorer extends UIComponentAsync {
 
     var url = doc.getAsString('url');
     if (url != null) {
-      return _render_document_url(url, doc);
+      return _renderDocumentUrl(url, doc);
     }
 
     return null;
   }
 
-  Future<dynamic> _render_document_url(String url, ConfigDocument doc) async {
+  Future<dynamic> _renderDocumentUrl(String url, ConfigDocument doc) async {
     var uri = await model.resolveURL(url);
 
     var localeUrlPattern = doc.getAsString('locale_url_pattern');
@@ -421,7 +422,7 @@ class UIExplorer extends UIComponentAsync {
     return urlContent;
   }
 
-  Future<dynamic> render_query() async {
+  Future<dynamic> renderQuery() async {
     var conf = model.configDocument!;
 
     var inputs = conf.getAsMap('inputs')!;
@@ -437,7 +438,7 @@ class UIExplorer extends UIComponentAsync {
         errorContent: '${IntlBasicDictionary.msg('error')}!');
   }
 
-  Future<dynamic> render_catalog() async {
+  Future<dynamic> renderCatalog() async {
     var conf = model.configDocument!;
 
     var documentInputConfigs =
@@ -485,11 +486,11 @@ class _UIExplorerCatalog extends UIComponent {
     var listingAsync = UIComponentAsync(
         content,
         _listingProperties,
-        render_listing,
+        renderListing,
         '${IntlBasicDictionary.msg('loading')}...',
         '${IntlBasicDictionary.msg('error')}!');
 
-    var newDoc = render_newDocument();
+    var newDoc = renderNewDocument();
 
     return [listingAsync, '<hr>', newDoc, '<hr>'];
   }
@@ -502,7 +503,7 @@ class _UIExplorerCatalog extends UIComponent {
     return {'page': page};
   }
 
-  Future<dynamic> render_listing(Map<String, dynamic> properties) async {
+  Future<dynamic> renderListing(Map<String, dynamic> properties) async {
     var httpRequester = HttpRequester(MapProperties.fromMap(_documentListing),
         MapProperties.fromMap(properties));
 
@@ -516,7 +517,7 @@ class _UIExplorerCatalog extends UIComponent {
     return viewerRender.render(content, responseType, response);
   }
 
-  dynamic render_newDocument() {
+  dynamic renderNewDocument() {
     var documentInputs = UIInputTable(content, documentInputConfig);
     var sendButton = UIButton(content, 'Send');
 
@@ -565,7 +566,7 @@ class _UIExplorerQuery extends UIControlledComponent {
       Element? parent, this.inputConfig, this._executor, this._viewer,
       {dynamic loadingContent, dynamic errorContent, dynamic classes})
       : super(parent, loadingContent, errorContent,
-            controllersPropertiesType: ControllerPropertiesType.IMPLEMENTATION,
+            controllersPropertiesType: ControllerPropertiesType.implementation,
             classes: classes);
 
   @override
@@ -640,13 +641,13 @@ class _UIExplorerQuery extends UIControlledComponent {
     var type = executor.getPropertyAsStringTrimLC('type', 'http');
 
     if (type == 'http' || type == 'https') {
-      return executeQuery_http(executor, type, properties, null);
+      return executeQueryHttp(executor, type, properties, null);
     } else {
       return null;
     }
   }
 
-  Future<dynamic> executeQuery_http(MapProperties executor, String? type,
+  Future<dynamic> executeQueryHttp(MapProperties executor, String? type,
       MapProperties properties, int? page) async {
     var httpRequester = HttpRequester(executor, properties);
     return httpRequester.doRequest();
@@ -671,14 +672,13 @@ class _ViewerRender {
         return createHTML('$content');
       }
     } else if (type == 'json') {
-      return render_json(output, contentType, content);
+      return renderJson(output, contentType, content);
     }
 
     return null;
   }
 
-  DivElement render_json(
-      Element? output, String? contentType, dynamic content) {
+  DivElement renderJson(Element? output, String? contentType, dynamic content) {
     var jsonRender = content is String
         ? JSONRender.fromJSONAsString(content)
         : JSONRender.fromJSON(content);

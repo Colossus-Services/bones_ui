@@ -1,10 +1,12 @@
 import 'dart:html';
 
 import 'package:bones_ui/bones_ui.dart';
-import 'package:bones_ui/bones_ui_kit.dart';
+import 'package:dom_builder/dom_builder.dart';
+import 'package:dom_tools/dom_tools.dart';
 import 'package:enum_to_string/enum_to_string.dart';
+import 'package:swiss_knife/swiss_knife.dart';
 
-const Map<String, String> _CSS_LOADING = {
+const Map<String, String> _cssLoading = {
   'ui-loading-ring': '''
 .ui-loading-ring {
   display: block;
@@ -384,7 +386,7 @@ const Map<String, String> _CSS_LOADING = {
 };
 
 String? _loadCSS(String loadingClass, String? color) {
-  var cssCode = _CSS_LOADING[loadingClass];
+  var cssCode = _cssLoading[loadingClass];
   if (cssCode == null) return null;
 
   color ??= '#fff';
@@ -621,14 +623,13 @@ class UILoadingConfig implements AsDOMElement {
       dynamic zoom,
       dynamic text,
       dynamic textZoom,
-      bool? withProgress})
+      this.withProgress})
       : type = getUILoadingType(type) ?? UILoadingType.ring,
         inline = parseBool(inline),
         _color = TextProvider.from(color),
         zoom = parseDouble(zoom),
         _text = TextProvider.from(text),
-        textZoom = parseDouble(textZoom),
-        withProgress = withProgress;
+        textZoom = parseDouble(textZoom);
 
   static UILoadingConfig? from(dynamic o, [String? prefix]) {
     if (o == null) return null;

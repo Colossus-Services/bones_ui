@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:html';
 
-import 'package:bones_ui/src/bones_ui_base.dart';
+import 'package:bones_ui/bones_ui.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 typedef RenderPropertiesProvider = Map<String, dynamic> Function();
@@ -53,7 +53,7 @@ class UIComponentAsync extends UIComponent {
   UIComponentAsync(Element? parent, this._renderPropertiesProvider,
       this._renderAsync, this.loadingContent, this.errorContent,
       {this.refreshInterval,
-      bool cacheRenderAsync = true,
+      this.cacheRenderAsync = true,
       dynamic componentClass,
       dynamic componentStyle,
       dynamic classes,
@@ -63,8 +63,7 @@ class UIComponentAsync extends UIComponent {
       dynamic id,
       UIComponentGenerator? generator,
       bool renderOnConstruction = false})
-      : cacheRenderAsync = cacheRenderAsync,
-        super(parent,
+      : super(parent,
             componentClass: componentClass,
             componentStyle: componentStyle,
             classes: classes,

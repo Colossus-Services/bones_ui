@@ -1,6 +1,9 @@
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui_kit.dart';
+import 'package:bones_ui/bones_ui.dart';
+import 'package:dom_builder/dom_builder.dart';
+import 'package:dynamic_call/dynamic_call.dart';
+import 'package:swiss_knife/swiss_knife.dart';
 
 class UITemplateElementGenerator extends ElementGeneratorBase {
   UITemplateElementGenerator();
@@ -25,8 +28,8 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       Map<String, DOMAttribute> attributes,
       Node? contentHolder,
       List<DOMNode>? contentNodes,
-      DOMContext<Node>? domContext) {
-    domContext ??= domGenerator.domContext;
+      DOMContext<Node>? context) {
+    context ??= domGenerator.domContext;
 
     var domElement = domNode as DOMElement;
 
@@ -42,7 +45,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     if (hasUnresolvedTemplate) {
       var html = _nodesToHTML(contentNodes);
       _generateFromTemplateHTML(html, domGenerator, treeMap, domElement,
-          element, attributes, domContext);
+          element, attributes, context);
     } else {
       domGenerator.generateWithRoot(domElement, element, contentNodes);
     }
@@ -163,7 +166,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
         var valueStr = value.toString();
 
         if (valueStr.isNotEmpty) {
-          element.setAttribute(attr.key, '$valueStr');
+          element.setAttribute(attr.key, valueStr);
         }
       }
     }
@@ -185,7 +188,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     resolveAttributeVariables(attributes, variables);
 
     variables['attributes'] =
-        attributes.map((key, value) => MapEntry('$key', '$value'));
+        attributes.map((key, value) => MapEntry(key, '$value'));
 
     _normalizeVariables(variables, domContext);
 

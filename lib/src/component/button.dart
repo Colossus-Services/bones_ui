@@ -7,7 +7,7 @@ import 'package:swiss_knife/swiss_knife.dart';
 
 /// Base class for button components.
 abstract class UIButtonBase extends UIComponent {
-  static final EVENT_CLICK = 'CLICK';
+  static final eventClick = 'CLICK';
 
   UIButtonBase(Element? parent,
       {String? navigate,
@@ -44,6 +44,7 @@ abstract class UIButtonBase extends UIComponent {
     refreshInternal();
   }
 
+  // ignore: non_constant_identifier_names
   StreamSubscription? _navigateOnClick_Subscription;
 
   void cancelNavigate() {
@@ -62,11 +63,13 @@ abstract class UIButtonBase extends UIComponent {
   }
 
   void registerClickListener(UIEventListener listener) {
-    registerEventListener(EVENT_CLICK, listener);
+    registerEventListener(eventClick, listener);
   }
 
+  // ignore: non_constant_identifier_names
   Point? _prevClickEvent_point;
 
+  // ignore: non_constant_identifier_names
   num? _prevClickEvent_time;
 
   void fireClickEvent(MouseEvent event, [List? params]) {
@@ -80,7 +83,7 @@ abstract class UIButtonBase extends UIComponent {
     _prevClickEvent_point = p;
     _prevClickEvent_time = time;
 
-    fireEvent(EVENT_CLICK, event, params);
+    fireEvent(eventClick, event, params);
 
     onClick.add(event);
     onChange.add(this);
@@ -106,6 +109,7 @@ abstract class UIButtonBase extends UIComponent {
     return renderAll;
   }
 
+  // ignore: non_constant_identifier_names
   bool _content_onClick_listening = false;
 
   void _onClickListen(List renderedElements) {
@@ -133,7 +137,7 @@ abstract class UIButtonBase extends UIComponent {
 
 /// A simple button implementation.
 class UIButton extends UIButtonBase {
-  static final UIComponentGenerator<UIButton> GENERATOR =
+  static final UIComponentGenerator<UIButton> generator =
       UIComponentGenerator<UIButton>(
           'ui-button',
           'button',
@@ -153,7 +157,7 @@ class UIButton extends UIButtonBase {
           contentAsText: true);
 
   static void register() {
-    UIComponent.registerGenerator(GENERATOR);
+    UIComponent.registerGenerator(generator);
   }
 
   /// Text/label of the button.
@@ -185,7 +189,7 @@ class UIButton extends UIButtonBase {
             ],
             style: style,
             style2: style2,
-            generator: GENERATOR) {
+            generator: generator) {
     this.text = text;
     this.fontSize = fontSize;
   }
@@ -242,7 +246,7 @@ class UIButton extends UIButtonBase {
   }
 }
 
-DOMElement $ui_button_loader(
+DOMElement $uiButtonLoader(
     {DOMNodeValidator? validate,
     id,
     classes,
@@ -273,7 +277,7 @@ DOMElement $ui_button_loader(
 }
 
 class UIButtonLoader extends UIButtonBase {
-  static final UIComponentGenerator<UIButtonLoader> GENERATOR =
+  static final UIComponentGenerator<UIButtonLoader> generator =
       UIComponentGenerator<UIButtonLoader>(
           'ui-button-loader', 'div', 'ui-button-loader', '',
           (parent, attributes, contentHolder, contentNodes) {
@@ -312,7 +316,7 @@ class UIButtonLoader extends UIButtonBase {
   ], hasChildrenElements: false, contentAsText: true);
 
   static void register() {
-    UIComponent.registerGenerator(GENERATOR);
+    UIComponent.registerGenerator(generator);
   }
 
   final UILoadingConfig? loadingConfig;
@@ -338,7 +342,7 @@ class UIButtonLoader extends UIButtonBase {
   UIButtonLoader(
     Element? parent,
     String? text, {
-    UILoadingConfig? loadingConfig,
+    this.loadingConfig,
     dynamic loadedTextOK,
     dynamic loadedTextError,
     dynamic loadedTextStyle,
@@ -356,8 +360,7 @@ class UIButtonLoader extends UIButtonBase {
     dynamic style2,
     dynamic buttonStyle,
     bool? withProgress,
-  })  : loadingConfig = loadingConfig,
-        _loadedTextOK = TextProvider.from(loadedTextOK),
+  })  : _loadedTextOK = TextProvider.from(loadedTextOK),
         _loadedTextError = TextProvider.from(loadedTextError),
         _loadedTextStyle = TextProvider.from(loadedTextStyle),
         _loadedTextClass = TextProvider.from(loadedTextClass),
@@ -375,7 +378,7 @@ class UIButtonLoader extends UIButtonBase {
             componentClass: ['ui-button-loader', componentClass],
             style: style,
             style2: style2,
-            generator: GENERATOR) {
+            generator: generator) {
     this.text = text;
   }
 

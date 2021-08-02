@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:html';
 
 import 'package:bones_ui/bones_ui_kit.dart';
-import 'package:bones_ui/src/bones_ui_base.dart';
 import 'package:dom_builder/dom_builder.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
@@ -273,7 +272,7 @@ abstract class UIDialogBase extends UIComponent {
 }
 
 class UIDialog extends UIDialogBase {
-  static final UIComponentGenerator<UIDialog> GENERATOR =
+  static final UIComponentGenerator<UIDialog> generator =
       UIComponentGenerator<UIDialog>('ui-dialog', 'div', 'ui-dialog', '',
           (parent, attributes, contentHolder, contentNodes) {
     var show = parseBool(attributes['show'], false)!;
@@ -284,7 +283,7 @@ class UIDialog extends UIDialogBase {
   }, [], hasChildrenElements: false);
 
   static void register() {
-    UIComponent.registerGenerator(GENERATOR);
+    UIComponent.registerGenerator(generator);
   }
 
   dynamic renderContent;
@@ -293,7 +292,7 @@ class UIDialog extends UIDialogBase {
       {bool hideUIRoot = false,
       bool show = false,
       bool addToParent = false,
-      bool showCloseButton = false,
+      this.showCloseButton = false,
       dynamic classes,
       dynamic style,
       String padding = '6px',
@@ -310,7 +309,6 @@ class UIDialog extends UIDialogBase {
             backgroundGrey: backgroundGrey,
             backgroundAlpha: backgroundAlpha,
             backgroundBlur: backgroundBlur) {
-    this.showCloseButton = showCloseButton;
     if (show) {
       this.show();
     } else {
@@ -368,7 +366,7 @@ class UIDialog extends UIDialogBase {
 }
 
 class UIDialogInput extends UIDialog {
-  static final String DIALOG_INPUT_FIELD = 'dialog-input';
+  static final String dialogInputField = 'dialog-input';
 
   static DIVElement _buildContent(
       String label,
@@ -390,7 +388,7 @@ class UIDialogInput extends UIDialog {
           placeholder: inputPlaceholder,
           classes: inputClasses,
           style: inputStyle,
-          attributes: {'field': DIALOG_INPUT_FIELD},
+          attributes: {'field': dialogInputField},
           value: value),
       $nbsp(2),
       $button(
@@ -451,7 +449,7 @@ class UIDialogInput extends UIDialog {
   Future<String?> ask() async {
     var ok = await showAndWait();
     if (!ok) return null;
-    var value = getField(DIALOG_INPUT_FIELD);
+    var value = getField(dialogInputField);
     return value;
   }
 }

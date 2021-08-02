@@ -1,3 +1,12 @@
+## 2.0.4
+
+- Added CLI `bones_ui`.
+  - Added `Bones_UI App` template.
+- Re-factor.
+  - Files structure.
+  - Change from package `pedantic` to `lints`.
+- Improve example.
+
 ## 2.0.3
 
 - `ui-template`:

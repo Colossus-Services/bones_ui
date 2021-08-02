@@ -1,16 +1,16 @@
 import 'dart:async';
 import 'dart:html';
 
-import 'package:bones_ui/src/bones_ui_base.dart';
+import 'package:bones_ui/bones_ui.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import 'component_async.dart';
 
 enum ControllerPropertiesType {
-  CONTROLLER_VALUE,
-  ROUTE_PARAMETERS,
-  IMPLEMENTATION
+  controllerValue,
+  routeParameters,
+  implementation
 }
 
 abstract class UIControlledComponent extends UIComponent {
@@ -31,7 +31,7 @@ abstract class UIControlledComponent extends UIComponent {
       dynamic classes,
       dynamic classes2})
       : controllersPropertiesType = controllersPropertiesType ??
-            ControllerPropertiesType.CONTROLLER_VALUE,
+            ControllerPropertiesType.controllerValue,
         super(parent,
             classes: classes, classes2: classes2, renderOnConstruction: false);
 
@@ -61,9 +61,9 @@ abstract class UIControlledComponent extends UIComponent {
 
   MapProperties getControllersProperties() {
     switch (controllersPropertiesType) {
-      case ControllerPropertiesType.CONTROLLER_VALUE:
+      case ControllerPropertiesType.controllerValue:
         return getControllersPropertiesByControllersValues();
-      case ControllerPropertiesType.ROUTE_PARAMETERS:
+      case ControllerPropertiesType.routeParameters:
         return getControllersPropertiesByRouteParameters();
       default:
         return getControllersPropertiesByControllersValues();
@@ -192,12 +192,12 @@ abstract class UIControlledComponent extends UIComponent {
       bool validControllersSetup, dynamic changedController) {
     if (validControllersSetup) {
       switch (controllersPropertiesType) {
-        case ControllerPropertiesType.CONTROLLER_VALUE:
+        case ControllerPropertiesType.controllerValue:
           {
             _refreshContentOnPropertiesChange();
             break;
           }
-        case ControllerPropertiesType.ROUTE_PARAMETERS:
+        case ControllerPropertiesType.routeParameters:
           {
             var route = UINavigator.currentRoute;
             var parameters = getControllersProperties().toStringProperties();

@@ -1,7 +1,8 @@
 import 'dart:html';
 
 import 'package:bones_ui/bones_ui.dart';
-import 'package:bones_ui/bones_ui_kit.dart';
+import 'package:dom_tools/dom_tools.dart';
+
 import 'package:json_render/json_render.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
@@ -86,7 +87,7 @@ String? getLanguageByExtension(String extension) {
 /// An [UIComponentAsync] to show rendered documents,
 /// like `markdown`, `html`, `json` and `text`.
 class UIDocument extends UIComponentAsync {
-  static final UIComponentGenerator<UIDocument> GENERATOR =
+  static final UIComponentGenerator<UIDocument> generator =
       UIComponentGenerator<UIDocument>('ui-document', 'div', 'ui-document', '',
           (parent, attributes, contentHolder, contentNodes) {
     var src = attributes['src']?.toString();
@@ -111,7 +112,7 @@ class UIDocument extends UIComponentAsync {
   ], hasChildrenElements: false, contentAsText: true);
 
   static void register() {
-    UIComponent.registerGenerator(GENERATOR);
+    UIComponent.registerGenerator(generator);
   }
 
   ResourceContent? _resourceContent;
@@ -132,7 +133,7 @@ class UIDocument extends UIComponentAsync {
             style: style,
             style2: style2,
             id: id,
-            generator: GENERATOR);
+            generator: generator);
 
   ResourceContent? get resourceContent => _resourceContent;
 
