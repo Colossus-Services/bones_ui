@@ -71,7 +71,7 @@ mixin DefaultTemplate {
       '  ** Bones_UI App:\n'
       '     $defaultTemplate\n\n'
       'See also:\n'
-      '  https://pub.dev/packages/bones_ui#CLI',
+      '  https://pub.dev/packages/bones_ui#cli',
     );
 
     return lines.join('\n');

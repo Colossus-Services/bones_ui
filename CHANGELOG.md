@@ -1,3 +1,7 @@
+## 2.0.5
+
+- Updated `bones_ui_app_template.tar.gz`.
+
 ## 2.0.4
 
 - Added CLI `bones_ui`.
