@@ -14,8 +14,8 @@ import 'bones_ui_base.dart';
 import 'bones_ui_content.dart';
 import 'bones_ui_generator.dart';
 import 'bones_ui_layout.dart';
-import 'bones_ui_navigator.dart';
 import 'bones_ui_log.dart';
+import 'bones_ui_navigator.dart';
 import 'bones_ui_root.dart';
 
 /// [UIComponent] behavior to clear the component.
@@ -507,6 +507,13 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     return elements.toList();
+  }
+
+  dynamic getRenderedElementValueById(dynamic id, [bool deep = false]) {
+    var element = getRenderedElementById(id, deep);
+    if (element == null) return null;
+    var value = getElementValue(element);
+    return value;
   }
 
   dynamic getRenderedElementById(dynamic id, [bool deep = false]) =>
@@ -1759,11 +1766,37 @@ abstract class UIComponent extends UIEventHandler {
 
   Element? getFieldElement(String? fieldName) => findInContentChildrenDeep((e) {
         if (e is Element) {
-          var fieldValue = getElementAttribute(e, 'field');
-          return fieldValue == fieldName;
+          var name = getElementFieldName(e);
+          return name == fieldName;
         }
         return false;
       });
+
+  String? getElementFieldName(Element element) {
+    var fieldName = getElementAttributeStr(element, 'field');
+    if (fieldName != null) {
+      fieldName = fieldName.trim();
+      if (fieldName.isNotEmpty) {
+        return fieldName;
+      }
+    }
+
+    if (element is InputElement ||
+        element is TextAreaElement ||
+        element is ButtonElement ||
+        element is SelectElement) {
+      fieldName = getElementAttributeStr(element, 'name');
+
+      if (fieldName != null) {
+        fieldName = fieldName.trim();
+        if (fieldName.isNotEmpty) {
+          return fieldName;
+        }
+      }
+    }
+
+    return null;
+  }
 
   Map<String, Element> getFieldsElementsMap(
       {List<String>? fields, List<String>? ignoreFields}) {
@@ -1776,7 +1809,7 @@ abstract class UIComponent extends UIEventHandler {
     var map = <String, Element>{};
 
     for (var elem in fieldsElements) {
-      var fieldName = getElementAttribute(elem, 'field')!;
+      var fieldName = getElementFieldName(elem)!;
 
       var include = specificFields ? fields!.contains(fieldName) : true;
 
@@ -1819,8 +1852,8 @@ abstract class UIComponent extends UIEventHandler {
   List<Element> getFieldsElements() =>
       _contentChildrenDeepImpl(content!.children, [], (e) {
         if (e is Element) {
-          var fieldValue = getElementAttribute(e, 'field');
-          return fieldValue != null && fieldValue.isNotEmpty;
+          var fieldName = getElementFieldName(e);
+          return fieldName != null;
         }
         return false;
       });
@@ -1945,8 +1978,8 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   void updateRenderedFieldElementValue(Element fieldElem) {
-    var fieldName = fieldElem.getAttribute('field');
-    if (fieldName == null || fieldName.isEmpty) return;
+    var fieldName = getElementFieldName(fieldElem);
+    if (fieldName == null) return;
 
     var value = parseChildElementValue(fieldElem);
 

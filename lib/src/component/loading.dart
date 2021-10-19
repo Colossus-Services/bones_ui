@@ -499,14 +499,14 @@ abstract class UILoading {
       var color = ensureNotEmptyString(elem.style.color, trim: true);
       var text = ensureNotEmptyString(elem.text, trim: true);
 
-      var loading = asDivElement(type, color: color, text: text)!;
+      var loading = asDivElement(type, color: color, text: text);
 
       elem.nodes.clear();
       elem.append(loading);
     }
   }
 
-  static DIVElement? asDIVElement(UILoadingType? type,
+  static DIVElement asDIVElement(UILoadingType? type,
       {bool inline = true,
       String? color,
       double? zoom,
@@ -526,8 +526,7 @@ abstract class UILoading {
 
     type ??= UILoadingType.ring;
 
-    var loadingClass = getUILoadingTypeClass(type);
-    if (loadingClass == null) return null;
+    var loadingClass = getUILoadingTypeClass(type)!;
 
     if (isEmptyString(color, trim: true)) {
       color = null;
@@ -540,8 +539,7 @@ abstract class UILoading {
       color ??= '#fff';
     }
 
-    loadingClass = _loadCSS(loadingClass, color);
-    if (loadingClass == null) return null;
+    loadingClass = _loadCSS(loadingClass, color) ?? loadingClass;
 
     var divLoading =
         $div(style: 'margin: auto', classes: ['ui-loading', loadingClass]);
@@ -585,7 +583,7 @@ abstract class UILoading {
     return div;
   }
 
-  static DivElement? asDivElement(UILoadingType? type,
+  static DivElement asDivElement(UILoadingType? type,
       {bool inline = true,
       String? color,
       double? zoom,
@@ -602,8 +600,8 @@ abstract class UILoading {
         textZoom: textZoom,
         cssContext: cssContext,
         withProgress: withProgress,
-        config: config)!;
-    return div.buildDOM(generator: UIComponent.domGenerator) as DivElement?;
+        config: config);
+    return div.buildDOM(generator: UIComponent.domGenerator) as DivElement;
   }
 }
 
@@ -676,12 +674,12 @@ class UILoadingConfig implements AsDOMElement {
 
   String? get color => _color?.text;
 
-  DIVElement? asDIVElement() => UILoading.asDIVElement(type, config: this);
+  DIVElement asDIVElement() => UILoading.asDIVElement(type, config: this);
 
-  DivElement? asDivElement() => UILoading.asDivElement(type, config: this);
+  DivElement asDivElement() => UILoading.asDivElement(type, config: this);
 
   @override
-  DOMElement get asDOMElement => asDIVElement()!;
+  DOMElement get asDOMElement => asDIVElement();
 
   String toInlineProperties() {
     var color = _color?.text;
@@ -702,3 +700,21 @@ class UILoadingConfig implements AsDOMElement {
     return 'UILoadingConfig{${toInlineProperties()}}';
   }
 }
+
+DIVElement $uiLoading(
+        {UILoadingType? type,
+        dynamic inline,
+        dynamic color,
+        dynamic zoom,
+        dynamic text,
+        dynamic textZoom,
+        bool? withProgress}) =>
+    UILoadingConfig(
+            type: type,
+            inline: inline,
+            color: color,
+            zoom: zoom,
+            text: text,
+            textZoom: textZoom,
+            withProgress: withProgress)
+        .asDIVElement();

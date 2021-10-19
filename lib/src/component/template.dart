@@ -88,7 +88,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
           DivElement? uiLoading;
           if (loadingConfig != null) {
             uiLoading = loadingConfig.asDivElement();
-            element.append(uiLoading!);
+            element.append(uiLoading);
           }
 
           Future.wait(futures).then((_) {

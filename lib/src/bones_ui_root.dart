@@ -49,7 +49,7 @@ abstract class UIRoot extends UIComponent {
         false, true, classes, null, 'ui-root', style, null, null, false);
 
     _localesManager = createLocalesManager(initializeLocale, _onDefineLocale);
-    _localesManager!.onPreDefineLocale.add(onPrefDefineLocale);
+    _localesManager!.onPreDefineLocale.add(onPreDefineLocale);
 
     _futureInitializeLocale = _localesManager!.initialize(getPreferredLocale);
 
@@ -160,9 +160,7 @@ abstract class UIRoot extends UIComponent {
     return _localesManager!.getInitializedLocales();
   }
 
-  Future<bool> onPrefDefineLocale(String locale) {
-    return Future.value(null);
-  }
+  Future<bool> onPreDefineLocale(String locale) => Future.value(false);
 
   void _onDefineLocale(String locale) {
     UIConsole.log('UIRoot> Locale defined: $locale');

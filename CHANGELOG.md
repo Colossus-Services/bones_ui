@@ -1,3 +1,10 @@
+## 2.0.6
+
+- Added helper `$uiLoading`.
+- Improved `Element` field name resolution: now also accepts the `name` attribute for `<input>` elements.
+- mercury_client: ^2.1.1
+- dom_builder: ^2.0.7
+
 ## 2.0.5
 
 - Updated `bones_ui_app_template.tar.gz`.

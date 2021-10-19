@@ -249,6 +249,7 @@ class UIButton extends UIButtonBase {
 DOMElement $uiButtonLoader(
     {DOMNodeValidator? validate,
     id,
+    String? field,
     classes,
     style,
     buttonClasses,
@@ -261,6 +262,7 @@ DOMElement $uiButtonLoader(
   return $tag('ui-button-loader',
       id: id,
       attributes: {
+        if (field != null && field.isNotEmpty) 'field': field,
         if (buttonClasses != null)
           'button-classes':
               parseStringFromInlineList(buttonClasses)?.join(',') ?? '',
@@ -411,7 +413,7 @@ class UIButtonLoader extends UIButtonBase {
         textZoom: 1.5,
         cssContext: content,
         withProgress: withProgress,
-        config: loadingConfig)!
+        config: loadingConfig)
       ..style.display = 'none';
 
     _button ??= renderButtonElement();
@@ -445,7 +447,7 @@ class UIButtonLoader extends UIButtonBase {
     var classesError = (_loadedTextErrorClass?.text ?? '')
         .trim()
         .split(RegExp(r'\s+'))
-          ..removeWhere((e) => e.isEmpty);
+      ..removeWhere((e) => e.isEmpty);
 
     var classesOk = (_loadedTextClass?.text ?? '').trim().split(RegExp(r'\s+'))
       ..removeWhere((e) => e.isEmpty);

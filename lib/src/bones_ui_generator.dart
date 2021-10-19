@@ -378,12 +378,12 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   }
 
   @override
-  List<Node>? addExternalElementToElement(Node node, externalElement) {
+  List<Node>? addExternalElementToElement(Node element, externalElement) {
     if (externalElement is List) {
       if (externalElement.isEmpty) return null;
       var children = <Node>[];
       for (var elem in externalElement) {
-        var child = addExternalElementToElement(node, elem)!;
+        var child = addExternalElementToElement(element, elem)!;
         children.addAll(child);
       }
       return children;
@@ -391,9 +391,9 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       var component = externalElement;
       var componentContent = component.content;
 
-      if (node is Element) {
-        node.append(componentContent!);
-        component.setParent(node);
+      if (element is Element) {
+        element.append(componentContent!);
+        component.setParent(element);
         component.ensureRendered();
         return [componentContent];
       }
@@ -403,11 +403,11 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       var text = externalElement.build();
       var span = SpanElement();
       setElementInnerHTML(span, text);
-      node.append(span);
+      element.append(span);
       return [span];
     }
 
-    return super.addExternalElementToElement(node, externalElement);
+    return super.addExternalElementToElement(element, externalElement);
   }
 
   @override

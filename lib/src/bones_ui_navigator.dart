@@ -664,6 +664,7 @@ abstract class UINavigableComponent extends UIComponent {
       dynamic classes2,
       dynamic style,
       dynamic style2,
+      dynamic id,
       bool inline = true,
       bool renderOnConstruction = false})
       : _routes = routes.toList(),
@@ -676,6 +677,7 @@ abstract class UINavigableComponent extends UIComponent {
             classes2: classes2,
             style: style,
             style2: style2,
+            id: id,
             inline: inline,
             renderOnConstruction: renderOnConstruction) {
     _normalizeRoutes();
