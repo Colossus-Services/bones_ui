@@ -1,4 +1,6 @@
 
+timeout: 90s
+
 concurrency: 1
 
 override_platforms:
