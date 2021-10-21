@@ -1,5 +1,5 @@
 
-timeout: 90s
+timeout: 3x
 
 concurrency: 1
 
