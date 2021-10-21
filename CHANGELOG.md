@@ -1,3 +1,7 @@
+## 2.0.7
+
+- dom_builder: ^2.0.8
+
 ## 2.0.6
 
 - Added helper `$uiLoading`.
