@@ -210,7 +210,7 @@ class UIColorPicker extends UIComponent {
   Color? _baseColor;
 
   set color(Color? color) {
-    color ??= Color.BLACK;
+    color ??= Color.black;
 
     _color = color;
     _hsvColor = HSVColor.fromColor(color);
@@ -223,7 +223,7 @@ class UIColorPicker extends UIComponent {
   }
 
   set hsvColor(HSVColor? hsvColor) {
-    hsvColor ??= HSVColor.fromColor(Color.BLACK);
+    hsvColor ??= HSVColor.fromColor(Color.black);
 
     _color = hsvColor.toColor();
     _hsvColor = hsvColor;
@@ -236,7 +236,7 @@ class UIColorPicker extends UIComponent {
   }
 
   set hslColor(HSLColor? hsvColor) {
-    hsvColor ??= HSLColor.fromColor(Color.BLACK);
+    hsvColor ??= HSLColor.fromColor(Color.black);
 
     _color = hsvColor.toColor();
     _hsvColor = HSVColor.fromColor(_color!);
@@ -383,9 +383,9 @@ class UIColorPicker extends UIComponent {
       _square!.onMouseUp.listen(_squareUp);
       _square!.onMouseMove.listen(_squareDrag);
 
-      redirect_onTouchStart_to_MouseEvent(_square!);
+      redirectOnTouchStartToMouseEvent(_square!);
       _square!.onTouchEnd.listen(_squareUp);
-      redirect_onTouchMove_to_MouseEvent(_square!);
+      redirectOnTouchMoveToMouseEvent(_square!);
 
       _square!.onClick.listen(_squareClick);
 
@@ -397,7 +397,7 @@ class UIColorPicker extends UIComponent {
 
       _luma!.onTouchStart.listen(_lumaDown);
       _luma!.onTouchEnd.listen(_lumaUp);
-      redirect_onTouchMove_to_MouseEvent(_luma!);
+      redirectOnTouchMoveToMouseEvent(_luma!);
 
       _luma!.onClick.listen(_lumaClick);
 
@@ -409,7 +409,7 @@ class UIColorPicker extends UIComponent {
 
       _saturation!.onTouchStart.listen(_saturationDown);
       _saturation!.onTouchEnd.listen(_saturationUp);
-      redirect_onTouchMove_to_MouseEvent(_saturation!);
+      redirectOnTouchMoveToMouseEvent(_saturation!);
 
       _saturation!.onClick.listen(_saturationClick);
 

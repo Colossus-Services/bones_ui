@@ -686,9 +686,9 @@ class _ViewerRender {
     var mode = config.getPropertyAsStringTrimLC('mode');
 
     if (mode == 'input') {
-      jsonRender.renderMode = JSONRenderMode.INPUT;
+      jsonRender.renderMode = JSONRenderMode.input;
     } else if (mode == 'view') {
-      jsonRender.renderMode = JSONRenderMode.VIEW;
+      jsonRender.renderMode = JSONRenderMode.view;
     }
 
     jsonRender.addAllKnownTypeRenders();

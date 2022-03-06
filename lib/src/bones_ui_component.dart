@@ -1238,7 +1238,7 @@ abstract class UIComponent extends UIEventHandler {
     } else if (value is Map ||
         (value is List && listMatchesAll(value, (dynamic e) => e is Map))) {
       var jsonRender = JSONRender.fromJSON(value)
-        ..renderMode = JSONRenderMode.VIEW
+        ..renderMode = JSONRenderMode.view
         ..addAllKnownTypeRenders();
       return jsonRender.render();
     } else if (value is Iterable && value is! List) {

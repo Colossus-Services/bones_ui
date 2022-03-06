@@ -4,6 +4,10 @@
   - Organize imports.
   - Fix new lints.
 - sdk: '>=2.15.0 <3.0.0'
+- json_render: ^2.0.2
+- dom_tools: ^2.1.0
+- mercury_client: ^2.1.3
+- args: ^2.3.0
 
 ## 2.0.7
 

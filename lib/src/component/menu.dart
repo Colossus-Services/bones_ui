@@ -410,7 +410,7 @@ class UIPopupMenu extends UIComponent {
       }
     }
 
-    return '$CSS_MAX_Z_INDEX';
+    return '$cssMaxZIndex';
   }
 
   Point? get renderPoint {
