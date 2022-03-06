@@ -1,9 +1,14 @@
 import 'dart:async';
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui_kit.dart';
 import 'package:dom_builder/dom_builder.dart';
+import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+
+import '../bones_ui_component.dart';
+import '../bones_ui_generator.dart';
+import '../bones_ui_root.dart';
+import 'loading.dart';
 
 /// Component that renders a dialog.
 abstract class UIDialogBase extends UIComponent {

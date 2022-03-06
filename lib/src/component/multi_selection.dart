@@ -1,10 +1,13 @@
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+
+import '../bones_ui_base.dart';
+import '../bones_ui_component.dart';
+import '../bones_ui_generator.dart';
 
 /// A component that renders a multi-selection input.
 class UIMultiSelection extends UIComponent implements UIField<List<String?>> {

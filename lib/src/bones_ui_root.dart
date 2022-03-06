@@ -1,12 +1,22 @@
 import 'dart:async';
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
 import 'package:dom_builder/dom_builder_dart_html.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+
+import 'bones_ui_component.dart';
+import 'bones_ui_document.dart';
+import 'bones_ui_log.dart';
+import 'bones_ui_navigator.dart';
+import 'component/button.dart';
+import 'component/data_source.dart';
+import 'component/dialog.dart';
+import 'component/loading.dart';
+import 'component/multi_selection.dart';
+import 'component/svg.dart';
 
 /// The root for `Bones_UI` component tree.
 abstract class UIRoot extends UIComponent {

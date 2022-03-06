@@ -1,10 +1,12 @@
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
 import 'package:dom_tools/dom_tools.dart';
-
 import 'package:json_render/json_render.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+
+import 'bones_ui_component.dart';
+import 'bones_ui_generator.dart';
+import 'component/component_async.dart';
 
 /// Represents an [url] link, with an optional [target].
 class URLLink {

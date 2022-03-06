@@ -2,9 +2,12 @@ import 'dart:convert' as data_convert;
 import 'dart:html';
 import 'dart:typed_data';
 
-import 'package:bones_ui/bones_ui.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+
+import '../bones_ui_base.dart';
+import '../bones_ui_log.dart';
+import 'button.dart';
 
 enum CaptureType {
   photo,

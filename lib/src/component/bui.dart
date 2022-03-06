@@ -3,13 +3,20 @@ import 'dart:html';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
-import 'package:bones_ui/bones_ui.dart';
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 import 'package:yaml/yaml.dart';
+
+import '../bones_ui_base.dart';
+import '../bones_ui_component.dart';
+import '../bones_ui_generator.dart';
+import '../bones_ui_navigator.dart';
+import 'component_async.dart';
+import 'loading.dart';
+import 'svg.dart';
 
 class BUIElementGenerator extends ElementGeneratorBase {
   @override

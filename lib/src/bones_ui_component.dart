@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:html';
 
-import 'package:bones_ui/src/bones_ui_internal.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
@@ -17,6 +16,7 @@ import 'bones_ui_layout.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_navigator.dart';
 import 'bones_ui_root.dart';
+import 'bones_ui_internal.dart';
 
 /// [UIComponent] behavior to clear the component.
 enum UIComponentClearParent { onConstruct, onInitialRender, onRender }
@@ -1764,13 +1764,8 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  Element? getFieldElement(String? fieldName) => findInContentChildrenDeep((e) {
-        if (e is Element) {
-          var name = getElementFieldName(e);
-          return name == fieldName;
-        }
-        return false;
-      });
+  Element? getFieldElement(String? fieldName) =>
+      findInContentChildrenDeep((e) => getElementFieldName(e) == fieldName);
 
   String? getElementFieldName(Element element) {
     var fieldName = getElementAttributeStr(element, 'field');
@@ -1849,14 +1844,8 @@ abstract class UIComponent extends UIEventHandler {
     return true;
   }
 
-  List<Element> getFieldsElements() =>
-      _contentChildrenDeepImpl(content!.children, [], (e) {
-        if (e is Element) {
-          var fieldName = getElementFieldName(e);
-          return fieldName != null;
-        }
-        return false;
-      });
+  List<Element> getFieldsElements() => _contentChildrenDeepImpl(
+      content!.children, [], (e) => getElementFieldName(e) != null);
 
   String? parseChildElementValue(Element? element,
           {bool allowTextAsValue = true}) =>

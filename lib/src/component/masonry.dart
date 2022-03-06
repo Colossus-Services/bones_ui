@@ -1,10 +1,11 @@
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+
+import '../bones_ui_component.dart';
 
 class MasonryItem {
   final dynamic element;

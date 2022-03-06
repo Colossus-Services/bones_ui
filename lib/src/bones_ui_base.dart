@@ -1,9 +1,12 @@
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
 import 'package:dom_builder/dom_builder_dart_html.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
+
+import 'bones_ui_async_content.dart';
+import 'bones_ui_component.dart';
+import 'bones_ui_log.dart';
 
 typedef UIEventListener = void Function(dynamic event, List? params);
 

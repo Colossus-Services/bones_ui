@@ -1,8 +1,10 @@
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
+
+import '../bones_ui_component.dart';
+import '../bones_ui_generator.dart';
 
 class UIDataSource extends UIComponent {
   static final UIComponentGenerator<UIDataSource> generator =

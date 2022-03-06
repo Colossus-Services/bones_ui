@@ -214,9 +214,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     }
 
     if (arg is ValueUnitExpression) {
-      // ignore: omit_local_variable_types
-      Expression leftValue =
-          arg is ValueUnitExpression ? arg.valueAsLiteral : _toExpression(arg)!;
+      Expression leftValue = arg.valueAsLiteral;
       var expression2 = UnaryExpression(expression.operator, leftValue,
           prefix: expression.prefix);
 
@@ -361,17 +359,10 @@ class UILayoutEvaluator extends ExpressionEvaluator {
         var property = _getIdentifierName(expressionResolved.property);
         var evaluated = _evalMemberExpressionImpl(o, context, property);
         return evalValue(evaluated, subProperty);
-      } else if (o is Expression) {
+      } else {
         var property = _getIdentifierName(expressionResolved.property);
         var evaluated = eval(o, context);
         evaluated = evalValue(evaluated, property);
-        if (subProperty != null) {
-          evaluated = evalValue(evaluated, subProperty);
-        }
-        return evaluated;
-      } else {
-        var property = _getIdentifierName(expressionResolved.property);
-        var evaluated = evalValue(o, property);
         if (subProperty != null) {
           evaluated = evalValue(evaluated, subProperty);
         }

@@ -1,6 +1,5 @@
 import 'dart:html';
 
-import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_builder/dom_builder_dart_html.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';

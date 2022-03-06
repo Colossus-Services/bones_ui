@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+
+import 'bones_ui_base.dart';
+import 'bones_ui_component.dart';
+import 'bones_ui_log.dart';
+import 'bones_ui_root.dart';
 
 /// Handles navigation and routes.
 class UINavigator {

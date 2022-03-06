@@ -1,3 +1,10 @@
+## 2.0.8
+
+- Dart `2.16`:
+  - Organize imports.
+  - Fix new lints.
+- sdk: '>=2.15.0 <3.0.0'
+
 ## 2.0.7
 
 - dom_builder: ^2.0.8

@@ -1,7 +1,8 @@
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+
+import 'bones_ui_component.dart';
 
 /// Base class for content components.
 abstract class UIContent extends UIComponent {

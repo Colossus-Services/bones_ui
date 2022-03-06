@@ -1,9 +1,12 @@
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dynamic_call/dynamic_call.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+
+import '../bones_ui_generator.dart';
+import '../bones_ui_navigator.dart';
+import 'loading.dart';
 
 class UITemplateElementGenerator extends ElementGeneratorBase {
   UITemplateElementGenerator();

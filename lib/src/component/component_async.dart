@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+
+import '../bones_ui_async_content.dart';
+import '../bones_ui_component.dart';
+import '../bones_ui_generator.dart';
 
 typedef RenderPropertiesProvider = Map<String, dynamic> Function();
 typedef RenderAsync = Future<dynamic>? Function(

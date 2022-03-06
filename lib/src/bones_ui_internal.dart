@@ -1,6 +1,6 @@
 import 'dart:html';
 
-import 'package:bones_ui/bones_ui.dart';
+import 'bones_ui_component.dart';
 
 class UIComponentInternals {
   final UIComponent component;
