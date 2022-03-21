@@ -1,3 +1,11 @@
+## 2.0.9
+
+- `UIComponent`:
+  - New `uiRoot` getter.
+  - Improve `parentUIComponent` resolution.
+- `UIRoot.renderLoading` now is the default render for loading children `UIComponent`s.
+- dependency_validator: ^3.1.0
+
 ## 2.0.8
 
 - Dart `2.16`:

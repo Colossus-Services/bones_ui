@@ -71,6 +71,14 @@ abstract class UIRoot extends UIComponent {
   @override
   void registerInUIRoot() {}
 
+  /// Returns this [UIRoot] instance.
+  @override
+  UIRoot get uiRoot => this;
+
+  /// The default loading to render for all [UIComponent] that do not implement [UIComponent.renderLoading].
+  @override
+  dynamic renderLoading() => null;
+
   IntlMessageResolver? _intlMessageResolver;
 
   IntlMessageResolver? get intlMessageResolver => _intlMessageResolver;

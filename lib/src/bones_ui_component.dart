@@ -66,6 +66,7 @@ abstract class UIComponent extends UIEventHandler {
       : globalID = ++_globalIDCount,
         _parent = parent ?? createDivInline(),
         _generator = generator {
+    _resolveParentUIComponent();
     if (construct) {
       _construct(preserveRender, inline, classes, classes2, componentClass,
           style, style2, componentStyle, renderOnConstruction);
@@ -89,7 +90,9 @@ abstract class UIComponent extends UIEventHandler {
 
       onPreConstruct();
 
-      _content ??= createContentElement(inline);
+      if (_content == null) {
+        _setContent(createContentElement(inline));
+      }
 
       _setParentUIComponent(_getUIComponentByContent(_parent));
 
@@ -127,7 +130,21 @@ abstract class UIComponent extends UIEventHandler {
 
   Element? _getContent() => _content;
 
-  void _setContent(Element content) => _content = content;
+  static final Expando<UIComponent> _contentsUIComponents =
+      Expando<UIComponent>('_content:UIComponent');
+
+  static _getContentUIComponent(Element content) =>
+      _contentsUIComponents[content];
+
+  void _setContent(Element content) {
+    var prev = _content;
+    if (prev != null && !identical(prev, content)) {
+      _contentsUIComponents[prev] = null;
+    }
+
+    _content = content;
+    _contentsUIComponents[content] = this;
+  }
 
   void addTo(Element parent) {
     _setParentImpl(parent, true);
@@ -161,12 +178,12 @@ abstract class UIComponent extends UIEventHandler {
         if (!identical(_content!.parent, _parent)) {
           _parent!.append(_content!);
         }
-        parentUIComponent;
+        _resolveParentUIComponent();
         return _parent;
       } else if (identical(_content!.parent, parent)) {
         _parentUIComponent = null;
         _parent = parent;
-        parentUIComponent;
+        _resolveParentUIComponent();
         return _parent;
       } else {
         _content!.remove();
@@ -181,7 +198,7 @@ abstract class UIComponent extends UIEventHandler {
       clear();
     }
 
-    parentUIComponent;
+    _resolveParentUIComponent();
 
     return _parent;
   }
@@ -196,22 +213,41 @@ abstract class UIComponent extends UIEventHandler {
 
   void _setParentUIComponent(UIComponent? uiParent) {
     _parentUIComponent = uiParent;
+    _uiRoot = null;
   }
 
   /// The parent [UIComponent].
-  UIComponent? get parentUIComponent {
-    if (_parentUIComponent != null) return _parentUIComponent;
+  UIComponent? get parentUIComponent =>
+      _parentUIComponent ??= _resolveParentUIComponent();
 
-    var myParentElem = parent;
+  UIComponent? _resolveParentUIComponent() {
+    UIComponent? foundUIParent;
 
-    var foundParent = _getUIComponentByContent(myParentElem) ??
-        _getUIComponentByChild(myParentElem);
-
-    if (foundParent != null) {
-      _setParentUIComponent(foundParent);
+    var myParent = parent;
+    if (myParent != null) {
+      foundUIParent = _getContentUIComponent(myParent);
     }
 
-    return _parentUIComponent;
+    foundUIParent ??=
+        _getUIComponentByContent(myParent) ?? _getUIComponentByChild(myParent);
+
+    if (foundUIParent != null) {
+      _setParentUIComponent(foundUIParent);
+    }
+
+    return foundUIParent;
+  }
+
+  UIRoot? _uiRoot;
+
+  /// Returns the [UIRoot] that is parent of this [UIComponent] instance,
+  /// or `null` if it's not in an [UIRoot] components tree.
+  UIRoot? get uiRoot => _uiRoot ??= _resolveUIRoot();
+
+  UIRoot? _resolveUIRoot() {
+    var parent = parentUIComponent;
+    if (parent == null) return null;
+    return _uiRoot = parent.uiRoot;
   }
 
   bool _showing = true;
@@ -979,10 +1015,7 @@ abstract class UIComponent extends UIEventHandler {
 
   void _notifyRenderToParent() {
     var parentUIComponent = this.parentUIComponent;
-
-    if (parentUIComponent == null) {
-      return;
-    }
+    if (parentUIComponent == null) return;
 
     parentUIComponent._callOnChildRendered(this);
   }
@@ -1052,7 +1085,7 @@ abstract class UIComponent extends UIEventHandler {
 
   /// Called when [render] returns a [Future] value, to render the content
   /// while loading `Future`.
-  dynamic renderLoading() => null;
+  dynamic renderLoading() => uiRoot?.renderLoading();
 
   bool _renderedWithError = false;
 
