@@ -1,3 +1,12 @@
+## 2.0.10
+
+- Added extensions: `ElementExtension`, `IterableElementExtension` and `IterableUIComponentExtension`.
+- Improved resolution of `UIComponent` from an `Element`.
+- `UINavigator`:
+  - Added `equalsToCurrentRoute` and `equalsToCurrentRouteParameters`.
+- dom_tools: ^2.1.1
+- dom_builder: ^2.0.9
+
 ## 2.0.9
 
 - `UIComponent`:

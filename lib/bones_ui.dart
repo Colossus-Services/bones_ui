@@ -9,6 +9,7 @@ export 'src/bones_ui_base.dart';
 export 'src/bones_ui_component.dart';
 export 'src/bones_ui_document.dart';
 export 'src/bones_ui_explorer.dart';
+export 'src/bones_ui_extension.dart';
 export 'src/bones_ui_generator.dart';
 export 'src/bones_ui_log.dart';
 export 'src/bones_ui_navigator.dart';

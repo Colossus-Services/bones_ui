@@ -11,12 +11,13 @@ import 'package:swiss_knife/swiss_knife.dart';
 import 'bones_ui_async_content.dart';
 import 'bones_ui_base.dart';
 import 'bones_ui_content.dart';
+import 'bones_ui_extension.dart';
 import 'bones_ui_generator.dart';
+import 'bones_ui_internal.dart';
 import 'bones_ui_layout.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_navigator.dart';
 import 'bones_ui_root.dart';
-import 'bones_ui_internal.dart';
 
 /// [UIComponent] behavior to clear the component.
 enum UIComponentClearParent { onConstruct, onInitialRender, onRender }
@@ -1880,54 +1881,10 @@ abstract class UIComponent extends UIEventHandler {
   List<Element> getFieldsElements() => _contentChildrenDeepImpl(
       content!.children, [], (e) => getElementFieldName(e) != null);
 
-  String? parseChildElementValue(Element? element,
+  String? parseChildElementValue(Element? childElement,
           {bool allowTextAsValue = true}) =>
-      parseElementValue(element,
+      childElement?.resolveElementValue(
           parentUIComponent: this, allowTextAsValue: allowTextAsValue);
-
-  static String? parseElementValue(Element? element,
-      {UIComponent? parentUIComponent, bool allowTextAsValue = true}) {
-    UIComponent? uiComponent;
-
-    if (parentUIComponent != null) {
-      uiComponent = parentUIComponent.findUIComponentByChild(element);
-    } else {
-      uiComponent = UIRoot.getInstance()!.findUIComponentByChild(element);
-    }
-
-    if (uiComponent is UIField) {
-      var uiField = uiComponent as UIField;
-      var fieldValue = uiField.getFieldValue();
-      return MapProperties.toStringValue(fieldValue);
-    } else if (uiComponent is UIFieldMap) {
-      var uiFieldMap = uiComponent as UIFieldMap;
-      var fieldValue = uiFieldMap.getFieldMap();
-      return MapProperties.toStringValue(fieldValue);
-    } else if (element is TextAreaElement) {
-      return element.value;
-    } else if (element is SelectElement) {
-      var selected = element.selectedOptions;
-      if (selected.isEmpty) return '';
-      return MapProperties.toStringValue(selected.map((opt) => opt.value));
-    } else if (element is InputElement) {
-      var type = element.type;
-      switch (type) {
-        case 'checkbox':
-        case 'radio':
-          return parseBool(element.checked, false)! ? element.value : null;
-        case 'file':
-          return MapProperties.toStringValue(element.files!.map((f) => f.name));
-        default:
-          return element.value;
-      }
-    } else {
-      var value = element!.getAttribute('field_value');
-      if (isEmptyObject(value) && allowTextAsValue) {
-        value = element.text;
-      }
-      return value;
-    }
-  }
 
   Map<String, String?> getFields(
       {List<String>? fields, List<String>? ignoreFields}) {

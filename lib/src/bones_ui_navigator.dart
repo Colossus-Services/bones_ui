@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:html';
 
+import 'package:collection/collection.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import 'bones_ui_base.dart';
@@ -130,6 +131,18 @@ class UINavigator {
   /// Returns the current route parameters.
   static Map<String, String>? get currentRouteParameters =>
       copyMapString(get()._currentRouteParameters);
+
+  /// Returns `true` if [route] equals to [currentRoute].
+  ///
+  /// - If [parameters] is provided it checks if [parameters] is equals to [currentRouteParameters].
+  static bool equalsToCurrentRoute(String route,
+          {Map<String, String>? parameters}) =>
+      currentRoute == route &&
+      (parameters == null || equalsToCurrentRouteParameters(parameters));
+
+  /// Returns `true` if [parameters] are equals to [currentRouteParameters].
+  static bool equalsToCurrentRouteParameters(Map<String, String>? parameters) =>
+      MapEquality().equals(currentRouteParameters, parameters);
 
   /// Returns [true] if current location has a route entry.
   static bool get hasRoute => get()._hasRoute();
