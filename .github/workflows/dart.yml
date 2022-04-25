@@ -40,8 +40,6 @@ jobs:
         run: ./tester-run 'dart format -o none --set-exit-if-changed .'
       - name: Dart analyze
         run: ./tester-run 'dart analyze --fatal-infos --fatal-warnings .'
-      - name: Run tests - VM
-        run: ./tester-run 'dart test -p vm'
       - name: dart pub publish --dry-run
         run: ./tester-run 'dart pub publish --dry-run'
       - name: APT update
