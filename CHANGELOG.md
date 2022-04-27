@@ -1,5 +1,6 @@
 ## 2.0.11
 
+- Improved GitHub CI.
 - swiss_knife: ^3.1.1
 - mercury_client: ^2.1.5
 - intl_messages: ^2.0.2

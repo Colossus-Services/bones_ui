@@ -8,43 +8,40 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
-    container:
-      image:  google/dart:latest
 
     steps:
       - uses: actions/checkout@v2
+      - uses: dart-lang/setup-dart@v1
       - name: Dart version
         run: |
           dart --version
           uname -a
-      - name: Current DIR
-        run: pwd && pwd >/tmp/test-dir.txt
-      - name: Add user tester
-        run: adduser --disabled-password tester
-      - name: Clean Project + chown tester
+      - name: Install dependencies
+        run: dart pub get
+      - name: dart format
+        run: dart format -o none --set-exit-if-changed .
+      - name: dart analyze
+        run: dart analyze --fatal-infos --fatal-warnings .
+      - name: dependency_validator
+        run: dart run dependency_validator
+      - name: Run tests (Chrome)
+        run: dart test --platform chrome
+#      - name: dartdoc
+#        run: dartdoc --no-generate-docs
+      - name: Generate coverage report
         run: |
-          rm -rf .dart_tool .packages pubspec.lock
-          chown -R tester:tester .
-          ls -al
-      - name: Tester Runner
-        run: |
-          echo "#/bin/bash\nsu -c 'DISPLAY=:0 cd \$(< /tmp/test-dir.txt) && set -x && \$1' tester run \"\$@\"" > ./tester-run
-          cat ./tester-run
-          chmod 755 ./tester-run
-      - name: Dart pub get
-        run: ./tester-run 'dart pub get'
-      - name: Dart format
-        run: ./tester-run 'dart format -o none --set-exit-if-changed .'
-      - name: Dart analyze
-        run: ./tester-run 'dart analyze --fatal-infos --fatal-warnings .'
+          dart pub global activate coverage
+          dart run test --coverage=./coverage
+          dart pub global run coverage:format_coverage --packages=.packages --report-on=lib --lcov -o ./coverage/lcov.info -i ./coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          directory: ./coverage/
+          flags: unittests
+          env_vars: OS,DART
+          fail_ci_if_error: true
+          verbose: true
       - name: dart pub publish --dry-run
-        run: ./tester-run 'dart pub publish --dry-run'
-      - name: APT update
-        run: apt-get update
-      - name: Install Firefox
-        run: apt-get install -y firefox-esr xorg
-      - name: Run tests - Firefox
-        run: ./tester-run 'dart test -p firefox'
+        run: dart pub publish --dry-run
+
