@@ -1,3 +1,11 @@
+## 2.0.11
+
+- swiss_knife: ^3.1.1
+- mercury_client: ^2.1.5
+- intl_messages: ^2.0.2
+- json_render: ^2.0.4
+- archive: ^3.3.0
+
 ## 2.0.10
 
 - Added extensions: `ElementExtension`, `IterableElementExtension` and `IterableUIComponentExtension`.
