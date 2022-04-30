@@ -1,3 +1,8 @@
+## 2.0.12
+
+- Improve `UIColorPickerInput` and `UIInputTable`.
+- dom_tools: ^2.1.2
+
 ## 2.0.11
 
 - Improved GitHub CI.

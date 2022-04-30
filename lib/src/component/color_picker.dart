@@ -19,11 +19,11 @@ class UIColorPickerInput extends UIComponent {
   UIColorPickerInput(Element? parent,
       {this.placeholder,
       String fieldName = '',
-      String value = '',
+      String? value = '',
       int pickerWidth = 200,
       int pickerHeight = 200})
       : _fieldName = fieldName,
-        _initialValue = value,
+        _initialValue = value ?? '',
         _pickerWidth = pickerWidth,
         _pickerHeight = pickerHeight,
         super(parent);
@@ -55,6 +55,7 @@ class UIColorPickerInput extends UIComponent {
     var colorButton = createDivInline()
       ..style.width = '20px'
       ..style.height = '20px'
+      ..style.marginLeft = '2px'
       ..style.backgroundColor = '$cssColor'
       ..style.border = '3px solid #000'
       ..style.verticalAlign = 'middle';
@@ -68,7 +69,8 @@ class UIColorPickerInput extends UIComponent {
 
     var picker = UIColorPicker(content,
         color: color, width: _pickerWidth, height: _pickerHeight)
-      ..content!.style.display = 'none';
+      ..content!.style.display = 'none'
+      ..content!.style.paddingRight = '22px';
 
     var inputInteractionCompleter = InteractionCompleter('UIColorPickerInput',
         triggerDelay: Duration(seconds: 2), functionToTrigger: () {
@@ -198,7 +200,9 @@ class UIColorPicker extends UIComponent {
 
   @override
   void configure() {
-    content!.style.backgroundColor = '#ffffff';
+    var content = this.content!;
+    content.style.textAlign = 'center';
+    _disableTransitions(content);
   }
 
   Color? _color;
@@ -259,6 +263,9 @@ class UIColorPicker extends UIComponent {
   HSLColor? get hslColor => _hslColor;
 
   // ignore: non_constant_identifier_names
+  DivElement? _panel_all;
+
+  // ignore: non_constant_identifier_names
   DivElement? _panel_ViewColor_Saturation;
 
   // ignore: non_constant_identifier_names
@@ -299,22 +306,34 @@ class UIColorPicker extends UIComponent {
     var barSize = _barSize;
     var pointSizeHalf = _pointSizeHalf;
 
-    if (_square == null) {
+    if (_panel_all == null) {
+      _panel_all = createDivInlineBlock();
+
+      _disableTransitions(_panel_all!);
+
       _panel_Saturation_Luma_Square = createDiv()
         ..style.width = '${width + barSize}px'
         ..style.height = '${height + barSize}px';
+
+      _disableTransitions(_panel_Saturation_Luma_Square!);
 
       _panel_ViewColor_Saturation = createDiv()
         ..style.width = '${width + barSize}px'
         ..style.height = '${barSize}px';
 
+      _disableTransitions(_panel_ViewColor_Saturation!);
+
       _viewColor = createDivInline()
         ..style.width = '${barSize}px'
         ..style.height = '${barSize}px';
 
+      _disableTransitions(_viewColor!);
+
       _saturation = createDivInline()
         ..style.width = '${width}px'
         ..style.height = '${barSize}px';
+
+      _disableTransitions(_saturation!);
 
       _panel_ViewColor_Saturation!.children.add(_viewColor!);
       _panel_ViewColor_Saturation!.children.add(_saturation!);
@@ -323,15 +342,21 @@ class UIColorPicker extends UIComponent {
         ..style.width = '${barSize}px'
         ..style.height = '${height}px';
 
+      _disableTransitions(_luma!);
+
       _square = createDivInline()
         ..style.width = '${width}px'
         ..style.height = '${height}px';
+
+      _disableTransitions(_square!);
 
       _point = createDiv()
         ..style.width = '${pointSize}px'
         ..style.height = '${pointSize}px'
         ..style.borderRadius = '${pointSizeHalf}px'
         ..style.position = 'relative';
+
+      _disableTransitions(_point!);
 
       _square!.children.add(_point!);
 
@@ -340,6 +365,8 @@ class UIColorPicker extends UIComponent {
         ..style.height = '1px'
         ..style.position = 'relative';
 
+      _disableTransitions(_lumaBar!);
+
       _luma!.children.add(_lumaBar!);
 
       _saturationBar = createDiv()
@@ -347,6 +374,8 @@ class UIColorPicker extends UIComponent {
         ..style.height = '${barSize}px'
         ..style.backgroundColor = 'rgb(0,0,0)'
         ..style.position = 'relative';
+
+      _disableTransitions(_saturationBar!);
 
       _saturation!.children.add(_saturationBar!);
 
@@ -361,12 +390,19 @@ class UIColorPicker extends UIComponent {
         ..style.background =
             'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)';
 
+      _disableTransitions(_hue!);
+
       _hueBar = createDiv()
         ..style.width = '1px'
         ..style.height = '${barSize}px'
         ..style.position = 'relative';
 
+      _disableTransitions(_hueBar!);
+
       _hue!.children.add(_hueBar!);
+
+      _panel_all!.children.add(_panel_Saturation_Luma_Square!);
+      _panel_all!.children.add(_hue!);
 
       //
 
@@ -462,7 +498,7 @@ class UIColorPicker extends UIComponent {
     _square!.style.background =
         'linear-gradient(0deg, rgba(0,0,0,1), rgba(0,0,0,0) ), linear-gradient(270deg, rgb(${_baseColor!.red},${_baseColor!.green},${_baseColor!.blue}), rgb(255,255,255))';
 
-    return [_panel_Saturation_Luma_Square, _hue];
+    return _panel_all;
   }
 
   void _squareClick(MouseEvent event) {
@@ -642,4 +678,10 @@ class UIColorPicker extends UIComponent {
 
     return HSVColor.fromAHSV(1, hue, saturation, value);
   }
+}
+
+void _disableTransitions(Element element) {
+  element.style
+    ..transition = 'none'
+    ..animation = 'none';
 }

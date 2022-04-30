@@ -1,14 +1,20 @@
 import 'dart:html';
 
+import 'package:collection/collection.dart';
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
+import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import '../bones_ui_component.dart';
 import 'capture.dart';
 import 'color_picker.dart';
 
-typedef FieldValueProvider = dynamic Function(String? field);
+typedef FieldValueProvider = dynamic Function(String field);
+
+typedef FieldValueValidator = bool Function(String field, String? value);
+
+typedef FieldValueNormalizer = String? Function(String field, String? value);
 
 /// Configuration for an input.
 class InputConfig {
@@ -19,27 +25,23 @@ class InputConfig {
         .toList();
   }
 
-  String? _id;
-
-  String? _label;
-
-  String? _type;
-
+  final String _id;
+  late final String? _label;
+  final String _type;
   String? value;
+  final String? _placeholder;
+  final Map<String, String>? _attributes;
+  final Map<String, String>? _options;
+  final bool _optional;
 
-  String? _placeholder;
+  final FieldValueProvider? _valueProvider;
+  final FieldValueValidator? _valueValidator;
+  final FieldValueNormalizer? _valueNormalizer;
+  final Object? _invalidValueMessage;
 
-  Map<String, String>? _attributes;
-
-  List<String> classes = ['form-control'];
+  List<String> classes;
 
   String? style;
-
-  Map<String, String>? _options;
-
-  bool? _optional;
-
-  FieldValueProvider? _valueProvider;
 
   static InputConfig? from(dynamic config, [String? id]) {
     if (config is List) {
@@ -86,45 +88,42 @@ class InputConfig {
 
   InputConfig(String id, String? label,
       {String? type = 'text',
-      this.value = '',
+      String? value = '',
       String? placeholder = '',
       Map<String, String>? attributes,
       Map<String, String>? options,
       bool? optional = false,
-      List<String>? classes,
+      Object? classes,
       String? style,
-      FieldValueProvider? valueProvider}) {
-    if (type == null || type.isEmpty) type = 'text';
-    if (value == null || value!.isEmpty) value = null;
-    if (placeholder == null || placeholder.isEmpty) placeholder = null;
-
+      FieldValueProvider? valueProvider,
+      FieldValueValidator? valueValidator,
+      FieldValueNormalizer? valueNormalizer,
+      Object? invalidValueMessage})
+      : _id = id,
+        _type = type == null || type.isEmpty ? 'text' : type,
+        value = value == null || value.isEmpty ? null : value,
+        _placeholder =
+            placeholder == null || placeholder.isEmpty ? null : placeholder,
+        _optional = optional ?? false,
+        _attributes = attributes,
+        _options = options,
+        _valueProvider = valueProvider,
+        _valueValidator = valueValidator,
+        _valueNormalizer = valueNormalizer,
+        _invalidValueMessage = invalidValueMessage,
+        classes = UIComponent.parseClasses(classes) {
     if (label == null || label.isEmpty) {
-      if (value != null) {
-        label = value!;
+      if (this.value != null) {
+        label = this.value!;
       } else {
-        label = type;
+        label = _type;
       }
     }
 
     if (id.isEmpty) throw ArgumentError('Invalid ID');
     if (label.isEmpty) throw ArgumentError('Invalid Label');
 
-    _id = id;
     _label = label;
-    _type = type;
-
-    _placeholder = placeholder;
-
-    _attributes = attributes;
-    _options = options;
-
-    _optional = optional;
-    _valueProvider = valueProvider;
-
-    if (classes != null) {
-      classes.removeWhere((e) => e.isEmpty);
-      this.classes = classes;
-    }
 
     if (style != null) {
       style = style.trim();
@@ -132,13 +131,13 @@ class InputConfig {
     }
   }
 
-  String? get id => _id;
+  String get id => _id;
 
-  String? get fieldName => _id;
+  String get fieldName => _id;
 
   String? get label => _label;
 
-  String? get type => _type;
+  String get type => _type;
 
   String? get placeholder => _placeholder;
 
@@ -146,11 +145,50 @@ class InputConfig {
 
   Map<String, String>? get options => _options;
 
-  bool? get optional => _optional;
+  bool get optional => _optional;
 
-  bool get required => !_optional!;
+  bool get required => !_optional;
 
   FieldValueProvider? get valueProvider => _valueProvider;
+
+  bool get hasValueValidator => _valueValidator != null;
+
+  bool validateValue(String? value) {
+    var valueValidator = _valueValidator;
+    if (valueValidator != null) {
+      if (!valueValidator(fieldName, value)) {
+        return false;
+      }
+    }
+
+    if (required && _isEmptyValue(value)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  bool get hasValueNormalizer => _valueNormalizer != null;
+
+  String? normalizeValue(String? value) {
+    var valueNormalizer = _valueNormalizer;
+    if (valueNormalizer != null) {
+      return valueNormalizer(fieldName, value);
+    }
+
+    return value;
+  }
+
+  String? get invalidValueMessage {
+    var value = _invalidValueMessage;
+    if (value == null) return null;
+
+    if (value is MessageBuilder) {
+      return value.build();
+    } else {
+      return value.toString();
+    }
+  }
 
   dynamic renderInput([FieldValueProvider? fieldValueProvider]) {
     var inputID = id;
@@ -172,7 +210,7 @@ class InputConfig {
       inputComponent = capture;
     } else if (inputType == 'color') {
       var picker = UIColorPickerInput(null,
-          fieldName: inputID!,
+          fieldName: inputID,
           placeholder: placeholder,
           value: inputValue,
           pickerWidth: 150,
@@ -194,13 +232,13 @@ class InputConfig {
 
     if (inputElement != null) {
       _configureElementStyle(inputElement);
-      _configureInputElement(inputElement, inputID!);
+      _configureInputElement(inputElement, inputID);
       _configureElementAttribute(inputElement);
       return inputElement;
     } else if (element != null) {
       var input = element.querySelector('input')!;
       _configureElementStyle(element);
-      _configureInputElement(input, inputID!);
+      _configureInputElement(input, inputID);
       _configureElementAttribute(element);
       return element;
     } else if (inputComponent != null) {
@@ -243,30 +281,30 @@ class InputConfig {
     }
   }
 
-  DivElement? _renderInputPath(String? fieldName, String? inputValue) {
+  DivElement? _renderInputPath(String fieldName, String? inputValue) {
     var input = $input(style: 'width: auto', value: inputValue);
     DOMElement? button;
 
-    if (_valueProvider != null) {
+    var valueProvider = _valueProvider;
+
+    if (valueProvider != null) {
       button = $button(
           classes: 'btn-sm btn-secondary',
           style: 'font-size: 80%',
           content: 'File')
         ..onClick.listen((_) async {
-          if (_valueProvider != null) {
-            var ret = _valueProvider!(fieldName) ?? '';
-            dynamic value;
-            if (ret is Future) {
-              value = await ret;
-            } else {
-              value = ret;
-            }
-            value ??= '';
-
-            var element = input.runtime.node as InputElement;
-            element.value = '$value';
-            element.dispatchEvent(Event('change'));
+          var ret = valueProvider(fieldName) ?? '';
+          dynamic value;
+          if (ret is Future) {
+            value = await ret;
+          } else {
+            value = ret;
           }
+          value ??= '';
+
+          var element = input.runtime.node as InputElement;
+          element.value = '$value';
+          element.dispatchEvent(Event('change'));
         });
     }
 
@@ -319,6 +357,7 @@ class InputConfig {
     } else if (inputValue != null && inputValue.isNotEmpty) {
       select.innerHtml = '$inputValue';
     }
+
     return select;
   }
 
@@ -368,19 +407,34 @@ class InputConfig {
 class UIInputTable extends UIComponent {
   final List<InputConfig> _inputs;
   final bool showLabels;
+  final bool showInvalidMessages;
+
+  final List _extraRows;
+
+  final List<String> _inputsClasses;
+
+  final String? inputErrorClass;
+  final String? invalidValueClass;
 
   UIInputTable(Element? parent, this._inputs,
-      {this.actionListenerComponent,
+      {List? extraRows,
+      this.actionListenerComponent,
       this.actionListener,
       this.inputErrorClass,
-      bool? showLabels,
+      this.invalidValueClass,
+      this.showLabels = true,
+      this.showInvalidMessages = true,
       dynamic classes,
-      dynamic style})
-      : showLabels = showLabels ?? true,
+      dynamic style,
+      dynamic inputsClasses})
+      : _extraRows = extraRows ?? [],
+        _inputsClasses = UIComponent.parseClasses(inputsClasses),
         super(parent,
             componentClass: 'ui-infos-table', classes: classes, style: style);
 
-  String? inputErrorClass;
+  List<String> get inputsClasses => _inputsClasses;
+
+  String get highlightClass => inputErrorClass ?? 'ui-input-error';
 
   bool canHighlightInputs() =>
       inputErrorClass == null || inputErrorClass!.isEmpty;
@@ -389,24 +443,41 @@ class UIInputTable extends UIComponent {
     if (canHighlightInputs()) return -1;
 
     unhighlightErrorInputs();
+
+    var highlightClass = this.highlightClass;
+
     return forEachEmptyFieldElement(
-        (fieldElement) => fieldElement.classes.add('ui-input-error'));
+        (fieldElement) => fieldElement.classes.add(highlightClass));
   }
 
   int unhighlightErrorInputs() {
     if (canHighlightInputs()) return -1;
 
-    return forEachFieldElement(
-        (fieldElement) => fieldElement.classes.remove('ui-input-error'));
+    var highlightClass = this.highlightClass;
+
+    return forEachFieldElement((fieldElement) {
+      fieldElement.classes.remove(highlightClass);
+      var fieldName = getElementFieldName(fieldElement);
+      _hideInvalidMessage(fieldName);
+    });
   }
 
-  bool highlightField(String? fieldName) {
+  bool highlightField(String? fieldName, {String? invalidValueMessage}) {
     if (canHighlightInputs()) return false;
 
     var fieldElement = getFieldElement(fieldName);
     if (fieldElement == null) return false;
 
-    fieldElement.classes.add(inputErrorClass!);
+    fieldElement.classes.add(highlightClass);
+
+    if (showInvalidMessages && !_isEmptyValue(invalidValueMessage)) {
+      var msg = content!.querySelector('#__invalid_msg__$fieldName');
+      if (msg != null) {
+        msg.text = invalidValueMessage!;
+        msg.hidden = false;
+      }
+    }
+
     return true;
   }
 
@@ -416,18 +487,48 @@ class UIInputTable extends UIComponent {
     var fieldElement = getFieldElement(fieldName);
     if (fieldElement == null) return false;
 
-    fieldElement.classes.remove(inputErrorClass);
+    fieldElement.classes.remove(highlightClass);
+
+    _hideInvalidMessage(fieldName);
+
     return true;
   }
 
+  void _hideInvalidMessage(String? fieldName) {
+    if (!showInvalidMessages || fieldName == null || fieldName.isEmpty) return;
+
+    var msg = content!.querySelector('#__invalid_msg__$fieldName');
+    if (msg != null) {
+      msg.hidden = true;
+      msg.text = '';
+    }
+  }
+
   bool checkFields() {
+    normalizeFields();
+
     var ok = true;
 
     unhighlightErrorInputs();
 
-    for (var i in _inputs) {
-      if (i.required && isEmptyField(i.fieldName)) {
-        highlightField(i.fieldName);
+    for (var input in _inputs) {
+      var fieldName = input.fieldName;
+      var fieldValue = getFieldElementValue(fieldName);
+      var fieldOk = input.validateValue(fieldValue);
+
+      if (!fieldOk) {
+        var invalidValueMessage =
+            _isEmptyValue(fieldValue) ? null : input.invalidValueMessage;
+
+        highlightField(fieldName, invalidValueMessage: invalidValueMessage);
+
+        if (ok) {
+          var element = getFieldElement(fieldName);
+          if (element != null) {
+            scrollToElement(element);
+          }
+        }
+
         ok = false;
       }
     }
@@ -435,10 +536,26 @@ class UIInputTable extends UIComponent {
     return ok;
   }
 
+  int normalizeFields() {
+    var normalizeCount = 0;
+
+    for (var input in _inputs.where((e) => e.hasValueNormalizer)) {
+      var fieldName = input.fieldName;
+      var fieldValue = getFieldElementValue(fieldName);
+      var fieldValue2 = input.normalizeValue(fieldValue);
+
+      if (fieldValue2 != fieldValue) {
+        setField(fieldName, fieldValue2);
+        ++normalizeCount;
+      }
+    }
+
+    return normalizeCount;
+  }
+
   @override
   dynamic render() {
     var form = FormElement();
-
     form.autocomplete = 'off';
 
     var table = TableElement();
@@ -448,11 +565,27 @@ class UIInputTable extends UIComponent {
       var row = tBody.addRow();
 
       if (showLabels) {
-        row.addCell()
+        var label = input.label ?? '';
+
+        var cell = row.addCell()
           ..style.verticalAlign = 'top'
-          ..style.textAlign = 'right'
-          ..innerHtml =
-              '<label for="${input.id}"><b>${input.label}:&nbsp;</b></label>';
+          ..style.textAlign = 'right';
+
+        if (label.isNotEmpty) {
+          if (label.contains('{{') && label.contains('}}')) {
+            var domLabel = $label(
+                classes: 'form-check-label',
+                forID: input.id,
+                style: 'font-weight: bold',
+                content: [label, ':', '&nbsp;']);
+            var dom = domLabel.buildDOM(generator: UIComponent.domGenerator)
+                as LabelElement;
+            cell.children.add(dom);
+          } else {
+            cell.appendHtml(
+                '<label class="form-check-label" for="${input.id}"><b>$label:&nbsp;</b></label>');
+          }
+        }
       }
 
       var celInput = row.addCell()..style.textAlign = 'left';
@@ -460,8 +593,16 @@ class UIInputTable extends UIComponent {
       var inputRendered = input.renderInput(getPreviousRenderedFieldValue);
 
       if (inputRendered is Element) {
+        if (_inputsClasses.isNotEmpty) {
+          inputRendered.classes.addAll(_inputsClasses);
+        }
+
         celInput.children.add(inputRendered);
       } else if (inputRendered is UIComponent) {
+        if (_inputsClasses.isNotEmpty) {
+          inputRendered.content?.classes.addAll(_inputsClasses);
+        }
+
         var div = createDiv();
         celInput.children.add(div);
 
@@ -474,11 +615,121 @@ class UIInputTable extends UIComponent {
           });
         }
       }
+
+      if (showInvalidMessages) {
+        var msg = DivElement()
+          ..id = '__invalid_msg__${input.fieldName}'
+          ..hidden = true;
+
+        var invalidValueClass = this.invalidValueClass;
+        if (invalidValueClass != null) {
+          msg.classes.add(invalidValueClass);
+        }
+
+        celInput.children.add(msg);
+      }
+    }
+
+    for (var r in _extraRows) {
+      var row = _resolveRow(r);
+      if (row == null) continue;
+
+      if (row is TableRowElement) {
+        _addTableRow(table, row);
+      } else if (row is List<TableRowElement>) {
+        for (var r in row) {
+          _addTableRow(table, r);
+        }
+      } else if (row is List<TableCellElement>) {
+        var tr = table.addRow();
+
+        for (var cell in row) {
+          _addTableRowCell(tr, cell);
+        }
+      } else if (row is List<Element>) {
+        var tr = table.addRow();
+
+        for (var cell in row) {
+          var td = tr.addCell();
+          td.children.add(cell);
+        }
+      }
     }
 
     form.append(table);
 
     return form;
+  }
+
+  void _addTableRow(TableElement table, TableRowElement row) {
+    var tr = table.addRow();
+
+    tr.attributes.addAll(row.attributes);
+
+    for (var cell in row.cells) {
+      _addTableRowCell(tr, cell);
+    }
+  }
+
+  void _addTableRowCell(TableRowElement tr, TableCellElement cell) {
+    var td = tr.addCell();
+    td.attributes.addAll(cell.attributes);
+
+    var children = cell.children.toList();
+    cell.children.clear();
+
+    td.children.addAll(children);
+  }
+
+  Object? _resolveRow(Object? row) {
+    if (row == null) return null;
+
+    List<DOMNode?>? nodes;
+
+    if (row is String) {
+      row = row.trim();
+      if (row.isEmpty) return null;
+      nodes = $html(row);
+    } else if (row is DOMNode) {
+      nodes = <DOMNode>[row];
+    } else if (row is List) {
+      if (row.every((n) => n is DOMNode)) {
+        nodes = row.whereType<DOMNode>().toList();
+      } else if (row.every((n) => n is String)) {
+        nodes = [$tr(cells: row)];
+      } else if (row.every((n) => n is List)) {
+        nodes = row.map((cells) => $tr(cells: cells)).toList();
+      } else {
+        nodes = row.map((cells) => $tr(cells: cells)).toList();
+      }
+    }
+
+    if (nodes == null) return null;
+
+    nodes = nodes.whereNotNull().toList();
+    if (nodes.isEmpty) return null;
+
+    TABLEElement? table;
+
+    if (nodes.every((n) => n is TABLEElement)) {
+      table = nodes.first as TABLEElement;
+    } else if (nodes.every((n) => n is TRowElement)) {
+      table = $table(body: nodes);
+    } else if (nodes.every((n) => n is TDElement)) {
+      table = $table(body: [$tr(cells: nodes)]);
+    }
+
+    if (table != null) {
+      var dom =
+          table.buildDOM(generator: UIComponent.domGenerator) as TableElement;
+      var trs = dom.rows.toList();
+      if (trs.isEmpty) return null;
+      return trs.length == 1 ? trs.first : trs;
+    }
+
+    var div = $div(content: nodes);
+    var dom = div.buildDOM(generator: UIComponent.domGenerator) as DivElement;
+    return dom.children.toList();
   }
 
   /// Redirects [action] calls to an [UIComponent].
@@ -549,3 +800,5 @@ class UIInputTable extends UIComponent {
     }
   }
 }
+
+bool _isEmptyValue(String? value) => value == null || value.isEmpty;

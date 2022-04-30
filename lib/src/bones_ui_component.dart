@@ -562,7 +562,8 @@ abstract class UIComponent extends UIEventHandler {
 
   dynamic getRenderedUIComponentById(dynamic id, [bool? deep]) {
     if (id == null) return null;
-    return getRenderedUIComponents(deep).firstWhereOrNull((e) => e.id == id);
+    var components = getRenderedUIComponents(deep);
+    return components.firstWhereOrNull((e) => e.id == id);
   }
 
   List<UIComponent> getRenderedUIComponentsByIds(List ids, [bool? deep]) {
@@ -1970,10 +1971,17 @@ abstract class UIComponent extends UIEventHandler {
 
   List<String> getFieldsNames() => List.from(getFieldsElementsMap().keys);
 
-  bool isEmptyField(String? fieldName) {
+  String? getFieldElementValue(String? fieldName) {
+    if (fieldName == null) return null;
     var fieldElement = getFieldElement(fieldName);
     var val = parseChildElementValue(fieldElement);
-    return val == null || val.toString().isEmpty;
+    return val;
+  }
+
+  bool isEmptyField(String? fieldName) {
+    if (fieldName == null) return false;
+    var val = getFieldElementValue(fieldName);
+    return val == null || val.isEmpty;
   }
 
   List<String> getEmptyFields() {
