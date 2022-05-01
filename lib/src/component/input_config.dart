@@ -16,6 +16,8 @@ typedef FieldValueValidator = bool Function(String field, String? value);
 
 typedef FieldValueNormalizer = String? Function(String field, String? value);
 
+typedef FieldValueEvent = void Function(dynamic event);
+
 /// Configuration for an input.
 class InputConfig {
   static List<InputConfig> listFromMap(Map map) {
@@ -38,6 +40,8 @@ class InputConfig {
   final FieldValueValidator? _valueValidator;
   final FieldValueNormalizer? _valueNormalizer;
   final Object? _invalidValueMessage;
+
+  final FieldValueEvent? onChangeListener;
 
   List<String> classes;
 
@@ -86,20 +90,23 @@ class InputConfig {
     return null;
   }
 
-  InputConfig(String id, String? label,
-      {String? type = 'text',
-      String? value = '',
-      String? placeholder = '',
-      Map<String, String>? attributes,
-      Map<String, String>? options,
-      bool? optional = false,
-      Object? classes,
-      String? style,
-      FieldValueProvider? valueProvider,
-      FieldValueValidator? valueValidator,
-      FieldValueNormalizer? valueNormalizer,
-      Object? invalidValueMessage})
-      : _id = id,
+  InputConfig(
+    String id,
+    String? label, {
+    String? type = 'text',
+    String? value = '',
+    String? placeholder = '',
+    Map<String, String>? attributes,
+    Map<String, String>? options,
+    bool? optional = false,
+    Object? classes,
+    String? style,
+    FieldValueProvider? valueProvider,
+    FieldValueValidator? valueValidator,
+    FieldValueNormalizer? valueNormalizer,
+    Object? invalidValueMessage,
+    this.onChangeListener,
+  })  : _id = id,
         _type = type == null || type.isEmpty ? 'text' : type,
         value = value == null || value.isEmpty ? null : value,
         _placeholder =
@@ -431,6 +438,9 @@ class UIInputTable extends UIComponent {
         _inputsClasses = UIComponent.parseClasses(inputsClasses),
         super(parent,
             componentClass: 'ui-infos-table', classes: classes, style: style);
+
+  InputConfig? getInputConfig(String fieldName) =>
+      _inputs.firstWhere((e) => e.fieldName == fieldName);
 
   List<String> get inputsClasses => _inputsClasses;
 
@@ -772,6 +782,8 @@ class UIInputTable extends UIComponent {
         var fieldName = entry.key;
         var elem = entry.value;
 
+        var inputConfig = getInputConfig(fieldName);
+
         var interactionCompleter = InteractionCompleter('field:$fieldName',
             triggerDelay: _onChangeTriggerDelay);
 
@@ -781,6 +793,11 @@ class UIInputTable extends UIComponent {
             onInputFocus.add(element);
           }
         });
+
+        var onChangeListener = inputConfig?.onChangeListener;
+        if (onChangeListener != null) {
+          elem.onChange.listen(onChangeListener);
+        }
 
         elem.onChange.listen((e) {
           interactionCompleter.cancel();
