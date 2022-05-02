@@ -204,6 +204,8 @@ class InputConfig {
         ? (fieldValueProvider(fieldName) ?? value)
         : value;
 
+    inputValue = _resolveValue(inputValue);
+
     Element? inputElement;
     UIComponent? inputComponent;
     Element? element;
@@ -253,6 +255,30 @@ class InputConfig {
     }
 
     return null;
+  }
+
+  Object? _resolveValue(Object? inputValue) {
+    if (inputValue == null) return null;
+    if (inputValue is Future) {
+      throw StateError("Can't use a `Future` as an input value: $this");
+    }
+    return inputValue;
+  }
+
+  String? _resolveValueText(Object? inputValue) {
+    var val = _resolveValue(inputValue);
+    if (val == null) return null;
+
+    var valText = val.toString();
+
+    if (_containsIntlMessage(valText)) {
+      var domSpan = $span(content: valText);
+      var dom = domSpan.buildDOM(generator: UIComponent.domGenerator);
+      var text = dom?.text;
+      return text;
+    }
+
+    return valText;
   }
 
   void _configureElementStyle(Element inputElement) {
@@ -321,24 +347,26 @@ class InputConfig {
     return div as DivElement?;
   }
 
-  TextAreaElement _renderTextArea(inputValue) {
+  TextAreaElement _renderTextArea(Object? inputValue) {
+    var valText = _resolveValueText(inputValue);
     var textArea = TextAreaElement();
-    textArea.value = inputValue;
+    textArea.value = valText;
     return textArea;
   }
 
-  Element _renderGenericInput(String? inputType, inputValue) {
+  Element _renderGenericInput(String? inputType, Object? inputValue) {
+    var valText = _resolveValueText(inputValue);
+
     var input = InputElement()
       ..type = inputType ?? 'text'
-      ..value = inputValue ?? ''
+      ..value = valText ?? ''
       ..style.width = '100%';
 
     return input;
   }
 
-  SelectElement _renderSelect(inputValue) {
+  SelectElement _renderSelect(Object? inputValue) {
     var select = SelectElement();
-
     if (options != null && options!.isNotEmpty) {
       for (var optKey in options!.keys) {
         var optVal = options![optKey];
@@ -348,6 +376,8 @@ class InputConfig {
           optKey = optKey.substring(0, optKey.length - 1);
           selected = true;
         }
+
+        optVal = _resolveValueText(optVal);
 
         if (optVal == null || optVal.isEmpty) {
           optVal = optKey;
@@ -361,52 +391,14 @@ class InputConfig {
 
         select.add(optionElement, null);
       }
-    } else if (inputValue != null && inputValue.isNotEmpty) {
-      select.innerHtml = '$inputValue';
+    } else if (inputValue != null) {
+      var s = _resolveValueText(inputValue);
+      if (s != null && s.isNotEmpty) {
+        select.innerHtml = s;
+      }
     }
 
     return select;
-  }
-
-  List<Element> renderElementsWithInputValues(String html,
-      [FieldValueProvider? fieldValueProvider]) {
-    var inputID = id;
-    var inputType = type;
-    var inputValue = fieldValueProvider != null
-        ? (fieldValueProvider(fieldName) ?? value)
-        : value;
-
-    var elements = <Element>[];
-
-    var keys = <String?>[];
-
-    if (inputType == 'select') {
-      if (options != null && options!.isNotEmpty) {
-        keys = options!.keys
-            .map((k) => k.replaceFirst(RegExp(r'\s*\*\s*$'), ''))
-            .toList();
-      } else if (inputValue != null && inputValue.isNotEmpty) {
-        var select = SelectElement()..innerHtml = '$inputValue';
-        keys = select.options.map((opt) => opt.value).toList();
-      }
-    } else {
-      keys.add(inputValue);
-    }
-
-    for (var key in keys) {
-      String? renderHtml = html;
-
-      if (html.contains('{{') && html.contains('}}')) {
-        renderHtml = buildStringPattern(html, {inputID: key});
-      }
-
-      var elem = createHTML(renderHtml);
-
-      elem.setAttribute('element_value', key!);
-      elements.add(elem);
-    }
-
-    return elements;
   }
 }
 
@@ -582,7 +574,7 @@ class UIInputTable extends UIComponent {
           ..style.textAlign = 'right';
 
         if (label.isNotEmpty) {
-          if (label.contains('{{') && label.contains('}}')) {
+          if (_containsIntlMessage(label)) {
             var domLabel = $label(
                 classes: 'form-check-label',
                 forID: input.id,
@@ -819,3 +811,7 @@ class UIInputTable extends UIComponent {
 }
 
 bool _isEmptyValue(String? value) => value == null || value.isEmpty;
+
+bool _containsIntlMessage(String s) {
+  return s.contains('{{intl:') && s.contains('}}');
+}
