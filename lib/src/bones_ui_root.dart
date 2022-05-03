@@ -3,6 +3,7 @@ import 'dart:html';
 
 import 'package:dom_builder/dom_builder_dart_html.dart';
 import 'package:dom_tools/dom_tools.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
@@ -58,7 +59,8 @@ abstract class UIRoot extends UIComponent {
     componentInternals.construct(
         false, true, classes, null, 'ui-root', style, null, null, false);
 
-    _localesManager = createLocalesManager(initializeLocale, _onDefineLocale);
+    _localesManager =
+        createLocalesManager(_callInitializeLocale, _onDefineLocale);
     _localesManager!.onPreDefineLocale.add(onPreDefineLocale);
 
     _futureInitializeLocale = _localesManager!.initialize(getPreferredLocale);
@@ -152,6 +154,11 @@ abstract class UIRoot extends UIComponent {
   SelectElement? buildLanguageSelector(refreshOnChange()) {
     return _localesManager!.buildLanguageSelector(refreshOnChange)
         as SelectElement?;
+  }
+
+  Future<bool> _callInitializeLocale(String locale) {
+    initializeDateFormatting(locale, null);
+    return initializeLocale(locale);
   }
 
   Future<bool> initializeLocale(String locale) {
