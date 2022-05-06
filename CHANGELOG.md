@@ -1,6 +1,11 @@
 ## 2.0.12
 
 - Improve `UIColorPickerInput` and `UIInputTable`.
+- `InputConfig`:
+  - Added support for `IntlMessages` keys for select options.
+  - Added `onChangeListener`.
+- `UIRoot`:
+  - Add default call to `initializeDateFormatting` while calling `initializeLocale`.
 - dom_tools: ^2.1.2
 
 ## 2.0.11
