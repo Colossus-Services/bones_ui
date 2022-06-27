@@ -153,11 +153,35 @@ class MyHelp extends UIComponent {
 class MyComponents extends UIComponent {
   MyComponents(Element? parent) : super(parent);
 
-  late final UICalendarPopup _uiCalendarPopup;
-
   @override
   dynamic render() {
-    _uiCalendarPopup = UICalendarPopup(content,
+    _buildCalendar();
+
+    return [
+      '<br><h1>Components</h1>',
+      '<hr>',
+      UIButton(content, 'UIButton')
+        ..onClick.listen((event) => _showAlert('<b>UIButton Clicked:</b>',
+            'x: ${event.client.x}<br> y: ${event.client.y}')),
+      '<hr>',
+      UIInputTable(content, [
+        InputConfig('name', 'Name', type: 'text'),
+        InputConfig('email', 'Email',
+            type: 'email', valueNormalizer: (f, v) => v.trim()),
+        InputConfig('color', 'Color', type: 'color', optional: true),
+        InputConfig('sel', 'Select',
+            type: 'select', options: {'a': 'A Option', 'b': 'B Option'}),
+      ]),
+      '<hr>',
+      _uiCalendarPopup,
+      '<hr>',
+    ];
+  }
+
+  UICalendarPopup? _uiCalendarPopup;
+
+  void _buildCalendar() {
+    _uiCalendarPopup ??= UICalendarPopup(content,
         backgroundBlur: 4,
         mode: CalendarMode.month,
         allowedModes: {CalendarMode.month, CalendarMode.day},
@@ -182,30 +206,10 @@ class MyComponents extends UIComponent {
               description: 'Wine and cheese.'),
         ])
       ..onDayClick.listen((day) {
-        _uiCalendarPopup.currentDate = day;
-        _uiCalendarPopup.mode = CalendarMode.day;
+        _uiCalendarPopup!.currentDate = day;
+        _uiCalendarPopup!.mode = CalendarMode.day;
       })
       ..onEventClick.listen((event) => window.alert('$event'));
-
-    return [
-      '<br><h1>Components</h1>',
-      '<hr>',
-      UIButton(content, 'UIButton')
-        ..onClick.listen((event) => _showAlert('<b>UIButton Clicked:</b>',
-            'x: ${event.client.x}<br> y: ${event.client.y}')),
-      '<hr>',
-      UIInputTable(content, [
-        InputConfig('name', 'Name', type: 'text'),
-        InputConfig('email', 'Email',
-            type: 'email', valueNormalizer: (f, v) => v.trim()),
-        InputConfig('color', 'Color', type: 'color', optional: true),
-        InputConfig('sel', 'Select',
-            type: 'select', options: {'a': 'A Option', 'b': 'B Option'}),
-      ]),
-      '<hr>',
-      _uiCalendarPopup,
-      '<hr>',
-    ];
   }
 
   UIDialogAlert _showAlert(String title, String text) => UIDialogAlert(
