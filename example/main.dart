@@ -52,6 +52,8 @@ class MyMenu extends UIComponent {
                   '<span style="font-size: 120%; font-weight: bold" navigate="home">Bones_UI &nbsp; - &nbsp;</span>'),
           $span(attributes: {'navigate': 'home'}, content: 'Home'),
           '<span> &nbsp; | &nbsp; </span>',
+          $span(attributes: {'navigate': 'components'}, content: 'Components'),
+          '<span> &nbsp; | &nbsp; </span>',
           $span(attributes: {'navigate': 'help'}, content: 'Help')
         ]);
   }
@@ -77,7 +79,7 @@ class MyFooter extends UIComponent {
 
 // Navigable content, that changes by current `route`.
 class MyNavigable extends UINavigableComponent {
-  MyNavigable(Element? parent) : super(parent, ['home', 'help']);
+  MyNavigable(Element? parent) : super(parent, ['home', 'components', 'help']);
 
   @override
   dynamic renderRoute(String? route, Map<String, String>? parameters) {
@@ -85,6 +87,8 @@ class MyNavigable extends UINavigableComponent {
     switch (route) {
       case 'home':
         return MyHome(content);
+      case 'components':
+        return MyComponents(content);
       case 'help':
         return MyHelp(content);
       default:
@@ -143,4 +147,71 @@ class MyHelp extends UIComponent {
           ''')
         ]);
   }
+}
+
+// The `components` route.
+class MyComponents extends UIComponent {
+  MyComponents(Element? parent) : super(parent);
+
+  late final UICalendarPopup _uiCalendarPopup;
+
+  @override
+  dynamic render() {
+    _uiCalendarPopup = UICalendarPopup(content,
+        backgroundBlur: 4,
+        mode: CalendarMode.month,
+        allowedModes: {CalendarMode.month, CalendarMode.day},
+        currentDate: DateTime(2022, 3, 20),
+        events: [
+          CalendarEvent.fromJson({
+            'title': 'Sleep',
+            'initTime': '2022/03/20 01:00',
+            'endTime': '2022/03/20 01:30',
+          }),
+          CalendarEvent('Meeting', DateTime(2022, 3, 20, 9, 0),
+              DateTime(2022, 3, 20, 9, 30),
+              description: 'Call'),
+          CalendarEvent('Lunch', DateTime(2022, 3, 20, 13, 0),
+              DateTime(2022, 3, 20, 14, 0),
+              description: 'At X'),
+          CalendarEvent('Dinner', DateTime(2022, 3, 20, 21, 0),
+              DateTime(2022, 3, 20, 21, 40),
+              description: 'At Y'),
+          CalendarEvent.byDuration(
+              'Wine', DateTime(2022, 3, 21, 21, 0), Duration(minutes: 40),
+              description: 'Wine and cheese.'),
+        ])
+      ..onDayClick.listen((day) {
+        _uiCalendarPopup.currentDate = day;
+        _uiCalendarPopup.mode = CalendarMode.day;
+      })
+      ..onEventClick.listen((event) => window.alert('$event'));
+
+    return [
+      '<br><h1>Components</h1>',
+      '<hr>',
+      UIButton(content, 'UIButton')
+        ..onClick.listen((event) => _showAlert('<b>UIButton Clicked:</b>',
+            'x: ${event.client.x}<br> y: ${event.client.y}')),
+      '<hr>',
+      UIInputTable(content, [
+        InputConfig('name', 'Name', type: 'text'),
+        InputConfig('email', 'Email',
+            type: 'email', valueNormalizer: (f, v) => v.trim()),
+        InputConfig('color', 'Color', type: 'color', optional: true),
+        InputConfig('sel', 'Select',
+            type: 'select', options: {'a': 'A Option', 'b': 'B Option'}),
+      ]),
+      '<hr>',
+      _uiCalendarPopup,
+      '<hr>',
+    ];
+  }
+
+  UIDialogAlert _showAlert(String title, String text) => UIDialogAlert(
+      '<div style="background-color: rgba(0,0,0, 0.80); width: 100%; padding: 4px 0;">$title</div><br>$text<br>',
+      'OK',
+      style:
+          'width: 200px; overflow: hidden; border-radius: 8px; padding: 0px 0px 8px 0px; box-shadow: 0 6px 14px rgba(0,0,0, 0.60);')
+    ..show();
 }

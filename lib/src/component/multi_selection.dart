@@ -38,6 +38,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     UIComponent.registerGenerator(generator);
   }
 
+  @override
+  final String fieldName;
+
   Map? _options;
 
   bool? multiSelection;
@@ -54,7 +57,8 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   final EventStream<UIMultiSelection> onSelect = EventStream();
 
   UIMultiSelection(Element? parent, Map? options,
-      {this.multiSelection = true,
+      {this.fieldName = 'multi-selection',
+      this.multiSelection = true,
       this.allowInputValue = false,
       this.optionsPanelMargin = 20,
       this.separator = ' ; ',

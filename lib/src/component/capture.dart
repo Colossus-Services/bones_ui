@@ -32,7 +32,8 @@ enum CaptureDataFormat {
 abstract class UICapture extends UIButtonBase implements UIField<String> {
   final CaptureType captureType;
 
-  final String? _fieldName;
+  @override
+  final String fieldName;
 
   UICapture(Element? container, this.captureType,
       {String? fieldName,
@@ -43,7 +44,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       dynamic classes2,
       dynamic style,
       dynamic componentClass})
-      : _fieldName = fieldName,
+      : fieldName = fieldName ?? 'capture',
         super(container,
             classes: classes,
             classes2: classes2,
@@ -52,8 +53,6 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
             navigate: navigate,
             navigateParameters: navigateParameters,
             navigateParametersProvider: navigateParametersProvider);
-
-  String get fieldName => _fieldName ?? 'capture';
 
   Set<String>? _acceptFilesExtensions;
 

@@ -9,11 +9,66 @@ html, body {
 }
 
 #output {
-  padding: 20px 0px;
+  padding: 20px 0;
   text-align: center;
 }
 
 a {
   color: dodgerblue;
   text-decoration: none;
+}
+
+.ui-calendar-panel {
+}
+
+.ui-calendar-title {
+  border-radius: 14px 14px 0 0;
+  padding: 3px !important;
+}
+
+.ui-calendar-grid {
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.ui-calendar-grid tr td {
+  color: rgba(255,255,255,0.80);
+  border: 1px solid rgba(0,0,0, 0.22);
+}
+
+.ui-calendar-grid tr:first-child td { border-top: 1px solid #000;}
+.ui-calendar-grid tr td:first-child { border-left: 1px solid #000;}
+.ui-calendar-grid tr td:last-child { border-right: 1px solid #000;}
+.ui-calendar-grid tr:last-child td { border-bottom: 1px solid #000;}
+
+.ui-calendar-grid tr:last-child td:first-child { border-bottom-left-radius: 14px;}
+.ui-calendar-grid tr:last-child td:last-child { border-bottom-right-radius: 14px;}
+
+.ui-calendar-week-cell {
+
+}
+
+.ui-calendar-day-events-cell {
+
+}
+
+.ui-calendar-day-cell {
+
+}
+
+.ui-calendar-out-of-month-cell {
+
+}
+
+.ui-calendar-today-cell {
+  color: rgb(255,255,255);
+  font-weight: 900;
+}
+
+.ui-calendar-today-cell.ui-calendar-out-of-month-cell {
+  opacity: 0.55;
+}
+
+.ui-calendar-input-date {
+  color-scheme: dark;
 }

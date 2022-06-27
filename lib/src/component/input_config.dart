@@ -7,14 +7,17 @@ import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import '../bones_ui_component.dart';
+import '../bones_ui_utils.dart';
 import 'capture.dart';
 import 'color_picker.dart';
+
+typedef FieldInputRender = dynamic Function(InputConfig inputConfig);
 
 typedef FieldValueProvider = dynamic Function(String field);
 
 typedef FieldValueValidator = bool Function(String field, String? value);
 
-typedef FieldValueNormalizer = String? Function(String field, String? value);
+typedef FieldValueNormalizer<V> = V? Function(String field, V? value);
 
 typedef FieldValueEvent = void Function(dynamic event);
 
@@ -36,6 +39,7 @@ class InputConfig {
   final Map<String, String>? _options;
   final bool _optional;
 
+  final FieldInputRender? _inputRender;
   final FieldValueProvider? _valueProvider;
   final FieldValueValidator? _valueValidator;
   final FieldValueNormalizer? _valueNormalizer;
@@ -101,6 +105,7 @@ class InputConfig {
     bool? optional = false,
     Object? classes,
     String? style,
+    FieldInputRender? inputRender,
     FieldValueProvider? valueProvider,
     FieldValueValidator? valueValidator,
     FieldValueNormalizer? valueNormalizer,
@@ -114,6 +119,7 @@ class InputConfig {
         _optional = optional ?? false,
         _attributes = attributes,
         _options = options,
+        _inputRender = inputRender,
         _valueProvider = valueProvider,
         _valueValidator = valueValidator,
         _valueNormalizer = valueNormalizer,
@@ -160,7 +166,7 @@ class InputConfig {
 
   bool get hasValueValidator => _valueValidator != null;
 
-  bool validateValue(String? value) {
+  bool validateValue(dynamic value) {
     var valueValidator = _valueValidator;
     if (valueValidator != null) {
       if (!valueValidator(fieldName, value)) {
@@ -168,7 +174,7 @@ class InputConfig {
       }
     }
 
-    if (required && _isEmptyValue(value)) {
+    if (required && isEmptyValue(value)) {
       return false;
     }
 
@@ -177,7 +183,7 @@ class InputConfig {
 
   bool get hasValueNormalizer => _valueNormalizer != null;
 
-  String? normalizeValue(String? value) {
+  dynamic normalizeValue(dynamic value) {
     var valueNormalizer = _valueNormalizer;
     if (valueNormalizer != null) {
       return valueNormalizer(fieldName, value);
@@ -210,7 +216,22 @@ class InputConfig {
     UIComponent? inputComponent;
     Element? element;
 
-    if (inputType == 'textarea') {
+    if (_inputRender != null) {
+      var obj = _inputRender!(this);
+
+      if (obj == null) {
+        return null;
+      } else if (obj is UIComponent) {
+        inputComponent = obj;
+      } else if (obj is InputElement) {
+        inputElement = obj;
+      } else if (obj is Element) {
+        element = obj;
+      } else {
+        throw StateError(
+            "Can't handle input rendered object type: ${obj.runtimeType} > $obj");
+      }
+    } else if (inputType == 'textarea') {
       inputElement = _renderTextArea(inputValue);
     } else if (inputType == 'select') {
       inputElement = _renderSelect(inputValue);
@@ -271,7 +292,7 @@ class InputConfig {
 
     var valText = val.toString();
 
-    if (_containsIntlMessage(valText)) {
+    if (containsIntlMessage(valText)) {
       var domSpan = $span(content: valText);
       var dom = domSpan.buildDOM(generator: UIComponent.domGenerator);
       var text = dom?.text;
@@ -472,7 +493,7 @@ class UIInputTable extends UIComponent {
 
     fieldElement.classes.add(highlightClass);
 
-    if (showInvalidMessages && !_isEmptyValue(invalidValueMessage)) {
+    if (showInvalidMessages && !isEmptyValue(invalidValueMessage)) {
       var msg = content!.querySelector('#__invalid_msg__$fieldName');
       if (msg != null) {
         msg.text = invalidValueMessage!;
@@ -515,12 +536,12 @@ class UIInputTable extends UIComponent {
 
     for (var input in _inputs) {
       var fieldName = input.fieldName;
-      var fieldValue = getFieldElementValue(fieldName);
+      var fieldValue = getFieldExtended(fieldName);
       var fieldOk = input.validateValue(fieldValue);
 
       if (!fieldOk) {
         var invalidValueMessage =
-            _isEmptyValue(fieldValue) ? null : input.invalidValueMessage;
+            isEmptyValue(fieldValue) ? null : input.invalidValueMessage;
 
         highlightField(fieldName, invalidValueMessage: invalidValueMessage);
 
@@ -543,7 +564,7 @@ class UIInputTable extends UIComponent {
 
     for (var input in _inputs.where((e) => e.hasValueNormalizer)) {
       var fieldName = input.fieldName;
-      var fieldValue = getFieldElementValue(fieldName);
+      var fieldValue = getFieldExtended(fieldName);
       var fieldValue2 = input.normalizeValue(fieldValue);
 
       if (fieldValue2 != fieldValue) {
@@ -574,7 +595,7 @@ class UIInputTable extends UIComponent {
           ..style.textAlign = 'right';
 
         if (label.isNotEmpty) {
-          if (_containsIntlMessage(label)) {
+          if (containsIntlMessage(label)) {
             var domLabel = $label(
                 classes: 'form-check-label',
                 forID: input.id,
@@ -808,10 +829,4 @@ class UIInputTable extends UIComponent {
       }
     }
   }
-}
-
-bool _isEmptyValue(String? value) => value == null || value.isEmpty;
-
-bool _containsIntlMessage(String s) {
-  return s.contains('{{intl:') && s.contains('}}');
 }

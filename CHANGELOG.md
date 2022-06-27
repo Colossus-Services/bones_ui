@@ -1,3 +1,23 @@
+## 2.0.13
+
+- `UIField`:
+  - Added `String get fieldName`.
+  - `getFieldValue` can now return types other than `String`.
+- `UIDialog`:
+  - Added `blockScrollTraversing`.
+- New components`UICalendar` and `UICalendarPopup`.
+- `InputConfig`:
+  - Now supports `IntlMessages` in texts.
+- Improved example.
+- mercury_client: ^2.1.6
+- intl_messages: ^2.0.3
+- dom_tools: ^2.1.3
+- dom_builder: ^2.0.10
+- mercury_client: ^2.1.6
+- build_runner: ^2.1.11
+- yaml: ^3.1.1
+- args: ^2.3.1
+
 ## 2.0.12
 
 - Improve `UIColorPickerInput` and `UIInputTable`.

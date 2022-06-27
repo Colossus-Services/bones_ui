@@ -132,10 +132,12 @@ bool canBeInDOM(dynamic element) {
 typedef FilterRendered = bool Function(dynamic elem);
 typedef FilterElement = bool Function(Element elem);
 typedef ForEachElement = void Function(Element elem);
+typedef ForEachComponent = void Function(Object elem);
 typedef ParametersProvider = Map<String, String> Function();
 
 /// For a [UIComponent] that is a field (has a value).
 abstract class UIField<V> {
+  String get fieldName;
   V? getFieldValue();
 }
 

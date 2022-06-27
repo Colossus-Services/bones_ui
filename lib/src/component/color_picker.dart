@@ -4,10 +4,12 @@ import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
+import '../bones_ui_base.dart';
 import '../bones_ui_component.dart';
 
-class UIColorPickerInput extends UIComponent {
-  final String _fieldName;
+class UIColorPickerInput extends UIComponent implements UIField<String> {
+  @override
+  final String fieldName;
   final String _initialValue;
 
   final String? placeholder;
@@ -18,30 +20,33 @@ class UIColorPickerInput extends UIComponent {
 
   UIColorPickerInput(Element? parent,
       {this.placeholder,
-      String fieldName = '',
+      String? fieldName,
       String? value = '',
       int pickerWidth = 200,
       int pickerHeight = 200})
-      : _fieldName = fieldName,
+      : fieldName = fieldName ?? 'color-picker',
         _initialValue = value ?? '',
         _pickerWidth = pickerWidth,
         _pickerHeight = pickerHeight,
         super(parent);
 
-  String get fieldName => _fieldName;
+  @override
+  String getFieldValue() => _input?.value ?? '';
 
   int get pickerWidth => _pickerWidth;
 
   int get pickerHeight => _pickerHeight;
 
+  InputElement? _input;
+
   @override
   dynamic render() {
     content!.style.width = '100%';
 
-    var input = _renderGenericInput('text', _initialValue);
-    input.setAttribute('id', _fieldName);
-    input.setAttribute('name', _fieldName);
-    input.setAttribute('field', _fieldName);
+    var input = _input = _renderGenericInput('text', _initialValue);
+    input.setAttribute('id', fieldName);
+    input.setAttribute('name', fieldName);
+    input.setAttribute('field', fieldName);
 
     if (placeholder != null) {
       input.setAttribute('placeholder', placeholder!);

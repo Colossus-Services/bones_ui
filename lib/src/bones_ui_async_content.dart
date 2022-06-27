@@ -8,6 +8,7 @@ import 'package:swiss_knife/swiss_knife.dart';
 import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_log.dart';
+import 'bones_ui_utils.dart';
 
 typedef AsyncContentProvider = Future<dynamic>? Function();
 
@@ -95,7 +96,7 @@ class UIAsyncContent {
         _properties = properties ?? {},
         _loadingContent = _normalizeContent(loadingContent),
         _errorContent = _normalizeContent(errorContent),
-        _constructionStackTrace = _stackTraceSafe() {
+        _constructionStackTrace = stackTraceSafe() {
     _callContentProvider(false);
   }
 
@@ -114,7 +115,7 @@ class UIAsyncContent {
         _properties = properties ?? {},
         _loadingContent = _normalizeContent(loadingContent),
         _errorContent = _normalizeContent(errorContent),
-        _constructionStackTrace = _stackTraceSafe() {
+        _constructionStackTrace = stackTraceSafe() {
     _setAsyncContentFuture(contentFuture);
   }
 
@@ -216,7 +217,7 @@ class UIAsyncContent {
     _asyncContentFuture = contentFuture;
 
     if (_asyncContentFuture != null) {
-      var parentStackTrace = _stackTraceSafe();
+      var parentStackTrace = stackTraceSafe();
       _asyncContentFuture!
           .then(_onLoadedContent)
           .catchError((e, r) => _onLoadError(e, r, parentStackTrace));
@@ -401,15 +402,4 @@ bool _isElementForDOM(dynamic element) {
   }
 
   return false;
-}
-
-StackTrace _stackTraceSafe() {
-  try {
-    var s = StackTrace.current;
-    return s;
-  } catch (e) {
-    print('Error getting current StackTrace');
-    print(e);
-    return StackTrace.empty;
-  }
 }

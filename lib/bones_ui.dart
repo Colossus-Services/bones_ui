@@ -16,6 +16,7 @@ export 'src/bones_ui_navigator.dart';
 export 'src/bones_ui_root.dart';
 export 'src/component/bui.dart';
 export 'src/component/button.dart';
+export 'src/component/calendar.dart';
 export 'src/component/capture.dart';
 export 'src/component/clip_image.dart';
 export 'src/component/color_picker.dart';

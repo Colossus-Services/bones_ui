@@ -291,6 +291,8 @@ class UIDialog extends UIDialogBase {
     UIComponent.registerGenerator(generator);
   }
 
+  final bool blockScrollTraversing;
+
   dynamic renderContent;
 
   UIDialog(this.renderContent,
@@ -304,7 +306,8 @@ class UIDialog extends UIDialogBase {
       bool fullScreen = true,
       int backgroundGrey = 0,
       double backgroundAlpha = 0.80,
-      int? backgroundBlur})
+      int? backgroundBlur,
+      this.blockScrollTraversing = false})
       : super(
             hideUIRoot: hideUIRoot,
             classes: classes,
@@ -325,8 +328,14 @@ class UIDialog extends UIDialogBase {
   void configure() {
     super.configure();
 
-    content!.style.display = 'none';
-    content!.style.textAlign = 'center';
+    var content = this.content!;
+
+    content.style.display = 'none';
+    content.style.textAlign = 'center';
+
+    if (blockScrollTraversing) {
+      blockScrollTraverse(content);
+    }
   }
 
   bool showCloseButton = false;
