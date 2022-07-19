@@ -204,7 +204,7 @@ class UISVG extends UIComponent {
     _applyDimension(svg);
 
     if (color != null && color!.isNotEmpty) {
-      svg.style.cssText = (svg.style.cssText ?? '') + 'fill: $color';
+      svg.style.cssText = '${svg.style.cssText ?? ''}fill: $color';
     }
 
     if (title != null && title!.isNotEmpty) {
@@ -219,7 +219,7 @@ class UISVG extends UIComponent {
     ImageElement img;
     if (isEmptyObject(src) && isNotEmptyObject(svgContent)) {
       var svgDataURL =
-          'data:image/svg+xml;base64,' + Base64.encode(svgContent!);
+          'data:image/svg+xml;base64,${Base64.encode(svgContent!)}';
       img = ImageElement(src: svgDataURL);
     } else {
       img = ImageElement(src: src);

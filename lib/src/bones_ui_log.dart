@@ -78,7 +78,9 @@ class _Logger {
   }
 }
 
+// ignore: library_private_types_in_public_api
 final _Logger logger = _Logger();
+// ignore: library_private_types_in_public_api
 final _Logger loggerIgnoreBonesUI = _Logger();
 
 /// A console output int the UI.

@@ -598,7 +598,7 @@ class UIButtonCapturePhoto extends UICapture {
     }
 
     if (isNotEmptyString(selectedImageStyle, trim: true)) {
-      img.style.cssText = (img.style.cssText ?? '') + '; $selectedImageStyle';
+      img.style.cssText = '${img.style.cssText ?? ''}; $selectedImageStyle';
     }
 
     _selectedImageElements.clear();

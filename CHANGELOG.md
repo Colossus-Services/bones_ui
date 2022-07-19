@@ -4,6 +4,9 @@
   - `$uiButton`, `$uiDialog`, `$uiSVG`.
 - dom_builder: ^2.1.0
 - expressions: ^0.2.4
+- lints: ^2.0.0
+- dependency_validator: ^3.2.2
+- test: ^1.21.4
 
 ## 2.0.13
 

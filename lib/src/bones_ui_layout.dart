@@ -468,9 +468,9 @@ class UILayoutEvaluator extends ExpressionEvaluator {
         .replaceAllMapped(RegExp(r'(\d+)(?:\.(\d+))?([a-zA-Z_]+)'), (m) {
       var gDecimal = m.group(2);
       if (gDecimal != null && gDecimal.isNotEmpty) {
-        return '__' + m.group(1)! + 'D' + gDecimal + '__.' + m.group(3)!;
+        return '__${m.group(1)!}D${gDecimal}__.${m.group(3)!}';
       } else {
-        return '__' + m.group(1)! + '__.' + m.group(3)!;
+        return '__${m.group(1)!}__.${m.group(3)!}';
       }
     });
 
@@ -724,7 +724,7 @@ class UILayout {
   String _commandFunctionXValue(String value) {
     return _valueXY(
         value,
-        (pw, ph, w, h) => ((pw / 2) - (w / 2)).toStringAsFixed(0) + 'px',
+        (pw, ph, w, h) => '${((pw / 2) - (w / 2)).toStringAsFixed(0)}px',
         (e) => e.style.left);
   }
 
@@ -736,7 +736,7 @@ class UILayout {
   String _commandFunctionYValue(String value) {
     return _valueXY(
         value,
-        (pw, ph, w, h) => ((ph / 2) - (h / 2)).toStringAsFixed(0) + 'px',
+        (pw, ph, w, h) => '${((ph / 2) - (h / 2)).toStringAsFixed(0)}px',
         (e) => e.style.top);
   }
 
@@ -795,7 +795,7 @@ class UILayout {
     var width = _valueWH(
         value,
         (pw, ph, w, h) => '${pw}px',
-        (pw, ph, p) => (pw * p).toStringAsFixed(0) + 'px',
+        (pw, ph, p) => '${(pw * p).toStringAsFixed(0)}px',
         (e) => e.style.width);
     element.style.width = width;
   }
@@ -804,7 +804,7 @@ class UILayout {
     var height = _valueWH(
         value,
         (pw, ph, w, h) => '${ph}px',
-        (pw, ph, p) => (ph * p).toStringAsFixed(0) + 'px',
+        (pw, ph, p) => '${(ph * p).toStringAsFixed(0)}px',
         (e) => e.style.height);
     element.style.height = height;
   }
