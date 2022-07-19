@@ -141,6 +141,28 @@ abstract class UIButtonBase extends UIComponent {
   }
 }
 
+/// [DOMElement] tag `ui-button` for [UIButton].
+DOMElement $uiButton({
+  id,
+  String? field,
+  classes,
+  style,
+  Map<String, String>? attributes,
+  String? text,
+  bool commented = false,
+}) {
+  return $tag('ui-button',
+      id: id,
+      classes: classes,
+      style: style,
+      attributes: {
+        if (field != null && field.isNotEmpty) 'field': field,
+        ...?attributes
+      },
+      content: text,
+      commented: commented);
+}
+
 /// A simple button implementation.
 class UIButton extends UIButtonBase {
   static final UIComponentGenerator<UIButton> generator =
@@ -252,9 +274,9 @@ class UIButton extends UIButtonBase {
   }
 }
 
+/// [DOMElement] tag `ui-button-loader` for [UIButtonLoader].
 DOMElement $uiButtonLoader(
-    {DOMNodeValidator? validate,
-    id,
+    {id,
     String? field,
     classes,
     style,
@@ -265,23 +287,27 @@ DOMElement $uiButtonLoader(
     bool commented = false,
     bool? withProgress,
     dynamic loadingConfig}) {
-  return $tag('ui-button-loader',
-      id: id,
-      attributes: {
-        if (field != null && field.isNotEmpty) 'field': field,
-        if (buttonClasses != null)
-          'button-classes':
-              parseStringFromInlineList(buttonClasses)?.join(',') ?? '',
-        if (buttonClasses != null) 'button-style': CSS(buttonStyle).style,
-        if (withProgress != null) 'with-progress': '$withProgress',
-        if (loadingConfig != null)
-          'loading-config': (loadingConfig is UILoadingConfig
-              ? loadingConfig.toInlineProperties()
-              : '$loadingConfig'),
-        ...?attributes
-      },
-      content: content,
-      commented: commented);
+  return $tag(
+    'ui-button-loader',
+    id: id,
+    classes: classes,
+    style: style,
+    attributes: {
+      if (field != null && field.isNotEmpty) 'field': field,
+      if (buttonClasses != null)
+        'button-classes':
+            parseStringFromInlineList(buttonClasses)?.join(',') ?? '',
+      if (buttonClasses != null) 'button-style': CSS(buttonStyle).style,
+      if (withProgress != null) 'with-progress': '$withProgress',
+      if (loadingConfig != null)
+        'loading-config': (loadingConfig is UILoadingConfig
+            ? loadingConfig.toInlineProperties()
+            : '$loadingConfig'),
+      ...?attributes
+    },
+    content: content,
+    commented: commented,
+  );
 }
 
 class UIButtonLoader extends UIButtonBase {

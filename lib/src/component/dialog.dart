@@ -276,6 +276,34 @@ abstract class UIDialogBase extends UIComponent {
   }
 }
 
+/// [DOMElement] tag `ui-dialog` for [UIDialog].
+DOMElement $uiDialog({
+  id,
+  String? field,
+  classes,
+  style,
+  bool? show,
+  bool? showCloseButton,
+  Map<String, String>? attributes,
+  content,
+  bool commented = false,
+}) {
+  return $tag(
+    'ui-button-loader',
+    id: id,
+    classes: classes,
+    style: style,
+    attributes: {
+      if (field != null && field.isNotEmpty) 'field': field,
+      if (show != null) 'show': '$show',
+      if (showCloseButton != null) 'show-close-button': '$showCloseButton',
+      ...?attributes
+    },
+    content: content,
+    commented: commented,
+  );
+}
+
 class UIDialog extends UIDialogBase {
   static final UIComponentGenerator<UIDialog> generator =
       UIComponentGenerator<UIDialog>('ui-dialog', 'div', 'ui-dialog', '',

@@ -1,3 +1,10 @@
+## 2.0.14
+
+- Added `UIComponent`s `DOMElement` helpers:
+  - `$uiButton`, `$uiDialog`, `$uiSVG`.
+- dom_builder: ^2.1.0
+- expressions: ^0.2.4
+
 ## 2.0.13
 
 - `UIField`:

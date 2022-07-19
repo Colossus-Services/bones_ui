@@ -2,12 +2,47 @@ import 'dart:async';
 import 'dart:html';
 import 'dart:svg' as dart_svg;
 
+import 'package:collection/collection.dart';
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import '../bones_ui_component.dart';
 import '../bones_ui_generator.dart';
+
+/// [DOMElement] tag `ui-svg` for [UISVG].
+DOMElement $uiSVG({
+  id,
+  String? field,
+  classes,
+  style,
+  String? src,
+  width,
+  height,
+  color,
+  title,
+  Map<String, String>? attributes,
+  content,
+  bool commented = false,
+}) {
+  return $tag(
+    'ui-button-loader',
+    id: id,
+    classes: classes,
+    style: style,
+    attributes: {
+      if (field != null && field.isNotEmpty) 'field': field,
+      if (src != null) 'src': src,
+      if (width != null) 'width': '$width',
+      if (height != null) 'height': '$height',
+      if (color != null) 'color': '$color',
+      if (title != null) 'title': '$title',
+      ...?attributes
+    },
+    content: content,
+    commented: commented,
+  );
+}
 
 /// Component to show a SVG.
 class UISVG extends UIComponent {
@@ -253,6 +288,11 @@ String? htmlAsSvgContent(String html,
     htmlRoot.addClass('ui-render');
   }
 
+  var titleNode =
+      htmlRoot.selectAllWhere((e) => e is DOMElement && e.tag == 'title');
+
+  var titleText = titleNode.firstOrNull ?? 'HTML as SVG';
+
   htmlRoot
       .selectAllWhere((n) => true)
       .whereType<DOMElement>()
@@ -263,8 +303,9 @@ String? htmlAsSvgContent(String html,
   var svg =
       '''<svg viewBox="0 0 $width $height" width="${width}px" height="${height}px" xmlns="http://www.w3.org/2000/svg">
 <foreignObject x="0" y="0" width="$width" height="$height">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head xmlns="http://www.w3.org/1999/xhtml">
+<title>$titleText</title>
 <style xmlns="http://www.w3.org/1999/xhtml">
 $style
 </style>
