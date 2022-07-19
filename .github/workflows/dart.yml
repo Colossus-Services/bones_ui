@@ -25,6 +25,8 @@ jobs:
         run: dart analyze --fatal-infos --fatal-warnings .
       - name: dependency_validator
         run: dart run dependency_validator
+      - name: Run tests (VM)
+        run: dart test --platform vm
       - name: Run tests (Chrome)
         run: dart test --platform chrome
 #      - name: dartdoc
