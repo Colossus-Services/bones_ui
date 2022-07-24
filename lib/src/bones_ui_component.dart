@@ -394,6 +394,24 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  static final RegExp _regexpIntlMessage = RegExp(r'\{\{intl?:(\w+)\}\}');
+
+  /// Resolves [text] `{{intl:key}}` messages.
+  String resolveTextIntl(String text) {
+    if (text.contains('{{')) {
+      var intlMessageResolver = uiRoot?.intlMessageResolver;
+      intlMessageResolver ??=
+          (String key, [Map<String, dynamic>? parameters]) => key;
+
+      return text.replaceAllMapped(_regexpIntlMessage, (m) {
+        var key = m[1]!;
+        return intlMessageResolver!(key) ?? key;
+      });
+    } else {
+      return text;
+    }
+  }
+
   /// Called by constructor, to configure this component.
   void configure() {}
 

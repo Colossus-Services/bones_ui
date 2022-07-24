@@ -516,6 +516,14 @@ class UIButtonLoader extends UIButtonBase {
   void stopLoading(bool? loadOK, {String? okMessage, String? errorMessage}) {
     if (_loadingDiv == null) return;
 
+    if (okMessage != null) {
+      okMessage = resolveTextIntl(okMessage);
+    }
+
+    if (errorMessage != null) {
+      errorMessage = resolveTextIntl(errorMessage);
+    }
+
     var button =
         (_button is DOMElement ? _button.runtimeNode : _button) as Element?;
 

@@ -1,3 +1,10 @@
+## 2.0.15
+
+- `UIButtonLoader`:
+  - Now resolves `intl` messages for `okMessage` and `errorMessage`.
+- `UIComponent`:
+  - Added `resolveTextIntl`.
+
 ## 2.0.14
 
 - Added `UIComponent`s `DOMElement` helpers:
