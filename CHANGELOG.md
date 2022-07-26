@@ -1,3 +1,9 @@
+## 2.0.16
+
+- Renamed `findInContentFieldComponentDeep` to `findChildDeep`.
+- Added `findChildrenDeep`.
+- Added `getFieldElements` and `getFieldElementByValue`.
+
 ## 2.0.15
 
 - `UIButtonLoader`:

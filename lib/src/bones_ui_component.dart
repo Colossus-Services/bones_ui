@@ -465,10 +465,10 @@ abstract class UIComponent extends UIEventHandler {
     return dst;
   }
 
-  Element? findInContentChildrenDeep(FilterElement filter) =>
-      _findInContentChildrenDeepImpl(_content!.children, filter);
+  Element? findInContentChildDeep(FilterElement filter) =>
+      _findInContentChildDeepImpl(_content!.children, filter);
 
-  Element? _findInContentChildrenDeepImpl(
+  Element? _findInContentChildDeepImpl(
       List<Element> list, FilterElement filter) {
     if (list.isEmpty) return null;
 
@@ -477,17 +477,38 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     for (var elem in list) {
-      var found = _findInContentChildrenDeepImpl(elem.children, filter);
+      var found = _findInContentChildDeepImpl(elem.children, filter);
       if (found != null) return found;
     }
 
     return null;
   }
 
-  MapEntry<String, Object>? findInContentFieldComponentDeep(String fieldName) =>
-      _findInContentFieldComponentDeepImpl(_content!.children, fieldName);
+  List<Element> findChildDeep(FilterElement filter) {
+    var list = <Element>[];
+    _findChildDeepImpl(_content!.children, filter, list);
+    return list;
+  }
 
-  MapEntry<String, Object>? _findInContentFieldComponentDeepImpl(
+  void _findChildDeepImpl(
+      List<Element> list, FilterElement filter, List<Element> dst) {
+    if (list.isEmpty) return;
+
+    for (var elem in list) {
+      if (filter(elem)) {
+        dst.add(elem);
+      }
+    }
+
+    for (var elem in list) {
+      _findChildDeepImpl(elem.children, filter, dst);
+    }
+  }
+
+  MapEntry<String, Object>? findChildrenDeep(String fieldName) =>
+      _findChildrenDeepImpl(_content!.children, fieldName);
+
+  MapEntry<String, Object>? _findChildrenDeepImpl(
       List<Element> list, String fieldName) {
     if (list.isEmpty) return null;
 
@@ -497,8 +518,7 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     for (var elem in list) {
-      var found =
-          _findInContentFieldComponentDeepImpl(elem.children, fieldName);
+      var found = _findChildrenDeepImpl(elem.children, fieldName);
       if (found != null) return found;
     }
 
@@ -882,7 +902,7 @@ abstract class UIComponent extends UIEventHandler {
       if (uiComp != null) return uiComp;
     }
 
-    var deepChild = findInContentChildrenDeep((elem) => identical(child, elem));
+    var deepChild = findInContentChildDeep((elem) => identical(child, elem));
     if (deepChild != null) return this;
 
     return null;
@@ -1871,12 +1891,19 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   Element? getFieldElement(String? fieldName) =>
-      findInContentChildrenDeep((e) => getElementFieldName(e) == fieldName);
+      findInContentChildDeep((e) => getElementFieldName(e) == fieldName);
 
   Object? getFieldComponent(String? fieldName) {
     if (fieldName == null) return null;
-    return findInContentFieldComponentDeep(fieldName)?.value;
+    return findChildrenDeep(fieldName)?.value;
   }
+
+  List<Element> getFieldElements(String? fieldName) =>
+      findChildDeep((e) => getElementFieldName(e) == fieldName);
+
+  Element? getFieldElementByValue(String? fieldName, String value) =>
+      getFieldElements(fieldName)
+          .firstWhereOrNull((e) => e.resolveElementValue() == value);
 
   String? getComponentFieldName(Object obj) {
     if (obj is UIField) {
