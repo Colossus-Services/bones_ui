@@ -388,13 +388,18 @@ class InputConfig {
 
   SelectElement _renderSelect(Object? inputValue) {
     var select = SelectElement();
+
     if (options != null && options!.isNotEmpty) {
+      var inputValueStr = inputValue?.toString();
+
       for (var optKey in options!.keys) {
         var optVal = options![optKey];
         var selected = false;
 
         if (optKey.endsWith('*')) {
           optKey = optKey.substring(0, optKey.length - 1);
+          selected = true;
+        } else if (optKey == inputValueStr) {
           selected = true;
         }
 

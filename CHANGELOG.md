@@ -1,3 +1,11 @@
+## 2.0.17
+
+- `UICapture`:
+  - Added constructor parameter `selectedFileData`.
+  - Added setter `selectedFileData`.
+- `InputConfig`:
+  - `_renderSelect`: selected element can also match the `options` key from `inputValue`.
+
 ## 2.0.16
 
 - Renamed `findInContentFieldComponentDeep` to `findChildDeep`.

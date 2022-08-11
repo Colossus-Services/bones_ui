@@ -1,4 +1,5 @@
 import 'dart:convert' as data_convert;
+import 'dart:convert';
 import 'dart:html';
 import 'dart:typed_data';
 
@@ -37,6 +38,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   UICapture(Element? container, this.captureType,
       {String? fieldName,
+      Object? selectedFileData,
       String? navigate,
       Map<String, String>? navigateParameters,
       ParametersProvider? navigateParametersProvider,
@@ -52,7 +54,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
             componentClass: ['ui-capture', componentClass],
             navigate: navigate,
             navigateParameters: navigateParameters,
-            navigateParametersProvider: navigateParametersProvider);
+            navigateParametersProvider: navigateParametersProvider) {
+    this.selectedFileData = selectedFileData;
+  }
 
   Set<String>? _acceptFilesExtensions;
 
@@ -211,7 +215,39 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   Object? _selectedFileData;
 
+  bool get hasSelectedFileData => _selectedFileData != null;
+
   Object? get selectedFileData => _selectedFileData;
+
+  /// Sets the file [data].
+  /// Accepted formats:
+  /// - [Uint8List].
+  /// - Data URL [String].
+  /// - Base64 [String].
+  set selectedFileData(Object? data) {
+    if (data == null) return;
+
+    if (data is List<int>) {
+      _selectedFileData = data is Uint8List ? data : Uint8List.fromList(data);
+      return;
+    }
+
+    var s = data.toString();
+
+    var dataUrl = DataURLBase64.parse(s);
+    if (dataUrl != null) {
+      _selectedFileData = dataUrl.payloadArrayBuffer;
+      return;
+    }
+
+    try {
+      var data = base64.decode(s);
+      _selectedFileData = data;
+      return;
+    } catch (_) {}
+
+    throw ArgumentError("Can't accept data type: $data");
+  }
 
   Uint8List? get selectedFileDataAsArrayBuffer {
     if (selectedFileData == null) return null;
@@ -313,7 +349,8 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       return null;
     }
 
-    var mediaType = getFileMimeType(_selectedFile!);
+    var file = _selectedFile;
+    var mediaType = file == null ? '' : getFileMimeType(file);
 
     return toDataURLBase64(MimeType.asString(mediaType, ''), base64!);
   }
@@ -499,6 +536,7 @@ class UIButtonCapturePhoto extends UICapture {
       CaptureType? captureType,
       this.buttonContent,
       String? fieldName,
+      Object? selectedFileData,
       String? navigate,
       Map<String, String>? navigateParameters,
       ParametersProvider? navigateParametersProvider,
@@ -510,6 +548,7 @@ class UIButtonCapturePhoto extends UICapture {
       this.fontSize})
       : super(parent, captureType ?? CaptureType.photo,
             fieldName: fieldName,
+            selectedFileData: selectedFileData,
             navigate: navigate,
             navigateParameters: navigateParameters,
             navigateParametersProvider: navigateParametersProvider,
@@ -549,6 +588,15 @@ class UIButtonCapturePhoto extends UICapture {
     }
   }
 
+  @override
+  void posRender() {
+    super.posRender();
+
+    if (hasSelectedFileData) {
+      showSelectedImage();
+    }
+  }
+
   int selectedImageMaxWidth = 100;
 
   int selectedImageMaxHeight = 100;
@@ -582,7 +630,8 @@ class UIButtonCapturePhoto extends UICapture {
     }
 
     var img = ImageElement(src: dataURL)
-      ..style.padding = '2px 4px'
+      ..classes.add('ui-capture-img')
+      ..style.margin = '2px 4px'
       ..style.maxHeight = '100%';
 
     if (selectedImageMaxWidth > 0) {
@@ -667,6 +716,15 @@ class UIButtonCapture extends UICapture {
       return "<span style='font-size: $fontSize'>$text</span>";
     } else {
       return text;
+    }
+  }
+
+  @override
+  void posRender() {
+    super.posRender();
+
+    if (hasSelectedFileData) {
+      showSelectedFile();
     }
   }
 
