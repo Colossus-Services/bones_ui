@@ -1,3 +1,14 @@
+## 2.0.18
+
+- `InputConfig`:
+  - `inputRender`: Added support to render `DOMElement`.
+- archive: ^3.3.1
+- test: ^1.21.6
+- path: ^1.8.2
+- build_web_compilers: ^3.2.6
+- build_runner: ^2.2.1
+- sdk: '>=2.17.0 <3.0.0'
+
 ## 2.0.17
 
 - `UICapture`:

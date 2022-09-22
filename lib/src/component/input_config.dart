@@ -214,6 +214,7 @@ class InputConfig {
 
     Element? inputElement;
     UIComponent? inputComponent;
+    DOMElement? domeElement;
     Element? element;
 
     if (_inputRender != null) {
@@ -225,6 +226,8 @@ class InputConfig {
         inputComponent = obj;
       } else if (obj is InputElement) {
         inputElement = obj;
+      } else if (obj is DOMElement) {
+        domeElement = obj;
       } else if (obj is Element) {
         element = obj;
       } else {
@@ -266,13 +269,17 @@ class InputConfig {
       _configureElementAttribute(inputElement);
       return inputElement;
     } else if (element != null) {
-      var input = element.querySelector('input')!;
-      _configureElementStyle(element);
-      _configureInputElement(input, inputID);
-      _configureElementAttribute(element);
+      var input = element.querySelector('input');
+      if (input != null) {
+        _configureElementStyle(element);
+        _configureInputElement(input, inputID);
+        _configureElementAttribute(element);
+      }
       return element;
     } else if (inputComponent != null) {
       return inputComponent;
+    } else if (domeElement != null) {
+      return domeElement;
     }
 
     return null;
