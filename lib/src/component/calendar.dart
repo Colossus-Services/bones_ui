@@ -388,13 +388,13 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
     var div =
         $div(style: 'display: inline-block;', content: [elemText, elemInput]);
 
-    bool _isShowingInput() =>
+    bool isShowingInput() =>
         elemInput.runtime.getStyleProperty('display') == 'inline';
 
-    bool _swap() {
+    bool swap() {
       _inputDateInteractionCompleter.cancel();
 
-      if (_isShowingInput()) {
+      if (isShowingInput()) {
         elemInput.runtime.setStyleProperty('display', 'none');
         elemText.runtime.setStyleProperty('display', 'inline');
 
@@ -410,7 +410,7 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
     _inputDateInteractionCompleter.cancel();
 
     _inputDateInteractionCompleter.functionToTrigger = () {
-      if (!_swap()) {
+      if (!swap()) {
         var date = parseDateTime(elemInput.runtime.value);
 
         if (date != null) {
@@ -420,8 +420,8 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
     };
 
     div.onClick.listen((evt) {
-      if (!_isShowingInput()) {
-        _swap();
+      if (!isShowingInput()) {
+        swap();
         evt.cancel(stopImmediatePropagation: true);
       } else {
         _inputDateInteractionCompleter.cancel();
