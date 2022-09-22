@@ -649,6 +649,9 @@ class UIInputTable extends UIComponent {
             onInputFocus.add(inputRendered);
           });
         }
+      } else if (inputRendered is DOMElement) {
+        inputRendered.buildDOM(
+            generator: UIComponent.domGenerator, parent: celInput);
       }
 
       if (showInvalidMessages) {
