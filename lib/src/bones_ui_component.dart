@@ -466,7 +466,7 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   Element? findInContentChildDeep(FilterElement filter) =>
-      _findInContentChildDeepImpl(_content!.children, filter);
+      _findInContentChildDeepImpl(_content?.children ?? <Element>[], filter);
 
   Element? _findInContentChildDeepImpl(
       List<Element> list, FilterElement filter) {
@@ -2157,6 +2157,29 @@ abstract class UIComponent extends UIEventHandler {
     var fields = getFields();
     fields.removeWhere((k, v) => !isEmptyValue(v));
     return fields.keys.toList();
+  }
+
+  bool focusField(String? fieldName) {
+    if (fieldName == null) return false;
+
+    var component = getFieldComponent(fieldName);
+
+    if (component is Element) {
+      component.focus();
+      return true;
+    } else if (component is UIComponent) {
+      var input = findInContentChildDeep(
+          (e) => e is InputElement || e is TextAreaElement);
+      if (input != null) {
+        input.focus();
+        return true;
+      }
+
+      component.content?.focus();
+      return true;
+    }
+
+    return false;
   }
 
   int forEachFieldElement(ForEachElement f) {

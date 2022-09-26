@@ -1,3 +1,9 @@
+## 2.0.19
+
+- `UIDialogBase`: added parameter `removeFromDomOnHide`.
+- `UIComponent`: added `focusField`.
+- dom_builder: ^2.1.1
+
 ## 2.0.18
 
 - `InputConfig`:

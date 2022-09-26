@@ -19,27 +19,29 @@ abstract class UIDialogBase extends UIComponent {
   final double backgroundAlpha;
   final int? backgroundBlur;
   final bool fullScreen;
+  final bool removeFromDomOnHide;
 
   final String padding;
 
   UIDialogBase(
-      {this.hideUIRoot = false,
+      {super.classes,
+      super.renderOnConstruction,
+      this.hideUIRoot = false,
       bool show = false,
       bool? addToParent,
-      dynamic classes,
       dynamic style,
       this.padding = '6px',
       this.fullScreen = true,
+      this.removeFromDomOnHide = true,
       int backgroundGrey = 0,
       double backgroundAlpha = 0.80,
-      bool renderOnConstruction = false,
       this.backgroundBlur})
       : backgroundGrey = clipNumber(backgroundGrey, 0, 255)!,
         backgroundAlpha = clipNumber(backgroundAlpha, 0.0, 1.0)!,
-        super((addToParent ?? show) ? rootParent : null,
-            componentClass: 'ui-dialog',
-            classes: classes,
-            renderOnConstruction: renderOnConstruction) {
+        super(
+          (addToParent ?? show) ? rootParent : null,
+          componentClass: 'ui-dialog',
+        ) {
     _myConfigure(style);
   }
 
@@ -180,6 +182,10 @@ abstract class UIDialogBase extends UIComponent {
 
     onHide.add(this);
     onChange.add(this);
+
+    if (removeFromDomOnHide) {
+      content?.remove();
+    }
   }
 
   @override
@@ -324,27 +330,20 @@ class UIDialog extends UIDialogBase {
   dynamic renderContent;
 
   UIDialog(this.renderContent,
-      {bool hideUIRoot = false,
+      {super.hideUIRoot,
       bool show = false,
       bool addToParent = false,
       this.showCloseButton = false,
-      dynamic classes,
-      dynamic style,
-      String padding = '6px',
-      bool fullScreen = true,
-      int backgroundGrey = 0,
-      double backgroundAlpha = 0.80,
-      int? backgroundBlur,
+      super.classes,
+      super.style,
+      super.padding,
+      super.fullScreen,
+      super.removeFromDomOnHide,
+      super.backgroundGrey,
+      super.backgroundAlpha,
+      super.backgroundBlur,
       this.blockScrollTraversing = false})
-      : super(
-            hideUIRoot: hideUIRoot,
-            classes: classes,
-            style: style,
-            padding: padding,
-            fullScreen: fullScreen,
-            backgroundGrey: backgroundGrey,
-            backgroundAlpha: backgroundAlpha,
-            backgroundBlur: backgroundBlur) {
+      : super() {
     if (show) {
       this.show();
     } else {
