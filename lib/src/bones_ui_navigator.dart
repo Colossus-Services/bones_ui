@@ -49,7 +49,7 @@ class UINavigator {
     try {
       return window.isSecureContext ?? false;
     } catch (e, s) {
-      logger.e('Error calling `window.isSecureContext`', e, s);
+      logger.error('Error calling `window.isSecureContext`', e, s);
       return false;
     }
   }

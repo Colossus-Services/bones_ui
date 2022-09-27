@@ -139,8 +139,7 @@ abstract class UIRoot extends UIComponent {
     try {
       onResize(e);
     } catch (e, s) {
-      loggerIgnoreBonesUI.e(
-          'Error calling onResize() for instance: $this', e, s);
+      logger.error('Error calling onResize() for instance: $this', e, s);
     }
   }
 
@@ -325,6 +324,7 @@ void _configure() {
 }
 
 void _registerAllComponents() {
+  UIConsole.get();
   UIButton.register();
   UIButtonLoader.register();
   UIMultiSelection.register();

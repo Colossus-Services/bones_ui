@@ -281,15 +281,14 @@ class UIAsyncContent {
 
   void _onLoadError(
       dynamic error, StackTrace stackTrace, StackTrace parentStackTrace) {
-    loggerIgnoreBonesUI.e(
+    logger.error(
         'Error loading async content! parentUIComponent: $parentUIComponent ; _asyncContentFuture: <<<$_asyncContentFuture>>> ; this: <<<$this>>>',
         error,
         stackTrace);
 
-    loggerIgnoreBonesUI.e('Parent StackTrace:', error, parentStackTrace);
+    logger.error('Parent StackTrace:', error, parentStackTrace);
 
-    loggerIgnoreBonesUI.e(
-        'Construction StackTrace:', error, _constructionStackTrace);
+    logger.error('Construction StackTrace:', error, _constructionStackTrace);
 
     _loadedContent = _Content(error, 500);
     _loadCount++;
@@ -343,7 +342,7 @@ class UIAsyncContent {
   ///
   /// [refresh] If [true] (default), will call [refresh] after reset.
   void reset([bool refresh = true]) {
-    loggerIgnoreBonesUI.i('Resetting async content for instance: $this');
+    logger.log('Resetting async content for instance: $this');
 
     _loadedContent = null;
     _ignoredRefreshCount = 0;

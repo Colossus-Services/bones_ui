@@ -1117,8 +1117,7 @@ abstract class UIComponent extends UIEventHandler {
     try {
       onChildRendered(this);
     } catch (e, s) {
-      loggerIgnoreBonesUI.e(
-          'Error calling onChildRendered() for instance: $this', e, s);
+      logger.error('Error calling onChildRendered() for instance: $this', e, s);
     }
   }
 
@@ -1240,7 +1239,7 @@ abstract class UIComponent extends UIEventHandler {
 
       return list;
     } catch (e, s) {
-      logger.e(
+      logger.error(
           'Error converting rendered to content elements: $rendered', e, s);
       return [];
     }

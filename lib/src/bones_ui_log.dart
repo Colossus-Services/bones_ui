@@ -1,55 +1,87 @@
+import 'dart:async';
 import 'dart:html';
 
 import 'package:dom_tools/dom_tools.dart';
+import 'package:logging/logging.dart' as logging;
 
-/*
-final LoggerFactory _loggerFactory = LoggerFactory(name: 'Bones_UI') ;
+StreamSubscription<logging.LogRecord>? _loggingListenSubscription;
 
-final Logger logger = _loggerFactory.get();
+void _logToConsole() {
+  _loggingListenSubscription ??=
+      logging.Logger.root.onRecord.listen(_logConsole);
+}
 
-final Logger loggerIgnoreBonesUI = _loggerFactory.get(
-    printer: PrettyPrinter(printTime: true)
-      ..ignorePackage('bones_ui')
-      ..ignorePackage('bones_ui_bootstrap'));
-*/
+void _logConsole(logging.LogRecord msg) {
+  var levelName = '[${msg.level.name}]'.padRight(9);
 
-// Temporary logger. Will be replaced by `logger`.
+  var loggerName = msg.loggerName;
+  var message = msg.message;
+
+  var logMsg = StringBuffer('$levelName\t$loggerName\t> $message').toString();
+
+  if (msg.error != null) {
+    UIConsole.error(logMsg, msg.error, msg.stackTrace);
+  } else {
+    UIConsole.log(logMsg);
+  }
+}
+
+// Temporary logger.
 class _Logger {
-  void i(dynamic msg) {
-    msg = _format(msg);
-    print(msg);
+  void log(Object? msg) {
+    print('║ $msg');
   }
 
-  void e(dynamic msg, dynamic e, StackTrace s) {
-    msg = _format(msg, true);
-    _error(msg);
-    if (e != null) {
-      _error(e.toString());
+  void error(dynamic msg, [Object? error, StackTrace? stackTrace]) {
+    msg = _format(msg, error);
+    _printError(msg);
+
+    if (stackTrace != null) {
+      var s = _formatStackTrace(stackTrace);
+      _printError('\n$s');
     }
-    _error(formatStackTrace(s));
   }
 
-  void _error(msg) {
+  void _printError(msg) {
     window.console.error(msg);
   }
 
-  dynamic _format(dynamic msg, [bool error = false]) {
+  Object? _format(Object? msg, [Object? error]) {
     if (msg is List) {
-      return msg.map((e) => _format(msg));
+      return [
+        ...msg.map((e) => _format(msg)),
+        if (error != null) error,
+      ];
     } else if (msg is String) {
-      var str = StringBuffer(error ? '\n' : '');
+      var str = StringBuffer(error != null ? '\n' : '');
 
-      str.write('┌-------------------------------------------------\n');
+      str.write('╔═════════════════════════════════════════════════\n');
 
       var lines = msg.split('\n');
 
       for (var line in lines) {
-        str.write('| ');
+        str.write('║ ');
         str.write(line);
         str.write('\n');
       }
 
-      str.write('└-------------------------------------------------\n');
+      if (error != null) {
+        str.write('║\n');
+        str.write('╠═ ERROR ═════════════════════════════════════════\n');
+        str.write('║\n');
+
+        var errorLines = error.toString().split('\n');
+
+        for (var line in errorLines) {
+          str.write('║ ');
+          str.write(line);
+          str.write('\n');
+        }
+
+        str.write('║\n');
+      }
+
+      str.write('╚═════════════════════════════════════════════════\n');
 
       return str.toString();
     } else {
@@ -57,7 +89,7 @@ class _Logger {
     }
   }
 
-  String? formatStackTrace(StackTrace stackTrace) {
+  String? _formatStackTrace(StackTrace stackTrace) {
     var lines = stackTrace.toString().split('\n');
 
     var formatted = <String>[];
@@ -80,8 +112,6 @@ class _Logger {
 
 // ignore: library_private_types_in_public_api
 final _Logger logger = _Logger();
-// ignore: library_private_types_in_public_api
-final _Logger loggerIgnoreBonesUI = _Logger();
 
 /// A console output int the UI.
 ///
@@ -102,6 +132,7 @@ class UIConsole {
   int _limit = 10000;
 
   UIConsole._internal() {
+    _logToConsole();
     mapJSUIConsole();
   }
 
@@ -201,46 +232,40 @@ class UIConsole {
     return get()!._error(msg, exception, trace);
   }
 
-  void _error(dynamic msg, [dynamic exception, StackTrace? trace]) {
-    if (!_enabled) {
-      if (exception != null) {
-        msg += ' >> $exception';
+  void _error(dynamic msg, [Object? error, StackTrace? stackTrace]) {
+    if (_enabled) {
+      _checkLogsLimit();
+
+      var now = _timeNow();
+
+      _logs.add(now);
+      _logs.add('╔═ ERROR ═════════════════════════════════════════');
+      _logs.add('$msg');
+
+      if (error != null) {
+        _logs.add('\n$error');
       }
 
-      window.console.error(msg);
-
-      if (trace != null) {
-        window.console.error(trace.toString());
+      if (stackTrace != null) {
+        var s = logger._formatStackTrace(stackTrace);
+        _logs.add('\n$s');
       }
 
-      return;
+      _logs.add('╚═════════════════════════════════════════════════');
     }
 
-    var now = DateTime.now();
-    var log = 'ERROR> $now>  $msg';
-
-    if (exception != null) {
-      log += ' >> $exception';
+    if (error != null && stackTrace != null) {
+      logger.error(msg, error, stackTrace);
+    } else {
+      logger.log(msg);
     }
+  }
 
-    _logs.add(log);
+  String _timeNow() => DateTime.now().toString().padRight(23);
 
-    if (trace != null) {
-      _logs.add(trace.toString());
-    }
-
+  void _checkLogsLimit() {
     while (_logs.length > _limit) {
       _logs.removeAt(0);
-    }
-
-    if (msg is String) {
-      window.console.error(log);
-    } else {
-      window.console.error(msg);
-    }
-
-    if (trace != null) {
-      window.console.error(trace.toString());
     }
   }
 
@@ -249,21 +274,16 @@ class UIConsole {
   }
 
   void _log(dynamic msg) {
-    if (!_enabled) {
-      loggerIgnoreBonesUI.i(msg);
-      return;
+    if (_enabled) {
+      _checkLogsLimit();
+
+      var now = _timeNow();
+      var log = '$now  $msg';
+
+      _logs.add(log);
     }
 
-    var now = DateTime.now();
-    var log = '$now>  $msg';
-
-    _logs.add(log);
-
-    while (_logs.length > _limit) {
-      _logs.removeAt(0);
-    }
-
-    loggerIgnoreBonesUI.i(msg);
+    logger.log(msg);
   }
 
   static String allLogs() {
@@ -376,7 +396,7 @@ class UIConsole {
     consoleText.style.fontSize = '$_fontSize%';
     consoleText.style.overflow = 'scroll';
 
-    var html = '<pre>\n'
+    var html = '<br><pre style="color: #999999;">\n'
         '$allLogs'
         '</pre>';
 
@@ -491,7 +511,7 @@ class UIConsole {
 
     var elem = button(1.0);
 
-    loggerIgnoreBonesUI.i('Button: ${elem.clientHeight}');
+    logger.log('Button: ${elem.clientHeight}');
 
     elem.style
       ..position = 'fixed'

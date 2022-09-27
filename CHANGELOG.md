@@ -1,3 +1,9 @@
+## 2.0.20
+
+- Improve logging.
+- Integrate with package `logging`.
+- logging: ^1.0.2
+
 ## 2.0.19
 
 - `UIDialogBase`: added parameter `removeFromDomOnHide`.
