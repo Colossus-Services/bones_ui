@@ -1,3 +1,16 @@
+## 2.0.21
+
+- `InputConfig`:
+  - Added `onActionListener`: triggered when the element is clicked or ENTER is pressed.
+- dom_tools: ^2.1.6
+- archive: ^3.3.2
+- collection: ^1.17.0
+- logging: ^1.1.0
+- build_web_compilers: ^3.2.7
+- build_runner: ^2.3.2
+- lints: ^2.0.1
+- sdk: '>=2.18.0 <3.0.0'
+
 ## 2.0.20
 
 - Improve logging.

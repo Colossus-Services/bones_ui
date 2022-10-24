@@ -47,6 +47,8 @@ class InputConfig {
 
   final FieldValueEvent? onChangeListener;
 
+  final FieldValueEvent? onActionListener;
+
   List<String> classes;
 
   String? style;
@@ -111,6 +113,7 @@ class InputConfig {
     FieldValueNormalizer? valueNormalizer,
     Object? invalidValueMessage,
     this.onChangeListener,
+    this.onActionListener,
   })  : _id = id,
         _type = type == null || type.isEmpty ? 'text' : type,
         value = value == null || value.isEmpty ? null : value,
@@ -841,6 +844,34 @@ class UIInputTable extends UIComponent {
           updateRenderedFieldElementValue(elem);
           onChange.add(elem);
         });
+
+        var onActionListener = inputConfig?.onActionListener;
+
+        if (onActionListener != null) {
+          if (elem is ButtonElement) {
+            elem.onClick.listen(onActionListener);
+          } else if (elem is InputElement) {
+            var type = elem.type;
+
+            if (type == 'submit' || type == 'reset' || type == 'checkbox') {
+              elem.onClick.listen(onActionListener);
+            } else if (type == 'date') {
+              interactionCompleter.onComplete.listen(onActionListener);
+            } else {
+              elem.onKeyUp
+                  .where((evt) => evt.keyCode == 9 || evt.keyCode == 13)
+                  .listen(onActionListener);
+
+              if (type != 'password') {
+                interactionCompleter.onComplete.listen(onActionListener);
+              }
+            }
+          } else if (elem is TextAreaElement) {
+            interactionCompleter.onComplete.listen(onActionListener);
+          } else {
+            elem.onClick.listen(onActionListener);
+          }
+        }
       }
     }
   }
