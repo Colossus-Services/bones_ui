@@ -34,13 +34,20 @@ abstract class UIRoot extends UIComponent {
 
   Future<bool>? _futureInitializeLocale;
 
-  UIRoot(Element? rootContainer, {dynamic style, dynamic classes})
+  Duration readyTimeout;
+
+  UIRoot(Element? rootContainer,
+      {dynamic style,
+      dynamic classes,
+      UIComponentClearParent clearParent =
+          UIComponentClearParent.onInitialRender,
+      this.readyTimeout = const Duration(seconds: 15)})
       : super(rootContainer,
             style: style,
             classes: classes,
             componentClass: 'ui-root',
             construct: false,
-            clearParent: UIComponentClearParent.onInitialRender) {
+            clearParent: clearParent) {
     _initializeAll();
 
     final componentInternals = this.componentInternals;
@@ -232,7 +239,7 @@ abstract class UIRoot extends UIComponent {
         _onReadyToInitialize();
       }, onError: (e) {
         _onReadyToInitialize();
-      }).timeout(Duration(seconds: 10), onTimeout: () {
+      }).timeout(readyTimeout, onTimeout: () {
         _onReadyToInitialize();
       });
     }

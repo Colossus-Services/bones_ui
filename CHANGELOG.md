@@ -1,3 +1,10 @@
+## 2.0.22
+
+- `UIRoot`:
+  - Expose parameter `super.clearParent`.
+  - Added `readyTimeout`: allows personalization of `isReady` timeout.
+- dom_tools: ^2.1.7
+
 ## 2.0.21
 
 - `InputConfig`:
