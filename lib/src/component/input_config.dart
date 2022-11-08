@@ -397,8 +397,9 @@ class InputConfig {
       ..value = valText ?? ''
       ..style.width = '100%';
 
-    if (checked ?? false) {
-      input.checked = true;
+    var checked = this.checked;
+    if (checked != null) {
+      input.checked = checked;
       if (valText == null) {
         input.value = 'true';
       }
