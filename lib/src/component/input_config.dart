@@ -34,6 +34,7 @@ class InputConfig {
   late final String? _label;
   final String _type;
   String? value;
+  final bool? checked;
   final String? _placeholder;
   final Map<String, String>? _attributes;
   final Map<String, String>? _options;
@@ -69,6 +70,7 @@ class InputConfig {
       var label = parseString(findKeyValue(config, ['label'], true));
       var type = parseString(findKeyValue(config, ['type'], true), 'text');
       var value = parseString(findKeyValue(config, ['value'], true), '');
+      var checked = parseBool(findKeyValue(config, ['checked'], true));
       var attributes = findKeyValue(config, ['attributes'], true);
       var classes = findKeyValue(config, ['class', 'classes'], true);
       var style = findKeyValue(config, ['style'], true);
@@ -86,6 +88,7 @@ class InputConfig {
       return InputConfig(id!, label,
           type: type,
           value: value,
+          checked: checked,
           attributes: attributes,
           options: options,
           optional: optional,
@@ -101,6 +104,7 @@ class InputConfig {
     String? label, {
     String? type = 'text',
     String? value = '',
+    this.checked,
     String? placeholder = '',
     Map<String, String>? attributes,
     Map<String, String>? options,
@@ -392,6 +396,13 @@ class InputConfig {
       ..type = inputType ?? 'text'
       ..value = valText ?? ''
       ..style.width = '100%';
+
+    if (checked ?? false) {
+      input.checked = true;
+      if (valText == null) {
+        input.value = 'true';
+      }
+    }
 
     return input;
   }

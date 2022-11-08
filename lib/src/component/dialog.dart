@@ -24,7 +24,8 @@ abstract class UIDialogBase extends UIComponent {
   final String padding;
 
   UIDialogBase(
-      {super.classes,
+      {super.id,
+      super.classes,
       super.renderOnConstruction,
       this.hideUIRoot = false,
       bool show = false,
@@ -330,7 +331,8 @@ class UIDialog extends UIDialogBase {
   dynamic renderContent;
 
   UIDialog(this.renderContent,
-      {super.hideUIRoot,
+      {super.id,
+      super.hideUIRoot,
       bool show = false,
       bool addToParent = false,
       this.showCloseButton = false,

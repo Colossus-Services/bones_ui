@@ -1,3 +1,9 @@
+## 2.0.23
+
+- `InputConfig`: added field `checked`.
+- `UIDialog`: added parameter `id` to constructor.
+- dom_builder: ^2.1.2
+
 ## 2.0.22
 
 - `UIRoot`:
