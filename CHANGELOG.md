@@ -1,3 +1,10 @@
+## 2.0.24
+
+- `UIDialogBase`:
+  - Added `selectDialogButtons` and `isDialogButton` for better dialog button definition.
+- `UIDialog`:
+  - `dialogContent` now can be `null` and `renderContent` should be overwritten.
+
 ## 2.0.23
 
 - `InputConfig`: added field `checked`.

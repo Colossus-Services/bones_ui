@@ -86,18 +86,24 @@ abstract class UIDialogBase extends UIComponent {
 
   @override
   void posRender() {
+    var buttons = selectDialogButtons();
+
+    for (var button in buttons) {
+      button.onClick.listen(_callOnDialogButtonClick);
+    }
+  }
+
+  List<Element> selectDialogButtons() {
     var selectors = onClickListenOnlyForDialogButtonClass
         ? '.$dialogButtonClass'
         : '.$dialogButtonClass, button';
 
-    var buttons = content!.querySelectorAll(selectors);
-
-    if (buttons.isNotEmpty) {
-      for (var button in buttons) {
-        button.onClick.listen(_callOnDialogButtonClick);
-      }
-    }
+    var sel = content!.querySelectorAll(selectors);
+    var buttons = sel.where(isDialogButton).toList();
+    return buttons;
   }
+
+  bool isDialogButton(Element element) => true;
 
   bool onlyHideOnCancelButton = false;
 
@@ -328,9 +334,9 @@ class UIDialog extends UIDialogBase {
 
   final bool blockScrollTraversing;
 
-  dynamic renderContent;
+  dynamic dialogContent;
 
-  UIDialog(this.renderContent,
+  UIDialog(this.dialogContent,
       {super.id,
       super.hideUIRoot,
       bool show = false,
@@ -377,10 +383,22 @@ class UIDialog extends UIDialogBase {
       return $div(
           style:
               'text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);',
-          content: [closeButton, renderContent]);
+          content: [closeButton, renderContent()]);
     } else {
       return $div(
-          style: 'text-align: center;', content: [closeButton, renderContent]);
+          style: 'text-align: center;',
+          content: [closeButton, renderContent()]);
+    }
+  }
+
+  dynamic renderContent() {
+    var dialogContent = this.dialogContent;
+    if (dialogContent == null) return;
+
+    if (dialogContent is Function()) {
+      return dialogContent();
+    } else {
+      return dialogContent;
     }
   }
 
