@@ -20,6 +20,7 @@ import 'bones_ui_layout.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_navigator.dart';
 import 'bones_ui_root.dart';
+import 'component/input_config.dart';
 
 /// [UIComponent] behavior to clear the component.
 enum UIComponentClearParent { onConstruct, onInitialRender, onRender }
@@ -328,38 +329,32 @@ abstract class UIComponent extends UIEventHandler {
 
   void configureClasses(dynamic classes1,
       [dynamic classes2, dynamic componentClasses]) {
-    content!.classes.add('ui-component');
+    var content = this.content!;
+    content.classes.add('ui-component');
 
     var classesNamesComponent = parseClasses(componentClasses);
-    if (classesNamesComponent.isNotEmpty) {
-      for (var c in classesNamesComponent) {
-        if (!content!.classes.contains(c)) {
-          content!.classes.add(c);
-        }
-      }
-    }
+    content.classes.addAll(classesNamesComponent);
 
     appendClasses(classes1, classes2);
   }
 
   void appendClasses(dynamic classes1, [dynamic classes2]) {
-    var classesNames1 = parseClasses(classes1);
-    var classesNames2 = parseClasses(classes2);
+    var classesNames = <String>[
+      ...parseClasses(classes1),
+      ...parseClasses(classes2)
+    ];
 
-    classesNames1.addAll(classesNames2);
+    var classesNamesRemove = classesNames
+        .where((e) => e.startsWith('!'))
+        .map((e) => e.substring(1))
+        .toList();
 
-    // ignore: omit_local_variable_types
-    List<String> classesNamesRemove = List.from(classesNames1);
-    classesNamesRemove.retainWhere((s) => s.startsWith('!'));
+    classesNames.removeWhere((s) => s.startsWith('!'));
 
-    classesNames1.removeWhere((s) => s.startsWith('!'));
-    if (classesNames1.isNotEmpty) content!.classes.addAll(classesNames1);
+    var content = this.content!;
 
-    if (classesNamesRemove.isNotEmpty) {
-      classesNamesRemove =
-          classesNamesRemove.map((s) => s.replaceFirst('!', '')).toList();
-      content!.classes.removeAll(classesNamesRemove);
-    }
+    content.classes.addAll(classesNames);
+    content.classes.removeAll(classesNamesRemove);
   }
 
   static final RegExp _cssEntryDelimiter = RegExp(r'\s*;\s*');
@@ -1415,12 +1410,19 @@ abstract class UIComponent extends UIEventHandler {
       } catch (e, s) {
         UIConsole.error('Error calling function: $value', e, s);
       }
-    } else {
-      UIConsole.log("Bones_UI: Can't render element of type");
-      UIConsole.log(value);
+    } else if (value is InputConfig) {
+      var msg =
+          "Bones_UI: Can't render element of type `InputConfig` as it exclusive to `UIInputTable`!";
 
-      throw UnsupportedError(
-          "Bones_UI: Can't render element of type: ${value.runtimeType}");
+      UIConsole.log(msg);
+      UIConsole.log(value);
+      throw UnsupportedError(msg);
+    } else {
+      var msg = "Bones_UI: Can't render element of type: ${value.runtimeType}";
+
+      UIConsole.log(msg);
+      UIConsole.log(value);
+      throw UnsupportedError(msg);
     }
 
     return prevElemIndex;

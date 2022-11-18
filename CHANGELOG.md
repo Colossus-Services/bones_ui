@@ -1,3 +1,17 @@
+## 2.0.25
+
+- `UICapture`:
+  - Added `CaptureDataFormat.url`.
+  - Field `_selectedFileData` is now a internal `_CapturedData` capable to handle different interchangeable data formats.
+  - Added field `captureMaxWidth` and `captureMaxHeight` for maximum captured image size.
+  - Added field `photoScaleMimeType` and `photoScaleQuality` for scale operations.
+- `UIComponent`:
+  - Optimized `configureClasses`.
+  - Show error message when trying to render an `InputConfig`.
+- swiss_knife: ^3.1.2
+- mercury_client: ^2.1.7
+- archive: ^3.3.4
+
 ## 2.0.24
 
 - `UIDialogBase`:

@@ -1,7 +1,7 @@
 import 'dart:convert' as data_convert;
-import 'dart:convert';
 import 'dart:html';
 import 'dart:typed_data';
+import 'dart:math' as math;
 
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
@@ -10,6 +10,7 @@ import '../bones_ui_base.dart';
 import '../bones_ui_log.dart';
 import 'button.dart';
 
+/// The capture type of an [UICapture].
 enum CaptureType {
   photo,
   photoSelfie,
@@ -20,14 +21,43 @@ enum CaptureType {
   audioRecord,
   audioFile,
   json,
-  file
+  file;
+
+  /// Returns `true` if captures a photo.
+  bool get isPhoto =>
+      this == CaptureType.photo ||
+      this == CaptureType.photoSelfie ||
+      this == CaptureType.photoFile;
+
+  /// Returns `true` if captures a video.
+  bool get isVideo =>
+      this == CaptureType.video ||
+      this == CaptureType.videoSelfie ||
+      this == CaptureType.videoFile;
+
+  /// Returns `true` if captures an audio.
+  bool get isAudio =>
+      this == CaptureType.audioRecord || this == CaptureType.audioFile;
 }
 
+/// The internal representation of the captured data.
+/// It's recommended to use the target format for your case,
+/// to avoid data duplication and data conversion.
 enum CaptureDataFormat {
+  /// The data is stored as a content [String].
   string,
+
+  /// The data is stored as an [Uint8List] array buffer.
   arrayBuffer,
+
+  /// The data is stored as a Base64 [String].
   base64,
+
+  /// The data is stored as a [DataURLBase64].
   dataUrlBase64,
+
+  /// The data is stored as a URL [String] (including `DataURL`).
+  url,
 }
 
 abstract class UICapture extends UIButtonBase implements UIField<String> {
@@ -38,6 +68,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   UICapture(Element? container, this.captureType,
       {String? fieldName,
+      this.captureMaxWidth,
+      this.captureMaxHeight,
+      this.captureDataFormat = CaptureDataFormat.arrayBuffer,
       Object? selectedFileData,
       String? navigate,
       Map<String, String>? navigateParameters,
@@ -213,11 +246,11 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   bool get hasSelectedFile => _selectedFile != null;
 
-  Object? _selectedFileData;
+  _CapturedData? _selectedFileData;
 
   bool get hasSelectedFileData => _selectedFileData != null;
 
-  Object? get selectedFileData => _selectedFileData;
+  Object? get selectedFileData => _selectedFileData?.data;
 
   /// Sets the file [data].
   /// Accepted formats:
@@ -225,50 +258,12 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   /// - Data URL [String].
   /// - Base64 [String].
   set selectedFileData(Object? data) {
-    if (data == null) return;
-
-    if (data is List<int>) {
-      _selectedFileData = data is Uint8List ? data : Uint8List.fromList(data);
-      return;
-    }
-
-    var s = data.toString();
-
-    var dataUrl = DataURLBase64.parse(s);
-    if (dataUrl != null) {
-      _selectedFileData = dataUrl.payloadArrayBuffer;
-      return;
-    }
-
-    try {
-      var data = base64.decode(s);
-      _selectedFileData = data;
-      return;
-    } catch (_) {}
-
-    throw ArgumentError("Can't accept data type: $data");
+    _selectedFileData =
+        data == null ? null : _CapturedData.from(captureDataFormat, data);
   }
 
-  Uint8List? get selectedFileDataAsArrayBuffer {
-    if (selectedFileData == null) return null;
-
-    if (captureDataFormat == CaptureDataFormat.arrayBuffer) {
-      var data = _selectedFileData as Uint8List?;
-      return data;
-    } else if (captureDataFormat == CaptureDataFormat.string) {
-      var s = _selectedFileData as String;
-      var data = _dataEncoding!.encode(s);
-      return data as Uint8List?;
-    } else if (captureDataFormat == CaptureDataFormat.base64) {
-      var s = _selectedFileData as String;
-      return data_convert.base64.decode(s);
-    } else if (captureDataFormat == CaptureDataFormat.dataUrlBase64) {
-      return DataURLBase64.parsePayloadAsArrayBuffer(
-          _selectedFileData as String);
-    }
-
-    return null;
-  }
+  Uint8List? get selectedFileDataAsArrayBuffer =>
+      _selectedFileData?.dataAsArrayBuffer(dataEncoding: _dataEncoding);
 
   data_convert.Encoding? _dataEncoding;
 
@@ -286,78 +281,38 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     _dataEncoding = data_convert.utf8;
   }
 
-  String? get selectedFileDataAsString {
-    if (selectedFileData == null) return null;
+  String? get selectedFileDataAsString =>
+      _selectedFileData?.dataAsString(dataEncoding: _dataEncoding);
 
-    if (captureDataFormat == CaptureDataFormat.arrayBuffer) {
-      var data = _selectedFileData as Uint8List;
-      return _dataEncoding!.decode(data);
-    } else if (captureDataFormat == CaptureDataFormat.string) {
-      var s = _selectedFileData as String?;
-      return s;
-    } else if (captureDataFormat == CaptureDataFormat.base64) {
-      var s = _selectedFileData as String;
-      var data = data_convert.base64.decode(s);
-      return _dataEncoding!.decode(data);
-    } else if (captureDataFormat == CaptureDataFormat.dataUrlBase64) {
-      return DataURLBase64.parsePayloadAsString(_selectedFileData as String);
-    }
-
-    return null;
-  }
-
-  String? get selectedFileDataAsBase64 {
-    if (selectedFileData == null) return null;
-
-    if (captureDataFormat == CaptureDataFormat.arrayBuffer) {
-      var data = _selectedFileData as Uint8List;
-      return data_convert.base64.encode(data);
-    } else if (captureDataFormat == CaptureDataFormat.string) {
-      var s = _selectedFileData as String;
-      var data = _dataEncoding!.encode(s);
-      return data_convert.base64.encode(data);
-    } else if (captureDataFormat == CaptureDataFormat.base64) {
-      return _selectedFileData as String?;
-    } else if (captureDataFormat == CaptureDataFormat.dataUrlBase64) {
-      var s = _selectedFileData as String?;
-      return DataURLBase64.parsePayloadAsBase64(s);
-    }
-
-    return null;
-  }
+  String? get selectedFileDataAsBase64 =>
+      _selectedFileData?.dataAsBase64(dataEncoding: _dataEncoding);
 
   String? get selectedFileDataAsDataURLBase64 {
+    var selectedFileData = _selectedFileData;
     if (selectedFileData == null) return null;
 
-    if (captureDataFormat == CaptureDataFormat.dataUrlBase64) {
-      var s = _selectedFileData as String?;
-      return s;
-    }
-
-    String? base64;
-
-    if (captureDataFormat == CaptureDataFormat.arrayBuffer) {
-      var data = _selectedFileData as Uint8List;
-      base64 = data_convert.base64.encode(data);
-    } else if (captureDataFormat == CaptureDataFormat.string) {
-      var s = _selectedFileData as String;
-      var data = _dataEncoding!.encode(s);
-      base64 = data_convert.base64.encode(data);
-    } else if (captureDataFormat == CaptureDataFormat.base64) {
-      base64 = _selectedFileData as String?;
+    if (selectedFileData.dataFormat == CaptureDataFormat.url) {
+      return selectedFileData.dataAsURL();
     } else {
-      return null;
+      return selectedFileData
+          .dataAsDataUrlBase64(dataEncoding: _dataEncoding)
+          .asDataURLString();
     }
-
-    var file = _selectedFile;
-    var mediaType = file == null ? '' : getFileMimeType(file);
-
-    return toDataURLBase64(MimeType.asString(mediaType, ''), base64!);
   }
+
+  /// The maximum width of the captured photo.
+  /// See [captureType].
+  int? captureMaxWidth;
+
+  /// The maximum height of the captured photo.
+  /// See [captureType].
+  int? captureMaxHeight;
 
   CaptureDataFormat captureDataFormat = CaptureDataFormat.arrayBuffer;
 
-  // Default true since not all popular browsers can't handle Exif yet:
+  /// If `true` will remove the Exif data from the captured data.
+  /// Default true since not all popular browsers can't handle Exif yet.
+  /// This is useful to avoid issues with device orientation and image rotation.
   bool removeExifFromImage = true;
 
   Future<void> _readFile(FileUploadInputElement input) async {
@@ -365,26 +320,123 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       var file = input.files!.first;
 
       _selectedFile = file;
-      _selectedFileData = null;
 
-      if (captureDataFormat == CaptureDataFormat.arrayBuffer) {
-        _selectedFileData =
-            await readFileInputElementAsArrayBuffer(input, removeExifFromImage);
-      } else if (captureDataFormat == CaptureDataFormat.string) {
-        _selectedFileData =
-            await readFileInputElementAsString(input, removeExifFromImage);
-      } else if (captureDataFormat == CaptureDataFormat.base64) {
-        _selectedFileData =
-            await readFileInputElementAsBase64(input, removeExifFromImage);
-      } else if (captureDataFormat == CaptureDataFormat.dataUrlBase64) {
-        _selectedFileData = await readFileInputElementAsDataURLBase64(
-            input, removeExifFromImage);
-      } else {
+      var data = await _readFileInput(input);
+
+      if (data == null) {
         throw StateError("Can't capture data as format: $captureDataFormat");
       }
 
+      var capturedData = _CapturedData.from(captureDataFormat, data);
+
+      capturedData = await _filterCapturedData(capturedData);
+
+      _selectedFileData = capturedData;
+
       onCaptureData.add(this);
       onChange.add(this);
+    }
+  }
+
+  Future<_CapturedData> _filterCapturedData(_CapturedData capturedData) async {
+    if (captureMaxWidth == null && captureMaxHeight == null) {
+      return capturedData;
+    }
+
+    if (captureType.isPhoto) {
+      var fileURL = capturedData.dataAsURL();
+
+      var imageElement = ImageElement()..src = fileURL;
+
+      if (imageElement.complete ?? false) {
+        return _filterCapturedPhoto(capturedData, imageElement);
+      } else {
+        return imageElement.onLoad.first
+            .then((value) => _filterCapturedPhoto(capturedData, imageElement));
+      }
+    }
+
+    return capturedData;
+  }
+
+  /// [MimeType] to use when scaling a captured photo. Usually
+  /// 'image/png', 'image/jpeg' or 'image/webp'.
+  /// Default: 'image/jpeg'
+  /// See [captureMaxWidth] and [captureMaxHeight].
+  String? photoScaleMimeType;
+
+  /// Image quality to use when scaling a captured photo.
+  /// Used when [photoScaleMimeType] is 'image/jpeg' or 'image/webp'.
+  /// Default: 0.98
+  /// See [captureMaxWidth] and [captureMaxHeight].
+  double photoScaleQuality = 0.98;
+
+  Future<_CapturedData> _filterCapturedPhoto(
+      _CapturedData capturedData, ImageElement image) async {
+    var w = image.naturalWidth;
+    var h = image.naturalHeight;
+
+    var maxW = captureMaxWidth ?? w;
+    var maxH = captureMaxHeight ?? h;
+
+    if (w <= maxW && h <= maxH) return capturedData;
+
+    var rW = maxW / w;
+    var rH = maxH / h;
+    var r = math.min(rW, rH);
+
+    var w2 = (w * r).toInt();
+    var h2 = (h * r).toInt();
+
+    if (w == w2 && h == h2) return capturedData;
+
+    var canvas = CanvasElement(width: w2, height: h2);
+
+    var ctx = canvas.context2D;
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    ctx.clearRect(0, 0, w2, h2);
+    ctx.drawImageScaled(image, 0, 0, w2, h2);
+
+    var photoScaleMimeType = this.photoScaleMimeType;
+
+    if (photoScaleMimeType == null || photoScaleMimeType.isEmpty) {
+      var m = capturedData.mimeType;
+      if (m != null && m.type == 'image') {
+        photoScaleMimeType = m.toString();
+      }
+    }
+
+    photoScaleMimeType ??= "image/jpeg";
+
+    var canvasDataURL = canvas.toDataUrl(photoScaleMimeType, photoScaleQuality);
+    var capturedData2 = _CapturedData.fromURL(canvasDataURL);
+
+    capturedData2 = capturedData2.withDataFormat(capturedData.dataFormat);
+    return capturedData2;
+  }
+
+  Future<Object?> _readFileInput(FileUploadInputElement input) async {
+    switch (captureDataFormat) {
+      case CaptureDataFormat.arrayBuffer:
+        return await readFileInputElementAsArrayBuffer(
+            input, removeExifFromImage);
+
+      case CaptureDataFormat.string:
+        return await readFileInputElementAsString(input, removeExifFromImage);
+
+      case CaptureDataFormat.base64:
+        return await readFileInputElementAsBase64(input, removeExifFromImage);
+
+      case CaptureDataFormat.dataUrlBase64:
+        return await readFileInputElementAsDataURLBase64(
+            input, removeExifFromImage);
+
+      case CaptureDataFormat.url:
+        return await readFileInputElementAsDataURLBase64(
+            input, removeExifFromImage);
     }
   }
 
@@ -436,6 +488,269 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   }
 }
 
+/// The captured data with interchangeable formats.
+/// See [CaptureDataFormat].
+class _CapturedData {
+  final CaptureDataFormat dataFormat;
+
+  final Object data;
+
+  _CapturedData._(this.dataFormat, this.data);
+
+  factory _CapturedData.fromArrayBuffer(List<int> data) {
+    var bs = data is Uint8List ? data : Uint8List.fromList(data);
+    return _CapturedData._(CaptureDataFormat.arrayBuffer, bs);
+  }
+
+  factory _CapturedData.fromBase64(String base64) {
+    return _CapturedData._(CaptureDataFormat.base64, base64.trim());
+  }
+
+  factory _CapturedData.fromDataUrlBase64(DataURLBase64 dataUrlBase64) {
+    return _CapturedData._(CaptureDataFormat.dataUrlBase64, dataUrlBase64);
+  }
+
+  factory _CapturedData.fromString(String string) {
+    return _CapturedData._(CaptureDataFormat.string, string);
+  }
+
+  factory _CapturedData.fromURL(String url) {
+    return _CapturedData._(CaptureDataFormat.url, url);
+  }
+
+  factory _CapturedData.from(CaptureDataFormat dataFormat, Object data,
+      {data_convert.Encoding? dataEncoding}) {
+    switch (dataFormat) {
+      case CaptureDataFormat.arrayBuffer:
+        {
+          if (data is List<int>) {
+            return _CapturedData.fromArrayBuffer(data);
+          } else if (data is DataURLBase64) {
+            return _CapturedData.fromArrayBuffer(data.payloadArrayBuffer);
+          } else {
+            var s = data.toString();
+            var dataUrl = DataURLBase64.parse(s);
+
+            if (dataUrl != null) {
+              return _CapturedData.fromArrayBuffer(dataUrl.payloadArrayBuffer);
+            } else {
+              var bs = _decodeBase64(s);
+              if (bs != null) {
+                return _CapturedData.fromArrayBuffer(bs);
+              }
+
+              dataEncoding ??= data_convert.utf8;
+
+              return _CapturedData.fromArrayBuffer(dataEncoding.encode(s));
+            }
+          }
+        }
+      case CaptureDataFormat.dataUrlBase64:
+        {
+          if (data is List<int>) {
+            return _CapturedData.fromDataUrlBase64(
+                DataURLBase64(data_convert.base64.encode(data)));
+          } else if (data is DataURLBase64) {
+            return _CapturedData.fromDataUrlBase64(data);
+          } else {
+            var s = data.toString();
+            var dataUrl = DataURLBase64.parse(s);
+
+            if (dataUrl != null) {
+              return _CapturedData.fromDataUrlBase64(dataUrl);
+            } else {
+              List<int>? bs = _decodeBase64(s);
+              if (bs != null) {
+                return _CapturedData.fromDataUrlBase64(DataURLBase64(s));
+              }
+
+              dataEncoding ??= data_convert.utf8;
+
+              bs = dataEncoding.encode(s);
+              return _CapturedData.fromDataUrlBase64(
+                  DataURLBase64(data_convert.base64.encode(bs), 'text/plain'));
+            }
+          }
+        }
+      case CaptureDataFormat.base64:
+        {
+          if (data is List<int>) {
+            return _CapturedData.fromBase64(data_convert.base64.encode(data));
+          } else if (data is DataURLBase64) {
+            return _CapturedData.fromBase64(data.payload);
+          } else {
+            var s = data.toString();
+            var dataUrl = DataURLBase64.parse(s);
+
+            if (dataUrl != null) {
+              return _CapturedData.fromBase64(dataUrl.payloadBase64);
+            } else {
+              List<int>? bs = _decodeBase64(s);
+              if (bs != null) {
+                return _CapturedData.fromBase64(s);
+              }
+
+              dataEncoding ??= data_convert.utf8;
+
+              bs = dataEncoding.encode(s);
+              return _CapturedData.fromBase64(data_convert.base64.encode(bs));
+            }
+          }
+        }
+      case CaptureDataFormat.string:
+        {
+          if (data is List<int>) {
+            var s = _decodeAsString(data, dataEncoding);
+            return _CapturedData.fromString(s);
+          } else if (data is DataURLBase64) {
+            return _CapturedData.fromString(data.payload);
+          } else {
+            var s = data.toString();
+            var dataUrl = DataURLBase64.parse(s);
+
+            if (dataUrl != null) {
+              return _CapturedData.fromString(dataUrl.payload);
+            } else {
+              List<int>? bs = _decodeBase64(s);
+              if (bs != null) {
+                return _CapturedData.fromString(
+                    _decodeAsString(bs, dataEncoding));
+              }
+
+              return _CapturedData.fromString(s);
+            }
+          }
+        }
+      case CaptureDataFormat.url:
+        {
+          if (data is List<int>) {
+            return _CapturedData.fromURL(
+                DataURLBase64(data_convert.base64.encode(data))
+                    .asDataURLString());
+          } else if (data is DataURLBase64) {
+            return _CapturedData.fromURL(data.asDataURLString());
+          } else {
+            var s = data.toString().trim();
+            var dataUrl = DataURLBase64.parse(s);
+
+            if (dataUrl != null) {
+              return _CapturedData.fromURL(dataUrl.asDataURLString());
+            } else {
+              List<int>? bs = _decodeBase64(s);
+              if (bs != null) {
+                return _CapturedData.fromURL(
+                    DataURLBase64(s).asDataURLString());
+              }
+
+              return _CapturedData.fromURL(s);
+            }
+          }
+        }
+      default:
+        throw StateError("Unknown format: $dataFormat");
+    }
+  }
+
+  Uint8List dataAsArrayBuffer({data_convert.Encoding? dataEncoding}) {
+    if (dataFormat == CaptureDataFormat.arrayBuffer) {
+      return data as Uint8List;
+    } else {
+      return _CapturedData.from(CaptureDataFormat.arrayBuffer, data,
+              dataEncoding: dataEncoding)
+          .data as Uint8List;
+    }
+  }
+
+  String dataAsBase64({data_convert.Encoding? dataEncoding}) {
+    if (dataFormat == CaptureDataFormat.base64) {
+      return data as String;
+    } else {
+      return _CapturedData.from(CaptureDataFormat.base64, data,
+              dataEncoding: dataEncoding)
+          .data as String;
+    }
+  }
+
+  DataURLBase64 dataAsDataUrlBase64({data_convert.Encoding? dataEncoding}) {
+    if (dataFormat == CaptureDataFormat.dataUrlBase64) {
+      return data as DataURLBase64;
+    } else {
+      return _CapturedData.from(CaptureDataFormat.dataUrlBase64, data,
+              dataEncoding: dataEncoding)
+          .data as DataURLBase64;
+    }
+  }
+
+  String dataAsString({data_convert.Encoding? dataEncoding}) {
+    if (dataFormat == CaptureDataFormat.string) {
+      return data as String;
+    } else {
+      return _CapturedData.from(CaptureDataFormat.string, data,
+              dataEncoding: dataEncoding)
+          .data as String;
+    }
+  }
+
+  String dataAsURL({data_convert.Encoding? dataEncoding}) {
+    if (dataFormat == CaptureDataFormat.url) {
+      return data as String;
+    } else {
+      return _CapturedData.from(CaptureDataFormat.url, data,
+              dataEncoding: dataEncoding)
+          .data as String;
+    }
+  }
+
+  MimeType? get mimeType {
+    DataURLBase64? dataUrl;
+
+    if (dataFormat == CaptureDataFormat.dataUrlBase64) {
+      dataUrl = dataAsDataUrlBase64();
+    } else if (dataFormat == CaptureDataFormat.url &&
+        dataAsURL().startsWith('data:')) {
+      dataUrl = dataAsDataUrlBase64();
+    } else {
+      try {
+        dataUrl = dataAsDataUrlBase64();
+      } catch (_) {}
+    }
+
+    if (dataUrl != null) {
+      return dataUrl.mimeType;
+    }
+
+    return null;
+  }
+
+  _CapturedData withDataFormat(CaptureDataFormat targetDataFormat) {
+    if (dataFormat != targetDataFormat) {
+      return _CapturedData.from(targetDataFormat, data);
+    } else {
+      return this;
+    }
+  }
+}
+
+Uint8List? _decodeBase64(String s) {
+  try {
+    return data_convert.base64.decode(s);
+  } catch (_) {
+    return null;
+  }
+}
+
+String _decodeAsString(List<int> bs, data_convert.Encoding? dataEncoding) {
+  if (dataEncoding != null) {
+    return dataEncoding.decode(bs);
+  }
+
+  try {
+    return data_convert.utf8.decode(bs);
+  } catch (_) {
+    return data_convert.latin1.decode(bs);
+  }
+}
+
 class URLFileReader {
   final File _file;
 
@@ -464,7 +779,7 @@ class URLFileReader {
     try {
       onLoadData.add(dataURL);
     } catch (e) {
-      UIConsole.error('Error calling onLoadData controler', e);
+      UIConsole.error('Error calling onLoadData controller', e);
     }
   }
 
@@ -533,34 +848,26 @@ class UIButtonCapturePhoto extends UICapture {
 
   UIButtonCapturePhoto(Element? parent,
       {this.text,
-      CaptureType? captureType,
+      CaptureType captureType = CaptureType.photo,
       this.buttonContent,
-      String? fieldName,
-      Object? selectedFileData,
-      String? navigate,
-      Map<String, String>? navigateParameters,
-      ParametersProvider? navigateParametersProvider,
-      dynamic classes,
-      dynamic classes2,
+      super.fieldName,
+      super.captureMaxWidth,
+      super.captureMaxHeight,
+      super.captureDataFormat,
+      super.selectedFileData,
+      super.navigate,
+      super.navigateParameters,
+      super.navigateParametersProvider,
+      super.classes,
+      super.classes2,
       dynamic componentClass,
-      dynamic style,
+      super.style,
       bool small = false,
       this.fontSize})
-      : super(parent, captureType ?? CaptureType.photo,
-            fieldName: fieldName,
-            selectedFileData: selectedFileData,
-            navigate: navigate,
-            navigateParameters: navigateParameters,
-            navigateParametersProvider: navigateParametersProvider,
-            style: style,
-            classes: classes,
-            classes2: classes2,
-            componentClass: [
-              small ? 'ui-button-small' : 'ui-button',
-              componentClass
-            ]) {
-    configureClasses(classes, null, [small ? 'ui-button-small' : 'ui-button']);
-  }
+      : super(parent, captureType, componentClass: [
+          small ? 'ui-button-small' : 'ui-button',
+          componentClass
+        ]);
 
   @override
   void configure() {
@@ -621,12 +928,14 @@ class UIButtonCapturePhoto extends UICapture {
     var dataURL = selectedFileDataAsDataURLBase64;
     if (dataURL == null) return;
 
+    var content = this.content!;
+
     for (var e in _selectedImageElements) {
-      content!.children.remove(e);
+      content.children.remove(e);
     }
 
     if (onlyShowSelectedImageInButton) {
-      content!.children.removeWhere((e) => !e.hidden);
+      content.children.removeWhere((e) => !e.hidden);
     }
 
     var img = ImageElement(src: dataURL)
@@ -658,7 +967,7 @@ class UIButtonCapturePhoto extends UICapture {
 
     img.onClick.listen((e) => fireClickEvent(e));
 
-    content!.children.addAll(_selectedImageElements);
+    content.children.addAll(_selectedImageElements);
   }
 
   void setWideButton() {
