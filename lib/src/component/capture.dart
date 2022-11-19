@@ -386,15 +386,42 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       _CapturedData capturedData, ImageElement image) async {
     var imgW = image.naturalWidth;
     var imgH = image.naturalHeight;
+    CanvasImageSource imgSrc = image;
 
     var aspectRatio = captureAspectRatio;
+
+    if (aspectRatio != null) {
+      var imgH2 = imgH;
+      var imgW2 = (imgH2 * aspectRatio).toInt();
+
+      if (imgW2 > imgW) {
+        imgH2 = (imgW * (1 / aspectRatio)).toInt();
+        imgW2 = (imgH2 * aspectRatio).toInt();
+      }
+
+      assert(imgW2 <= imgW);
+      assert(imgH2 <= imgH);
+
+      if (imgW2 != imgW || imgH2 != imgH) {
+        var canvas = CanvasElement(width: imgW2, height: imgH2);
+
+        var ctx = canvas.context2D;
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+
+        ctx.clearRect(0, 0, imgW2, imgH2);
+        ctx.drawImageScaled(image, 0, 0, imgW, imgH);
+
+        imgW = imgW2;
+        imgH = imgH2;
+        imgSrc = canvas;
+      }
+    }
 
     var maxW = captureMaxWidth ?? imgW;
     var maxH = captureMaxHeight ?? imgH;
 
-    if (imgW <= maxW &&
-        imgH <= maxH &&
-        (aspectRatio == null || (imgW / imgH) == aspectRatio)) {
+    if (imgW <= maxW && imgH <= maxH && identical(imgSrc, image)) {
       return capturedData;
     }
 
@@ -411,22 +438,6 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     var canvasW = w2;
     var canvasH = h2;
 
-    if (aspectRatio != null) {
-      var canvasH2 = canvasH;
-      var canvasW2 = (canvasH2 * aspectRatio).toInt();
-
-      if (canvasW2 > w2) {
-        canvasH2 = (canvasW * (1 / aspectRatio)).toInt();
-        canvasW2 = (canvasH2 * aspectRatio).toInt();
-      }
-
-      assert(canvasW2 <= w2);
-      assert(canvasH2 <= h2);
-
-      canvasW = canvasW2;
-      canvasH = canvasH2;
-    }
-
     var canvas = CanvasElement(width: canvasW, height: canvasH);
 
     var ctx = canvas.context2D;
@@ -435,7 +446,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     ctx.imageSmoothingQuality = 'high';
 
     ctx.clearRect(0, 0, w2, h2);
-    ctx.drawImageScaled(image, 0, 0, w2, h2);
+    ctx.drawImageScaled(imgSrc, 0, 0, w2, h2);
 
     var photoScaleMimeType = this.photoScaleMimeType;
 
