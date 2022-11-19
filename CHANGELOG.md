@@ -1,8 +1,13 @@
+## 2.0.26
+
+- `UICapture`:
+  - Added `captureAspectRatio`.
+
 ## 2.0.25
 
 - `UICapture`:
   - Added `CaptureDataFormat.url`.
-  - Field `_selectedFileData` is now a internal `_CapturedData` capable to handle different interchangeable data formats.
+  - Field `_selectedFileData` is now an internal `_CapturedData` capable to handle different interchangeable data formats.
   - Added field `captureMaxWidth` and `captureMaxHeight` for maximum captured image size.
   - Added field `photoScaleMimeType` and `photoScaleQuality` for scale operations.
 - `UIComponent`:

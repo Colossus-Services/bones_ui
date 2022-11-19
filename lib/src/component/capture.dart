@@ -68,6 +68,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   UICapture(Element? container, this.captureType,
       {String? fieldName,
+      this.captureAspectRatio,
       this.captureMaxWidth,
       this.captureMaxHeight,
       this.captureDataFormat = CaptureDataFormat.arrayBuffer,
@@ -308,6 +309,14 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   /// See [captureType].
   int? captureMaxHeight;
 
+  /// The aspect ratio of a captured image. It's the ratio of its width to its height.
+  /// For example:
+  /// - `16/9 = 1,7777` (standard widescreen)
+  /// - `1/1 = 1.0` (square)
+  /// - `4/3 = 1.3333` (traditional TV)
+  /// - `6/13 = 0.4615` (modern smartphones)
+  double? captureAspectRatio;
+
   CaptureDataFormat captureDataFormat = CaptureDataFormat.arrayBuffer;
 
   /// If `true` will remove the Exif data from the captured data.
@@ -339,7 +348,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   }
 
   Future<_CapturedData> _filterCapturedData(_CapturedData capturedData) async {
-    if (captureMaxWidth == null && captureMaxHeight == null) {
+    if (captureMaxWidth == null &&
+        captureMaxHeight == null &&
+        captureAspectRatio == null) {
       return capturedData;
     }
 
@@ -373,24 +384,50 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   Future<_CapturedData> _filterCapturedPhoto(
       _CapturedData capturedData, ImageElement image) async {
-    var w = image.naturalWidth;
-    var h = image.naturalHeight;
+    var imgW = image.naturalWidth;
+    var imgH = image.naturalHeight;
 
-    var maxW = captureMaxWidth ?? w;
-    var maxH = captureMaxHeight ?? h;
+    var aspectRatio = captureAspectRatio;
 
-    if (w <= maxW && h <= maxH) return capturedData;
+    var maxW = captureMaxWidth ?? imgW;
+    var maxH = captureMaxHeight ?? imgH;
 
-    var rW = maxW / w;
-    var rH = maxH / h;
+    if (imgW <= maxW &&
+        imgH <= maxH &&
+        (aspectRatio == null || (imgW / imgH) == aspectRatio)) {
+      return capturedData;
+    }
+
+    var wLimit = imgW > maxW ? maxW : imgW;
+    var hLimit = imgH > maxH ? maxH : imgH;
+
+    var rW = wLimit / imgW;
+    var rH = hLimit / imgH;
     var r = math.min(rW, rH);
 
-    var w2 = (w * r).toInt();
-    var h2 = (h * r).toInt();
+    var w2 = (imgW * r).toInt();
+    var h2 = (imgH * r).toInt();
 
-    if (w == w2 && h == h2) return capturedData;
+    var canvasW = w2;
+    var canvasH = h2;
 
-    var canvas = CanvasElement(width: w2, height: h2);
+    if (aspectRatio != null) {
+      var canvasH2 = canvasH;
+      var canvasW2 = (canvasH2 * aspectRatio).toInt();
+
+      if (canvasW2 > w2) {
+        canvasH2 = (canvasW * (1 / aspectRatio)).toInt();
+        canvasW2 = (canvasH2 * aspectRatio).toInt();
+      }
+
+      assert(canvasW2 <= w2);
+      assert(canvasH2 <= h2);
+
+      canvasW = canvasW2;
+      canvasH = canvasH2;
+    }
+
+    var canvas = CanvasElement(width: canvasW, height: canvasH);
 
     var ctx = canvas.context2D;
 
@@ -851,6 +888,7 @@ class UIButtonCapturePhoto extends UICapture {
       CaptureType captureType = CaptureType.photo,
       this.buttonContent,
       super.fieldName,
+      super.captureAspectRatio,
       super.captureMaxWidth,
       super.captureMaxHeight,
       super.captureDataFormat,
