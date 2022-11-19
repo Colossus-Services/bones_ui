@@ -2,6 +2,7 @@
 
 - `UICapture`:
   - Added `captureAspectRatio`.
+- test: ^1.22.0
 
 ## 2.0.25
 
