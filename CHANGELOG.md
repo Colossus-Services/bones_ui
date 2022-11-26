@@ -1,3 +1,15 @@
+## 2.0.27
+
+- `UIInputTable`:
+  - Exposing `onChangeTriggerDelay` in the constructor.
+  - Fix `onChange` based on `InteractionCompleter`: wasn't notifying to the `InputConfig.onChangeListener`.
+- Added pre-defined filed validators:
+  - `FieldLengthValidator`, `fieldEmailValidator`,  `fieldURLValidator`, `fieldURLDataBase64Validator`.
+- Added filed normalized:
+  - `fieldNormalizerTrim`.
+- Added `FieldNormalizerGroup` and `FieldValidatorGroup`.
+- extended_type: ^2.0.1
+
 ## 2.0.26
 
 - `UICapture`:

@@ -3,6 +3,7 @@ import 'dart:html';
 import 'package:collection/collection.dart';
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
+import 'package:extended_type/extended_type.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
@@ -467,6 +468,7 @@ class UIInputTable extends UIComponent {
       {List? extraRows,
       this.actionListenerComponent,
       this.actionListener,
+      Duration? onChangeTriggerDelay,
       this.inputErrorClass,
       this.invalidValueClass,
       this.showLabels = true,
@@ -474,7 +476,9 @@ class UIInputTable extends UIComponent {
       dynamic classes,
       dynamic style,
       dynamic inputsClasses})
-      : _extraRows = extraRows ?? [],
+      : _onChangeTriggerDelay =
+            onChangeTriggerDelay ?? defaultOnChangeTriggerDelay,
+        _extraRows = extraRows ?? [],
         _inputsClasses = UIComponent.parseClasses(inputsClasses),
         super(parent,
             componentClass: 'ui-infos-table', classes: classes, style: style);
@@ -837,54 +841,151 @@ class UIInputTable extends UIComponent {
           }
         });
 
-        var onChangeListener = inputConfig?.onChangeListener;
-        if (onChangeListener != null) {
-          elem.onChange.listen(onChangeListener);
-        }
+        _configureOnChangeListener(inputConfig, elem, interactionCompleter);
 
-        elem.onChange.listen((e) {
-          interactionCompleter.cancel();
-          updateRenderedFieldElementValue(elem);
-          onChange.add(elem);
-        });
-
-        elem.onKeyUp.listen((event) {
-          interactionCompleter.interact();
-        });
-
-        interactionCompleter.onComplete.listen((e) {
-          updateRenderedFieldElementValue(elem);
-          onChange.add(elem);
-        });
-
-        var onActionListener = inputConfig?.onActionListener;
-
-        if (onActionListener != null) {
-          if (elem is ButtonElement) {
-            elem.onClick.listen(onActionListener);
-          } else if (elem is InputElement) {
-            var type = elem.type;
-
-            if (type == 'submit' || type == 'reset' || type == 'checkbox') {
-              elem.onClick.listen(onActionListener);
-            } else if (type == 'date') {
-              interactionCompleter.onComplete.listen(onActionListener);
-            } else {
-              elem.onKeyUp
-                  .where((evt) => evt.keyCode == 9 || evt.keyCode == 13)
-                  .listen(onActionListener);
-
-              if (type != 'password') {
-                interactionCompleter.onComplete.listen(onActionListener);
-              }
-            }
-          } else if (elem is TextAreaElement) {
-            interactionCompleter.onComplete.listen(onActionListener);
-          } else {
-            elem.onClick.listen(onActionListener);
-          }
-        }
+        _configureActionListener(inputConfig, elem, interactionCompleter);
       }
     }
+  }
+
+  void _configureOnChangeListener(InputConfig? inputConfig, Element elem,
+      InteractionCompleter interactionCompleter) {
+    var onChangeListener = inputConfig?.onChangeListener;
+    if (onChangeListener != null) {
+      elem.onChange.listen(onChangeListener);
+    }
+
+    elem.onChange.listen((e) {
+      interactionCompleter.cancel();
+      updateRenderedFieldElementValue(elem);
+      onChange.add(elem);
+    });
+
+    elem.onKeyUp.listen((event) {
+      interactionCompleter.interact();
+    });
+
+    interactionCompleter.onComplete.listen((e) {
+      updateRenderedFieldElementValue(elem);
+      onChange.add(elem);
+      if (onChangeListener != null) {
+        onChangeListener(e);
+      }
+    });
+  }
+
+  void _configureActionListener(InputConfig? inputConfig, Element elem,
+      InteractionCompleter interactionCompleter) {
+    var onActionListener = inputConfig?.onActionListener;
+
+    if (onActionListener != null) {
+      if (elem is ButtonElement) {
+        elem.onClick.listen(onActionListener);
+      } else if (elem is InputElement) {
+        var type = elem.type;
+
+        if (type == 'submit' || type == 'reset' || type == 'checkbox') {
+          elem.onClick.listen(onActionListener);
+        } else if (type == 'date') {
+          interactionCompleter.onComplete.listen(onActionListener);
+        } else {
+          elem.onKeyUp
+              .where((evt) => evt.keyCode == 9 || evt.keyCode == 13)
+              .listen(onActionListener);
+
+          if (type != 'password') {
+            interactionCompleter.onComplete.listen(onActionListener);
+          }
+        }
+      } else if (elem is TextAreaElement) {
+        interactionCompleter.onComplete.listen(onActionListener);
+      } else {
+        elem.onClick.listen(onActionListener);
+      }
+    }
+  }
+}
+
+Object? fieldNormalizerTrim(String field, Object? value) {
+  if (value == null) return null;
+  if (value is String) {
+    return value.trim();
+  }
+  return value;
+}
+
+Object? fieldNormalizerLowerCase(String field, Object? value) {
+  if (value == null) return null;
+  if (value is String) {
+    return value.toLowerCase();
+  }
+  return value;
+}
+
+Object? fieldNormalizerUpperCase(String field, Object? value) {
+  if (value == null) return null;
+  if (value is String) {
+    return value.toUpperCase();
+  }
+  return value;
+}
+
+bool fieldEmailValidator(String field, String? value) =>
+    value != null && ETEmail.matchesFormat(value);
+
+bool fieldURLValidator(String field, String? value) =>
+    value != null && ETURL.matchesFormat(value);
+
+bool fieldURLDataBase64Validator(String field, String? value) =>
+    value != null && ETDataBase64URL.matchesFormat(value);
+
+class FieldLengthValidator {
+  final int? minLength;
+  final int? maxLength;
+
+  FieldLengthValidator({this.minLength, this.maxLength});
+
+  FieldLengthValidator.range(this.minLength, [this.maxLength]);
+
+  bool validate(String field, String? value) {
+    var valueLength = value?.length ?? 0;
+
+    var minLength = this.minLength;
+    if (minLength != null && valueLength < minLength) {
+      return false;
+    }
+
+    var maxLength = this.maxLength;
+    if (maxLength != null && valueLength > maxLength) {
+      return false;
+    }
+
+    return true;
+  }
+}
+
+class FieldNormalizerGroup {
+  final List<FieldValueNormalizer> group;
+
+  FieldNormalizerGroup(this.group);
+
+  Object? normalize(String field, Object? value) {
+    for (var n in group) {
+      value = n(field, value);
+    }
+    return value;
+  }
+}
+
+class FieldValidatorGroup {
+  final List<FieldValueValidator> group;
+
+  FieldValidatorGroup(this.group);
+
+  bool validate(String field, String? value) {
+    for (var e in group) {
+      if (!e(field, value)) return false;
+    }
+    return true;
   }
 }
