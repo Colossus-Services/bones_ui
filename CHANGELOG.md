@@ -14,8 +14,8 @@
 - dom_tools: ^2.1.8
 - archive: ^3.3.5
 - test: ^1.22.0
-- test_api: 0.4.17
-- test_core: 0.4.21
+- test_api: ^0.4.17
+- test_core: ^0.4.21
 - path: ^1.8.3
 
 ## 2.0.27
