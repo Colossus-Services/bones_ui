@@ -1,3 +1,10 @@
+## 2.1.2
+
+- `bones_ui` CLI:
+  - Command `test`:
+    - Now calls `dart run bones_ui:bones_ui_test` executable to run the tests.
+- meta: ^1.8.0
+
 ## 2.1.1
 
 - `bones_ui_test_cli`:
