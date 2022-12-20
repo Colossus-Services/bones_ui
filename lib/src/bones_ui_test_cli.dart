@@ -348,7 +348,7 @@ class BonesUITestRunner {
       generateTestTemplateFile();
     }
 
-    var dartTestConfigFile = File('dart_test.yaml');
+    var dartTestConfigFile = File('dart_test.yaml').absolute;
     var includeDartTestConfig = dartTestConfigFile.existsSync();
 
     var config =
@@ -369,22 +369,16 @@ class BonesUITestRunner {
 ##   ${DateTime.now()}
 ##
 
-timeout: 60s  
-
+timeout: 60s
 ''';
 
     if (includeDartTestConfig) {
-      var file = File(pack_path.join(bonesUICompileDir.path, 'dart_test.yaml'));
-      if (!file.existsSync()) {
-        dartTestConfigFile.copySync(file.path);
-      }
-
-      config += '\ninclude: dart_test.yaml\n';
+      config += '\ninclude: ${dartTestConfigFile.path}\n';
     } else {
       config += '\nplatforms: [chrome]\n';
     }
 
-    config += '\ncustom_html_template_path: $bonesUITestTemplateFileName\n';
+    config += '\ncustom_html_template_path: ${bonesUITestTemplateFile.path}\n';
     return config;
   }
 
@@ -420,8 +414,8 @@ class BonesUIComiler {
   final Directory compileDir;
 
   BonesUIComiler({Directory? projectDir, Directory? compileDir})
-      : projectDir = projectDir ?? Directory.current,
-        compileDir = compileDir ?? Directory(_createTempBonesUICompilerDir());
+      : projectDir = (projectDir ?? Directory.current).absolute,
+        compileDir = (compileDir ?? _createTempBonesUICompilerDir()).absolute;
 
   /// Prepares the compiler.
   Future<void> prepare() async {
@@ -610,20 +604,20 @@ class BonesUIPlatform extends PlatformPlugin
 
   bool get headleass => !showUI;
 
-  Directory? prevWorkingDir;
-
   @override
   Future<RunnerSuite?> load(String path, SuitePlatform platform,
       SuiteConfiguration suiteConfig, Map<String, Object?> message) async {
     print('** Compiling test...');
 
-    prevWorkingDir = Directory.current;
+    var prevWorkingDir = Directory.current;
 
     var bonesUICompileDir = bonesUIComiler.compileDir;
     Directory.current = bonesUICompileDir;
 
     var runnerSuite =
         await browserPlatform.load(path, platform, suiteConfig, message);
+
+    Directory.current = prevWorkingDir;
 
     return runnerSuite;
   }
@@ -650,10 +644,6 @@ class BonesUIPlatform extends PlatformPlugin
   /// Closes this instance, the [bonesUIComiler] and the wrapped [browserPlatform].
   @override
   Future close() async {
-    if (prevWorkingDir != null) {
-      Directory.current = prevWorkingDir!;
-    }
-
     bonesUIComiler.close();
     await browserPlatform.close();
 
@@ -663,6 +653,8 @@ class BonesUIPlatform extends PlatformPlugin
 
 final Map<String, String> _whichExecutables = <String, String>{};
 
-String _createTempBonesUICompilerDir() => Directory(Directory.systemTemp.path)
-    .createTempSync('dart_test_bones_ui_')
-    .resolveSymbolicLinksSync();
+Directory _createTempBonesUICompilerDir() {
+  var tempDir = Directory(Directory.systemTemp.path)
+      .createTempSync('dart_test_bones_ui_');
+  return Directory(tempDir.resolveSymbolicLinksSync());
+}

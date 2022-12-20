@@ -1,3 +1,8 @@
+## 2.1.1
+
+- `bones_ui_test_cli`:
+  - Use absolute paths to resolve directories and files.
+
 ## 2.1.0
 
 - `bones_ui` CLI:

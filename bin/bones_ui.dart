@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:bones_ui/src/bones_ui.dart';
-import 'package:bones_ui/src/bones_ui_test_cli.dart' as test_cli;
+import 'package:bones_ui/src/bones_ui_test_cli.dart' as bones_ui_test_cli;
 import 'package:project_template/project_template_cli.dart';
 import 'package:resource_portable/resource.dart';
 
@@ -122,7 +122,7 @@ class MyCommandTest extends CommandBase {
 
   @override
   FutureOr<bool> run() async {
-    await test_cli.main(_cmdTestSubArgs);
+    await bones_ui_test_cli.main(_cmdTestSubArgs);
     return true;
   }
 }
