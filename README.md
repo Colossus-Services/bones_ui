@@ -146,7 +146,7 @@ Also see the [App example @ GitHub][app_example]:
 
 You can create unit tests for your `Bones_UI` app.
 
-Simpe example with a login test:
+A Simple example with a login test:
 ```dart
 @TestOn('browser')
 import 'package:bones_ui/bones_ui_test.dart';
@@ -169,7 +169,7 @@ void main() async {
       uiRoot.clear();
     });
 
-    test('top-menu: initial routes', () async {
+    test('menu: routes', () async {
       await uiRoot.callRenderAndWait();
       await testUISleep(ms: 100);
 
