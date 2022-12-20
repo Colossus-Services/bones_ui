@@ -1,3 +1,23 @@
+## 2.1.0
+
+- `bones_ui` CLI:
+  - Added `test` command, for Bones_UI unit tests. 
+- Added libraries:
+  - `bones_ui_test` to import the Bones_UI Test tools.
+  - `bones_ui_test_clit` to import the Bones_UI Test CLI (used by `test` command).
+- `UIComponent`
+  - Added `waiteRender`, `callRenderAndWait`, `querySelector`, `querySelectorAll`.
+    - These methods can be useful in unit tests. 
+- `ElementExtension`:
+- Fix `UINavigator` behavior when `findNavigable` can't find a `UINavigableComponent` for the route.
+- intl_messages: ^2.0.4
+- dom_tools: ^2.1.8
+- archive: ^3.3.5
+- test: ^1.22.0
+- test_api: 0.4.17
+- test_core: 0.4.21
+- path: ^1.8.3
+
 ## 2.0.27
 
 - `UIInputTable`:

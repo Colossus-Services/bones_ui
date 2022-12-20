@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:bones_ui/src/bones_ui.dart';
+import 'package:bones_ui/src/bones_ui_test_cli.dart' as test_cli;
 import 'package:project_template/project_template_cli.dart';
 import 'package:resource_portable/resource.dart';
 
@@ -11,21 +13,30 @@ void _consolePrinter(Object? o) {
 
 const String cliTitle = '[Bones_UI/${BonesUI.version}]';
 
+List<String> _cmdTestSubArgs = <String>[];
+
 void main(List<String> args) async {
   var commandInfo = MyCommandInfo(cliTitle, _consolePrinter);
   var commandCreate = MyCommandCreate(cliTitle, _consolePrinter);
+  var commandTest = MyCommandTest(cliTitle, _consolePrinter);
 
   await commandInfo.configure();
   await commandCreate.configure();
 
   var commandRunner = CommandRunner<bool>('bones_api', '$cliTitle - CLI Tool')
     ..addCommand(commandInfo)
-    ..addCommand(commandCreate);
+    ..addCommand(commandCreate)
+    ..addCommand(commandTest);
 
   commandRunner.argParser.addFlag('version',
       abbr: 'v', negatable: false, defaultsTo: false, help: 'Show version.');
 
   {
+    if (args.isNotEmpty && args[0] == 'test') {
+      _cmdTestSubArgs = args.sublist(1).toList();
+      args = <String>['test'];
+    }
+
     var argsResult = commandRunner.argParser.parse(args);
 
     if (argsResult['version']) {
@@ -98,4 +109,20 @@ class MyCommandCreate extends CommandCreate with DefaultTemplate {
 
   @override
   String? get argTemplate => super.argTemplate ?? defaultTemplate;
+}
+
+class MyCommandTest extends CommandBase {
+  @override
+  final String description = 'Run the unit tests of a Bones_UI project.';
+
+  @override
+  final String name = 'test';
+
+  MyCommandTest(super.cliTitle, super.consolePrinter) : super();
+
+  @override
+  FutureOr<bool> run() async {
+    await test_cli.main(_cmdTestSubArgs);
+    return true;
+  }
 }

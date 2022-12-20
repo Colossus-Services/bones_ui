@@ -104,7 +104,7 @@ class UINavigator {
       return;
     }
 
-    _navigateTo(currentRoute,
+    _navigateTo(++_navigateIDCount, currentRoute,
         parameters: _currentRouteParameters, force: force);
   }
 
@@ -201,7 +201,8 @@ class UINavigator {
     UIConsole.log(
         'UINavigator._navigateToFromURL[$url] route: $route ; parameters: $parameters');
 
-    _navigateTo(route, parameters: parameters, force: force, fromURL: true);
+    _navigateTo(++_navigateIDCount, route,
+        parameters: parameters, force: force, fromURL: true);
   }
 
   /// Navigate using [navigation] do determine route and parameters.
@@ -248,12 +249,12 @@ class UINavigator {
     if (_navigables.isEmpty || findNavigable(route!) == null) {
       Future.delayed(
           Duration(milliseconds: 50),
-          () => _navigateTo(route,
+          () => _navigateTo(++_navigateIDCount, route,
               parameters: parameters,
               parametersProvider: parametersProvider,
               force: force));
     } else {
-      _navigateTo(route,
+      _navigateTo(++_navigateIDCount, route,
           parameters: parameters,
           parametersProvider: parametersProvider,
           force: force);
@@ -264,7 +265,7 @@ class UINavigator {
       [Map<String, String>? parameters,
       ParametersProvider? parametersProvider,
       bool force = false]) {
-    Future.microtask(() => _navigateTo(route,
+    Future.microtask(() => _navigateTo(++_navigateIDCount, route,
         parameters: parameters,
         parametersProvider: parametersProvider,
         force: force));
@@ -309,12 +310,17 @@ class UINavigator {
   /// [EventStream] for when navigation changes. Passes route name.
   static EventStream<String> get onNavigate => get()._onNavigate;
 
-  void _navigateTo(String? route,
+  int _navigateIDCount = 0;
+  int _lastNavigateID = 0;
+
+  void _navigateTo(int navigateID, String? route,
       {Map<String, String>? parameters,
       ParametersProvider? parametersProvider,
       bool force = false,
       bool fromURL = false,
       int cantFindNavigableRetry = 0}) {
+    if (navigateID <= _lastNavigateID) return;
+
     if (route == '<') {
       var navigation =
           _navigationHistory.isNotEmpty ? _navigationHistory.last : null;
@@ -353,7 +359,7 @@ class UINavigator {
       var delay = 100 + (cantFindNavigableRetry * 500);
       Future.delayed(
           Duration(milliseconds: delay),
-          () => _navigateTo(route,
+          () => _navigateTo(navigateID, route,
               parameters: parameters,
               force: force,
               cantFindNavigableRetry: cantFindNavigableRetry + 1));
@@ -378,6 +384,8 @@ class UINavigator {
     }
 
     _navigateCount++;
+
+    _lastNavigateID = navigateID;
 
     UIConsole.log(
         'UINavigator.navigateTo[force: $force ; count: $_navigateCount] from: $_lastNavigateRoute $_lastNavigateRouteParameters > to: $route $parameters');
@@ -428,7 +436,7 @@ class UINavigator {
       }
     }
 
-    UIConsole.log('Navigated to $route $parameters');
+    UIConsole.log('Navigated to route: `$route` $parameters');
 
     _onNavigate.add(route);
   }

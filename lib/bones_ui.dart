@@ -1,6 +1,6 @@
 /// Bone UI
 ///
-/// Easy and simple Web User Interface for Dart.
+/// Easy and simple Web User Interface Framework for Dart.
 library bones_ui;
 
 export 'src/bones_ui.dart';

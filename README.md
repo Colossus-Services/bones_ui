@@ -30,7 +30,15 @@ Now you can use the CLI directly:
   $> bones_ui --help
 ```
 
-To show the `Bones_UI` template information:
+To run `Bones_UI` unit tests in your project:
+
+```bash
+  $> bones_ui test
+```
+
+- See `bones_ui test --help` for more information.
+
+To show the `Bones_UI` project template information:
 
 ```bash
   $> bones_ui info
@@ -53,13 +61,13 @@ import 'package:bones_ui/bones_ui_kit.dart';
 
 void main() async {
   // Create `bones_ui` root and initialize it:
-  var root = MyRoot(querySelector('#output'));
+  var root = MyUIRoot(querySelector('#output'));
   root.initialize();
 }
 
-// `Bones_UI` root.
-class MyRoot extends UIRoot {
-  MyRoot(Element rootContainer) : super(rootContainer);
+// `Bones_UI` UI root.
+class MyUIRoot extends UIRoot {
+  MyUIRoot(Element? rootContainer) : super(rootContainer);
 
   MyMenu _menu;
   MyHome _home;
@@ -87,9 +95,13 @@ class MyMenu extends UIComponent {
   @override
   dynamic render() {
     return $div(
+        classes: 'menu',
         style: 'position: fixed; top: 0; left: 0; width: 100%; background-color: black; color: white; padding: 10px',
-        content: '<span style="font-size: 120%; font-weight: bold">Bones_UI</span>'
-        );
+        content: '<span style="font-size: 120%; font-weight: bold">Bones_UI: '
+            '<a hrf="#register">Register</a> | '
+            '<a hrf="#login">Login</a>'
+            '</span>'
+    );
   }
 }
 
@@ -129,6 +141,98 @@ Get the source
 Also see the [App example @ GitHub][app_example]:
 
 [app_example]: https://github.com/Colossus-Services/bones_ui_app_example
+
+## Unite Tests
+
+You can create unit tests for your `Bones_UI` app.
+
+Simpe example with a login test:
+```dart
+@TestOn('browser')
+import 'package:bones_ui/bones_ui_test.dart';
+import 'package:test/test.dart';
+
+// Import your `UIRoot` class
+import '../web/lib/ui_root.dart'; // ignore: avoid_relative_lib_imports
+
+void main() async {
+  group('UIRoot', () {
+    late MyUIRoot uiRoot;
+
+    setUpAll(() async {
+      // Initialize your `UIRoot`:
+      uiRoot = await initializeTestUIRoot(MyUIRoot.new);
+    });
+
+    tearDownAll(() async {
+      await testUISleep(ms: 200);
+      uiRoot.clear();
+    });
+
+    test('top-menu: initial routes', () async {
+      await uiRoot.callRenderAndWait();
+      await testUISleep(ms: 100);
+
+      var menu = uiRoot.querySelector('.menu');
+      expect(menu, isNotNull);
+
+      var routes = menu!.selectAnchorLinksTargets();
+
+      expect(routes,
+          unorderedEquals(['register', 'login']));
+    });
+
+    test('login', () async {
+      await uiRoot.callRenderAndWait();
+      await testUISleep(ms: 100);
+
+      var menu = uiRoot.querySelector('.menu');
+      expect(menu, isNotNull);
+
+      var linkLogin = menu!
+          .selectAnchorElements()
+          .firstWhere((e) => e.href?.endsWith('#login') ?? false);
+
+      linkLogin.click();
+
+      await testUISleepUntilRoute('login', timeoutMs: 2000, minMs: 100);
+
+      expectUIRoute('login');
+
+      var navigableContent = uiRoot.querySelector('.navigable-content');
+
+      var inputElements = navigableContent!.selectInputElement();
+
+      var emailInput = inputElements.withID('email').first;
+      var passInput = inputElements.withID('password').first;
+
+      emailInput.value = 'admin@mail.com';
+      passInput.value = '123456';
+
+      await testUISleep(ms: 100);
+
+      var btnLoginDiv = uiRoot.querySelector('#btn-login');
+
+      btnLoginDiv!.click();
+      
+      await testUISleepUntilRoutes(['home', ''], timeoutMs: 1000, minMs: 100);
+
+      expectUIRoutes(['home', '']);
+    });
+  });
+}
+
+```
+
+To run the unit tests, run the CLI in your project directory:
+
+```bash
+  $> bones_ui test
+```
+To see the browser running the tests:
+```bash
+  $> bones_ui test --show-ui
+```
 
 ## Bootstrap Integration
 
