@@ -1,23 +1,21 @@
 @TestOn('browser')
-import 'dart:html';
-
-import 'package:bones_ui/bones_ui.dart';
+import 'package:bones_ui/bones_ui_test.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Components', () {
-    final rootContainer = DivElement();
-    late final MyRoot root;
+  group('UIRoot', () {
+    late final MyRoot uiRoot;
 
-    setUpAll(() {
-      root = MyRoot(rootContainer);
+    setUpAll(() async {
+      uiRoot =
+          await initializeTestUIRoot((rootContainer) => MyRoot(rootContainer));
     });
 
-    test('initialize', () async {
-      root.initialize();
-      await root.onFinishRender.first;
+    test('basic', () async {
+      await uiRoot.callRenderAndWait();
+      await testUISleep(ms: 100);
 
-      var myHome = rootContainer.querySelector('#my-home');
+      var myHome = uiRoot.querySelector('#my-home');
       expect(myHome, isA<DivElement>());
 
       expect(myHome?.text, contains('Hello world'));

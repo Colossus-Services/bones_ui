@@ -1,6 +1,6 @@
-/// Bone UI Kit
+/// Bone UI - Kit
 ///
-/// Easy and simple Web User Interface Framework for Dart.
+/// Exports `bones_ui` + extra useful packages.
 library bones_ui_kit;
 
 export 'package:dom_builder/dom_builder.dart';

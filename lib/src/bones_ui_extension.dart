@@ -80,21 +80,7 @@ extension ElementExtension on Element {
   }
 }
 
-extension IterableElementExtension on Iterable<Element> {
-  /// Adds a class to all elements of this [Iterable] of [Element]s.
-  void addClass(String clazz) {
-    for (var e in this) {
-      e.classes.add(clazz);
-    }
-  }
-
-  /// Removes a class from all elements of this [Iterable] of [Element]s.
-  void removeClass(String clazz) {
-    for (var e in this) {
-      e.classes.remove(clazz);
-    }
-  }
-
+extension IterableElementExtension<E extends Element> on Iterable<E> {
   /// Returns a [List] of [UIComponent] of this [Iterable] of [Element]s.
   List<UIComponent?> get uiComponents => map((e) => e.uiComponent).toList();
 

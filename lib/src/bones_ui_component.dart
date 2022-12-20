@@ -1098,7 +1098,32 @@ abstract class UIComponent extends UIEventHandler {
   final EventStream<UIComponent> onRender = EventStream();
 
   void _notifyRendered() {
+    var waitingRender = _waitingRender;
+    if (waitingRender != null && !waitingRender.isCompleted) {
+      waitingRender.complete(true);
+      _waitingRender = null;
+    }
+
     Future.delayed(Duration(milliseconds: 1), () => onRender.add(this));
+  }
+
+  Completer<bool>? _waitingRender;
+
+  Future<bool> waiteRender({Duration timeout = const Duration(seconds: 3)}) {
+    var waitingRender = _waitingRender ??= Completer<bool>();
+
+    if (timeout.inMilliseconds >= 1) {
+      return waitingRender.future.timeout(timeout, onTimeout: () => false);
+    } else {
+      return waitingRender.future;
+    }
+  }
+
+  Future<bool> callRenderAndWait(
+      {Duration timeout = const Duration(seconds: 3)}) {
+    var wait = waiteRender(timeout: timeout);
+    callRender();
+    return wait;
   }
 
   void _notifyRenderToParent() {
@@ -1990,6 +2015,18 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     return map;
+  }
+
+  /// Alias to [content.querySelector].
+  Element? querySelector(String? selectors) {
+    if (selectors == null || selectors.isEmpty) return null;
+    return content?.querySelector(selectors);
+  }
+
+  /// Alias to [content.querySelectorAll].
+  List<T> querySelectorAll<T extends Element>(String? selectors) {
+    if (selectors == null || selectors.isEmpty) return <T>[];
+    return content?.querySelectorAll(selectors) ?? <T>[];
   }
 
   bool clearContent() {
