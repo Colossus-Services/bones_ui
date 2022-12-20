@@ -78,7 +78,8 @@ Future<U> initializeTestUIRoot<U extends UIRoot>(
   uiRoot.initialize();
 
   var ready = await uiRoot.isReady();
-  expect(ready, isTrue, reason: "`UIRoot` should be ready: $uiRoot");
+  expect(ready, anyOf(isTrue, isNull),
+      reason: "`UIRoot` should be ready: $uiRoot");
 
   print('-- Ready: $uiRoot');
 
@@ -109,7 +110,7 @@ void expectUIRoutes(List<String> routes, {String? reason, skip}) {
       reason: reason ?? 'Expected one of routes: $routes', skip: skip);
 }
 
-int _slowFactor = 1;
+double _speedFactor = 1;
 
 /// Test UI sleep.
 Future<int> testUISleep({int? frames, int? ms}) =>
@@ -136,7 +137,7 @@ Future<bool> testUISleepUntil(bool Function() ready,
     int? timeoutMs,
     int? intervalMs,
     int? minMs}) async {
-  timeoutMs = _sleepMs(timeoutMs ?? 1000, null, 9999999);
+  timeoutMs = _sleepMs(timeoutMs ?? 1000, null, 90000);
 
   intervalMs = intervalMs != null
       ? _sleepMs(intervalMs, null, 9999999)
@@ -146,6 +147,7 @@ Future<bool> testUISleepUntil(bool Function() ready,
 
   if (minMs != null) {
     minMs = _sleepMs(minMs, null, 9999999);
+    minMs = minMs.clamp(1, timeoutMs);
   }
 
   print('** Test UI Sleep Until $readyTitle> sleep: $timeoutMs ms '
@@ -190,7 +192,7 @@ Future<bool> testUISleepUntil(bool Function() ready,
 
 int _sleepMs(int? ms, int? frames, int maxMs) {
   ms ??= frames != null ? frames * 16 : 30;
-  ms = ms * _slowFactor;
+  ms = (ms * _speedFactor).toInt();
   ms.clamp(1, maxMs);
   return ms;
 }
@@ -226,17 +228,17 @@ Future<bool> testUISleepUntilRoutes(List<String> routes,
 ///
 /// - This will be called by [initializeTestUIRoot] if [isHeadlessUI] is `true`.
 void slowUI({int slowFactor = 10}) {
-  _slowFactor = slowFactor.clamp(1, 100);
-  if (_slowFactor == 1) {
+  _speedFactor = slowFactor.clamp(1, 100).toDouble();
+  if (_speedFactor == 1) {
     print('** Fast UI');
   } else {
-    print('** Slow UI: $_slowFactor');
+    print('** Slow UI: $_speedFactor');
   }
 }
 
-/// Resets the UI to fast mode (default).
+/// Sets the UI to fast mode (default).
 /// See [slowUI].
-void fastUI() {
-  _slowFactor = 1;
+void fastUI({double fastFactor = 1}) {
+  _speedFactor = fastFactor.clamp(0.0001, 1);
   print('** Fast UI');
 }
