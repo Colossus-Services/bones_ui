@@ -3,7 +3,7 @@ import 'package:bones_ui/bones_ui_test.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Components', () {
+  group('UIRoot', () {
     late final MyRoot uiRoot;
 
     setUpAll(() async {
