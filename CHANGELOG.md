@@ -1,3 +1,12 @@
+## 2.1.3
+
+- swiss_knife: ^3.1.3
+- intl_messages: ^2.0.5
+- json_render: ^2.0.5
+- intl: ^0.18.0
+- resource_portable: ^3.0.1
+- build_runner: ^2.3.3
+
 ## 2.1.2
 
 - `bones_ui` CLI:
