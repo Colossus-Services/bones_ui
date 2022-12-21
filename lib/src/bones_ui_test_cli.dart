@@ -48,7 +48,16 @@ void printBox(List<String> lines) {
       '╚═════════════════════════════════════════════════════════════════════');
 }
 
+bool isJustHelpArgs(List<String> args) =>
+    args.length == 1 && (args[0] == '-h' || args[0] == '--help');
+
 Future<void> main([List<String> args = const <String>[]]) async {
+  if (isJustHelpArgs(args)) {
+    printTestCliTitle();
+    BonesUITestRunner().showHelp();
+    return;
+  }
+
   BonesUITestRunner bonesUITestRunner;
 
   try {
@@ -298,11 +307,7 @@ class BonesUITestRunner {
       if (testIgnoreTimeouts) '--ignore-timeouts',
       if (testRunSkipped) '--run-skipped',
       if (testNoRetry) '--no-retry',
-      if (testReporter.isNotEmpty &&
-          testReporter != Configuration.empty.reporter) ...[
-        '--reporter',
-        testReporter
-      ],
+      if (testReporter.isNotEmpty) ...['--reporter', testReporter],
       if (testFileReporters.isNotEmpty)
         ...testFileReporters.entries
             .expand((e) => ['--file-reporter', '${e.key}:${e.value}']),
@@ -422,6 +427,8 @@ class BonesUIComiler {
     compileDir.createSync(recursive: true);
   }
 
+  final DartRunner _dartRunner = DartRunner();
+
   /// Compiles the project to [compileDir].
   Future<bool> compile() async {
     compileDir.create(recursive: true);
@@ -436,8 +443,8 @@ class BonesUIComiler {
     var buildArgs = ['run', 'build_runner', 'build', '-o', compileDirPath];
 
     // dart run build_runner build -o /tmp/compileDir/
-    var exitCode =
-        await _runDartCommand(buildArgs, workingDirectory: projectPath);
+    var exitCode = await _dartRunner.runDartCommand(buildArgs,
+        workingDirectory: projectPath);
 
     if (exitCode != 0) {
       throw StateError("Dart build error. Exit code: $exitCode");
@@ -492,24 +499,37 @@ class BonesUIComiler {
     }
   }
 
+  void close() {
+    if (compileDir.existsSync()) {
+      compileDir.deleteSync(recursive: true);
+    }
+  }
+}
+
+class DartRunner {
   String? _dartExecutable;
 
   FutureOr<String> get dartExecutable async =>
       _dartExecutable ??= await _executablePath('dart');
 
-  Future<int> _runDartCommand(List<String> args,
-      {String? workingDirectory}) async {
+  Future<int> runDartCommand(List<String> args,
+      {String? workingDirectory, bool inheritStdio = false}) async {
     var dartExecutable = await this.dartExecutable;
 
     workingDirectory ??= Directory.current.path;
 
+    var processMode =
+        inheritStdio ? ProcessStartMode.inheritStdio : ProcessStartMode.normal;
+
     var process = await Process.start(dartExecutable, args,
-        workingDirectory: workingDirectory);
+        workingDirectory: workingDirectory, mode: processMode);
 
-    var outputDecoder = systemEncoding.decoder;
+    if (processMode == ProcessStartMode.normal) {
+      var outputDecoder = systemEncoding.decoder;
 
-    process.stdout.transform(outputDecoder).forEach((o) => stdout.write(o));
-    process.stderr.transform(outputDecoder).forEach((o) => stderr.write(o));
+      process.stdout.transform(outputDecoder).forEach((o) => stdout.write(o));
+      process.stderr.transform(outputDecoder).forEach((o) => stderr.write(o));
+    }
 
     var exitCode = await process.exitCode;
     return exitCode;
@@ -547,19 +567,13 @@ class BonesUIComiler {
       return null;
     }
   }
-
-  void close() {
-    if (compileDir.existsSync()) {
-      compileDir.deleteSync(recursive: true);
-    }
-  }
 }
 
 /// The Bones_UI plugin:
 /// a [PlatformPlugin] based on a wrapped [BrowserPlatform] instance and a [BonesUIComiler].
 class BonesUIPlatform extends PlatformPlugin
     implements CustomizablePlatform<ExecutableSettings> {
-  static Future<BrowserPlatform> _startBrowserPlatform(String root) async {
+  static Future<BrowserPlatform> _startBrowserPlatformSafe(String root) async {
     while (true) {
       var platform = await BrowserPlatform.start(root: root);
       var url = platform.url;
@@ -586,7 +600,7 @@ class BonesUIPlatform extends PlatformPlugin
       throw StateError("Invalid compile directory: $compileDirPath");
     }
 
-    var browserPlatform = await _startBrowserPlatform(compileDirPath);
+    var browserPlatform = await _startBrowserPlatformSafe(compileDirPath);
     return BonesUIPlatform(browserPlatform, bonesUIComiler, showUI: showUI);
   }
 
@@ -612,6 +626,7 @@ class BonesUIPlatform extends PlatformPlugin
     var prevWorkingDir = Directory.current;
 
     var bonesUICompileDir = bonesUIComiler.compileDir;
+
     Directory.current = bonesUICompileDir;
 
     var runnerSuite =

@@ -122,7 +122,22 @@ class MyCommandTest extends CommandBase {
 
   @override
   FutureOr<bool> run() async {
-    await bones_ui_test_cli.main(_cmdTestSubArgs);
+    if (bones_ui_test_cli.isJustHelpArgs(_cmdTestSubArgs)) {
+      await bones_ui_test_cli.main(['--help']);
+      return true;
+    }
+
+    var dartRunner = bones_ui_test_cli.DartRunner();
+
+    var exitCode = await dartRunner.runDartCommand(
+        ['run', 'bones_ui:bones_ui_test', ..._cmdTestSubArgs],
+        inheritStdio: true);
+
+    if (exitCode != 0) {
+      // Exit with the dart command exit code:
+      exit(exitCode);
+    }
+
     return true;
   }
 }
