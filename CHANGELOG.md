@@ -1,3 +1,11 @@
+## 2.1.4
+
+- `UIRoot`:
+  - Added `close`, `closeOperations`, `renderClosed`, `isClosed`.
+- `UIComponent`:
+  - `refresh`: added parameter `forceRender`.
+  - `clear`: added parameters `force` and `removeFromParent`.
+
 ## 2.1.3
 
 - swiss_knife: ^3.1.3
