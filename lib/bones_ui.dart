@@ -3,6 +3,8 @@
 /// Easy and simple Web User Interface Framework for Dart.
 library bones_ui;
 
+export 'dart:async';
+
 export 'src/bones_ui.dart';
 export 'src/bones_ui_async_content.dart';
 export 'src/bones_ui_base.dart';

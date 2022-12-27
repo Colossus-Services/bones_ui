@@ -200,6 +200,10 @@ abstract class UIRoot extends UIComponent {
 
   @override
   List render() {
+    if (isClosed) {
+      return [renderClosed()];
+    }
+
     var menu = renderMenu();
     var content = renderContent();
     var footer = renderFooter();
@@ -290,13 +294,13 @@ abstract class UIRoot extends UIComponent {
   /// Called to render App status bar.
   void buildAppStatusBar() {}
 
-  /// Called to render UI menu.
+  /// Called to render the UI menu.
   UIComponent? renderMenu() => null;
 
-  /// Called to render UI content.
+  /// Called to render the UI content.
   UIComponent? renderContent();
 
-  /// Called to render UI footer.
+  /// Called to render the UI footer.
   UIComponent? renderFooter() => null;
 
   static void alert(dynamic dialogContent) {
@@ -305,11 +309,58 @@ abstract class UIRoot extends UIComponent {
 
   void renderAlert(dynamic dialogContent) {
     var div = $div(
-        classes: 'bg-blur',
+        classes: 'ui-root-alert bg-blur',
         style:
             'color: #fff; background-color: rgba(255,255,255,0.20); margin: 12px 24px; padding: 14px; border-radius: 8px;',
         content: dialogContent);
     UIDialog($div(content: [$br(), div]), showCloseButton: true, show: true);
+  }
+
+  /// Called to render the UI when it's closed.
+  /// - See [isClosed] and [close].
+  /// - If you implement this method do not remove [content] from parent when closing this [UIRoot].
+  Element? renderClosed() => null;
+
+  /// [EventStream] for when this [UIRoot] is closed.
+  final EventStream<UIRoot> onClose = EventStream();
+
+  bool _closed = false;
+
+  /// Returns `true` if this [UIRoot] is closed.
+  ///
+  /// - Seee [close] and [closeOperations].
+  bool get isClosed => _closed;
+
+  FutureOr<bool> close({bool refreshAfterClose = true}) {
+    if (_closed) return false;
+    _closed = true;
+
+    var ret = closeOperations();
+
+    if (ret is Future<bool>) {
+      return ret.then((value) {
+        if (refreshAfterClose) {
+          refresh(forceRender: true);
+        }
+        onClose.add(this);
+        return true;
+      });
+    } else {
+      if (refreshAfterClose) {
+        refresh(forceRender: true);
+      }
+      onClose.add(this);
+      return true;
+    }
+  }
+
+  /// Customizable close operations.
+  ///
+  /// - By default it calls [clear]: `clear(force: true)`.
+  /// - Do not remove [content] from parent if you implement [renderClosed].
+  FutureOr<bool> closeOperations() {
+    clear(force: true);
+    return true;
   }
 }
 

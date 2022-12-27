@@ -669,9 +669,11 @@ abstract class UIComponent extends UIEventHandler {
 
   bool get isRendered => _rendered;
 
-  /// Clear component, removing last rendered content.
-  void clear() {
-    if (!isRendered) return;
+  /// Clears the component, removing the last rendered content.
+  /// - If [force] is `true` performs a clear operation even if [isRendered] returns `false`.
+  /// - If [removeFromParent] is `true` it will also remove the [content] element from the [parent].
+  void clear({bool force = false, bool removeFromParent = false}) {
+    if (!force && !isRendered) return;
 
     if (_renderedElements != null) {
       for (var e in _renderedElements!) {
@@ -685,13 +687,20 @@ abstract class UIComponent extends UIEventHandler {
 
     _renderedAsyncContents.clear();
 
-    var elements = List.from(_content!.children);
+    var content = _content;
 
-    for (var e in elements) {
-      e.remove();
+    if (content != null) {
+      var elements = List.from(content.children);
+      for (var e in elements) {
+        e.remove();
+      }
+
+      content.children.clear();
+
+      if (removeFromParent) {
+        content.remove();
+      }
     }
-
-    _content!.children.clear();
 
     _rendered = false;
   }
@@ -701,26 +710,31 @@ abstract class UIComponent extends UIEventHandler {
   bool get isRefreshFromExternalCall => __refreshFromExternalCall;
 
   void _refreshInternal() {
-    _refreshImpl();
+    _refreshImpl(forceRender: false);
   }
 
   void refreshInternal() {
-    _refreshImpl();
+    _refreshImpl(forceRender: false);
   }
 
-  /// Refresh component, calling [render].
-  void refresh() {
+  /// Refreshes the component, calling [render].
+  /// - If ![isRendered] it won't refresh the component.
+  ///   Use [forceRender] if you want to ensure that it will be rendered even if
+  ///   it wasn't rendered yet. A component is automatically rendered when
+  ///   constructed. If a component has not yet been rendered, it may not have
+  ///   been properly constructed or initialized yet.
+  void refresh({bool forceRender = false}) {
     try {
       __refreshFromExternalCall = true;
 
-      _refreshImpl();
+      _refreshImpl(forceRender: forceRender);
     } finally {
       __refreshFromExternalCall = false;
     }
   }
 
-  void _refreshImpl() {
-    if (!isRendered) return;
+  void _refreshImpl({required bool forceRender}) {
+    if (!forceRender && !isRendered) return;
     callRender(true);
   }
 
