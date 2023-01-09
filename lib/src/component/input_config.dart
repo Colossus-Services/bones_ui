@@ -484,7 +484,7 @@ class UIInputTable extends UIComponent {
             componentClass: 'ui-infos-table', classes: classes, style: style);
 
   InputConfig? getInputConfig(String fieldName) =>
-      _inputs.firstWhere((e) => e.fieldName == fieldName);
+      _inputs.firstWhereOrNull((e) => e.fieldName == fieldName);
 
   List<String> get inputsClasses => _inputsClasses;
 
@@ -830,6 +830,7 @@ class UIInputTable extends UIComponent {
         var elem = entry.value;
 
         var inputConfig = getInputConfig(fieldName);
+        if (inputConfig == null) continue;
 
         var interactionCompleter = InteractionCompleter('field:$fieldName',
             triggerDelay: _onChangeTriggerDelay);
