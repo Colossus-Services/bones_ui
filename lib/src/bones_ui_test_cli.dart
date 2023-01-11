@@ -10,7 +10,7 @@ import 'package:test/test.dart';
 import 'package:test_api/src/backend/runtime.dart'; // ignore: implementation_imports
 import 'package:test_api/src/backend/suite_platform.dart'; // ignore: implementation_imports
 // ignore: implementation_imports
-import 'package:test_core/src/executable.dart' as executable;
+import 'package:test_core/src/executable.dart' as test_executable;
 import 'package:test_core/src/runner/configuration.dart'; // ignore: implementation_imports
 import 'package:test_core/src/runner/hack_register_platform.dart'; // ignore: implementation_imports
 import 'package:test_core/src/runner/platform.dart'; // ignore: implementation_imports
@@ -266,7 +266,7 @@ class BonesUITestRunner {
       configurationPath,
     ]);
 
-    await executable.main(testArgs);
+    await test_executable.main(testArgs);
 
     return true;
   }
@@ -293,6 +293,11 @@ class BonesUITestRunner {
     var testRunSkipped = suiteDefaults.runSkipped;
     var testDart2jsArgs2 = suiteDefaults.dart2jsArgs;
     var testJsTrace = suiteDefaults.jsTrace;
+
+    var testSelections = parsedArgs.testSelections;
+
+    var testsPaths =
+        testSelections.keys.where((p) => p.endsWith('.dart')).toList();
 
     var testArgs = <String>[
       '--platform',
@@ -324,7 +329,8 @@ class BonesUITestRunner {
       if (testDart2jsArgs2.isNotEmpty) ...[
         '--dart2js-args',
         testDart2jsArgs2.join(' ')
-      ]
+      ],
+      ...testsPaths
     ];
 
     return testArgs;

@@ -1,3 +1,8 @@
+## 2.1.6 
+
+- `bones_ui_test` (cli):
+  - Added selected tests path to the arguments passed to the `test` runner. 
+
 ## 2.1.5
 
 - `InputConfig`:
