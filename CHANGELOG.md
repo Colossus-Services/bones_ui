@@ -1,3 +1,12 @@
+## 2.1.5
+
+- `InputConfig`:
+  - Fix `getInputConfig` when field was not found.
+- expressions: ^0.2.5
+- mercury_client: ^2.1.8
+- dom_tools: ^2.1.9
+- json_object_mapper: ^2.0.1
+
 ## 2.1.4
 
 - `UIRoot`:
