@@ -10,6 +10,7 @@
   - Added `testUI` and `UITestContext`.
   - Added `SpawnHybrid`.
   - Added `UITestChain` tools.
+- dom_tools: ^2.1.10
 - test: ^1.22.2
 - test_api: ^0.4.18
 - test_core: ^0.4.22
