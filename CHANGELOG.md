@@ -1,3 +1,20 @@
+## 2.1.7
+
+- `UIField`:
+  - Added `setFieldValue`.
+- `UIComponent`:
+  - Added `click`.
+- `UIRoot`:
+  - Added `isTest`.
+- `bones_ui_test_tools.dart`:
+  - Added `testUI` and `UITestContext`.
+  - Added `SpawnHybrid`.
+  - Added `UITestChain` tools.
+- test: ^1.22.2
+- test_api: ^0.4.18
+- test_core: ^0.4.22
+- stream_channel: ^2.1.1
+
 ## 2.1.6 
 
 - `bones_ui_test` (cli):

@@ -77,6 +77,9 @@ abstract class UIRoot extends UIComponent {
     UIConsole.checkAutoEnable();
   }
 
+  /// Returns `true` if this instance is running from `bones_ui test` CLI.
+  bool get isTest => content?.classes.contains('__bones_ui_test__') ?? false;
+
   @override
   void registerInUIRoot() {}
 

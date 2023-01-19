@@ -139,6 +139,7 @@ typedef ParametersProvider = Map<String, String> Function();
 abstract class UIField<V> {
   String get fieldName;
   V? getFieldValue();
+  void setFieldValue(V? value);
 }
 
 /// For a [UIComponent] that is a field with a Map value.

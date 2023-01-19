@@ -153,6 +153,15 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     return selectedIDs;
   }
 
+  @override
+  void setFieldValue(List<String?>? value) {
+    if (value == null) {
+      _uncheckAllImpl(false);
+    } else {
+      setCheckedElements(value);
+    }
+  }
+
   InputElement? _input;
   DivElement? _optionsPanel;
 

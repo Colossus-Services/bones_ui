@@ -239,6 +239,15 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     return selectedFileDataAsDataURLBase64;
   }
 
+  @override
+  void setFieldValue(String? value) {
+    if (value == null) {
+      _selectedFileData = null;
+    } else {
+      _selectedFileData = _CapturedData.from(captureDataFormat, value);
+    }
+  }
+
   final EventStream<UICapture> onCaptureData = EventStream();
 
   File? _selectedFile;
