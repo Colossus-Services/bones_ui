@@ -1,3 +1,10 @@
+## 2.1.8
+
+- `UITestChain`:
+  - added `logDocument`.
+- `BonesUITestRunner`
+  - Added `logDirectory`.
+
 ## 2.1.7
 
 - `UIField`:

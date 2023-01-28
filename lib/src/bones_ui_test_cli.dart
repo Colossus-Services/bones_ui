@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:bones_ui/src/bones_ui.dart';
 import 'package:collection/collection.dart';
 import 'package:path/path.dart' as pack_path;
@@ -93,6 +95,9 @@ class BonesUITestRunner {
   /// Returns `true` if `--show-ui` was passed.
   late final bool showUI;
 
+  /// The [Directory] to save the test logs and reports.
+  late final Directory? logDirectory;
+
   Directory get bonesUICompileDir => bonesUIComiler.compileDir;
 
   File get bonesUITestTemplateFile =>
@@ -113,7 +118,26 @@ class BonesUITestRunner {
     var argHeadless = args.remove('--headless');
     var argShowUI = args.remove('--show-ui');
 
+    String? logDir;
+    {
+      var idx = args.indexOf('--log-dir');
+      if (idx < 0) {
+        idx = args.indexOf('--log-directory');
+      }
+
+      if (idx >= 0) {
+        args.removeAt(idx);
+        var dir = args.removeAt(idx);
+        dir = pack_path.normalize(dir.trim());
+        if (dir.isNotEmpty) {
+          logDir = dir;
+        }
+      }
+    }
+
     showUI = argShowUI && !argHeadless;
+
+    logDirectory = logDir != null ? Directory(logDir) : null;
 
     var configuration =
         args.isNotEmpty ? Configuration.parse(args) : Configuration.empty;
@@ -163,6 +187,10 @@ class BonesUITestRunner {
         ...parsedArgs.overrideRuntimes.values.map((e) => e.identifier),
         ...parsedArgs.defineRuntimes.values.map((e) => e.identifier),
       }.toList();
+
+  String? get jsonReportFilePath => logDirectory != null
+      ? '${logDirectory!.path}/bones_ui_test_report.json'
+      : null;
 
   /// Shows the usage help in the console.
   Future<bool> showHelp() async {
@@ -268,7 +296,135 @@ class BonesUITestRunner {
 
     await test_executable.main(testArgs);
 
+    _processJsonReportFile();
+
+    bonesUIComiler.close();
+
     return true;
+  }
+
+  bool _processJsonReportFile() {
+    var jsonReportFilePath = this.jsonReportFilePath;
+    if (jsonReportFilePath == null) return false;
+
+    var logDir = logDirectory;
+    if (logDir == null) return false;
+
+    var jsonReportFile = File(jsonReportFilePath);
+    if (!jsonReportFile.existsSync()) return false;
+
+    print('** JSON REPORT: ${jsonReportFile.path}');
+
+    var jsonReport = jsonReportFile.readAsStringSync();
+
+    var lines = jsonReport.split(RegExp(r'}\n'));
+
+    var jsons = lines.where((e) => e.isNotEmpty).map((e) => jsonDecode('$e}'));
+
+    var suites = jsons.splitBefore((e) {
+      var p = e['suite']?['path'];
+      return p is String && p.endsWith("_test.dart");
+    });
+
+    var documentLogs = suites.expand((l) {
+      var suite = l.firstWhereOrNull((e) {
+        var p = e['suite']?['path'];
+        return p is String && p.endsWith("_test.dart");
+      });
+
+      if (suite == null) return <_DocumentLog>[];
+
+      var suitePath = suite['suite']['path'];
+
+      return l
+          .whereType<Map>()
+          .where((e) => e['messageType'] == 'print')
+          .where((e) => _DocumentLog.matches(e['message']))
+          .map((e) => _DocumentLog.parse(e['message'], testPath: suitePath));
+    }).toList();
+
+    if (documentLogs.isNotEmpty) {
+      var logBuildDir = Directory(pack_path.join(logDir.path, 'build'));
+      logBuildDir.createSync();
+
+      print('-- COPYING: ${bonesUICompileDir.path} -> ${logBuildDir.path}');
+      _copyPathSync(bonesUICompileDir.path, logBuildDir.path);
+
+      print('** DOCUMENT LOGS: ${documentLogs.length}');
+
+      for (var e in documentLogs) {
+        var id = e.id.trim().replaceAll(RegExp(r'\W+'), '_');
+
+        var testPath = e.testPath;
+
+        String documentsLogDirPath;
+        String basePath;
+        if (testPath != null) {
+          var basename = pack_path.basename(testPath);
+          basename = pack_path.withoutExtension(basename);
+          basename = basename.replaceAll(RegExp(r'\W+'), '_');
+          documentsLogDirPath = pack_path.join(logDir.path, 'test', basename);
+          basePath = '../../build/web/';
+        } else {
+          documentsLogDirPath = pack_path.join(logDir.path, 'test');
+          basePath = '../build/web/';
+        }
+
+        var documentsLogDir = Directory(documentsLogDirPath)
+          ..createSync(recursive: true);
+
+        var fPath = pack_path.join(documentsLogDir.path,
+            'document_log--$id--${e.time.millisecondsSinceEpoch}.html');
+
+        var content = e.contentWithBasePath(basePath);
+
+        var f = File(fPath);
+        f.writeAsStringSync(content);
+
+        print('  -- $e >> $fPath');
+      }
+    }
+
+    return true;
+  }
+
+  /// Copies a directory respecting relative links.
+  void _copyPathSync(String from, String to) {
+    if (pack_path.canonicalize(from) == pack_path.canonicalize(to)) {
+      return;
+    }
+
+    if (pack_path.isWithin(from, to)) {
+      throw ArgumentError('Cannot copy from $from to $to');
+    }
+
+    Directory(to).createSync(recursive: true);
+
+    var dirList = Directory(from).listSync(recursive: true, followLinks: false);
+
+    for (final file in dirList) {
+      var filePath = pack_path.relative(file.path, from: from);
+
+      final copyTo = pack_path.join(to, filePath);
+
+      if (file is Directory) {
+        Directory(copyTo).createSync(recursive: true);
+      } else if (file is File) {
+        File(file.path).copySync(copyTo);
+      } else if (file is Link) {
+        var target = file.targetSync();
+
+        if (pack_path.isWithin(from, target)) {
+          var targetRelative = pack_path.relative(target, from: from);
+          var targetTo = pack_path.join(to, targetRelative);
+          var copyToDir = pack_path.dirname(copyTo);
+          var targetToRelative = pack_path.relative(targetTo, from: copyToDir);
+          target = targetToRelative;
+        }
+
+        Link(copyTo).createSync(target, recursive: true);
+      }
+    }
   }
 
   /// Resolves the test args to pass to the `test` package.
@@ -299,6 +455,13 @@ class BonesUITestRunner {
     var testsPaths =
         testSelections.keys.where((p) => p.endsWith('.dart')).toList();
 
+    var jsonReportFilePath = this.jsonReportFilePath;
+
+    var logDirectory = this.logDirectory;
+    if (logDirectory != null) {
+      logDirectory.createSync(recursive: true);
+    }
+
     var testArgs = <String>[
       '--platform',
       testPlatform,
@@ -316,6 +479,10 @@ class BonesUITestRunner {
       if (testFileReporters.isNotEmpty)
         ...testFileReporters.entries
             .expand((e) => ['--file-reporter', '${e.key}:${e.value}']),
+      if (jsonReportFilePath != null) ...[
+        '--file-reporter',
+        'json:$jsonReportFilePath'
+      ],
       if (includeTags.isNotEmpty) ...includeTags.expand((t) => ['-t', t]),
       if (excludeTags.isNotEmpty) ...excludeTags.expand((t) => ['-x', t]),
       if (testsNames.isNotEmpty)
@@ -541,6 +708,8 @@ class DartRunner {
     return exitCode;
   }
 
+  static final Map<String, String> _whichExecutables = <String, String>{};
+
   Future<String> _executablePath(String executableName,
       {bool refresh = false}) async {
     executableName = executableName.trim();
@@ -665,17 +834,89 @@ class BonesUIPlatform extends PlatformPlugin
   /// Closes this instance, the [bonesUIComiler] and the wrapped [browserPlatform].
   @override
   Future close() async {
-    bonesUIComiler.close();
     await browserPlatform.close();
 
     return super.close();
   }
 }
 
-final Map<String, String> _whichExecutables = <String, String>{};
-
 Directory _createTempBonesUICompilerDir() {
   var tempDir = Directory(Directory.systemTemp.path)
       .createTempSync('dart_test_bones_ui_');
   return Directory(tempDir.resolveSymbolicLinksSync());
+}
+
+class _DocumentLog {
+  static bool matches(Object? o) {
+    if (o == null) return false;
+    var s = o.toString();
+    return RegExp(r'>>>>>>\d+$').hasMatch(s) &&
+        RegExp(r'^\[DOCUMENT\]\s*\[.*?\]<<<<<<.*').hasMatch(s);
+  }
+
+  final String id;
+
+  final String content;
+
+  final DateTime time;
+
+  final bool decompressed;
+
+  final String? testPath;
+
+  _DocumentLog(this.id, this.content, this.time,
+      {this.decompressed = false, this.testPath});
+
+  factory _DocumentLog.parse(String msg, {String? testPath}) {
+    var match = RegExp(
+            r'^\[DOCUMENT\]\s*\[(.*?)\]<<<<<<(\(GZIP:.*?\))?\n?(.*?)\n?>>>>>>(\d+)$',
+            dotAll: true)
+        .firstMatch(msg.trim());
+
+    var id = match!.group(1)!;
+    var gzip = match.group(2);
+    var content = match.group(3)!;
+    var time = int.parse(match.group(4)!);
+
+    var decompressed = false;
+    if (gzip != null && gzip.isNotEmpty) {
+      decompressed = true;
+      content = content.trim();
+      var compressed = base64.decode(content);
+      var bytes = GZipDecoder().decodeBytes(compressed);
+      content = utf8.decode(bytes);
+    }
+
+    return _DocumentLog(id, content, DateTime.fromMillisecondsSinceEpoch(time),
+        decompressed: decompressed, testPath: testPath);
+  }
+
+  String contentWithBasePath(String basePath) {
+    var content = this.content;
+
+    var m = RegExp(r'<base\s+href="(.*?)"(.*?)>',
+            caseSensitive: false, dotAll: true)
+        .firstMatch(content);
+
+    if (m != null) {
+      var attrs = m.group(2) ?? '';
+
+      content = content.replaceFirst(
+          RegExp(r'<base\s.*?>'), '<base href="$basePath"$attrs>');
+    } else {
+      content = content.replaceFirst(
+          RegExp(r'<head>'), '<head><base href="$basePath">');
+    }
+
+    return content;
+  }
+
+  @override
+  String toString({bool withContent = false}) {
+    var head =
+        'DOCUMENT[$id][$time]${decompressed ? '[decompressed]' : ''}${testPath != null ? '@$testPath' : ''}';
+    return withContent
+        ? '$head:\n\n$content'
+        : '$head{content: ${content.length}}';
+  }
 }

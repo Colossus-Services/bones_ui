@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:html';
+import 'dart:convert' as dart_convert;
 
 import 'dart:html' as dart_html;
 
+import 'package:archive/archive.dart';
 import 'package:collection/collection.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart';
@@ -683,6 +685,39 @@ abstract class UITestChain<
     return this as T;
   }
 
+  T logDocument({String? id, bool compressed = false}) {
+    id ??= '?';
+
+    id = id
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim()
+        .replaceAll(RegExp(r'\s'), '_');
+
+    var outerHtml = context.document.element.outerHtml ?? '';
+    var timeMs = DateTime.now().millisecondsSinceEpoch;
+
+    String? msg;
+
+    if (compressed && outerHtml.length > 100) {
+      var bytes = dart_convert.utf8.encode(outerHtml);
+
+      var gZipEncoder = GZipEncoder();
+      var compressed = gZipEncoder.encode(bytes);
+
+      if (compressed != null) {
+        var base64 = dart_convert.base64.encode(compressed);
+        msg =
+            '[$id]<<<<<<(GZIP: ${compressed.length}/${bytes.length})\n$base64\n>>>>>>$timeMs';
+      }
+    }
+
+    msg ??= '[$id]<<<<<<\n$outerHtml\n>>>>>>$timeMs';
+
+    logMessage('DOCUMENT', msg);
+
+    return this as T;
+  }
+
   T warnMapped<R>(R Function(E e) mapper, {String? prefix}) {
     var o = mapper(element);
     warn(msg: o, prefix: prefix);
@@ -1003,6 +1038,9 @@ extension FutureUITestChainExtension<
 
   Future<T> logRoute({String? prefix}) =>
       then((o) => o.logRoute(prefix: prefix));
+
+  Future<T> logDocument({String? id, bool compressed = false}) =>
+      then((o) => o.logDocument(id: id, compressed: compressed));
 
   Future<T> warnMapped<R>(R Function(E e) mapper) =>
       then((o) => o.warnMapped(mapper));
