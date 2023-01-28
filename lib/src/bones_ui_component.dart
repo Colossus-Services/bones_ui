@@ -288,6 +288,9 @@ abstract class UIComponent extends UIEventHandler {
     return isNodeInDOM(_content!);
   }
 
+  /// Calls: [content.click]
+  void click() => content?.click();
+
   void configureID() {
     setID(id);
   }

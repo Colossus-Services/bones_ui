@@ -33,6 +33,9 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
   @override
   String getFieldValue() => _input?.value ?? '';
 
+  @override
+  void setFieldValue(String? value) => _input?.value = value ?? '';
+
   int get pickerWidth => _pickerWidth;
 
   int get pickerHeight => _pickerHeight;

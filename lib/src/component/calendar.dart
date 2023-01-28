@@ -142,6 +142,10 @@ class UICalendarPopup extends UIComponent
   List<CalendarEvent> getFieldValue() => _calendar.events;
 
   @override
+  void setFieldValue(List<CalendarEvent>? value) =>
+      _calendar.events = value ?? <CalendarEvent>[];
+
+  @override
   EventStream<dynamic> get onChange => _calendar.onChange;
 
   EventStream<DateTime> get onTitleClick => _calendar.onTitleClick;
@@ -249,6 +253,12 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
 
   @override
   List<CalendarEvent>? getFieldValue() => _events.toList();
+
+  @override
+  void setFieldValue(List<CalendarEvent>? value) {
+    _events.clear();
+    if (value != null) _events.addAll(value);
+  }
 
   List<CalendarEvent> selectEvents(DateTime init, DateTime end) =>
       _events.where((e) => e.isInTimeRange(init, end)).toList();
