@@ -1,7 +1,6 @@
 import 'dart:async';
-import 'dart:html';
 import 'dart:convert' as dart_convert;
-
+import 'dart:html';
 import 'dart:html' as dart_html;
 
 import 'package:archive/archive.dart';
@@ -16,6 +15,7 @@ import 'package:test_api/src/backend/invoker.dart' as pkg_test_invoker;
 import 'bones_ui.dart';
 import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
+import 'bones_ui_extension.dart';
 import 'bones_ui_navigator.dart';
 import 'bones_ui_root.dart';
 
@@ -823,6 +823,9 @@ class UITestChainNode<U extends UIRoot, E,
 
   @override
   UITestContext<U> get context => testChainRoot.context;
+
+  UITestChainNode<U, O, P> elementAs<O>() =>
+      UITestChainNode(testChainRoot, element as O, parent);
 }
 
 extension UITestChainElementExtension<
@@ -832,21 +835,17 @@ extension UITestChainElementExtension<
     P extends UITestChain<U, O, dynamic, dynamic>,
     T extends UITestChain<U, E, P, T>> on T {
   T click([String? selectors]) {
-    _clickElementQuerySelector(this, element, selectors);
+    _clickQuerySelector(this, element, selectors);
     return this;
   }
 
   T setValue(String? value, [String? selectors]) {
-    var elem = element;
-    if (elem == null) return this;
+    _setValueQuerySelector(this, element, value, selectors);
+    return this;
+  }
 
-    if (selectors != null) {
-      var e = elem.querySelector(selectors);
-      _setValue(e, value);
-    } else {
-      _setValue(elem, value);
-    }
-
+  T selectIndex(int index, [String? selectors]) {
+    _selectIndexQuerySelector(this, element, index, selectors);
     return this;
   }
 
@@ -857,6 +856,18 @@ extension UITestChainElementExtension<
   String? get outerHtml => element?.outerHtml;
 }
 
+extension UITestChainSelectElementExtension<
+    U extends UIRoot,
+    E extends SelectElement?,
+    O,
+    P extends UITestChain<U, O, dynamic, dynamic>,
+    T extends UITestChain<U, E, P, T>> on T {
+  T selectIndex(int index) {
+    element?.selectIndex(index);
+    return this;
+  }
+}
+
 extension UITestChainUIComponentExtension<
     U extends UIRoot,
     E extends UIComponent?,
@@ -864,21 +875,17 @@ extension UITestChainUIComponentExtension<
     P extends UITestChain<U, O, dynamic, dynamic>,
     T extends UITestChain<U, E, P, T>> on T {
   T click([String? selectors]) {
-    _clickUIComponentQuerySelector(this, element, selectors);
+    _clickQuerySelector(this, element, selectors);
     return this;
   }
 
   T setValue(String? value, [String? selectors]) {
-    var elem = element;
-    if (elem == null) return this;
+    _setValueQuerySelector(this, element, value, selectors);
+    return this;
+  }
 
-    if (selectors != null) {
-      var e = elem.querySelector(selectors);
-      _setValue(e, value);
-    } else {
-      _setValue(elem, value);
-    }
-
+  T selectIndex(int index, String selectors) {
+    _selectIndexQuerySelector(this, element, index, selectors);
     return this;
   }
 }
@@ -907,6 +914,17 @@ extension UITestChainListExtension<
     var e = elems.firstWhereOrNull(test);
     return UITestChainNode<U, E?, T>(testChainRoot, e, this as T);
   }
+
+  UITestChainNode<U, List<E>, T> where(bool Function(E element) test) {
+    var elems = element ?? <E>[];
+    try {
+      var e = elems.where(test).toList();
+      return UITestChainNode<U, List<E>, T>(testChainRoot, e, this as T);
+    } catch (e) {
+      print('[ERROR] where> $elems > $test');
+      rethrow;
+    }
+  }
 }
 
 extension FutureUITestChainListExtension<
@@ -924,6 +942,9 @@ extension FutureUITestChainListExtension<
     bool Function(E element) test,
   ) =>
       then((o) => o.firstWhereOrNull(test));
+
+  Future<UITestChainNode<U, List<E>, T>> where(bool Function(E element) test) =>
+      then((o) => o.where(test));
 }
 
 extension FutureUITestChainExtension<
@@ -937,6 +958,21 @@ extension FutureUITestChainExtension<
   Future<P?> get parent => then((o) => o.parent);
 
   Future<P> get parentNotNull => then((o) => o.parentNotNull);
+
+  Future<T> click([String? selectors]) => then((o) {
+        _clickQuerySelector(this, o.element, selectors);
+        return o;
+      });
+
+  Future<T> setValue(String? value, [String? selectors]) => then((o) {
+        _setValueQuerySelector(this, o.element, value, selectors);
+        return o;
+      });
+
+  Future<T> selectIndex(int index, [String? selectors]) => then((o) {
+        _selectIndexQuerySelector(this, o.element, index, selectors);
+        return o;
+      });
 
   Future<T> sleepUntil(bool Function() ready,
           {String readyTitle = 'ready',
@@ -976,12 +1012,19 @@ extension FutureUITestChainExtension<
           StackTrace.current);
 
   Future<T> sleepUntilElement(String selectors,
-          {Element? root, int? timeoutMs, int? intervalMs, int? minMs}) =>
+          {Element? root,
+          int? timeoutMs,
+          int? intervalMs,
+          int? minMs,
+          bool Function(List<Element> elems)? validator,
+          bool expected = false}) =>
       then((o) => o.sleepUntilElement(selectors,
           root: root,
           timeoutMs: timeoutMs,
           intervalMs: intervalMs,
-          minMs: minMs));
+          validator: validator,
+          minMs: minMs,
+          expected: expected));
 
   Future<T> renderAndWait({Duration timeout = const Duration(seconds: 3)}) =>
       then((o) => o.renderAndWait(timeout: timeout));
@@ -1099,6 +1142,9 @@ extension FutureUITestChainNodeExtension<
 
   Future<P> get parentNotNull => then((o) => o.parentNotNull);
 
+  Future<UITestChainNode<U, O, P>> elementAs<O>() =>
+      then((o) => o.elementAs<O>());
+
   Future<UITestChainNode<U, Element?, T>> querySelector(String? selectors,
           {bool expected = false}) =>
       thenWithStackTrace(
@@ -1165,12 +1211,17 @@ extension FutureUITestChainNodeElementExtension<
     P extends UITestChain<U, dynamic, dynamic, dynamic>,
     T extends UITestChainNode<U, E, P>> on Future<UITestChainNode<U, E, P>> {
   Future<T> click([String? selectors]) => then((o) {
-        _clickElementQuerySelector(this, o.element, selectors);
+        _clickQuerySelector(o, o.element, selectors);
         return o as T;
       });
 
   Future<T> setValue(String? value, [String? selectors]) => then((o) {
-        o.setValue(value, selectors);
+        _setValueQuerySelector(o, o.element, value, selectors);
+        return o as T;
+      });
+
+  Future<T> selectIndex(int index, [String? selectors]) => then((o) {
+        _selectIndexQuerySelector(o, o.element, index, selectors);
         return o as T;
       });
 
@@ -1181,13 +1232,34 @@ extension FutureUITestChainNodeElementExtension<
   Future<String?> get innerHtml => then((o) => o.element?.innerHtml);
 }
 
+extension FutureUITestChainNodeSelectElementExtension<
+    U extends UIRoot,
+    E extends SelectElement?,
+    P extends UITestChain<U, dynamic, dynamic, dynamic>,
+    T extends UITestChainNode<U, E, P>> on Future<UITestChainNode<U, E, P>> {
+  Future<T> selectIndex(int index) => then((o) {
+        o.selectIndex(index);
+        return o as T;
+      });
+}
+
 extension FutureUITestChainNodeUIComponentExtension<
     U extends UIRoot,
     E extends UIComponent?,
     P extends UITestChain<U, dynamic, dynamic, dynamic>,
     T extends UITestChainNode<U, E, P>> on Future<T> {
   Future<T> click([String? selectors]) => then((o) {
-        _clickUIComponentQuerySelector(this, o.element, selectors);
+        _clickQuerySelector(o, o.element, selectors);
+        return o;
+      });
+
+  Future<T> setValue(String? value, [String? selectors]) => then((o) {
+        _setValueQuerySelector(o, o.element, value, selectors);
+        return o;
+      });
+
+  Future<T> selectIndex(int index, [String? selectors]) => then((o) {
+        _selectIndexQuerySelector(o, o.element, index, selectors);
         return o;
       });
 }
@@ -1269,7 +1341,7 @@ extension TestElementExtension on Element? {
 
 extension TestFutureElementExtension<E extends Element> on Future<E?> {
   Future<E?> click([String? selectors]) => then((elem) {
-        _clickElementQuerySelector(this, elem, selectors);
+        _clickQuerySelector(this, elem, selectors);
         return elem;
       });
 
@@ -1310,7 +1382,7 @@ extension TestUIComponentNullableExtension on UIComponent? {
 
 extension TestFutureUIComponentExtension<E extends UIComponent> on Future<E?> {
   Future<E?> click([String? selectors]) => then((elem) {
-        _clickUIComponentQuerySelector(this, elem, selectors);
+        _clickQuerySelector(this, elem, selectors);
         return elem;
       });
 
@@ -1329,6 +1401,20 @@ extension TestUIComponentExtension on UIComponent {
     await callRenderAndWait();
     return await testUISleep(ms: ms);
   }
+}
+
+extension TestNodeExtension on Node? {
+  String simplify(
+          {bool trim = true,
+          bool collapseSapces = true,
+          bool lowerCase = true,
+          String nullValue = ''}) =>
+      this?.text.simplify(
+          trim: trim,
+          collapseSapces: collapseSapces,
+          lowerCase: lowerCase,
+          nullValue: nullValue) ??
+      '';
 }
 
 extension TestStringExtension on String? {
@@ -1385,19 +1471,9 @@ bool _existsElement(Object? root, String selectors,
   }
 }
 
-void _clickElementQuerySelector(Object root, Element? elem, String? selectors) {
+void _clickQuerySelector(Object root, Object? elem, String? selectors) {
   if (selectors != null) {
-    var e = elem?.querySelector(selectors);
-    _clickImpl(e, reason: "querySelector: `$selectors` >> $root");
-  } else {
-    _clickImpl(elem, reason: "$root");
-  }
-}
-
-void _clickUIComponentQuerySelector(
-    Object root, UIComponent? elem, String? selectors) {
-  if (selectors != null) {
-    var e = elem?.querySelector(selectors);
+    var e = _querySelect(elem, selectors);
     _clickImpl(e, reason: "querySelector: `$selectors` >> $root");
   } else {
     _clickImpl(elem, reason: "$root");
@@ -1414,15 +1490,58 @@ void _clickImpl(Object? o, {bool expected = true, required String reason}) {
   }
 }
 
-void _setValue(Object? o, String? value) {
-  if (o is InputElement) {
-    o.value = value;
-  } else if (o is TextAreaElement) {
-    o.value = value;
-  } else if (o is Element) {
-    o.text = value;
-  } else if (o is UIField) {
-    o.setFieldValue(value);
+void _setValueQuerySelector(
+    Object root, Object? elem, String? value, String? selectors) {
+  if (selectors != null) {
+    var e = _querySelect(elem, selectors);
+    _setValue(e, value, reason: "querySelector: `$selectors` >> $root");
+  } else {
+    _setValue(elem, value, reason: "$root");
+  }
+}
+
+void _setValue(Object? elem, String? value,
+    {bool expected = true, required String reason}) {
+  if (elem is InputElement) {
+    elem.value = value;
+  } else if (elem is TextAreaElement) {
+    elem.value = value;
+  } else if (elem is Element) {
+    elem.text = value;
+  } else if (elem is UIField) {
+    elem.setFieldValue(value);
+  } else if (expected) {
+    throw TestFailure("Can't set value on `null` element. Reason: $reason");
+  }
+}
+
+void _selectIndexQuerySelector(
+    Object root, Object? elem, int index, String? selectors) {
+  if (selectors != null) {
+    var e = _querySelect(elem, selectors);
+    _selectIndex(e, index, reason: "querySelector: `$selectors` >> $root");
+  } else {
+    _selectIndex(elem, index, reason: "$root");
+  }
+}
+
+void _selectIndex(Object? o, int index,
+    {bool expected = true, required String reason}) {
+  if (o is SelectElement) {
+    o.selectIndex(index);
+  } else if (expected) {
+    throw TestFailure(
+        "Can't call selectIndex(i) on `null` element. Reason: $reason");
+  }
+}
+
+Element? _querySelect(Object? elem, String selectors) {
+  if (elem is Element) {
+    return elem.querySelector(selectors);
+  } else if (elem is UIComponent) {
+    return elem.querySelector(selectors);
+  } else {
+    return null;
   }
 }
 
@@ -1437,9 +1556,6 @@ StackTrace _mergeStackStraces(StackTrace s1, StackTrace s2) {
   var fullStackTrace = [...stack1, ...stack2].join('\n');
 
   var merge = StackTrace.fromString(fullStackTrace);
-
-  print('!!!<<<<<<\n$merge\n>>>>>>');
-
   return merge;
 }
 

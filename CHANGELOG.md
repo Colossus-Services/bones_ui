@@ -1,3 +1,19 @@
+## 2.1.9
+
+- `ElementExtension`:
+  - added `dispatchChangeEvent`.
+- Added `SelectElementExtension`:
+  - `selectIndex`.
+- `BonesUITestRunner`:
+  - Fix copy of `build` directory when it's already populated.
+  - Improved console logging.
+- `UITestChain`:
+  - Added `selectIndex`, `where`.
+- `UITestChainNode`:
+  - Added `elementAs`.
+- Added `TestNodeExtension` (on `dart:html.Node`):
+  - `simplify`.
+
 ## 2.1.8
 
 - `UITestChain`:
