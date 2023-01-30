@@ -313,8 +313,6 @@ class BonesUITestRunner {
     var jsonReportFile = File(jsonReportFilePath);
     if (!jsonReportFile.existsSync()) return false;
 
-    print('** JSON REPORT: ${jsonReportFile.path}');
-
     var jsonReport = jsonReportFile.readAsStringSync();
 
     var lines = jsonReport.split(RegExp(r'}\n'));
@@ -344,13 +342,17 @@ class BonesUITestRunner {
     }).toList();
 
     if (documentLogs.isNotEmpty) {
+      printBox([
+        'LOG DIRECTORY: ${logDir.path}',
+        '» JSON report: ${jsonReportFile.path}',
+        '» Document logs: ${documentLogs.length}',
+      ]);
+
       var logBuildDir = Directory(pack_path.join(logDir.path, 'build'));
       logBuildDir.createSync();
 
-      print('-- COPYING: ${bonesUICompileDir.path} -> ${logBuildDir.path}');
-      _copyPathSync(bonesUICompileDir.path, logBuildDir.path);
-
-      print('** DOCUMENT LOGS: ${documentLogs.length}');
+      _copyPathSync(bonesUICompileDir.path, logBuildDir.path,
+          clearIfExists: true);
 
       for (var e in documentLogs) {
         var id = e.id.trim().replaceAll(RegExp(r'\W+'), '_');
@@ -381,7 +383,7 @@ class BonesUITestRunner {
         var f = File(fPath);
         f.writeAsStringSync(content);
 
-        print('  -- $e >> $fPath');
+        print('  -- $e\n     >> $fPath');
       }
     }
 
@@ -389,7 +391,7 @@ class BonesUITestRunner {
   }
 
   /// Copies a directory respecting relative links.
-  void _copyPathSync(String from, String to) {
+  void _copyPathSync(String from, String to, {bool clearIfExists = false}) {
     if (pack_path.canonicalize(from) == pack_path.canonicalize(to)) {
       return;
     }
@@ -398,7 +400,15 @@ class BonesUITestRunner {
       throw ArgumentError('Cannot copy from $from to $to');
     }
 
-    Directory(to).createSync(recursive: true);
+    var toDir = Directory(to);
+
+    if (clearIfExists && toDir.existsSync()) {
+      print('-- CLEARING DIRECTORY: $to');
+      toDir.deleteSync(recursive: true);
+    }
+
+    print('-- COPYING: $from -> $to');
+    toDir.createSync(recursive: true);
 
     var dirList = Directory(from).listSync(recursive: true, followLinks: false);
 

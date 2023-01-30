@@ -78,6 +78,8 @@ extension ElementExtension on Element {
     var value = elementValue;
     return value == null || value.trim().isEmpty;
   }
+
+  bool dispatchChangeEvent() => dispatchEvent(Event('change'));
 }
 
 extension IterableElementExtension<E extends Element> on Iterable<E> {
@@ -86,4 +88,13 @@ extension IterableElementExtension<E extends Element> on Iterable<E> {
 
   /// Returns a [List] of values of this [Iterable] of [Element]s.
   List<String?> get elementsValues => map((e) => e.elementValue).toList();
+}
+
+extension SelectElementExtension on SelectElement {
+  /// Selects an [index] and triggers the `change` event.
+  /// See [dispatchChangeEvent] and [selectedIndex].
+  bool selectIndex(int index) {
+    selectedIndex = index;
+    return dispatchChangeEvent();
+  }
 }
