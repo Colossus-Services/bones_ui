@@ -378,7 +378,7 @@ class BonesUITestRunner {
         var fPath = pack_path.join(documentsLogDir.path,
             'document_log--$id--${e.time.millisecondsSinceEpoch}.html');
 
-        var content = e.contentWithBasePath(basePath);
+        var content = e.contentResolved(basePath: basePath, title: e.id);
 
         var f = File(fPath);
         f.writeAsStringSync(content);
@@ -901,9 +901,21 @@ class _DocumentLog {
         decompressed: decompressed, testPath: testPath);
   }
 
-  String contentWithBasePath(String basePath) {
+  String contentResolved({String? basePath, String? title}) {
     var content = this.content;
 
+    if (basePath != null && basePath.isNotEmpty) {
+      content = _setContentBasePath(content, basePath);
+    }
+
+    if (title != null && title.trim().isNotEmpty) {
+      content = _setContentTitle(content, title);
+    }
+
+    return content;
+  }
+
+  String _setContentBasePath(String content, String basePath) {
     var m = RegExp(r'<base\s+href="(.*?)"(.*?)>',
             caseSensitive: false, dotAll: true)
         .firstMatch(content);
@@ -917,7 +929,24 @@ class _DocumentLog {
       content = content.replaceFirst(
           RegExp(r'<head>'), '<head><base href="$basePath">');
     }
+    return content;
+  }
 
+  String _setContentTitle(String content, String title) {
+    title = title.trim();
+
+    var m = RegExp(r'<title>(.*?)</title>', caseSensitive: false, dotAll: true)
+        .firstMatch(content);
+
+    if (m != null) {
+      var prevTitle = m.group(1) ?? '';
+
+      content = content.replaceFirst(
+          RegExp(r'<title>.*?</title>'), '<title>$prevTitle - $title</title>');
+    } else {
+      content = content.replaceFirst(
+          RegExp(r'<title>.*?</title>'), '<title>$title</title>');
+    }
     return content;
   }
 
