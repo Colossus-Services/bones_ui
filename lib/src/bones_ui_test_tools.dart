@@ -777,6 +777,21 @@ abstract class UITestChain<
         reason: reason ?? "Can't find element: `$selectors` >> root: $root");
     return this as T;
   }
+
+  T click([String? selectors]) {
+    _click(this, element, selectors: selectors);
+    return this as T;
+  }
+
+  T setValue(String? value, [String? selectors]) {
+    _setValue(this, element, value, selectors: selectors);
+    return this as T;
+  }
+
+  T selectIndex(int index, [String? selectors]) {
+    _selectIndex(this, element, index, selectors: selectors);
+    return this as T;
+  }
 }
 
 class UITestChainRoot<U extends UIRoot> extends UITestChain<U, U,
@@ -834,21 +849,6 @@ extension UITestChainElementExtension<
     O,
     P extends UITestChain<U, O, dynamic, dynamic>,
     T extends UITestChain<U, E, P, T>> on T {
-  T click([String? selectors]) {
-    _clickQuerySelector(this, element, selectors);
-    return this;
-  }
-
-  T setValue(String? value, [String? selectors]) {
-    _setValueQuerySelector(this, element, value, selectors);
-    return this;
-  }
-
-  T selectIndex(int index, [String? selectors]) {
-    _selectIndexQuerySelector(this, element, index, selectors);
-    return this;
-  }
-
   String? get text => element?.text;
 
   String? get innerHtml => element?.innerHtml;
@@ -868,28 +868,6 @@ extension UITestChainSelectElementExtension<
   }
 }
 
-extension UITestChainUIComponentExtension<
-    U extends UIRoot,
-    E extends UIComponent?,
-    O,
-    P extends UITestChain<U, O, dynamic, dynamic>,
-    T extends UITestChain<U, E, P, T>> on T {
-  T click([String? selectors]) {
-    _clickQuerySelector(this, element, selectors);
-    return this;
-  }
-
-  T setValue(String? value, [String? selectors]) {
-    _setValueQuerySelector(this, element, value, selectors);
-    return this;
-  }
-
-  T selectIndex(int index, String selectors) {
-    _selectIndexQuerySelector(this, element, index, selectors);
-    return this;
-  }
-}
-
 extension UITestChainListExtension<
         U extends UIRoot,
         E,
@@ -897,6 +875,44 @@ extension UITestChainListExtension<
         P extends UITestChain<U, O, dynamic, dynamic>,
         T extends UITestChain<U, Iterable<E>?, P, T>>
     on UITestChain<U, Iterable<E>?, P, T> {
+  int get elementsLength => element?.length ?? 0;
+
+  T expectElementsLength(int expectedLength) =>
+      expectMapped((e) => e?.length, equals(expectedLength));
+
+  UITestChainNode<U, E, T> elementAt(int index) {
+    var elems = element ?? <E>[];
+    try {
+      var e = elems.elementAt(index);
+      return UITestChainNode<U, E, T>(testChainRoot, e, this as T);
+    } catch (e) {
+      print('[ERROR] elementAt> $elems > $test');
+      rethrow;
+    }
+  }
+
+  UITestChainNode<U, E, T> get first {
+    var elems = element ?? <E>[];
+    try {
+      var e = elems.first;
+      return UITestChainNode<U, E, T>(testChainRoot, e, this as T);
+    } catch (e) {
+      print('[ERROR] first> $elems > $test');
+      rethrow;
+    }
+  }
+
+  UITestChainNode<U, E?, T> firstOr([E? defaultElement]) {
+    var elems = element ?? <E>[];
+    try {
+      var e = elems.firstOrNull ?? defaultElement;
+      return UITestChainNode<U, E?, T>(testChainRoot, e, this as T);
+    } catch (e) {
+      print('[ERROR] firstOr> $elems > $test');
+      rethrow;
+    }
+  }
+
   UITestChainNode<U, E, T> firstWhere(bool Function(E element) test,
       {E Function()? orElse}) {
     var elems = element ?? <E>[];
@@ -934,6 +950,19 @@ extension FutureUITestChainListExtension<
         P extends UITestChain<U, O, dynamic, dynamic>,
         T extends UITestChain<U, Iterable<E>?, P, T>>
     on Future<UITestChain<U, Iterable<E>?, P, T>> {
+  Future<int> get elementsLength => then((o) => o.elementsLength);
+
+  Future<T> expectElementsLength(int expectedLength) =>
+      then((o) => o.expectElementsLength(expectedLength));
+
+  Future<UITestChainNode<U, E, T>> elementAt(int index) =>
+      then((o) => o.elementAt(index));
+
+  Future<UITestChainNode<U, E, T>> get first => then((o) => o.first);
+
+  Future<UITestChainNode<U, E?, T>> firstOr([E? defaultElement]) =>
+      then((o) => o.firstOr(defaultElement));
+
   Future<UITestChainNode<U, E, T>> firstWhere(bool Function(E element) test,
           {E Function()? orElse}) =>
       then((o) => o.firstWhere(test, orElse: orElse));
@@ -959,20 +988,22 @@ extension FutureUITestChainExtension<
 
   Future<P> get parentNotNull => then((o) => o.parentNotNull);
 
-  Future<T> click([String? selectors]) => then((o) {
-        _clickQuerySelector(this, o.element, selectors);
+  Future<T> click([String? selectors]) => thenWithStackTrace((o) {
+        _click(this, o.element, selectors: selectors);
         return o;
-      });
+      }, StackTrace.current);
 
-  Future<T> setValue(String? value, [String? selectors]) => then((o) {
-        _setValueQuerySelector(this, o.element, value, selectors);
+  Future<T> setValue(String? value, [String? selectors]) =>
+      thenWithStackTrace((o) {
+        _setValue(this, o.element, value, selectors: selectors);
         return o;
-      });
+      }, StackTrace.current);
 
-  Future<T> selectIndex(int index, [String? selectors]) => then((o) {
-        _selectIndexQuerySelector(this, o.element, index, selectors);
+  Future<T> selectIndex(int index, [String? selectors]) =>
+      thenWithStackTrace((o) {
+        _selectIndex(this, o.element, index, selectors: selectors);
         return o;
-      });
+      }, StackTrace.current);
 
   Future<T> sleepUntil(bool Function() ready,
           {String readyTitle = 'ready',
@@ -1210,21 +1241,6 @@ extension FutureUITestChainNodeElementExtension<
     E extends Element?,
     P extends UITestChain<U, dynamic, dynamic, dynamic>,
     T extends UITestChainNode<U, E, P>> on Future<UITestChainNode<U, E, P>> {
-  Future<T> click([String? selectors]) => then((o) {
-        _clickQuerySelector(o, o.element, selectors);
-        return o as T;
-      });
-
-  Future<T> setValue(String? value, [String? selectors]) => then((o) {
-        _setValueQuerySelector(o, o.element, value, selectors);
-        return o as T;
-      });
-
-  Future<T> selectIndex(int index, [String? selectors]) => then((o) {
-        _selectIndexQuerySelector(o, o.element, index, selectors);
-        return o as T;
-      });
-
   Future<String?> get text => then((o) => o.element?.text);
 
   Future<String?> get outerHtml => then((o) => o.element?.outerHtml);
@@ -1240,27 +1256,6 @@ extension FutureUITestChainNodeSelectElementExtension<
   Future<T> selectIndex(int index) => then((o) {
         o.selectIndex(index);
         return o as T;
-      });
-}
-
-extension FutureUITestChainNodeUIComponentExtension<
-    U extends UIRoot,
-    E extends UIComponent?,
-    P extends UITestChain<U, dynamic, dynamic, dynamic>,
-    T extends UITestChainNode<U, E, P>> on Future<T> {
-  Future<T> click([String? selectors]) => then((o) {
-        _clickQuerySelector(o, o.element, selectors);
-        return o;
-      });
-
-  Future<T> setValue(String? value, [String? selectors]) => then((o) {
-        _setValueQuerySelector(o, o.element, value, selectors);
-        return o;
-      });
-
-  Future<T> selectIndex(int index, [String? selectors]) => then((o) {
-        _selectIndexQuerySelector(o, o.element, index, selectors);
-        return o;
       });
 }
 
@@ -1340,16 +1335,16 @@ extension TestElementExtension on Element? {
 }
 
 extension TestFutureElementExtension<E extends Element> on Future<E?> {
-  Future<E?> click([String? selectors]) => then((elem) {
-        _clickQuerySelector(this, elem, selectors);
+  Future<E?> click([String? selectors]) => thenWithStackTrace((elem) {
+        _click(this, elem, selectors: selectors);
         return elem;
-      });
+      }, StackTrace.current);
 
   Future<Element?> select(String? selectors) => thenWithStackTrace(
       (e) => e.selectExpected(selectors), StackTrace.current);
 
-  Future<Element> selectExpected(String? selectors) =>
-      then((e) => e.selectExpected(selectors));
+  Future<Element> selectExpected(String? selectors) => thenWithStackTrace(
+      (e) => e.selectExpected(selectors), StackTrace.current);
 
   Future<List<Element>> selectAll<T extends Element>(String? selectors) =>
       then((e) => e.selectAll<T>(selectors));
@@ -1381,10 +1376,10 @@ extension TestUIComponentNullableExtension on UIComponent? {
 }
 
 extension TestFutureUIComponentExtension<E extends UIComponent> on Future<E?> {
-  Future<E?> click([String? selectors]) => then((elem) {
-        _clickQuerySelector(this, elem, selectors);
+  Future<E?> click([String? selectors]) => thenWithStackTrace((elem) {
+        _click(this, elem, selectors: selectors);
         return elem;
-      });
+      }, StackTrace.current);
 
   Future<Element?> select(String? selectors) =>
       then((e) => e.select(selectors));
@@ -1471,16 +1466,15 @@ bool _existsElement(Object? root, String selectors,
   }
 }
 
-void _clickQuerySelector(Object root, Object? elem, String? selectors) {
+void _click(Object root, Object? o, {String? selectors, bool expected = true}) {
+  String reason;
   if (selectors != null) {
-    var e = _querySelect(elem, selectors);
-    _clickImpl(e, reason: "querySelector: `$selectors` >> $root");
+    o = _querySelect(o, selectors);
+    reason = "querySelector: `$selectors` >> $root";
   } else {
-    _clickImpl(elem, reason: "$root");
+    reason = "$root";
   }
-}
 
-void _clickImpl(Object? o, {bool expected = true, required String reason}) {
   if (o is Element) {
     o.click();
   } else if (o is UIComponent) {
@@ -1490,18 +1484,16 @@ void _clickImpl(Object? o, {bool expected = true, required String reason}) {
   }
 }
 
-void _setValueQuerySelector(
-    Object root, Object? elem, String? value, String? selectors) {
+void _setValue(Object root, Object? elem, String? value,
+    {String? selectors, bool expected = true}) {
+  String reason;
   if (selectors != null) {
-    var e = _querySelect(elem, selectors);
-    _setValue(e, value, reason: "querySelector: `$selectors` >> $root");
+    elem = _querySelect(elem, selectors);
+    reason = "querySelector: `$selectors` >> $root";
   } else {
-    _setValue(elem, value, reason: "$root");
+    reason = "$root";
   }
-}
 
-void _setValue(Object? elem, String? value,
-    {bool expected = true, required String reason}) {
   if (elem is InputElement) {
     elem.value = value;
   } else if (elem is TextAreaElement) {
@@ -1515,18 +1507,16 @@ void _setValue(Object? elem, String? value,
   }
 }
 
-void _selectIndexQuerySelector(
-    Object root, Object? elem, int index, String? selectors) {
+void _selectIndex(Object root, Object? o, int index,
+    {String? selectors, bool expected = true}) {
+  String reason;
   if (selectors != null) {
-    var e = _querySelect(elem, selectors);
-    _selectIndex(e, index, reason: "querySelector: `$selectors` >> $root");
+    o = _querySelect(o, selectors);
+    reason = "querySelector: `$selectors` >> $root";
   } else {
-    _selectIndex(elem, index, reason: "$root");
+    reason = "$root";
   }
-}
 
-void _selectIndex(Object? o, int index,
-    {bool expected = true, required String reason}) {
   if (o is SelectElement) {
     o.selectIndex(index);
   } else if (expected) {
@@ -1549,7 +1539,15 @@ StackTrace _mergeStackStraces(StackTrace s1, StackTrace s2) {
   var stack1 = s1.toString().split('\n');
   var stack2 = s2.toString().split('\n');
 
-  if (!stack2.first.startsWith(RegExp(r'^\s'))) {
+  final regExpThenWithStackTrace =
+      RegExp(r'TestFutureExtension.thenWithStackTrace');
+
+  var idx = stack1.lastIndexWhere((l) => regExpThenWithStackTrace.hasMatch(l));
+  if (idx > 0) {
+    stack1.removeRange(idx, stack1.length);
+  }
+
+  if (stack2.isNotEmpty && !stack2.first.startsWith(RegExp(r'^\s'))) {
     stack2.removeAt(0);
   }
 

@@ -1,3 +1,16 @@
+## 2.1.10
+
+- `bones_ui_test_tools.dart`:
+  - `UITestChain` with `Iterable` `element`:
+    - Added `elementsLength` `expectElementsLength`, `elementAt`, `first`, `firstOr`
+  - Moved from extension to `UITestChain`:
+    - `click`, `setValue` and `selectIndex`.
+  - `_mergeStackStraces`:
+    - Remove some bottom lines from `stack1` (after `TestFutureExtension.thenWithStackTrace`).
+- `bones_ui_test_cli.dart`:
+- `_DocumentLog`:
+  - Now appending to the document `<title>` the logging `id`. 
+
 ## 2.1.9
 
 - `ElementExtension`:
