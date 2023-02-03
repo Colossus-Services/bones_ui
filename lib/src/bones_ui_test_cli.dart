@@ -43,7 +43,7 @@ void printTestCliTitle(
   printBox(lines);
 }
 
-void printBox(List<String> lines) {
+void printBox(List lines) {
   print(
       '╔═════════════════════════════════════════════════════════════════════\n'
       '${lines.map((l) => '║ $l\n').join()}'
@@ -294,7 +294,8 @@ class BonesUITestRunner {
       configurationPath,
     ]);
 
-    await test_executable.main(testArgs);
+    await test_executable.runTests(testArgs);
+    test_executable.completeShutdown();
 
     _processJsonReportFile();
 
@@ -315,9 +316,10 @@ class BonesUITestRunner {
 
     var jsonReport = jsonReportFile.readAsStringSync();
 
-    var lines = jsonReport.split(RegExp(r'}\n'));
-
-    var jsons = lines.where((e) => e.isNotEmpty).map((e) => jsonDecode('$e}'));
+    var jsons = jsonReport
+        .split(RegExp(r'}\n'))
+        .where((e) => e.isNotEmpty)
+        .map((e) => jsonDecode('$e}'));
 
     var suites = jsons.splitBefore((e) {
       var p = e['suite']?['path'];
@@ -385,9 +387,49 @@ class BonesUITestRunner {
 
         print('  -- $e\n     >> $fPath');
       }
+
+      printTestInfo(jsons);
     }
 
     return true;
+  }
+
+  void printTestInfo(Iterable<dynamic> jsons) {
+    try {
+      var eventDone = jsons.lastWhere((e) => e['type'] == 'done');
+      var testsDone = jsons.where((e) => e['type'] == 'testDone').toList();
+
+      var testsSkipped = testsDone.where((e) => e['skipped'] == true).toList();
+
+      var testsNotSkipped =
+          testsDone.where((e) => e['skipped'] != true).toList();
+
+      var testsSuccess =
+          testsNotSkipped.where((e) => e['result'] == 'success').toList();
+
+      var testsFail =
+          testsNotSkipped.where((e) => e['result'] == 'failure').toList();
+
+      var sucess = eventDone['success'] as bool;
+      var timeMs = eventDone['time'] as int;
+      var time = Duration(milliseconds: timeMs);
+
+      var testsInfo = [
+        if (testsSuccess.isNotEmpty) '+${testsSuccess.length}',
+        if (testsSkipped.isNotEmpty) '~${testsSkipped.length}',
+        if (testsFail.isNotEmpty) '-${testsFail.length}',
+      ];
+
+      var testsInfoLine = testsInfo.isNotEmpty ? ' ${testsInfo.join(' ')}' : '';
+
+      printBox([
+        'Tests:$testsInfoLine',
+        '» Sucess: $sucess',
+        '» Time: ${time.inSeconds} sec',
+      ]);
+    } catch (e) {
+      print('** Error processing test events: $e');
+    }
   }
 
   /// Copies a directory respecting relative links.

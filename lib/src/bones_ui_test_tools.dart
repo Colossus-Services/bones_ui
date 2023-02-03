@@ -147,11 +147,14 @@ Future<int> _testUISleepImpl({int? frames, int? ms, int maxMs = 10000}) {
 /// - [intervalMs] is the interval to check if it's [ready].
 /// - [minMs] is the minimal sleep time in ms.
 /// - [readyTitle] is the ready message to show in the log: `** Test UI Sleep Until $readyTitle`
-Future<bool> testUISleepUntil(bool Function() ready,
+Future<bool> testUISleepUntil(FutureOr<bool> Function() ready,
     {String readyTitle = 'ready',
     int? timeoutMs,
     int? intervalMs,
     int? minMs}) async {
+  var isReady = await ready();
+  if (isReady) return true;
+
   timeoutMs = _sleepMs(timeoutMs ?? 1000, null, 90000);
 
   intervalMs = intervalMs != null
@@ -171,7 +174,9 @@ Future<bool> testUISleepUntil(bool Function() ready,
   var initTime = DateTime.now();
 
   while (true) {
-    if (ready()) {
+    isReady = await ready();
+
+    if (isReady) {
       var elapsedTime = DateTime.now().difference(initTime).inMilliseconds;
       print(
           '-- Test UI Sleep Until $readyTitle> READY (elapsedTime: $elapsedTime ms)');
@@ -185,7 +190,7 @@ Future<bool> testUISleepUntil(bool Function() ready,
     if (elapsedTime >= timeoutMs) break;
   }
 
-  var isReady = ready();
+  isReady = await ready();
 
   print(
       '-- Test UI Sleep Until $readyTitle> ${isReady ? 'READY' : 'NOT READY'}');
@@ -265,6 +270,7 @@ Future<bool> testUISleepUntilElement(Object? root, String selectors,
     {int? timeoutMs,
     int? intervalMs,
     int? minMs,
+    Iterable<Element> Function(List<Element> elems)? mapper,
     bool Function(List<Element> elems)? validator,
     bool expected = false}) {
   root ??= document.documentElement;
@@ -276,7 +282,7 @@ Future<bool> testUISleepUntilElement(Object? root, String selectors,
   var stackTrace = StackTrace.current;
 
   return testUISleepUntil(
-    () => _existsElement(root, selectors, validator),
+    () => _existsElement(root, selectors, mapper, validator),
     readyTitle: 'selectors: $selectors',
     timeoutMs: timeoutMs ?? 2000,
     intervalMs: intervalMs ?? 100,
@@ -516,7 +522,7 @@ abstract class UITestChain<
   }
 
   /// Alias to [testUISleepUntil].
-  Future<T> sleepUntil(bool Function() ready,
+  Future<T> sleepUntil(FutureOr<bool> Function() ready,
           {String readyTitle = 'ready',
           int? timeoutMs,
           int? intervalMs,
@@ -560,12 +566,14 @@ abstract class UITestChain<
           int? timeoutMs,
           int? intervalMs,
           int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper,
           bool Function(List<Element> elems)? validator,
           bool expected = false}) =>
       testUISleepUntilElement(root ?? element, selectors,
               timeoutMs: timeoutMs,
               intervalMs: intervalMs,
               minMs: minMs,
+              mapper: mapper,
               validator: validator,
               expected: expected)
           .then((_) => this as T);
@@ -603,6 +611,10 @@ abstract class UITestChain<
       elems = e.querySelectorAll<O>(selectors);
     } else if (e is Element) {
       elems = selectors != null ? e.querySelectorAll<O>(selectors) : <O>[];
+    } else if (e is Iterable<Element>) {
+      elems = selectors != null
+          ? e.expand((e) => e.querySelectorAll<O>(selectors)).toList()
+          : <O>[];
     } else {
       elems = uiRoot.querySelectorAll<O>(selectors);
     }
@@ -771,9 +783,10 @@ abstract class UITestChain<
   T expectElement(String selectors,
       {Object? root,
       String? reason,
+      List<Element> Function(List<Element> elems)? mapper,
       bool Function(List<Element> elems)? validator}) {
     root ??= element;
-    expect(_existsElement(root, selectors, validator), isTrue,
+    expect(_existsElement(root, selectors, mapper, validator), isTrue,
         reason: reason ?? "Can't find element: `$selectors` >> root: $root");
     return this as T;
   }
@@ -952,20 +965,22 @@ extension FutureUITestChainListExtension<
     on Future<UITestChain<U, Iterable<E>?, P, T>> {
   Future<int> get elementsLength => then((o) => o.elementsLength);
 
-  Future<T> expectElementsLength(int expectedLength) =>
-      then((o) => o.expectElementsLength(expectedLength));
+  Future<T> expectElementsLength(int expectedLength) => thenWithStackTrace(
+      (o) => o.expectElementsLength(expectedLength), StackTrace.current);
 
   Future<UITestChainNode<U, E, T>> elementAt(int index) =>
-      then((o) => o.elementAt(index));
+      thenWithStackTrace((o) => o.elementAt(index), StackTrace.current);
 
-  Future<UITestChainNode<U, E, T>> get first => then((o) => o.first);
+  Future<UITestChainNode<U, E, T>> get first =>
+      thenWithStackTrace((o) => o.first, StackTrace.current);
 
   Future<UITestChainNode<U, E?, T>> firstOr([E? defaultElement]) =>
       then((o) => o.firstOr(defaultElement));
 
   Future<UITestChainNode<U, E, T>> firstWhere(bool Function(E element) test,
           {E Function()? orElse}) =>
-      then((o) => o.firstWhere(test, orElse: orElse));
+      thenWithStackTrace(
+          (o) => o.firstWhere(test, orElse: orElse), StackTrace.current);
 
   Future<UITestChainNode<U, E?, T>> firstWhereOrNull(
     bool Function(E element) test,
@@ -986,7 +1001,8 @@ extension FutureUITestChainExtension<
 
   Future<P?> get parent => then((o) => o.parent);
 
-  Future<P> get parentNotNull => then((o) => o.parentNotNull);
+  Future<P> get parentNotNull =>
+      thenWithStackTrace((o) => o.parentNotNull, StackTrace.current);
 
   Future<T> click([String? selectors]) => thenWithStackTrace((o) {
         _click(this, o.element, selectors: selectors);
@@ -1005,7 +1021,7 @@ extension FutureUITestChainExtension<
         return o;
       }, StackTrace.current);
 
-  Future<T> sleepUntil(bool Function() ready,
+  Future<T> sleepUntil(FutureOr<bool> Function() ready,
           {String readyTitle = 'ready',
           int? timeoutMs,
           int? intervalMs,
@@ -1047,15 +1063,19 @@ extension FutureUITestChainExtension<
           int? timeoutMs,
           int? intervalMs,
           int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper,
           bool Function(List<Element> elems)? validator,
           bool expected = false}) =>
-      then((o) => o.sleepUntilElement(selectors,
-          root: root,
-          timeoutMs: timeoutMs,
-          intervalMs: intervalMs,
-          validator: validator,
-          minMs: minMs,
-          expected: expected));
+      thenWithStackTrace(
+          (o) => o.sleepUntilElement(selectors,
+              root: root,
+              timeoutMs: timeoutMs,
+              intervalMs: intervalMs,
+              mapper: mapper,
+              validator: validator,
+              minMs: minMs,
+              expected: expected),
+          StackTrace.current);
 
   Future<T> renderAndWait({Duration timeout = const Duration(seconds: 3)}) =>
       then((o) => o.renderAndWait(timeout: timeout));
@@ -1157,10 +1177,11 @@ extension FutureUITestChainExtension<
   Future<T> expectElement(String selectors,
           {Object? root,
           String? reason,
+          List<Element> Function(List<Element> elems)? mapper,
           bool Function(List<Element> elems)? validator}) =>
       thenWithStackTrace(
           (o) => o.expectElement(selectors,
-              root: root, reason: reason, validator: validator),
+              root: root, reason: reason, mapper: mapper, validator: validator),
           StackTrace.current);
 }
 
@@ -1171,10 +1192,11 @@ extension FutureUITestChainNodeExtension<
     T extends UITestChainNode<U, E, P>> on Future<UITestChainNode<U, E, P>> {
   Future<P?> get parent => then((o) => o.parent);
 
-  Future<P> get parentNotNull => then((o) => o.parentNotNull);
+  Future<P> get parentNotNull =>
+      thenWithStackTrace((o) => o.parentNotNull, StackTrace.current);
 
   Future<UITestChainNode<U, O, P>> elementAs<O>() =>
-      then((o) => o.elementAs<O>());
+      thenWithStackTrace((o) => o.elementAs<O>(), StackTrace.current);
 
   Future<UITestChainNode<U, Element?, T>> querySelector(String? selectors,
           {bool expected = false}) =>
@@ -1253,10 +1275,10 @@ extension FutureUITestChainNodeSelectElementExtension<
     E extends SelectElement?,
     P extends UITestChain<U, dynamic, dynamic, dynamic>,
     T extends UITestChainNode<U, E, P>> on Future<UITestChainNode<U, E, P>> {
-  Future<T> selectIndex(int index) => then((o) {
+  Future<T> selectIndex(int index) => thenWithStackTrace((o) {
         o.selectIndex(index);
         return o as T;
-      });
+      }, StackTrace.current);
 }
 
 extension TestFutureExtension<T> on Future<T> {
@@ -1373,6 +1395,25 @@ extension TestUIComponentNullableExtension on UIComponent? {
     if (self == null || selectors == null || selectors.isEmpty) return <E>[];
     return self.querySelectorAll<E>(selectors);
   }
+
+  String simplify(
+          {bool trim = true,
+          bool collapseSapces = true,
+          bool lowerCase = true,
+          String nullValue = ''}) =>
+      this?.content.simplify(
+          trim: trim,
+          collapseSapces: collapseSapces,
+          lowerCase: lowerCase,
+          nullValue: nullValue) ??
+      '';
+}
+
+extension TestUIComponentExtension on UIComponent {
+  Future<int> renderTestUI({ms = 100}) async {
+    await callRenderAndWait();
+    return await testUISleep(ms: ms);
+  }
 }
 
 extension TestFutureUIComponentExtension<E extends UIComponent> on Future<E?> {
@@ -1391,13 +1432,6 @@ extension TestFutureUIComponentExtension<E extends UIComponent> on Future<E?> {
       then((e) => e.selectAll<T>(selectors));
 }
 
-extension TestUIComponentExtension on UIComponent {
-  Future<int> renderTestUI({ms = 100}) async {
-    await callRenderAndWait();
-    return await testUISleep(ms: ms);
-  }
-}
-
 extension TestNodeExtension on Node? {
   String simplify(
           {bool trim = true,
@@ -1410,6 +1444,85 @@ extension TestNodeExtension on Node? {
           lowerCase: lowerCase,
           nullValue: nullValue) ??
       '';
+}
+
+extension TestIterableNodeExtension on Iterable<Node>? {
+  List<String> simplify(
+          {bool trim = true,
+          bool collapseSapces = true,
+          bool lowerCase = true,
+          String nullValue = ''}) =>
+      this
+          ?.map((e) => e.simplify(
+              trim: trim,
+              collapseSapces: collapseSapces,
+              lowerCase: lowerCase,
+              nullValue: nullValue))
+          .toList() ??
+      <String>[];
+
+  String simplifyAll(
+          {bool trim = true,
+          bool collapseSapces = true,
+          bool lowerCase = true,
+          String nullValue = '',
+          String separator = ' , '}) =>
+      this
+          ?.map((e) => e.simplify(
+              trim: trim,
+              collapseSapces: collapseSapces,
+              lowerCase: lowerCase,
+              nullValue: nullValue))
+          .join(separator) ??
+      '';
+
+  String simplifyAt(int index,
+      {bool trim = true,
+      bool collapseSapces = true,
+      bool lowerCase = true,
+      String nullValue = ''}) {
+    var self = this;
+    return self != null && index < self.length
+        ? self.elementAt(index).simplify(
+            trim: trim,
+            collapseSapces: collapseSapces,
+            lowerCase: lowerCase,
+            nullValue: nullValue)
+        : '';
+  }
+
+  String simplifyFirst(
+          {bool trim = true,
+          bool collapseSapces = true,
+          bool lowerCase = true,
+          String nullValue = ''}) =>
+      this?.firstOrNull.simplify(
+          trim: trim,
+          collapseSapces: collapseSapces,
+          lowerCase: lowerCase,
+          nullValue: nullValue) ??
+      '';
+
+  String simplifyLast(
+          {bool trim = true,
+          bool collapseSapces = true,
+          bool lowerCase = true,
+          String nullValue = ''}) =>
+      this?.lastOrNull.simplify(
+          trim: trim,
+          collapseSapces: collapseSapces,
+          lowerCase: lowerCase,
+          nullValue: nullValue) ??
+      '';
+}
+
+extension TestIterableElementExtension on Iterable<Element>? {
+  List<Element> selectAll(String? selectors) {
+    var self = this;
+    return selectors != null && self != null
+        ? self.expand((e) => e.querySelectorAll(selectors)).toList()
+        : <Element>[];
+  }
 }
 
 extension TestStringExtension on String? {
@@ -1437,6 +1550,76 @@ extension TestStringExtension on String? {
   }
 }
 
+extension TestIterableStringExtension on Iterable<String>? {
+  List<String> simplify(
+          {bool trim = true,
+          bool collapseSapces = true,
+          bool lowerCase = true,
+          String nullValue = ''}) =>
+      this
+          ?.map((e) => e.simplify(
+              trim: trim,
+              collapseSapces: collapseSapces,
+              lowerCase: lowerCase,
+              nullValue: nullValue))
+          .toList() ??
+      <String>[];
+
+  String simplifyAll(
+          {bool trim = true,
+          bool collapseSapces = true,
+          bool lowerCase = true,
+          String nullValue = '',
+          String separator = ' , '}) =>
+      this
+          ?.map((e) => e.simplify(
+              trim: trim,
+              collapseSapces: collapseSapces,
+              lowerCase: lowerCase,
+              nullValue: nullValue))
+          .join(separator) ??
+      '';
+
+  String simplifyAt(int index,
+      {bool trim = true,
+      bool collapseSapces = true,
+      bool lowerCase = true,
+      String nullValue = ''}) {
+    var self = this;
+    return self != null && index < self.length
+        ? self.elementAt(index).simplify(
+            trim: trim,
+            collapseSapces: collapseSapces,
+            lowerCase: lowerCase,
+            nullValue: nullValue)
+        : '';
+  }
+
+  String simplifyFirst(
+          {bool trim = true,
+          bool collapseSapces = true,
+          bool lowerCase = true,
+          String nullValue = ''}) =>
+      this?.firstOrNull.simplify(
+          trim: trim,
+          collapseSapces: collapseSapces,
+          lowerCase: lowerCase,
+          nullValue: nullValue) ??
+      '';
+
+  String simplifyLast(
+          {bool trim = true,
+          bool collapseSapces = true,
+          bool lowerCase = true,
+          String nullValue = ''}) =>
+      this?.lastOrNull.simplify(
+          trim: trim,
+          collapseSapces: collapseSapces,
+          lowerCase: lowerCase,
+          nullValue: nullValue) ??
+      '';
+}
+
 void _expect(dynamic actual, dynamic matcher, {String? reason}) {
   if (actual is Future Function()) {
     pkg_test.expect(actual, matcher, reason: reason);
@@ -1448,7 +1631,10 @@ void _expect(dynamic actual, dynamic matcher, {String? reason}) {
   }
 }
 
-bool _existsElement(Object? root, String selectors,
+bool _existsElement(
+    Object? root,
+    String selectors,
+    Iterable<Element> Function(List<Element> elems)? mapper,
     bool Function(List<Element> elems)? validator) {
   List<Element> elem;
   if (root is Element) {
@@ -1457,6 +1643,10 @@ bool _existsElement(Object? root, String selectors,
     elem = root.querySelectorAll(selectors);
   } else {
     throw StateError("`root` is not an `Element` or `UIComponent`");
+  }
+
+  if (mapper != null) {
+    elem = mapper(elem).toList();
   }
 
   if (validator != null) {

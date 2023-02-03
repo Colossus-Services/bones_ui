@@ -1,3 +1,13 @@
+## 2.1.11
+
+- Test Tools:
+  - `testUISleepUntil` and `sleepUntil`:
+    - Now accepts `FutureOr<bool>` return in the `ready` function.
+  - `testUISleepUntilElement`, `sleepUntilElement` and `expectElement`:
+    - Added `mapper` parameter.
+- `bones_ui_test`:
+  - Show `done` event at the end of the tests if `--log-directory` is passed.
+
 ## 2.1.10
 
 - `bones_ui_test_tools.dart`:
