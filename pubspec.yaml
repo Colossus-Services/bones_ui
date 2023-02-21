@@ -1,6 +1,6 @@
 name: bones_ui
 description: Bones_UI - Simple and easy Web User Interface Framework for Dart
-version: 2.1.11
+version: 2.1.12
 homepage: https://github.com/Colossus-Services/bones_ui
 
 environment:
@@ -16,7 +16,7 @@ dependencies:
   dynamic_call: ^2.0.1
   mercury_client: ^2.1.8
   intl_messages: ^2.0.5
-  dom_tools: ^2.1.10
+  dom_tools: ^2.1.11
   dom_builder: ^2.1.2
   json_render: ^2.0.5
   json_object_mapper: ^2.0.1
@@ -36,6 +36,7 @@ dependencies:
   test_api: ^0.4.18
   test_core: ^0.4.22
   stream_channel: ^2.1.1
+  stack_trace: ^1.11.0
 
 
 dev_dependencies:

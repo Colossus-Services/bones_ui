@@ -139,7 +139,7 @@ class UIMenu extends UIComponent {
       : itemSeparator = ElementProvider.from(itemSeparator ?? ' | ')!,
         super(parent,
             componentClass: 'ui-menu', classes: classes, style: style) {
-    this.entries = List.from(entries);
+    this.entries = entries.toList();
     this.vertical = vertical;
 
     removeEmptyEntries(scrollbarColors);
@@ -287,8 +287,10 @@ void _callMenuAction(MenuEntry menuEntry, Function? action) {
     action();
   } else if (action is MenuAction) {
     action(menuEntry);
+  } else if (action is Function()) {
+    action();
   } else {
-    action!();
+    throw StateError("Invalid action `Function`: $action");
   }
 }
 
@@ -318,7 +320,7 @@ class PopupGroup {
     return _popups.contains(popup);
   }
 
-  List<UIPopupMenu> get popups => List.from(_popups);
+  List<UIPopupMenu> get popups => _popups.toList();
 
   void hideAll([UIPopupMenu? ignorePopup]) {
     for (var p in _popups) {
@@ -372,7 +374,7 @@ class UIPopupMenu extends UIComponent {
                 'max-height: 80vh; max-width: 80vw; overflow: auto; scrollbar-color: auto;',
             classes: classes,
             style: style) {
-    this.entries = List.from(entries ?? <MenuItem>[]);
+    this.entries = (entries ?? <MenuItem>[]).toList();
 
     removeEmptyEntries(scrollbarColors);
 

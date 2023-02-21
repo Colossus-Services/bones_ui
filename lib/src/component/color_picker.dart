@@ -121,7 +121,9 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
   }
 
   void _updateColorFromPicker(
-      color, InputElement input, DivElement colorButton) {
+      Object? color, InputElement input, DivElement colorButton) {
+    if (color is! Color) return;
+
     var pickerColor = CSSColor.from([color.red, color.green, color.blue]);
 
     var inputColor = CSSColor.from(input.value);

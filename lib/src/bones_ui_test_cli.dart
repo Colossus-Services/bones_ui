@@ -319,22 +319,25 @@ class BonesUITestRunner {
     var jsons = jsonReport
         .split(RegExp(r'}\n'))
         .where((e) => e.isNotEmpty)
-        .map((e) => jsonDecode('$e}'));
+        .map((e) => jsonDecode('$e}') as Map<String, dynamic>);
 
     var suites = jsons.splitBefore((e) {
-      var p = e['suite']?['path'];
+      var suite = e['suite'] as Map?;
+      var p = suite?['path'];
       return p is String && p.endsWith("_test.dart");
     });
 
     var documentLogs = suites.expand((l) {
       var suite = l.firstWhereOrNull((e) {
-        var p = e['suite']?['path'];
+        var suite = e['suite'] as Map?;
+        var p = suite?['path'];
         return p is String && p.endsWith("_test.dart");
       });
 
       if (suite == null) return <_DocumentLog>[];
 
-      var suitePath = suite['suite']['path'];
+      var suite2 = suite['suite'] as Map?;
+      var suitePath = suite2?['path'];
 
       return l
           .whereType<Map>()
@@ -396,10 +399,15 @@ class BonesUITestRunner {
 
   void printTestInfo(Iterable<dynamic> jsons) {
     try {
-      var eventDone = jsons.lastWhere((e) => e['type'] == 'done');
-      var testsDone = jsons.where((e) => e['type'] == 'testDone').toList();
+      var eventDone =
+          jsons.whereType<Map>().lastWhere((e) => e['type'] == 'done');
+      var testsDone =
+          jsons.whereType<Map>().where((e) => e['type'] == 'testDone').toList();
 
-      var testsSkipped = testsDone.where((e) => e['skipped'] == true).toList();
+      var testsSkipped = testsDone
+          .whereType<Map>()
+          .where((e) => e['skipped'] == true)
+          .toList();
 
       var testsNotSkipped =
           testsDone.where((e) => e['skipped'] != true).toList();

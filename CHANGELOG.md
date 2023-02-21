@@ -1,3 +1,14 @@
+## 2.1.12
+
+- `bones_ui_test_tools.dart`:
+  - Using `Chain.capture` for better `StackTrace`.
+- Added linter rules:
+  - `avoid_dynamic_calls`.
+  - `avoid_type_to_string`.
+  - `no_runtimeType_toString`.
+- dom_tools: ^2.1.11
+- stack_trace: ^1.11.0
+
 ## 2.1.11
 
 - Test Tools:

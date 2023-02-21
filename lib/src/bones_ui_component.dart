@@ -693,7 +693,7 @@ abstract class UIComponent extends UIEventHandler {
     var content = _content;
 
     if (content != null) {
-      var elements = List.from(content.children);
+      var elements = content.children.toList();
       for (var e in elements) {
         e.remove();
       }
@@ -1359,7 +1359,7 @@ abstract class UIComponent extends UIEventHandler {
           content.nodes.addAll(nodes);
         }
 
-        var renderedList = List.from(content.childNodes);
+        var renderedList = content.childNodes.toList();
         return renderedList;
       } else {
         if (isListValuesIdentical(renderableList, content.nodes.toList())) {
@@ -1381,7 +1381,7 @@ abstract class UIComponent extends UIEventHandler {
         return renderedList2;
       }
     } else {
-      return List.from(content.childNodes);
+      return content.childNodes.toList();
     }
   }
 
@@ -1447,6 +1447,7 @@ abstract class UIComponent extends UIEventHandler {
       }
     } else if (value is Function) {
       try {
+        // ignore: avoid_dynamic_calls
         var result = value();
         prevElemIndex = _buildRenderList(result, renderedList, prevElemIndex);
       } catch (e, s) {
@@ -2160,8 +2161,8 @@ abstract class UIComponent extends UIEventHandler {
 
     var value = parseChildElementValue(fieldElem);
 
-    _renderedFieldsValues ??= {};
-    _renderedFieldsValues![fieldName] = value;
+    var renderedFieldsValues = _renderedFieldsValues ??= <String, dynamic>{};
+    renderedFieldsValues[fieldName] = value;
   }
 
   void updateRenderedFieldElementValue(Element fieldElem) {
@@ -2170,13 +2171,13 @@ abstract class UIComponent extends UIEventHandler {
 
     var value = parseChildElementValue(fieldElem);
 
-    _renderedFieldsValues ??= {};
-    _renderedFieldsValues![fieldName] = value;
+    var renderedFieldsValues = _renderedFieldsValues ??= <String, dynamic>{};
+    renderedFieldsValues[fieldName] = value;
   }
 
   bool hasEmptyField() => getFieldsElementsMap().isEmpty;
 
-  List<String> getFieldsNames() => List.from(getFieldsElementsMap().keys);
+  List<String> getFieldsNames() => getFieldsElementsMap().keys.toList();
 
   String? getField(String? fieldName) {
     if (fieldName == null) return null;

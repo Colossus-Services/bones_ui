@@ -20,7 +20,7 @@ void main() {
 
       print('pubspecFile: $pubspecFile');
 
-      var pubSpec = loadYaml(pubspecFile.readAsStringSync());
+      var pubSpec = loadYaml(pubspecFile.readAsStringSync()) as Map;
 
       var pubSpecName = pubSpec['name'];
       var pubSpecVer = pubSpec['version'];

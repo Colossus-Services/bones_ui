@@ -16,6 +16,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
           'ui-multi-selection', 'display: inline-block',
           (parent, attributes, contentHolder, contentNodes) {
     var jsonConfig = parseJSON(contentHolder?.text, {});
+    if (jsonConfig is! Map) jsonConfig = {};
     return UIMultiSelection(parent, jsonConfig['options']);
   }, [
     UIComponentAttributeHandler<UIMultiSelection, dynamic>('options',
@@ -587,8 +588,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   }
 
   List<List<MapEntry<dynamic, dynamic>>> _optionsEntriesOrder() {
-    var entries =
-        List.from(_options!.entries).cast<MapEntry<dynamic, dynamic>>();
+    var entries = _options!.entries.toList();
 
     var entriesFiltered = <MapEntry<dynamic, dynamic>>[];
 

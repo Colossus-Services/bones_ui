@@ -5,6 +5,7 @@ import 'dart:html' as dart_html;
 
 import 'package:archive/archive.dart';
 import 'package:collection/collection.dart';
+import 'package:stack_trace/stack_trace.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart';
 import 'package:test/test.dart' as pkg_test;
@@ -51,9 +52,16 @@ bool isHeadlessUI() {
 
 /// Initializes the test [UIRoot] using the [uiRootInstantiator] to instantiate it.
 Future<U> initializeTestUIRoot<U extends UIRoot>(
+        U Function(Element rootContainer) uiRootInstantiator,
+        {String outputDivID = 'test-output',
+        Duration initialRenderTimeout = const Duration(seconds: 5)}) =>
+    _chainCapture(() => _initializeTestUIRootImpl<U>(
+        uiRootInstantiator, outputDivID, initialRenderTimeout));
+
+Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
     U Function(Element rootContainer) uiRootInstantiator,
-    {String outputDivID = 'test-output',
-    Duration initialRenderTimeout = const Duration(seconds: 5)}) async {
+    String outputDivID,
+    Duration initialRenderTimeout) async {
   printTestToolTitle();
 
   if (!isHeadlessUI()) {
@@ -139,7 +147,8 @@ Future<int> testUISleepUnsafe({int? frames, int? ms}) =>
 Future<int> _testUISleepImpl({int? frames, int? ms, int maxMs = 10000}) {
   ms = _sleepMs(ms, frames, maxMs);
   print('** Test UI Sleep: $ms ms');
-  return Future.delayed(Duration(milliseconds: ms), () => ms!);
+  var duration = Duration(milliseconds: ms);
+  return _chainCapture(() => Future.delayed(duration, () => ms!));
 }
 
 /// Test UI sleep until [ready]. Returns `bool` if [ready].
@@ -148,10 +157,15 @@ Future<int> _testUISleepImpl({int? frames, int? ms, int maxMs = 10000}) {
 /// - [minMs] is the minimal sleep time in ms.
 /// - [readyTitle] is the ready message to show in the log: `** Test UI Sleep Until $readyTitle`
 Future<bool> testUISleepUntil(FutureOr<bool> Function() ready,
-    {String readyTitle = 'ready',
-    int? timeoutMs,
-    int? intervalMs,
-    int? minMs}) async {
+        {String readyTitle = 'ready',
+        int? timeoutMs,
+        int? intervalMs,
+        int? minMs}) =>
+    _chainCapture(() =>
+        _testUISleepUntilImpl(ready, readyTitle, timeoutMs, intervalMs, minMs));
+
+Future<bool> _testUISleepUntilImpl(FutureOr<bool> Function() ready,
+    String readyTitle, int? timeoutMs, int? intervalMs, int? minMs) async {
   var isReady = await ready();
   if (isReady) return true;
 
@@ -228,7 +242,7 @@ Future<bool> testUISleepUntilRoute(String route,
     timeoutMs: timeoutMs ?? 2000,
     intervalMs: intervalMs ?? 100,
     minMs: minMs,
-  ).thenWithStackTrace((ok) {
+  ).thenChain((ok) {
     if (expected && !ok) {
       Error.throwWithStackTrace(
           TestFailure(
@@ -236,7 +250,7 @@ Future<bool> testUISleepUntilRoute(String route,
           stackTrace);
     }
     return ok;
-  }, stackTrace);
+  });
 }
 
 /// Calls [testUISleepUntil] checking if [routes] has the current route ([UINavigator.currentRoute]).
@@ -254,7 +268,7 @@ Future<bool> testUISleepUntilRoutes(List<String> routes,
     timeoutMs: timeoutMs ?? 2000,
     intervalMs: intervalMs ?? 100,
     minMs: minMs,
-  ).thenWithStackTrace((ok) {
+  ).thenChain((ok) {
     if (expected && !ok) {
       Error.throwWithStackTrace(
           TestFailure(
@@ -262,7 +276,7 @@ Future<bool> testUISleepUntilRoutes(List<String> routes,
           stackTrace);
     }
     return ok;
-  }, stackTrace);
+  });
 }
 
 /// Calls [testUISleepUntil] checking if [root] has an [Element] matching [selectors].
@@ -287,14 +301,14 @@ Future<bool> testUISleepUntilElement(Object? root, String selectors,
     timeoutMs: timeoutMs ?? 2000,
     intervalMs: intervalMs ?? 100,
     minMs: minMs,
-  ).thenWithStackTrace((ok) {
+  ).thenChain((ok) {
     if (expected && !ok) {
       Error.throwWithStackTrace(
           TestFailure("Expected element: `$selectors` ; root: `$root`"),
           stackTrace);
     }
     return ok;
-  }, stackTrace);
+  });
 }
 
 /// Slows the UI sleep by [slowFactor].
@@ -360,7 +374,29 @@ void testUI<U extends UIRoot>(
   dynamic Function()? preSetup,
   dynamic Function(UITestContext<U> context)? posSetup,
   dynamic Function(UITestContext<U> context)? teardown,
-}) async {
+}) =>
+    _chainCapture(() => _testUIImpl(
+        testUIName,
+        uiRootInstantiator,
+        body,
+        outputDivID,
+        initialRenderTimeout,
+        spawnHybrid,
+        preSetup,
+        posSetup,
+        teardown));
+
+void _testUIImpl<U extends UIRoot>(
+  String testUIName,
+  U Function(Element rootContainer) uiRootInstantiator,
+  void Function(UITestContext<U> context) body,
+  String outputDivID,
+  Duration initialRenderTimeout,
+  SpawnHybrid? spawnHybrid,
+  dynamic Function()? preSetup,
+  dynamic Function(UITestContext<U> context)? posSetup,
+  dynamic Function(UITestContext<U> context)? teardown,
+) async {
   final context = UITestContext<U>();
 
   group(testUIName, () {
@@ -496,20 +532,28 @@ abstract class UITestChain<
       expect(element, pkg_test.isNotNull, reason: "Null element ($E)");
 
   /// Alias to [UIComponent.callRenderAndWait].
-  Future<T> renderAndWait(
-      {Duration timeout = const Duration(seconds: 3)}) async {
+  Future<T> renderAndWait({Duration timeout = const Duration(seconds: 3)}) =>
+      _chainCapture(() => _renderAndWaitImpl(timeout));
+
+  Future<T> _renderAndWaitImpl(Duration timeout) async {
     await uiRoot.callRenderAndWait(timeout: timeout);
     return this as T;
   }
 
   /// Alias to [testUISleep].
-  Future<T> sleep({int? frames, int? ms}) async {
+  Future<T> sleep({int? frames, int? ms}) =>
+      _chainCapture(() => _sleepImpl(frames, ms));
+
+  Future<T> _sleepImpl(int? frames, int? ms) async {
     await testUISleep(frames: frames, ms: ms);
     return this as T;
   }
 
   /// Alias to [TestUIComponentExtension.prepareTestRendering].
-  Future<T> renderTestUI({ms = 100}) async {
+  Future<T> renderTestUI({int ms = 100}) =>
+      _chainCapture(() => _renderTestUIImpl(ms));
+
+  Future<T> _renderTestUIImpl(int ms) async {
     var elem = element;
 
     if (elem is UIComponent) {
@@ -965,22 +1009,20 @@ extension FutureUITestChainListExtension<
     on Future<UITestChain<U, Iterable<E>?, P, T>> {
   Future<int> get elementsLength => then((o) => o.elementsLength);
 
-  Future<T> expectElementsLength(int expectedLength) => thenWithStackTrace(
-      (o) => o.expectElementsLength(expectedLength), StackTrace.current);
+  Future<T> expectElementsLength(int expectedLength) =>
+      thenChain((o) => o.expectElementsLength(expectedLength));
 
   Future<UITestChainNode<U, E, T>> elementAt(int index) =>
-      thenWithStackTrace((o) => o.elementAt(index), StackTrace.current);
+      thenChain((o) => o.elementAt(index));
 
-  Future<UITestChainNode<U, E, T>> get first =>
-      thenWithStackTrace((o) => o.first, StackTrace.current);
+  Future<UITestChainNode<U, E, T>> get first => thenChain((o) => o.first);
 
   Future<UITestChainNode<U, E?, T>> firstOr([E? defaultElement]) =>
       then((o) => o.firstOr(defaultElement));
 
   Future<UITestChainNode<U, E, T>> firstWhere(bool Function(E element) test,
           {E Function()? orElse}) =>
-      thenWithStackTrace(
-          (o) => o.firstWhere(test, orElse: orElse), StackTrace.current);
+      thenChain((o) => o.firstWhere(test, orElse: orElse));
 
   Future<UITestChainNode<U, E?, T>> firstWhereOrNull(
     bool Function(E element) test,
@@ -1001,25 +1043,22 @@ extension FutureUITestChainExtension<
 
   Future<P?> get parent => then((o) => o.parent);
 
-  Future<P> get parentNotNull =>
-      thenWithStackTrace((o) => o.parentNotNull, StackTrace.current);
+  Future<P> get parentNotNull => thenChain((o) => o.parentNotNull);
 
-  Future<T> click([String? selectors]) => thenWithStackTrace((o) {
+  Future<T> click([String? selectors]) => thenChain((o) {
         _click(this, o.element, selectors: selectors);
         return o;
-      }, StackTrace.current);
+      });
 
-  Future<T> setValue(String? value, [String? selectors]) =>
-      thenWithStackTrace((o) {
+  Future<T> setValue(String? value, [String? selectors]) => thenChain((o) {
         _setValue(this, o.element, value, selectors: selectors);
         return o;
-      }, StackTrace.current);
+      });
 
-  Future<T> selectIndex(int index, [String? selectors]) =>
-      thenWithStackTrace((o) {
+  Future<T> selectIndex(int index, [String? selectors]) => thenChain((o) {
         _selectIndex(this, o.element, index, selectors: selectors);
         return o;
-      }, StackTrace.current);
+      });
 
   Future<T> sleepUntil(FutureOr<bool> Function() ready,
           {String readyTitle = 'ready',
@@ -1037,26 +1076,22 @@ extension FutureUITestChainExtension<
           int? intervalMs,
           int? minMs,
           bool expected = false}) =>
-      thenWithStackTrace(
-          (o) => o.sleepUntilRoute(route,
-              timeoutMs: timeoutMs,
-              intervalMs: intervalMs,
-              minMs: minMs,
-              expected: expected),
-          StackTrace.current);
+      thenChain((o) => o.sleepUntilRoute(route,
+          timeoutMs: timeoutMs,
+          intervalMs: intervalMs,
+          minMs: minMs,
+          expected: expected));
 
   Future<T> sleepUntilRoutes(List<String> routes,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           bool expected = false}) =>
-      thenWithStackTrace(
-          (o) => o.sleepUntilRoutes(routes,
-              timeoutMs: timeoutMs,
-              intervalMs: intervalMs,
-              minMs: minMs,
-              expected: expected),
-          StackTrace.current);
+      thenChain((o) => o.sleepUntilRoutes(routes,
+          timeoutMs: timeoutMs,
+          intervalMs: intervalMs,
+          minMs: minMs,
+          expected: expected));
 
   Future<T> sleepUntilElement(String selectors,
           {Element? root,
@@ -1066,16 +1101,14 @@ extension FutureUITestChainExtension<
           Iterable<Element> Function(List<Element> elems)? mapper,
           bool Function(List<Element> elems)? validator,
           bool expected = false}) =>
-      thenWithStackTrace(
-          (o) => o.sleepUntilElement(selectors,
-              root: root,
-              timeoutMs: timeoutMs,
-              intervalMs: intervalMs,
-              mapper: mapper,
-              validator: validator,
-              minMs: minMs,
-              expected: expected),
-          StackTrace.current);
+      thenChain((o) => o.sleepUntilElement(selectors,
+          root: root,
+          timeoutMs: timeoutMs,
+          intervalMs: intervalMs,
+          mapper: mapper,
+          validator: validator,
+          minMs: minMs,
+          expected: expected));
 
   Future<T> renderAndWait({Duration timeout = const Duration(seconds: 3)}) =>
       then((o) => o.renderAndWait(timeout: timeout));
@@ -1085,30 +1118,24 @@ extension FutureUITestChainExtension<
 
   Future<UITestChainNode<U, Element?, T>> querySelector(String? selectors,
           {bool expected = false}) =>
-      thenWithStackTrace((o) => o.querySelector(selectors, expected: expected),
-          StackTrace.current);
+      thenChain((o) => o.querySelector(selectors, expected: expected));
 
   Future<UITestChainNode<U, List<Q>, T>> querySelectorAll<Q extends Element>(
           String? selectors,
           {bool expected = false}) =>
-      thenWithStackTrace(
-          (o) => o.querySelectorAll<Q>(selectors, expected: expected),
-          StackTrace.current);
+      thenChain((o) => o.querySelectorAll<Q>(selectors, expected: expected));
 
   Future<UITestChainNode<U, Element?, T>> select(String? selectors,
           {bool expected = false}) =>
-      thenWithStackTrace(
-          (o) => o.select(selectors, expected: expected), StackTrace.current);
+      thenChain((o) => o.select(selectors, expected: expected));
 
   Future<UITestChainNode<U, Element, T>> selectExpected(String? selectors) =>
-      thenWithStackTrace(
-          (o) => o.selectExpected(selectors), StackTrace.current);
+      thenChain((o) => o.selectExpected(selectors));
 
   Future<UITestChainNode<U, List<Q>, T>> selectAll<Q extends Element>(
           String? selectors,
           {bool expected = false}) =>
-      thenWithStackTrace((o) => o.selectAll<Q>(selectors, expected: expected),
-          StackTrace.current);
+      thenChain((o) => o.selectAll<Q>(selectors, expected: expected));
 
   Future<UITestChainNode<U, R, T>> map<R>(R Function(E e) mapper) =>
       then((o) => o.map<R>(mapper));
@@ -1141,48 +1168,38 @@ extension FutureUITestChainExtension<
 
   Future<T> expect(dynamic Function() actual, dynamic matcher,
           {String? reason}) =>
-      thenWithStackTrace(
-          (o) => o.expect(actual, matcher, reason: reason), StackTrace.current);
+      thenChain((o) => o.expect(actual, matcher, reason: reason));
 
   Future<T> expectMatch(dynamic matcher, {String? reason}) =>
-      thenWithStackTrace(
-          (o) => o.expectMatch(matcher, reason: reason), StackTrace.current);
+      thenChain((o) => o.expectMatch(matcher, reason: reason));
 
   Future<T> expectMapped<R>(R Function(E e) mapper, dynamic matcher,
           {String? reason}) =>
-      thenWithStackTrace((o) => o.expectMapped(mapper, matcher, reason: reason),
-          StackTrace.current);
+      thenChain((o) => o.expectMapped(mapper, matcher, reason: reason));
 
   Future<T> expectLater(dynamic actual, dynamic matcher, {String? reason}) =>
-      thenWithStackTrace((o) => o.expectLater(actual, matcher, reason: reason),
-          StackTrace.current);
+      thenChain((o) => o.expectLater(actual, matcher, reason: reason));
 
   Future<T> expectMatchLater(dynamic matcher, {String? reason}) =>
-      thenWithStackTrace((o) => o.expectMatchLater(matcher, reason: reason),
-          StackTrace.current);
+      thenChain((o) => o.expectMatchLater(matcher, reason: reason));
 
   Future<T> expectMappedLater<R>(R Function(E e) mapper, dynamic matcher,
           {String? reason}) =>
-      thenWithStackTrace(
-          (o) => o.expectMappedLater<R>(mapper, matcher, reason: reason),
-          StackTrace.current);
+      thenChain((o) => o.expectMappedLater<R>(mapper, matcher, reason: reason));
 
-  Future<T> expectRoute(String route, {String? reason}) => thenWithStackTrace(
-      (o) => o.expectRoute(route, reason: reason), StackTrace.current);
+  Future<T> expectRoute(String route, {String? reason}) =>
+      thenChain((o) => o.expectRoute(route, reason: reason));
 
   Future<T> expectRoutes(List<String> routes, {String? reason}) =>
-      thenWithStackTrace(
-          (o) => o.expectRoutes(routes, reason: reason), StackTrace.current);
+      thenChain((o) => o.expectRoutes(routes, reason: reason));
 
   Future<T> expectElement(String selectors,
           {Object? root,
           String? reason,
           List<Element> Function(List<Element> elems)? mapper,
           bool Function(List<Element> elems)? validator}) =>
-      thenWithStackTrace(
-          (o) => o.expectElement(selectors,
-              root: root, reason: reason, mapper: mapper, validator: validator),
-          StackTrace.current);
+      thenChain((o) => o.expectElement(selectors,
+          root: root, reason: reason, mapper: mapper, validator: validator));
 }
 
 extension FutureUITestChainNodeExtension<
@@ -1192,55 +1209,43 @@ extension FutureUITestChainNodeExtension<
     T extends UITestChainNode<U, E, P>> on Future<UITestChainNode<U, E, P>> {
   Future<P?> get parent => then((o) => o.parent);
 
-  Future<P> get parentNotNull =>
-      thenWithStackTrace((o) => o.parentNotNull, StackTrace.current);
+  Future<P> get parentNotNull => thenChain((o) => o.parentNotNull);
 
   Future<UITestChainNode<U, O, P>> elementAs<O>() =>
-      thenWithStackTrace((o) => o.elementAs<O>(), StackTrace.current);
+      thenChain((o) => o.elementAs<O>());
 
   Future<UITestChainNode<U, Element?, T>> querySelector(String? selectors,
           {bool expected = false}) =>
-      thenWithStackTrace(
-          (o) => o.querySelector(selectors, expected: expected)
-              as UITestChainNode<U, Element?, T>,
-          StackTrace.current);
+      thenChain((o) => o.querySelector(selectors, expected: expected)
+          as UITestChainNode<U, Element?, T>);
 
   Future<UITestChainNode<U, List<O>, T>> querySelectorAll<O extends Element>(
           String? selectors,
           {bool expected = false}) =>
-      thenWithStackTrace(
-          (o) => o.querySelectorAll<O>(selectors, expected: expected)
-              as UITestChainNode<U, List<O>, T>,
-          StackTrace.current);
+      thenChain((o) => o.querySelectorAll<O>(selectors, expected: expected)
+          as UITestChainNode<U, List<O>, T>);
 
   Future<UITestChainNode<U, Element?, T>> select(String? selectors,
           {bool expected = false}) =>
-      thenWithStackTrace(
-          (o) => o.select(selectors, expected: expected)
-              as UITestChainNode<U, Element?, T>,
-          StackTrace.current);
+      thenChain((o) => o.select(selectors, expected: expected)
+          as UITestChainNode<U, Element?, T>);
 
   Future<UITestChainNode<U, Element, T>> selectExpected(String? selectors) =>
-      thenWithStackTrace(
-          (o) => o.selectExpected(selectors) as UITestChainNode<U, Element, T>,
-          StackTrace.current);
+      thenChain(
+          (o) => o.selectExpected(selectors) as UITestChainNode<U, Element, T>);
 
   Future<UITestChainNode<U, List<O>, T>> selectAll<O extends Element>(
           String? selectors,
           {bool expected = false}) =>
-      thenWithStackTrace(
-          (o) => o.selectAll<O>(selectors, expected: expected)
-              as UITestChainNode<U, List<O>, T>,
-          StackTrace.current);
+      thenChain((o) => o.selectAll<O>(selectors, expected: expected)
+          as UITestChainNode<U, List<O>, T>);
 
   Future<UITestChainNode<U, R, T>> map<R>(R Function(E e) mapper) =>
       then((o) => o.map<R>(mapper) as UITestChainNode<U, R, T>);
 
   Future<T> expectMapped<R>(R Function(E e) mapper, dynamic matcher,
           {String? reason}) =>
-      thenWithStackTrace(
-          (o) => o.expectMapped(mapper, matcher, reason: reason) as T,
-          StackTrace.current);
+      thenChain((o) => o.expectMapped(mapper, matcher, reason: reason) as T);
 
   Future<T> logMapped<R>(R Function(E e) mapper) =>
       then((o) => o.logMapped(mapper) as T);
@@ -1275,60 +1280,37 @@ extension FutureUITestChainNodeSelectElementExtension<
     E extends SelectElement?,
     P extends UITestChain<U, dynamic, dynamic, dynamic>,
     T extends UITestChainNode<U, E, P>> on Future<UITestChainNode<U, E, P>> {
-  Future<T> selectIndex(int index) => thenWithStackTrace((o) {
+  Future<T> selectIndex(int index) => thenChain((o) {
         o.selectIndex(index);
         return o as T;
-      }, StackTrace.current);
+      });
 }
 
 extension TestFutureExtension<T> on Future<T> {
   Future<void> expect(dynamic Function() actual, dynamic matcher,
           {String? reason}) =>
-      thenWithStackTrace(
-          (o) => _expect(actual, matcher, reason: reason), StackTrace.current);
+      thenChain((o) => _expect(actual, matcher, reason: reason));
 
   Future<void> expectMatch(dynamic matcher, {String? reason}) =>
-      thenWithStackTrace(
-          (o) => _expect(o, matcher, reason: reason), StackTrace.current);
+      thenChain((o) => _expect(o, matcher, reason: reason));
 
   Future<void> expectMapped<R>(R Function(T o) mapper, dynamic matcher,
           {String? reason}) =>
-      thenWithStackTrace((o) => _expect(mapper(o), matcher, reason: reason),
-          StackTrace.current);
+      thenChain((o) => _expect(mapper(o), matcher, reason: reason));
 
   Future expectLater(dynamic actual, dynamic matcher, {String? reason}) =>
-      thenWithStackTrace(
-          (o) => pkg_test.expectLater(actual, matcher, reason: reason),
-          StackTrace.current);
+      thenChain((o) => pkg_test.expectLater(actual, matcher, reason: reason));
 
   Future expectMatchLater(dynamic matcher, {String? reason}) =>
-      thenWithStackTrace(
-          (o) => pkg_test.expectLater(o, matcher, reason: reason),
-          StackTrace.current);
+      thenChain((o) => pkg_test.expectLater(o, matcher, reason: reason));
 
   Future expectMappedLater<R>(R Function(T o) mapper, dynamic matcher,
           {String? reason}) =>
-      thenWithStackTrace(
-          (o) => pkg_test.expectLater(mapper(o), matcher, reason: reason),
-          StackTrace.current);
+      thenChain(
+          (o) => pkg_test.expectLater(mapper(o), matcher, reason: reason));
 
-  Future<R> thenWithStackTrace<R>(
-      FutureOr<R> Function(T value) onValue, StackTrace stackTrace) {
-    return then((o) {
-      try {
-        var ret = onValue(o);
-        if (ret is Future<R>) {
-          return ret.catchError((e, s) {
-            _throwWithStackTraces(e, s, stackTrace);
-          });
-        } else {
-          return ret;
-        }
-      } catch (e, s) {
-        _throwWithStackTraces(e, s, stackTrace);
-      }
-    });
-  }
+  Future<R> thenChain<R>(FutureOr<R> Function(T value) onValue) =>
+      _chainCapture(() => then((o) => onValue(o)));
 }
 
 extension TestElementExtension on Element? {
@@ -1357,16 +1339,16 @@ extension TestElementExtension on Element? {
 }
 
 extension TestFutureElementExtension<E extends Element> on Future<E?> {
-  Future<E?> click([String? selectors]) => thenWithStackTrace((elem) {
+  Future<E?> click([String? selectors]) => thenChain((elem) {
         _click(this, elem, selectors: selectors);
         return elem;
-      }, StackTrace.current);
+      });
 
-  Future<Element?> select(String? selectors) => thenWithStackTrace(
-      (e) => e.selectExpected(selectors), StackTrace.current);
+  Future<Element?> select(String? selectors) =>
+      thenChain((e) => e.selectExpected(selectors));
 
-  Future<Element> selectExpected(String? selectors) => thenWithStackTrace(
-      (e) => e.selectExpected(selectors), StackTrace.current);
+  Future<Element> selectExpected(String? selectors) =>
+      thenChain((e) => e.selectExpected(selectors));
 
   Future<List<Element>> selectAll<T extends Element>(String? selectors) =>
       then((e) => e.selectAll<T>(selectors));
@@ -1410,23 +1392,26 @@ extension TestUIComponentNullableExtension on UIComponent? {
 }
 
 extension TestUIComponentExtension on UIComponent {
-  Future<int> renderTestUI({ms = 100}) async {
+  Future<int> renderTestUI({int ms = 100}) =>
+      _chainCapture(() => _renderTestUIImpl(ms));
+
+  Future<int> _renderTestUIImpl(int ms) async {
     await callRenderAndWait();
     return await testUISleep(ms: ms);
   }
 }
 
 extension TestFutureUIComponentExtension<E extends UIComponent> on Future<E?> {
-  Future<E?> click([String? selectors]) => thenWithStackTrace((elem) {
+  Future<E?> click([String? selectors]) => thenChain((elem) {
         _click(this, elem, selectors: selectors);
         return elem;
-      }, StackTrace.current);
+      });
 
   Future<Element?> select(String? selectors) =>
       then((e) => e.select(selectors));
 
-  Future<Element> selectExpected(String? selectors) => thenWithStackTrace(
-      (e) => e.selectExpected(selectors), StackTrace.current);
+  Future<Element> selectExpected(String? selectors) =>
+      thenChain((e) => e.selectExpected(selectors));
 
   Future<List<Element>> selectAll<T extends Element>(String? selectors) =>
       then((e) => e.selectAll<T>(selectors));
@@ -1725,37 +1710,29 @@ Element? _querySelect(Object? elem, String selectors) {
   }
 }
 
-StackTrace _mergeStackStraces(StackTrace s1, StackTrace s2) {
-  var stack1 = s1.toString().split('\n');
-  var stack2 = s2.toString().split('\n');
-
-  final regExpThenWithStackTrace =
-      RegExp(r'TestFutureExtension.thenWithStackTrace');
-
-  var idx = stack1.lastIndexWhere((l) => regExpThenWithStackTrace.hasMatch(l));
-  if (idx > 0) {
-    stack1.removeRange(idx, stack1.length);
-  }
-
-  if (stack2.isNotEmpty && !stack2.first.startsWith(RegExp(r'^\s'))) {
-    stack2.removeAt(0);
-  }
-
-  var fullStackTrace = [...stack1, ...stack2].join('\n');
-
-  var merge = StackTrace.fromString(fullStackTrace);
-  return merge;
-}
-
-Never _throwWithStackTraces(Object error, StackTrace s1, StackTrace s2) {
-  var s = _mergeStackStraces(s1, s2);
-  Error.throwWithStackTrace('$error (+)', s);
-}
-
 E _normalizeElement<E>(E e) {
   if (e is Iterable && e is! List && e is! Set) {
     final e2 = e.toList();
     if (e2 is E) return e2 as E;
   }
   return e;
+}
+
+T _chainCapture<T>(T Function() callback) {
+  var parentChain = Chain.current();
+
+  // Already in a capture chain:
+  if (parentChain.traces.length > 1) {
+    return callback();
+  }
+
+  return Chain.capture<T>(callback,
+      onError: (e, c) => _chainCaptureOnError(e, c, parentChain));
+}
+
+_chainCaptureOnError(Object e, Chain c, Chain parentChain) {
+  var chainAll = Chain([...c.traces, ...parentChain.traces]);
+  var chainAllTerse = chainAll.terse;
+  var e2 = AsyncError(e, chainAllTerse);
+  Error.throwWithStackTrace(e2, chainAllTerse);
 }

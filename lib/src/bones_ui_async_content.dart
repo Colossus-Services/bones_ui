@@ -138,9 +138,15 @@ class UIAsyncContent {
 
   dynamic get errorContent {
     if (_errorContent is Function) {
-      var content = _errorContent is Function(dynamic e)
-          ? _errorContent(error)
-          : _errorContent();
+      final errorContent = _errorContent;
+      Object? content;
+      if (errorContent is Function(dynamic e)) {
+        content = errorContent(error);
+      } else if (errorContent is Function()) {
+        content = errorContent();
+      } else {
+        content = null;
+      }
       return _normalizeContent(content);
     } else {
       return _errorContent;
