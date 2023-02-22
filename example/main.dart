@@ -167,7 +167,8 @@ class MyComponents extends UIComponent {
       UIInputTable(content, [
         InputConfig('name', 'Name', type: 'text'),
         InputConfig('email', 'Email',
-            type: 'email', valueNormalizer: (f, v) => v.trim()),
+            type: 'email',
+            valueNormalizer: (f, v) => v?.toString().trim() ?? ''),
         InputConfig('color', 'Color', type: 'color', optional: true),
         InputConfig('sel', 'Select',
             type: 'select', options: {'a': 'A Option', 'b': 'B Option'}),

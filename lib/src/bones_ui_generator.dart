@@ -480,7 +480,7 @@ class UIDOMActionExecutor extends DOMActionExecutorDartHTML {
   @override
   Node? callLocale(Node? target, List<String> parameters, DOMContext? context) {
     var variables = context?.variables ?? {};
-    var event = variables['event'] ?? {};
+    var event = (variables['event'] as Map?) ?? {};
     var locale = event['value'] ?? '';
 
     if (locale != null) {

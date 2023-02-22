@@ -79,7 +79,10 @@ extension ElementExtension on Element {
     return value == null || value.trim().isEmpty;
   }
 
-  bool dispatchChangeEvent() => dispatchEvent(Event('change'));
+  bool dispatchChangeEvent() {
+    var event = Event.eventType('Event', 'change');
+    return dispatchEvent(event);
+  }
 }
 
 extension IterableElementExtension<E extends Element> on Iterable<E> {

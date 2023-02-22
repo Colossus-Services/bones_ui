@@ -1,7 +1,7 @@
 import 'dart:convert' as data_convert;
 import 'dart:html';
-import 'dart:typed_data';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';

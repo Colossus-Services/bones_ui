@@ -32,7 +32,7 @@ void main() {
         ];
         return all ? list : list[0];
       }, (dynamic elem, String property) {
-        return elem[property];
+        return elem is Map ? elem[property] : null;
       });
 
       print(evaluator.toString());

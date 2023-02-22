@@ -166,7 +166,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
         continue;
       } else {
         var value = attrValue.value;
-        var valueStr = value.toString();
+        var valueStr = value?.toString() ?? '';
 
         if (valueStr.isNotEmpty) {
           element.setAttribute(attr.key, valueStr);
@@ -240,6 +240,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       return v is Function;
     }, (c, k, v) {
       var f = v as Function;
+      // ignore: avoid_dynamic_calls
       return f();
     });
 

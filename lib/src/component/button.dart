@@ -506,9 +506,12 @@ class UIButtonLoader extends UIButtonBase {
     if (_loadingDiv == null) return;
 
     _loadingDiv!.style.display = 'inline-block';
-    var button =
-        (_button is DOMElement ? _button.runtimeNode : _button) as Element;
-    button.style.display = 'none';
+
+    var button = _button;
+
+    var buttonElement =
+        (button is DOMElement ? button.runtimeNode : button) as Element;
+    buttonElement.style.display = 'none';
 
     _loadedMessage!.style.display = 'none';
   }
@@ -524,20 +527,22 @@ class UIButtonLoader extends UIButtonBase {
       errorMessage = resolveTextIntl(errorMessage);
     }
 
-    var button =
-        (_button is DOMElement ? _button.runtimeNode : _button) as Element?;
+    var button = _button;
+
+    var buttonElement =
+        (button is DOMElement ? button.runtimeNode : button) as Element?;
 
     if (loadOK == null) {
       _setLoadedMessageStyle();
 
       _loadingDiv!.style.display = 'none';
-      button!.style.display = '';
+      buttonElement!.style.display = '';
       _loadedMessage!.style.display = 'none';
     } else if (loadOK) {
       _setLoadedMessageStyle();
 
       _loadingDiv!.style.display = 'none';
-      button!.style.display = 'none';
+      buttonElement!.style.display = 'none';
 
       var okMsg = okMessage ?? _loadedTextOK?.text ?? 'OK';
       setElementInnerHTML(_loadedMessage!, okMsg);
@@ -548,7 +553,7 @@ class UIButtonLoader extends UIButtonBase {
       _setLoadedMessageStyle(error: true);
 
       _loadingDiv!.style.display = 'none';
-      button!.style.display = '';
+      buttonElement!.style.display = '';
 
       var errorMsg = errorMessage ?? _loadedTextError?.text;
 

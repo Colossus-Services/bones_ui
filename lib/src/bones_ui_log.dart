@@ -193,7 +193,7 @@ class UIConsole {
   }
 
   List<String> _getLogs() {
-    return List.from(_logs).cast();
+    return _logs.toList();
   }
 
   static List<String> tail([int tailSize = 100]) {

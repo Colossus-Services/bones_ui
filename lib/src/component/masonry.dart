@@ -128,11 +128,11 @@ class UIMasonry extends UIComponent {
     this.dimensionTolerance = dimensionTolerance;
 
     _masonryWidthSize = NNField<int?>(0,
-        filter: (n) => n != null && n > 10 ? n : null,
+        filter: (n) => n is int && n > 10 ? n : null,
         resolver: computeMasonryWidthSize);
 
     _masonryHeightSize = NNField<int?>(0,
-        filter: (n) => n != null && n > 10 ? n : null,
+        filter: (n) => n is int && n > 10 ? n : null,
         resolver: computeMasonryHeightSize);
 
     _masonryWidthSize.set(masonryWidthSize);
@@ -359,7 +359,7 @@ class UIMasonry extends UIComponent {
     }
   }
 
-  int? _sortItems(a, b) {
+  int? _sortItems(_MasonryRenderable a, _MasonryRenderable b) {
     var h1 = a.masonryHeight;
     var h2 = b.masonryHeight;
     var cmp = h2.compareTo(h1);
@@ -418,7 +418,7 @@ class UIMasonry extends UIComponent {
     return lines;
   }
 
-  int? _sortLines(l1, l2) {
+  int? _sortLines(_MasonryLine l1, _MasonryLine l2) {
     var w1 = l1.masonryWidth;
     var w2 = l2.masonryWidth;
 
@@ -427,7 +427,9 @@ class UIMasonry extends UIComponent {
     if (cmp == 0) {
       var id1 = l1.lowestID;
       var id2 = l2.lowestID;
-      cmp = id1.compareTo(id2);
+      if (id1 != null && id2 != null) {
+        cmp = id1.compareTo(id2);
+      }
     }
 
     return cmp;
@@ -450,7 +452,7 @@ class UIMasonry extends UIComponent {
     for (var i = 0; i < renderItems.length; ++i) {
       var item = renderItems[i];
 
-      if (item.masonryWidth! <= width && item.masonryHeight == height) {
+      if (item.masonryWidth <= width && item.masonryHeight == height) {
         return renderItems.removeAt(i);
       }
     }
@@ -601,7 +603,7 @@ class _MasonryLine {
   int get masonryWidth => _masonryWidth;
 
   bool add(_MasonryRenderable elem) {
-    var masonryWidth = elem.masonryWidth!;
+    var masonryWidth = elem.masonryWidth;
 
     _masonryWidth += masonryWidth;
 
@@ -612,7 +614,7 @@ class _MasonryLine {
       changedMax = true;
     }
 
-    var height = elem.masonryHeight!;
+    var height = elem.masonryHeight;
 
     if (height > _maxMasonryHeight) {
       _maxMasonryHeight = height;
@@ -708,14 +710,14 @@ abstract class _MasonryRenderable implements Comparable<_MasonryRenderable> {
 
   int get id;
 
-  int? get masonryWidth;
+  int get masonryWidth;
 
-  int? get masonryHeight;
+  int get masonryHeight;
 
   @override
   int compareTo(_MasonryRenderable other) {
-    var h1 = masonryHeight!;
-    var h2 = other.masonryHeight!;
+    var h1 = masonryHeight;
+    var h2 = other.masonryHeight;
 
     var cmp = h2.compareTo(h1);
 
@@ -765,7 +767,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
       for (var i = init; i < items.length; ++i) {
         var item = items[i];
 
-        if (item.masonryWidth! <= width && item.masonryHeight! <= height) {
+        if (item.masonryWidth <= width && item.masonryHeight <= height) {
           groupItems.add(item);
 
           var g = _MasonryRenderGroup(masonry, groupItems, width);
@@ -775,7 +777,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
 
             if (groupWidth == width && groupHeight == height && !g.hasGap) {
               return g;
-            } else if (groupWidth! <= width &&
+            } else if (groupWidth <= width &&
                 groupHeight < height &&
                 !g.hasGap) {
               continue;
@@ -792,30 +794,29 @@ class _MasonryRenderGroup extends _MasonryRenderable {
     return null;
   }
 
-  int get allWidth => sumIterable(_items.map(
-      ((e) => e.masonryWidth!) as num Function(_MasonryRenderable))) as int;
+  int get allWidth =>
+      sumIterable(_items.map((_MasonryRenderable e) => e.masonryWidth)).toInt();
 
   @override
-  int? get masonryWidth {
-    int? lineWidth = 0;
-
-    int? lineMaxWidth = 0;
+  int get masonryWidth {
+    int lineWidth = 0;
+    int lineMaxWidth = 0;
 
     for (var i = 0; i < _items.length; ++i) {
       var item = _items[i];
 
-      if (lineWidth! >= maxWidth) {
-        if (lineWidth > lineMaxWidth!) {
+      if (lineWidth >= maxWidth) {
+        if (lineWidth > lineMaxWidth) {
           lineMaxWidth = lineWidth;
         }
 
         lineWidth = item.masonryWidth;
       } else {
-        lineWidth += item.masonryWidth!;
+        lineWidth += item.masonryWidth;
       }
     }
 
-    if (lineWidth! > lineMaxWidth!) {
+    if (lineWidth > lineMaxWidth) {
       lineMaxWidth = lineWidth;
     }
 
@@ -838,8 +839,8 @@ class _MasonryRenderGroup extends _MasonryRenderable {
         lineMaxHeight = item.masonryHeight;
         lineWidth = item.masonryWidth;
       } else {
-        lineWidth += item.masonryWidth!;
-        if (item.masonryHeight! > lineMaxHeight!) {
+        lineWidth += item.masonryWidth;
+        if (item.masonryHeight > lineMaxHeight!) {
           lineMaxHeight = item.masonryHeight;
         }
       }
@@ -874,7 +875,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
         lineMaxHeight = item.masonryHeight;
         lineWidth = item.masonryWidth;
       } else {
-        lineWidth += item.masonryWidth!;
+        lineWidth += item.masonryWidth;
 
         if (lineMaxHeight == 0) {
           lineMaxHeight = item.masonryHeight;
@@ -923,7 +924,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
       var elem = item.render();
       div.append(elem);
 
-      lineWidth += item.masonryWidth!;
+      lineWidth += item.masonryWidth;
     }
 
     return div;
@@ -954,12 +955,13 @@ class _MasonryRenderItem extends _MasonryRenderable {
   int? _masonryWidthInput;
 
   @override
-  int? get masonryWidth {
-    if (_masonryWidth == null || _masonryWidthInput != item.width) {
+  int get masonryWidth {
+    var masonryWidth = _masonryWidth;
+    if (masonryWidth == null || _masonryWidthInput != item.width) {
       _masonryWidthInput = item.width;
-      _masonryWidth = calcMasonryWidth(_masonryWidthInput);
+      _masonryWidth = masonryWidth = calcMasonryWidth(_masonryWidthInput);
     }
-    return _masonryWidth;
+    return masonryWidth;
   }
 
   int? _masonryHeight;
@@ -967,18 +969,19 @@ class _MasonryRenderItem extends _MasonryRenderable {
   int? _masonryHeightInput;
 
   @override
-  int? get masonryHeight {
-    if (_masonryHeight == null || _masonryHeightInput != item.height) {
+  int get masonryHeight {
+    var masonryHeight = _masonryHeight;
+    if (masonryHeight == null || _masonryHeightInput != item.height) {
       _masonryHeightInput = item.height;
-      _masonryHeight = calcMasonryHeight(_masonryHeightInput);
+      _masonryHeight = masonryHeight = calcMasonryHeight(_masonryHeightInput);
     }
-    return _masonryHeight;
+    return masonryHeight;
   }
 
   @override
   Element render() {
-    var w2 = masonryWidth! * masonryWidthSizeWithItemsMargin;
-    var h2 = masonryHeight! * masonryHeightSizeWithItemsMargin;
+    var w2 = masonryWidth * masonryWidthSizeWithItemsMargin;
+    var h2 = masonryHeight * masonryHeightSizeWithItemsMargin;
 
     var w = w2 - (itemsMargin! * 1);
     var h = h2 - (itemsMargin! * 1);

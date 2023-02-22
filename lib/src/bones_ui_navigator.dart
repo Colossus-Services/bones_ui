@@ -182,8 +182,8 @@ class UINavigator {
   void _navigateToFromURL(Uri url, [bool force = false]) {
     var routeFragment = _parseRouteFragment(url);
 
-    String route = routeFragment[0];
-    var parameters = routeFragment[1];
+    var route = routeFragment[0] as String;
+    var parameters = routeFragment[1] as Map<String, String>;
 
     if (route.toLowerCase() == 'uiconsole') {
       String? enableStr = parameters['enable'];
@@ -277,7 +277,7 @@ class UINavigator {
 
   /// Returns a history list of [Navigation].
   static List<Navigation> get navigationHistory =>
-      List.from(get()._navigationHistory);
+      get()._navigationHistory.toList();
 
   /// Returns the initial route when browser window was open.
   static String? get initialRoute => get()._initialRoute;
@@ -454,7 +454,7 @@ class UINavigator {
       routes.addAll(nav.routes);
     }
     routes.remove('*');
-    return List.from(routes);
+    return routes.toList();
   }
 
   static Map<String, String> get navigableRoutesAndNames {
@@ -472,7 +472,7 @@ class UINavigator {
   final List<UINavigableComponent> _navigables = [];
 
   static List<UINavigableComponent> get navigables =>
-      List.from(get()._navigables);
+      get()._navigables.toList();
 
   /// Finds a [UINavigableComponent] that responds for [route].
   UINavigableComponent? findNavigable(String route) {
@@ -531,7 +531,7 @@ class UINavigator {
   /// Removes from navigables cache detached elements.
   void clearDetachedNavigables() {
     var list = selectNavigables();
-    var navigables = List.from(_navigables);
+    var navigables = _navigables.toList();
 
     var uiRoot = UIRoot.getInstance();
 

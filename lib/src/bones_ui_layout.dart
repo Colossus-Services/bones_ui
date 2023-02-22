@@ -42,14 +42,19 @@ class ValueUnitExpression extends SimpleExpression {
     return '$value$unit';
   }
 
+  // ignore: avoid_dynamic_calls
   dynamic operator +(o) => ValueUnitExpression(value + o, unit);
 
+  // ignore: avoid_dynamic_calls
   dynamic operator -(o) => ValueUnitExpression(value - o, unit);
 
+  // ignore: avoid_dynamic_calls
   dynamic operator *(o) => ValueUnitExpression(value * o, unit);
 
+  // ignore: avoid_dynamic_calls
   dynamic operator /(o) => ValueUnitExpression(value / o, unit);
 
+  // ignore: avoid_dynamic_calls
   dynamic operator ~/(o) => ValueUnitExpression(value ~/ o, unit);
 }
 
@@ -246,7 +251,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 
     if (list == null) return null;
 
-    var index = eval(expression.index, context);
+    var index = eval(expression.index, context) as int?;
     index ??= 0;
 
     if (list is List) {
@@ -254,6 +259,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
       return list[index];
     } else {
       if (index == 0) return list;
+      // ignore: avoid_dynamic_calls
       return list[index];
     }
   }
@@ -592,14 +598,14 @@ class UILayout {
 
   static void refreshAll() {
     //UIConsole.log("UILayout.refreshAll()") ;
-    var list = List.from(_instances.values);
+    var list = _instances.values.toList();
     for (var u in list) {
       u.refresh();
     }
   }
 
   static void checkInstances() {
-    var list = List.from(_instances.values);
+    var list = _instances.values.toList();
     for (var u in list) {
       u._checkRegistration();
     }
