@@ -1,3 +1,20 @@
+## 2.1.13
+
+- `UIRoot`:
+  - Added field `name`. 
+- `bones_ui_test_tools.dart`:
+  - Added `testMultipleUI`.
+  - `testUISleepUntilRoute`, `sleepUntilRoute`:
+    - Added `parameters` and `partialParameters`.
+  - `UITestContext`:
+    - Added `setTestWindowTitle`.
+  - `testUI`:
+    - Now updates the `window.top.title` for each `test(...)`.
+- `bones_ui_test_cli.dart`:
+  - Compatibility with `testMultipleUI` and saving of `logDocument` to the log directory.
+- test: ^1.23.1
+- test_core: ^0.4.24
+
 ## 2.1.12
 
 - `bones_ui_test_tools.dart`:

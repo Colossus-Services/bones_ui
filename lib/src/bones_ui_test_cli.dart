@@ -327,8 +327,8 @@ class BonesUITestRunner {
       return p is String && p.endsWith("_test.dart");
     });
 
-    var documentLogs = suites.expand((l) {
-      var suite = l.firstWhereOrNull((e) {
+    var documentLogs = suites.expand((suiteLines) {
+      var suite = suiteLines.firstWhereOrNull((e) {
         var suite = e['suite'] as Map?;
         var p = suite?['path'];
         return p is String && p.endsWith("_test.dart");
@@ -339,11 +339,37 @@ class BonesUITestRunner {
       var suite2 = suite['suite'] as Map?;
       var suitePath = suite2?['path'];
 
-      return l
-          .whereType<Map>()
-          .where((e) => e['messageType'] == 'print')
-          .where((e) => _DocumentLog.matches(e['message']))
-          .map((e) => _DocumentLog.parse(e['message'], testPath: suitePath));
+      const testMultiplePathMark = '[Bones_UI] testMultipleUI> path: ';
+
+      var testMultiple = suiteLines.splitBefore((e) {
+        if (e['messageType'] == 'print') {
+          var m = e['message'];
+          return m is String && m.startsWith(testMultiplePathMark);
+        } else {
+          return false;
+        }
+      });
+
+      return testMultiple.expand((testLine) {
+        var testMultipleUIPath = testLine
+            .whereType<Map>()
+            .where((e) => e['messageType'] == 'print')
+            .where((e) {
+          var m = e['message'];
+          return m is String && m.startsWith(testMultiplePathMark);
+        }).map((e) {
+          var m = e['message'] as String;
+          var idx = m.indexOf(testMultiplePathMark);
+          return m.substring(idx + testMultiplePathMark.length).trim();
+        }).firstOrNull;
+
+        return testLine
+            .whereType<Map>()
+            .where((e) => e['messageType'] == 'print')
+            .where((e) => _DocumentLog.matches(e['message']))
+            .map((e) => _DocumentLog.parse(e['message'],
+                testPath: suitePath, testMultipleUIPath: testMultipleUIPath));
+      }).toList();
     }).toList();
 
     if (documentLogs.isNotEmpty) {
@@ -362,7 +388,10 @@ class BonesUITestRunner {
       for (var e in documentLogs) {
         var id = e.id.trim().replaceAll(RegExp(r'\W+'), '_');
 
-        var testPath = e.testPath;
+        var testPath = e.testMultipleUIPath;
+        if (testPath == null || testPath.trim().isEmpty) {
+          testPath = e.testPath;
+        }
 
         String documentsLogDirPath;
         String basePath;
@@ -924,10 +953,13 @@ class _DocumentLog {
 
   final String? testPath;
 
-  _DocumentLog(this.id, this.content, this.time,
-      {this.decompressed = false, this.testPath});
+  final String? testMultipleUIPath;
 
-  factory _DocumentLog.parse(String msg, {String? testPath}) {
+  _DocumentLog(this.id, this.content, this.time,
+      {this.decompressed = false, this.testPath, this.testMultipleUIPath});
+
+  factory _DocumentLog.parse(String msg,
+      {String? testPath, String? testMultipleUIPath}) {
     var match = RegExp(
             r'^\[DOCUMENT\]\s*\[(.*?)\]<<<<<<(\(GZIP:.*?\))?\n?(.*?)\n?>>>>>>(\d+)$',
             dotAll: true)
@@ -948,7 +980,9 @@ class _DocumentLog {
     }
 
     return _DocumentLog(id, content, DateTime.fromMillisecondsSinceEpoch(time),
-        decompressed: decompressed, testPath: testPath);
+        decompressed: decompressed,
+        testPath: testPath,
+        testMultipleUIPath: testMultipleUIPath);
   }
 
   String contentResolved({String? basePath, String? title}) {
@@ -1002,8 +1036,10 @@ class _DocumentLog {
 
   @override
   String toString({bool withContent = false}) {
-    var head =
-        'DOCUMENT[$id][$time]${decompressed ? '[decompressed]' : ''}${testPath != null ? '@$testPath' : ''}';
+    var head = 'DOCUMENT[$id][$time]${decompressed ? '[decompressed]' : ''}'
+        '${testPath != null ? '@$testPath' : ''}'
+        '${testMultipleUIPath != null ? '@$testMultipleUIPath' : ''}';
+
     return withContent
         ? '$head:\n\n$content'
         : '$head{content: ${content.length}}';

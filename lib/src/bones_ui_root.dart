@@ -36,8 +36,11 @@ abstract class UIRoot extends UIComponent {
 
   Duration readyTimeout;
 
+  final String? name;
+
   UIRoot(Element? rootContainer,
-      {dynamic style,
+      {this.name,
+      dynamic style,
       dynamic classes,
       UIComponentClearParent clearParent =
           UIComponentClearParent.onInitialRender,
