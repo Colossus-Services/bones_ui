@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert' as dart_convert;
 import 'dart:html';
 import 'dart:html' as dart_html;
+import 'dart:js' as js;
+import 'dart:math';
 
 import 'package:archive/archive.dart';
 import 'package:collection/collection.dart';
@@ -70,6 +72,8 @@ Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
 
   print('** Starting test `UIRoot`...');
 
+  clearTestUIOutputDiv(outputDivID);
+
   document.body!.appendHtml('<div id="$outputDivID"></div>');
 
   var output = querySelector('#$outputDivID');
@@ -114,6 +118,16 @@ Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
   print('-- Initialized: $uiRoot');
 
   return uiRoot;
+}
+
+/// Clears the DIV with the ID ([outputDivID]).
+/// Used by [initializeTestUIRoot].
+/// See [testUI].
+void clearTestUIOutputDiv(String outputDivID) {
+  var prevOutputs = querySelectorAll('#$outputDivID');
+  for (var e in prevOutputs) {
+    e.remove();
+  }
 }
 
 /// Expects [route] at [UINavigator.currentRoute].
@@ -232,13 +246,34 @@ int _sleepMs(int? ms, int? frames, int maxMs) {
 }
 
 /// Calls [testUISleepUntil] checking if [route] is the current route ([UINavigator.currentRoute]).
+/// - If [parameters] is not `null` will requires a match with [UINavigator.currentRouteParameters].
+///   - Accepts [RegExp] or [String] as values.
+/// - If [partialParameters] is `true` will allow partial match of [parameters].
 Future<bool> testUISleepUntilRoute(String route,
-    {int? timeoutMs, int? intervalMs, int? minMs, bool expected = false}) {
+    {Map<String, dynamic>? parameters,
+    bool partialParameters = false,
+    int? timeoutMs,
+    int? intervalMs,
+    int? minMs,
+    bool expected = false}) {
   var stackTrace = StackTrace.current;
 
   return testUISleepUntil(
-    () => UINavigator.currentRoute == route,
-    readyTitle: 'route `$route`',
+    () {
+      if (UINavigator.currentRoute == route) {
+        if (parameters != null) {
+          return _equalsParameters(
+              parameters, UINavigator.currentRouteParameters,
+              partialParameters: partialParameters);
+        } else {
+          return true;
+        }
+      } else {
+        return false;
+      }
+    },
+    readyTitle:
+        'route: `$route`${parameters != null ? ' ; parameters: $parameters' : ''}',
     timeoutMs: timeoutMs ?? 2000,
     intervalMs: intervalMs ?? 100,
     minMs: minMs,
@@ -349,6 +384,55 @@ class SpawnHybrid {
   }
 }
 
+String? _testMultipleUIPath;
+
+/// Executes multiple [testUI] in the same process/script.
+/// - [testsMain] should be a [Map] containing the test path and
+///   `main` entrypoint for each test.
+///
+/// Example:
+/// ```dart
+/// import 'package:bones_ui/bones_ui_test.dart';
+///
+/// import 'register_testui.dart' as register_testui;
+/// import 'search_testui.dart' as search_testui;
+/// import 'orders_testui.dart' as orders_testui;
+///
+/// Future<void> main() async {
+///   await testMultipleUI({
+///     'register_testui.dart': register_testui.main,
+///     'search_testui.dart': search_testui.main,
+///     'orders_testui.dart': orders_testui.main,
+///   });
+/// }
+/// ```
+Future<void> testMultipleUI(Map<String, FutureOr<void> Function()> testsMain,
+    {bool shuffle = false, int? shuffleSeed}) async {
+  var entries = testsMain.entries.toList();
+
+  if (shuffle) {
+    shuffleSeed ??= Random().nextInt(999999999);
+
+    var random = Random(shuffleSeed);
+    entries.shuffle(random);
+
+    print('testMultipleUI> shuflle(shuffleSeed: $shuffleSeed)');
+  }
+
+  print('testMultipleUI> tests:');
+  for (var e in testsMain.entries) {
+    var testPath = e.key;
+    print('  -- $testPath');
+  }
+
+  for (var e in entries) {
+    var testPath = e.key;
+    var main = e.value;
+    _testMultipleUIPath = testPath;
+    await main();
+  }
+}
+
 /// Executes a group of tests using an instnatiated [UIRoot].
 ///
 /// - [testUIName] is the name of the test group.
@@ -386,6 +470,8 @@ void testUI<U extends UIRoot>(
         posSetup,
         teardown));
 
+int _testUIIDCount = 0;
+
 void _testUIImpl<U extends UIRoot>(
   String testUIName,
   U Function(Element rootContainer) uiRootInstantiator,
@@ -397,12 +483,21 @@ void _testUIImpl<U extends UIRoot>(
   dynamic Function(UITestContext<U> context)? posSetup,
   dynamic Function(UITestContext<U> context)? teardown,
 ) async {
-  final context = UITestContext<U>();
+  final testMultipleUIPath = _testMultipleUIPath;
+  final context = UITestContext<U>(testUIName, testUIId: ++_testUIIDCount);
 
   group(testUIName, () {
     U? uiRoot;
 
     setUpAll(() async {
+      if (testMultipleUIPath != null) {
+        print('[Bones_UI] testMultipleUI> path: $testMultipleUIPath');
+      }
+
+      clearTestUIOutputDiv(outputDivID);
+
+      context.setTestWindowTitle('setUp');
+
       if (preSetup != null) {
         await preSetup();
       }
@@ -410,13 +505,18 @@ void _testUIImpl<U extends UIRoot>(
       StreamChannel? channel;
 
       if (spawnHybrid != null) {
+        context.setTestWindowTitle('spawnHybridUri: ${spawnHybrid.uri} ...');
+
         context._channel = channel = pkg_test.spawnHybridUri(spawnHybrid.uri,
             message: spawnHybrid.message);
 
         var callback = spawnHybrid.callback;
         if (callback != null) {
+          context.setTestWindowTitle('spawnHybridUri.callback ...');
           await callback(channel);
         }
+
+        context.setTestWindowTitle('started');
       }
 
       context._uiRoot = uiRoot = await initializeTestUIRoot(uiRootInstantiator,
@@ -428,6 +528,8 @@ void _testUIImpl<U extends UIRoot>(
     });
 
     tearDownAll(() async {
+      context.setTestWindowTitle('tearDown');
+
       if (uiRoot != null) {
         uiRoot!.close();
         await testUISleep(ms: 100);
@@ -445,11 +547,15 @@ void _testUIImpl<U extends UIRoot>(
 
       var liveTest = pkg_test_invoker.Invoker.current?.liveTest;
       liveTest?.onError.listen((error) => context._errors.add(error));
+
+      context.setTestWindowTitle(liveTest?.individualName);
     });
 
     body(context);
 
     test('close', () async {
+      context.setTestWindowTitle('tearDown');
+
       if (uiRoot != null) {
         await uiRoot!.callRenderAndWait();
         await testUISleep(ms: 100);
@@ -466,6 +572,12 @@ void _testUIImpl<U extends UIRoot>(
 
 /// The context of a [testUI] execution.
 class UITestContext<U extends UIRoot> {
+  final String testUIName;
+
+  final int testUIId;
+
+  UITestContext(this.testUIName, {this.testUIId = 0});
+
   U? _uiRoot;
 
   /// The instantiated [UIRoot] for the test.
@@ -496,6 +608,51 @@ class UITestContext<U extends UIRoot> {
 
   /// Returns true if the current [testUI] has errors.
   bool get hasErrors => _errors.isNotEmpty;
+
+  /// Sets the test window title.
+  void setTestWindowTitle([String? step]) {
+    cleanText(String? s) =>
+        s
+            ?.replaceAll(RegExp(r'"+'), ' ')
+            .replaceAll(RegExp(r'[\[\]]'), ' ')
+            .replaceAll(RegExp(r'-+'), '_')
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim() ??
+        '';
+
+    step = cleanText(step);
+
+    var testName = cleanText(testUIName);
+
+    var uiName = isInitialized ? uiRoot.name : null;
+    uiName = cleanText(uiName);
+
+    var prefix = [uiName, testName]
+        .whereNotNull()
+        .where((e) => e.isNotEmpty)
+        .join(' - ');
+
+    var parts = [
+      if (prefix.isNotEmpty) '[$prefix]',
+      step,
+    ];
+
+    var title = parts.where((e) => e.isNotEmpty).join(' ');
+
+    try {
+      js.context.callMethod("eval", [
+        '''
+        window.top.document.title = "$title";
+      '''
+      ]);
+    } catch (_) {}
+  }
+
+  @override
+  String toString() {
+    var uiRoot = _uiRoot;
+    return 'UITestContext[$testUIName#$testUIId]${uiRoot != null ? '@$uiRoot' : ''}';
+  }
 }
 
 abstract class UITestChain<
@@ -580,11 +737,15 @@ abstract class UITestChain<
 
   /// Alias to [testUISleepUntilRoute].
   Future<T> sleepUntilRoute(String route,
-          {int? timeoutMs,
+          {Map<String, dynamic>? parameters,
+          bool partialParameters = false,
+          int? timeoutMs,
           int? intervalMs,
           int? minMs,
           bool expected = false}) =>
       testUISleepUntilRoute(route,
+              parameters: parameters,
+              partialParameters: partialParameters,
               timeoutMs: timeoutMs,
               intervalMs: intervalMs,
               minMs: minMs,
@@ -1072,11 +1233,15 @@ extension FutureUITestChainExtension<
           minMs: minMs));
 
   Future<T> sleepUntilRoute(String route,
-          {int? timeoutMs,
+          {Map<String, dynamic>? parameters,
+          bool partialParameters = false,
+          int? timeoutMs,
           int? intervalMs,
           int? minMs,
           bool expected = false}) =>
       thenChain((o) => o.sleepUntilRoute(route,
+          parameters: parameters,
+          partialParameters: partialParameters,
           timeoutMs: timeoutMs,
           intervalMs: intervalMs,
           minMs: minMs,
@@ -1735,4 +1900,37 @@ _chainCaptureOnError(Object e, Chain c, Chain parentChain) {
   var chainAllTerse = chainAll.terse;
   var e2 = AsyncError(e, chainAllTerse);
   Error.throwWithStackTrace(e2, chainAllTerse);
+}
+
+bool _equalsParameters(
+    Map<String, Object?> parameters, Map<String, String>? currentParameters,
+    {required bool partialParameters}) {
+  currentParameters ??= {};
+
+  var keysOk = <String>[];
+
+  for (var e in parameters.entries) {
+    var key = e.key;
+    var v1 = e.value;
+    var v2 = currentParameters[key];
+
+    if (v1 is RegExp) {
+      if (v2 == null || !v1.hasMatch(v2)) return false;
+    } else if (v1 == null) {
+      if (v2 != null && v2 != '') return false;
+    } else {
+      if (v1 != v2) return false;
+    }
+
+    keysOk.add(key);
+  }
+
+  if (partialParameters) {
+    return true;
+  } else {
+    var notCheckedEntries = currentParameters.entries
+        .where((e) => !keysOk.contains(e.key))
+        .toList();
+    return notCheckedEntries.isEmpty;
+  }
 }
