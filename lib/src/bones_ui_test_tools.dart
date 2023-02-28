@@ -1010,6 +1010,11 @@ abstract class UITestChain<
     _selectIndex(this, element, index, selectors: selectors);
     return this as T;
   }
+
+  T checkbox(bool check, [String? selectors]) {
+    _checkbox(this, element, check, selectors: selectors);
+    return this as T;
+  }
 }
 
 class UITestChainRoot<U extends UIRoot> extends UITestChain<U, U,
@@ -1218,6 +1223,11 @@ extension FutureUITestChainExtension<
 
   Future<T> selectIndex(int index, [String? selectors]) => thenChain((o) {
         _selectIndex(this, o.element, index, selectors: selectors);
+        return o;
+      });
+
+  Future<T> checkbox(bool check, [String? selectors]) => thenChain((o) {
+        _checkbox(this, o.element, check, selectors: selectors);
         return o;
       });
 
@@ -1862,6 +1872,23 @@ void _selectIndex(Object root, Object? o, int index,
   } else if (expected) {
     throw TestFailure(
         "Can't call selectIndex(i) on `null` element. Reason: $reason");
+  }
+}
+
+void _checkbox(Object root, Object? o, bool checked,
+    {String? selectors, bool expected = true}) {
+  String reason;
+  if (selectors != null) {
+    o = _querySelect(o, selectors);
+    reason = "querySelector: `$selectors` >> $root";
+  } else {
+    reason = "$root";
+  }
+
+  if (o is CheckboxInputElement) {
+    o.checked = checked;
+  } else if (expected) {
+    throw TestFailure("Can't set `checked` on `null` element. Reason: $reason");
   }
 }
 

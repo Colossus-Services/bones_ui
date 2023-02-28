@@ -1,3 +1,8 @@
+## 2.1.14
+
+- `UITestChain`:
+  - Added `checkbox`.
+
 ## 2.1.13
 
 - `UIRoot`:
