@@ -331,7 +331,7 @@ class BonesUITestRunner {
       var suite = suiteLines.firstWhereOrNull((e) {
         var suite = e['suite'] as Map?;
         var p = suite?['path'];
-        return p is String && p.endsWith("_test.dart");
+        return p is String && p.endsWith(".dart");
       });
 
       if (suite == null) return <_DocumentLog>[];

@@ -1,3 +1,10 @@
+## 2.1.15
+
+- `BonesUITestRunner`:
+  - `_processJsonReportFile`:
+    - Allow suites with paths ending with `.dart`, not only `_test.dart`.
+- intl_messages: ^2.0.6
+
 ## 2.1.14
 
 - `UITestChain`:
