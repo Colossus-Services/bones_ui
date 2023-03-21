@@ -27,7 +27,11 @@ enum UIComponentClearParent { onConstruct, onInitialRender, onRender }
 
 /// Base class to create `Bones_UI` components.
 abstract class UIComponent extends UIEventHandler {
+  /// The [UIDOMGenerator] used by `Bones_UI`.
   static final UIDOMGenerator domGenerator = UIDOMGenerator();
+
+  /// The [DOMContext] of the [domGenerator].
+  static DOMContext<Node> get domContext => domGenerator.domContext!;
 
   /// Register a [generator] for a type of [UIComponent].
   static bool registerGenerator(UIComponentGenerator generator) {

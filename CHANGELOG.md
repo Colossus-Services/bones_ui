@@ -1,3 +1,13 @@
+## 2.1.16
+
+- `UIComponent`:
+  - Added static getter `domContext`.
+- dom_tools: ^2.1.13
+- dom_builder: ^2.1.3
+- archive: ^3.3.6
+- args: ^2.4.0
+- logging: ^1.1.1
+
 ## 2.1.15
 
 - `BonesUITestRunner`:
