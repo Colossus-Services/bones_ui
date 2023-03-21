@@ -46,9 +46,9 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
         contentNodes!.where((e) => e.hasUnresolvedTemplate).isNotEmpty;
 
     if (hasUnresolvedTemplate) {
-      var html = _nodesToHTML(contentNodes);
-      _generateFromTemplateHTML(html, domGenerator, treeMap, domElement,
-          element, attributes, context);
+      var htmlUnresolved = _nodesToHTMLUnresolved(contentNodes);
+      _generateFromTemplateHTML(htmlUnresolved, domGenerator, treeMap,
+          domElement, element, attributes, context);
     } else {
       domGenerator.generateWithRoot(domElement, element, contentNodes);
     }
@@ -56,8 +56,11 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     return element;
   }
 
-  String _nodesToHTML(List<DOMNode> contentNodes) {
-    return contentNodes.map((e) => e.buildHTML(withIndent: true)).join('');
+  String _nodesToHTMLUnresolved(List<DOMNode> contentNodes) {
+    return contentNodes
+        .map((e) => e.buildHTML(
+            withIndent: true, buildTemplates: false, resolveDSX: false))
+        .join('');
   }
 
   void _generateFromTemplateHTML(
@@ -126,7 +129,8 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       DivElement element) {
     var templateBuiltHTML = template.buildAsString(variables,
         resolveDSX: false,
-        elementProvider: (q) => treeMap.queryElement(q),
+        elementProvider: (q) => treeMap.queryElement(q,
+            domContext: domContext, buildTemplates: true),
         intlMessageResolver: domContext?.intlMessageResolver);
 
     var nodes = DOMNode.parseNodes(templateBuiltHTML);

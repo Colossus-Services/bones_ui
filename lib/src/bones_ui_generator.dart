@@ -304,7 +304,7 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
 
     domActionExecutor = UIDOMActionExecutor();
 
-    domContext = DOMContext<Node>()..intlMessageResolver = resolveIntlMessage;
+    domContext = DOMContext<Node>(intlMessageResolver: resolveIntlMessage);
 
     setupContextVariables();
   }
