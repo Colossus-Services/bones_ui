@@ -1,3 +1,8 @@
+## 2.1.17
+
+- `Navigation`:
+  - Added `encodeParameters`, `encodeRouteAndParameters` and `routeAndParameters`.
+
 ## 2.1.16
 
 - `UIComponent`:

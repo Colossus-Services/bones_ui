@@ -408,7 +408,7 @@ class UINavigator {
     _lastNavigateRoute = route;
     _lastNavigateRouteParameters = copyMapString(parameters);
 
-    var routeQueryString = _encodeRouteParameters(parameters);
+    var routeQueryString = Navigation.encodeParameters(parameters);
 
     var fragment = '#$route';
 
@@ -439,12 +439,6 @@ class UINavigator {
     UIConsole.log('Navigated to route: `$route` $parameters');
 
     _onNavigate.add(route);
-  }
-
-  String _encodeRouteParameters(Map<String, String> parameters) {
-    var urlEncoded = encodeQueryString(parameters);
-    var routeEncoded = urlEncoded.replaceAll('%2C', ',');
-    return routeEncoded;
   }
 
   /// Returns all the known routes of registered navigables.
@@ -621,6 +615,25 @@ class UINavigator {
 
 /// Represents a navigation ([route] + [parameters]).
 class Navigation {
+  /// Encodes [parameters] in a Query String.
+  static String encodeParameters(Map<String, String> parameters) {
+    var urlEncoded = encodeQueryString(parameters);
+    var routeEncoded = urlEncoded.replaceAll('%2C', ',');
+    return routeEncoded;
+  }
+
+  /// Returns the [route] followed by `?` and the [parameters] encoded.
+  /// - It's the same format used in an URL fragment route.
+  /// - See [encodeParameters].
+  static String encodeRouteAndParameters(
+      String route, Map<String, String>? parameters) {
+    route = route.trim();
+
+    return parameters != null && parameters.isNotEmpty
+        ? '$route?${encodeParameters(parameters)}'
+        : route;
+  }
+
   /// The route ID/name.
   final String route;
 
@@ -629,7 +642,10 @@ class Navigation {
 
   Navigation(this.route, [this.parameters]);
 
-  /// Returns [true] if this route ID/name is valid.
+  /// Returns the [route] followed by `?` and the [parameters] encoded.
+  /// See [encodeRouteAndParameters].
+  String get routeAndParameters => encodeRouteAndParameters(route, parameters);
+
   bool get isValid => route.isNotEmpty;
 
   String? parameter(String key, [String? def]) =>
