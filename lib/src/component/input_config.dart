@@ -385,7 +385,7 @@ class InputConfig {
 
   TextAreaElement _renderTextArea(Object? inputValue) {
     var valText = _resolveValueText(inputValue);
-    var textArea = TextAreaElement();
+    var textArea = TextAreaElement()..style.width = '100%';
     textArea.value = valText;
     return textArea;
   }
@@ -410,7 +410,7 @@ class InputConfig {
   }
 
   SelectElement _renderSelect(Object? inputValue) {
-    var select = SelectElement();
+    var select = SelectElement()..style.maxWidth = '100%';
 
     if (options != null && options!.isNotEmpty) {
       var inputValueStr = inputValue?.toString();

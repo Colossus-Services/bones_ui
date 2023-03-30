@@ -1,3 +1,10 @@
+## 2.1.18
+
+- `InputConfig`:
+  - `textare`: width: 100%
+  - `select`: max-width: 100%
+- dom_builder: ^2.1.4
+
 ## 2.1.17
 
 - `Navigation`:
