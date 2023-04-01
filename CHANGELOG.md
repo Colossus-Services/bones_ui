@@ -1,3 +1,11 @@
+## 2.1.19
+
+- `UIDialog`:
+  - Tag `ui-dialog`:
+    - added attribute `remove-on-hide`.
+- dom_builder: ^2.1.5
+- swiss_knife: ^3.1.4
+
 ## 2.1.18
 
 - `InputConfig`:

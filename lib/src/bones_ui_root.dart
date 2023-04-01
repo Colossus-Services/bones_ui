@@ -185,8 +185,14 @@ abstract class UIRoot extends UIComponent {
     return Intl.defaultLocale;
   }
 
+  /// [EventStream] for when [setPreferredLocale] is successfully called.
+  final EventStream<UIRoot> onChangeLocale = EventStream();
+
   Future<bool> setPreferredLocale(String locale) {
-    return _localesManager!.setPreferredLocale(locale);
+    return _localesManager!.setPreferredLocale(locale).then((ok) {
+      onChangeLocale.add(this);
+      return ok;
+    });
   }
 
   Future<bool> initializeAllLocales() {

@@ -489,11 +489,14 @@ class UIDOMActionExecutor extends DOMActionExecutorDartHTML {
       if (localeStr.isNotEmpty) {
         var uiRoot = UIRoot.getInstance();
 
-        var currentLocale = UIRoot.getCurrentLocale();
+        if (uiRoot != null) {
+          var currentLocale = UIRoot.getCurrentLocale();
 
-        if (currentLocale != localeStr) {
-          uiRoot!.setPreferredLocale(localeStr);
-          uiRoot.refresh();
+          if (currentLocale != localeStr) {
+            uiRoot.setPreferredLocale(localeStr).then((ok) {
+              uiRoot.refresh();
+            });
+          }
         }
       }
     }

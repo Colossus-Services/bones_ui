@@ -323,9 +323,13 @@ class UIDialog extends UIDialogBase {
           (parent, attributes, contentHolder, contentNodes) {
     var show = parseBool(attributes['show'], false)!;
     var showCloseButton = parseBool(attributes['show-close-button'], true)!;
+    var removeOnHide = parseBool(attributes['remove-on-hide'], true)!;
 
     return UIDialog(contentNodes,
-        show: show, showCloseButton: showCloseButton, addToParent: true);
+        show: show,
+        showCloseButton: showCloseButton,
+        addToParent: true,
+        removeFromDomOnHide: removeOnHide);
   }, [], hasChildrenElements: false);
 
   static void register() {
