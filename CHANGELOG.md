@@ -1,3 +1,11 @@
+## 2.1.20 
+
+- `InputConfig`:
+  - Added field `labelStyle`.
+- `UIInputTable`:
+  - Added field `tableClasses`, `tableStyle`.
+- dom_builder: ^2.1.6
+
 ## 2.1.19
 
 - `UIDialog`:

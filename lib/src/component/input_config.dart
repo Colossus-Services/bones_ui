@@ -53,6 +53,8 @@ class InputConfig {
 
   List<String> classes;
 
+  String? labelStyle;
+
   String? style;
 
   static InputConfig? from(dynamic config, [String? id]) {
@@ -74,6 +76,7 @@ class InputConfig {
       var checked = parseBool(findKeyValue(config, ['checked'], true));
       var attributes = findKeyValue(config, ['attributes'], true);
       var classes = findKeyValue(config, ['class', 'classes'], true);
+      var labelStyle = findKeyValue(config, ['labelStyle'], true);
       var style = findKeyValue(config, ['style'], true);
       var options = findKeyValue(config, ['options'], true);
       var optional = parseBool(findKeyValue(config, ['optional'], true), false);
@@ -94,6 +97,7 @@ class InputConfig {
           options: options,
           optional: optional,
           classes: classes,
+          labelStyle: labelStyle,
           style: style);
     }
 
@@ -111,6 +115,7 @@ class InputConfig {
     Map<String, String>? options,
     bool? optional = false,
     Object? classes,
+    String? labelStyle,
     String? style,
     FieldInputRender? inputRender,
     FieldValueProvider? valueProvider,
@@ -145,6 +150,11 @@ class InputConfig {
     if (label.isEmpty) throw ArgumentError('Invalid Label');
 
     _label = label;
+
+    if (labelStyle != null) {
+      labelStyle = labelStyle.trim();
+      this.labelStyle = labelStyle.isNotEmpty ? labelStyle : null;
+    }
 
     if (style != null) {
       style = style.trim();
@@ -459,6 +469,9 @@ class UIInputTable extends UIComponent {
 
   final List _extraRows;
 
+  final List<String> _tableClasses;
+  final String? _tableStyle;
+
   final List<String> _inputsClasses;
 
   final String? inputErrorClass;
@@ -475,10 +488,14 @@ class UIInputTable extends UIComponent {
       this.showInvalidMessages = true,
       dynamic classes,
       dynamic style,
+      dynamic tableClasses,
+      String? tableStyle,
       dynamic inputsClasses})
       : _onChangeTriggerDelay =
             onChangeTriggerDelay ?? defaultOnChangeTriggerDelay,
         _extraRows = extraRows ?? [],
+        _tableClasses = UIComponent.parseClasses(tableClasses),
+        _tableStyle = tableStyle?.trim(),
         _inputsClasses = UIComponent.parseClasses(inputsClasses),
         super(parent,
             componentClass: 'ui-infos-table', classes: classes, style: style);
@@ -613,6 +630,15 @@ class UIInputTable extends UIComponent {
     form.autocomplete = 'off';
 
     var table = TableElement();
+
+    if (_tableClasses.isNotEmpty) {
+      table.classes.addAll(_tableClasses);
+    }
+
+    if (_tableStyle?.isNotEmpty ?? false) {
+      table.style.cssText = _tableStyle!;
+    }
+
     var tBody = table.createTBody();
 
     for (var input in _inputs) {
@@ -624,6 +650,13 @@ class UIInputTable extends UIComponent {
         var cell = row.addCell()
           ..style.verticalAlign = 'top'
           ..style.textAlign = 'right';
+
+        var labelStyle = input.labelStyle;
+        if (labelStyle != null) {
+          var cssText = cell.style.cssText;
+          cell.style.cssText =
+              isNotEmptyObject(cssText) ? '$cssText ; $labelStyle' : labelStyle;
+        }
 
         if (label.isNotEmpty) {
           if (containsIntlMessage(label)) {
