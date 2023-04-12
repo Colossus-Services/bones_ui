@@ -1,3 +1,12 @@
+## 2.1.21
+
+- swiss_knife: ^3.1.5
+- intl_messages: ^2.0.7
+- dom_tools: ^2.1.14
+- dom_builder: ^2.1.7
+- archive: ^3.3.7
+- resource_portable: ^3.0.2
+
 ## 2.1.20 
 
 - `InputConfig`:
