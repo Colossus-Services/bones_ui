@@ -3,12 +3,14 @@ import 'dart:html';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import '../bones_ui_base.dart';
 import '../bones_ui_log.dart';
 import 'button.dart';
+import 'dialog.dart';
 
 /// The capture type of an [UICapture].
 enum CaptureType {
@@ -66,12 +68,15 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   @override
   final String fieldName;
 
+  final bool editCapture;
+
   UICapture(Element? container, this.captureType,
       {String? fieldName,
       this.captureAspectRatio,
       this.captureMaxWidth,
       this.captureMaxHeight,
       this.captureDataFormat = CaptureDataFormat.arrayBuffer,
+      this.editCapture = false,
       Object? selectedFileData,
       String? navigate,
       Map<String, String>? navigateParameters,
@@ -220,6 +225,16 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   void _callOnCapture(FileUploadInputElement input, Event event) async {
     await _readFile(input);
+
+    if (editCapture) {
+      if (captureType == CaptureType.photo ||
+          captureType == CaptureType.photoFile ||
+          captureType == CaptureType.photoSelfie) {
+        var dialogEdit = _DialogEditPhoto(this);
+        await dialogEdit.showAndWait();
+      }
+    }
+
     onCaptureFile(input, event);
     onCapture.add(this);
   }
@@ -542,6 +557,82 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     var file = getInputFile();
     if (file == null || !isFileAudio()) return null;
     return AudioFileReader(file);
+  }
+}
+
+class _DialogEditPhoto extends UIDialog {
+  final UICapture uiCapture;
+
+  _DialogEditPhoto(this.uiCapture)
+      : super(null,
+            hideUIRoot: false,
+            showCloseButton: true,
+            backgroundGrey: 16,
+            backgroundAlpha: 0.75,
+            backgroundBlur: 2);
+
+  _CanvasEditImage? _canvasEditImage;
+
+  @override
+  dynamic renderContent() async {
+    var dataURL = uiCapture.selectedFileDataAsDataURLBase64;
+    if (dataURL == null) {
+      hide();
+      return;
+    }
+
+    if (_canvasEditImage == null) {
+      var img = ImageElement(src: dataURL);
+      await img.onLoad.first;
+
+      _canvasEditImage = _CanvasEditImage(img);
+    }
+
+    return [
+      _canvasEditImage!,
+      $br(),
+      $button(style: 'btn btn-primary', content: '{{intl:btnSave}}'),
+    ];
+  }
+}
+
+class _CanvasEditImage extends ExternalElementNode {
+  final ImageElement img;
+
+  _CanvasEditImage(this.img) : super(_buildCanvas(img)) {
+    render();
+  }
+
+  static CanvasElement _buildCanvas(ImageElement img) {
+    var imgW = img.naturalWidth;
+    var imgH = img.naturalHeight;
+
+    var w = math.min(imgW, window.innerWidth ?? imgW);
+    var h = math.min(imgH, window.innerHeight ?? imgH);
+
+    return CanvasElement(width: w, height: h)
+      ..style.boxShadow = '0px 1px 18px 5px rgba(0, 0, 0, 0.45)';
+  }
+
+  CanvasElement get canvas => externalElement as CanvasElement;
+
+  int get imgWidth => img.naturalWidth;
+
+  int get imgHeight => img.naturalHeight;
+
+  int get imgX => (imgWidth - canvasWidth) ~/ 2;
+
+  int get imgY => (imgHeight - canvasHeight) ~/ 2;
+
+  int get canvasWidth => canvas.width!;
+
+  int get canvasHeight => canvas.height!;
+
+  void render() {
+    var canvas = this.canvas;
+    var context2d = canvas.context2D;
+
+    context2d.drawImage(img, imgX, imgY);
   }
 }
 
@@ -1042,7 +1133,7 @@ class UIButtonCapture extends UICapture {
 
   final String? fontSize;
 
-  UIButtonCapture(Element parent, this.text, CaptureType captureType,
+  UIButtonCapture(Element? parent, this.text, CaptureType captureType,
       {String? fieldName,
       String? navigate,
       Map<String, String>? navigateParameters,

@@ -122,7 +122,7 @@ class UIMenu extends UIComponent {
 
   final String? zIndex;
 
-  UIMenu(Element parent, Iterable<MenuItem> entries,
+  UIMenu(Element? parent, Iterable<MenuItem> entries,
       {bool? vertical,
       String? itemSeparator,
       this.backgroundBlur,

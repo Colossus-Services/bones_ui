@@ -15,7 +15,7 @@ class UIInfosTable extends UIComponent {
 
   List<String>? rowsColors;
 
-  UIInfosTable(Element parent, this._infos,
+  UIInfosTable(Element? parent, this._infos,
       {this.headerColumnsNames,
       this.headerColor,
       this.rowsStyles,

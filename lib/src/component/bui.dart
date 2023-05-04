@@ -1289,7 +1289,7 @@ class BUIManifestRender extends UIComponentAsync {
 
   EventStreamDelegator<String>? _onChangeRoute;
 
-  BUIManifestRender(Element parent, dynamic manifest,
+  BUIManifestRender(Element? parent, dynamic manifest,
       {UILoadingType? loadingType,
       dynamic loadingContent,
       String? loadingColor,

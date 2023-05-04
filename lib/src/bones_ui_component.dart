@@ -1269,7 +1269,7 @@ abstract class UIComponent extends UIEventHandler {
     connectDataSource();
   }
 
-  List toContentElements(dynamic rendered,
+  List<dynamic> toContentElements(dynamic rendered,
       [bool append = false, bool parseAttributes = true]) {
     try {
       var list = _toContentElementsImpl(rendered, append);
@@ -1282,7 +1282,7 @@ abstract class UIComponent extends UIEventHandler {
     } catch (e, s) {
       logger.error(
           'Error converting rendered to content elements: $rendered', e, s);
-      return [];
+      return <dynamic>[];
     }
   }
 
@@ -1306,16 +1306,22 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  List? toRenderableList(dynamic list) {
-    List? renderableList;
+  static final _listDynamicRuntimeType = <dynamic>[].runtimeType;
+
+  List<dynamic>? toRenderableList(dynamic list) {
+    List<dynamic>? renderableList;
 
     if (list != null) {
       if (list is List) {
-        renderableList = list;
+        if (list.runtimeType == _listDynamicRuntimeType) {
+          renderableList = list;
+        } else {
+          renderableList = List<dynamic>.from(list);
+        }
       } else if (list is Iterable) {
-        renderableList = List.from(list);
+        renderableList = List<dynamic>.from(list);
       } else if (list is Map) {
-        renderableList = [];
+        renderableList = <dynamic>[];
 
         for (var entry in list.entries) {
           var key = entry.key;
@@ -1328,14 +1334,14 @@ abstract class UIComponent extends UIEventHandler {
           }
         }
       } else {
-        renderableList = [list];
+        renderableList = <dynamic>[list];
       }
     }
 
     return renderableList;
   }
 
-  List _toContentElementsImpl(dynamic rendered, bool append) {
+  List<dynamic> _toContentElementsImpl(dynamic rendered, bool append) {
     var renderableList = toRenderableList(rendered);
 
     var content = this.content!;
@@ -1363,18 +1369,18 @@ abstract class UIComponent extends UIEventHandler {
           content.nodes.addAll(nodes);
         }
 
-        var renderedList = content.childNodes.toList();
+        var renderedList = List<dynamic>.from(content.childNodes);
         return renderedList;
       } else {
         if (isListValuesIdentical(renderableList, content.nodes.toList())) {
-          return List.from(renderableList);
+          return List<dynamic>.from(renderableList);
         }
 
         for (var value in renderableList) {
           _removeFromContent(value);
         }
 
-        var renderedList2 = [];
+        var renderedList2 = <dynamic>[];
 
         var prevElemIndex = -1;
 
@@ -1385,7 +1391,7 @@ abstract class UIComponent extends UIEventHandler {
         return renderedList2;
       }
     } else {
-      return content.childNodes.toList();
+      return List<dynamic>.from(content.childNodes);
     }
   }
 
@@ -1427,7 +1433,8 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  int _buildRenderList(dynamic value, List renderedList, int prevElemIndex) {
+  int _buildRenderList(
+      dynamic value, List<dynamic> renderedList, int prevElemIndex) {
     if (value == null) return prevElemIndex;
     var content = this.content;
 
