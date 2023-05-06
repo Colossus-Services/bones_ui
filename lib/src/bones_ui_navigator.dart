@@ -936,7 +936,7 @@ abstract class UINavigableContent extends UINavigableComponent {
   /// Optional top margin (in px) for the content.
   int topMargin;
 
-  UINavigableContent(Element parent, List<String> routes,
+  UINavigableContent(Element? parent, List<String> routes,
       {this.topMargin = 0,
       dynamic classes,
       dynamic classes2,

@@ -329,7 +329,7 @@ class UIExplorer extends UIComponentAsync {
 
   final ExplorerModel model;
 
-  UIExplorer(Element parent, dynamic model,
+  UIExplorer(Element? parent, dynamic model,
       {loadingContent, errorContent, dynamic classes})
       : model = ExplorerModel.from(model)!,
         super(parent, null, null, loadingContent, errorContent,

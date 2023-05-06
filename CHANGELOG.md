@@ -1,3 +1,17 @@
+## 2.1.22
+
+- Allow nullable `parent` in components:
+  - `UIButtonCapture`, `UIInfosTable`, `UIMasonry`, `UIMenu`, `BUIManifestRender`.
+- Fix `toContentElements` and `toRenderableList`:
+  - Ensure that always return a casted `List<dynamic>`.
+- intl_messages: ^2.1.4
+- dom_tools: ^2.1.15
+- yaml: ^3.1.2
+- args: ^2.4.1
+- test: ^1.24.2
+- test_api: ^0.5.2
+- test_core: ^0.5.2
+
 ## 2.1.21
 
 - swiss_knife: ^3.1.5

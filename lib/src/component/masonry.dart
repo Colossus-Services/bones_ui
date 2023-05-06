@@ -109,7 +109,7 @@ class UIMasonry extends UIComponent {
   late CachedComputation<int, Parameters2<List<int?>, double?>,
       Parameters2<List<int>, double>> _computeGCDCache;
 
-  UIMasonry(Element parent, Iterable<MasonryItem> items,
+  UIMasonry(Element? parent, Iterable<MasonryItem> items,
       {int? masonryWidthSize,
       int? masonryHeightSize,
       int? itemsMargin,

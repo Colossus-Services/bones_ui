@@ -9,7 +9,7 @@ abstract class UIContent extends UIComponent {
   /// Optional top margin (in px) for the content.
   int topMargin;
 
-  UIContent(Element parent,
+  UIContent(Element? parent,
       {this.topMargin = 0,
       dynamic classes,
       dynamic classes2,
