@@ -1,16 +1,16 @@
+import 'dart:async';
 import 'dart:convert' as data_convert;
 import 'dart:html';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
-import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import '../bones_ui_base.dart';
 import '../bones_ui_log.dart';
 import 'button.dart';
-import 'dialog.dart';
+import 'dialog_edit_image.dart';
 
 /// The capture type of an [UICapture].
 enum CaptureType {
@@ -62,6 +62,11 @@ enum CaptureDataFormat {
   url,
 }
 
+typedef CapturePhotoEditor = FutureOr<ImageElement?> Function(
+    ImageElement image);
+
+/// Base class for capture components.
+/// See [UIButtonCapture] and [UIButtonCapturePhoto].
 abstract class UICapture extends UIButtonBase implements UIField<String> {
   final CaptureType captureType;
 
@@ -70,6 +75,8 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   final bool editCapture;
 
+  final CapturePhotoEditor? photoEditor;
+
   UICapture(Element? container, this.captureType,
       {String? fieldName,
       this.captureAspectRatio,
@@ -77,6 +84,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       this.captureMaxHeight,
       this.captureDataFormat = CaptureDataFormat.arrayBuffer,
       this.editCapture = false,
+      this.photoEditor,
       Object? selectedFileData,
       String? navigate,
       Map<String, String>? navigateParameters,
@@ -226,15 +234,6 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   void _callOnCapture(FileUploadInputElement input, Event event) async {
     await _readFile(input);
 
-    if (editCapture) {
-      if (captureType == CaptureType.photo ||
-          captureType == CaptureType.photoFile ||
-          captureType == CaptureType.photoSelfie) {
-        var dialogEdit = _DialogEditPhoto(this);
-        await dialogEdit.showAndWait();
-      }
-    }
-
     onCaptureFile(input, event);
     onCapture.add(this);
   }
@@ -374,7 +373,8 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   Future<_CapturedData> _filterCapturedData(_CapturedData capturedData) async {
     if (captureMaxWidth == null &&
         captureMaxHeight == null &&
-        captureAspectRatio == null) {
+        captureAspectRatio == null &&
+        !editCapture) {
       return capturedData;
     }
 
@@ -406,10 +406,32 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   /// See [captureMaxWidth] and [captureMaxHeight].
   double photoScaleQuality = 0.98;
 
+  // This is only called after load [image].
   Future<_CapturedData> _filterCapturedPhoto(
       _CapturedData capturedData, ImageElement image) async {
+    if (editCapture) {
+      var photoEditor = this.photoEditor;
+      if (photoEditor != null) {
+        var imageEdited = await photoEditor(image);
+        if (imageEdited != null) {
+          image = imageEdited;
+        }
+      } else {
+        var dialogEdit = UIDialogEditImage(image);
+        var edited = await dialogEdit.showAndWait();
+        if (edited) {
+          image = dialogEdit.editedImage ?? image;
+        }
+      }
+    }
+
+    if (!(image.complete ?? false)) {
+      await image.onLoad.first;
+    }
+
     var imgW = image.naturalWidth;
     var imgH = image.naturalHeight;
+
     CanvasImageSource imgSrc = image;
 
     var aspectRatio = captureAspectRatio;
@@ -434,7 +456,10 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
         ctx.imageSmoothingQuality = 'high';
 
         ctx.clearRect(0, 0, imgW2, imgH2);
-        ctx.drawImageScaled(image, 0, 0, imgW, imgH);
+
+        var x = (imgW2 - imgW) ~/ 2;
+        var y = (imgH2 - imgH) ~/ 2;
+        ctx.drawImageScaled(image, x, y, imgW, imgH);
 
         imgW = imgW2;
         imgH = imgH2;
@@ -456,11 +481,8 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     var rH = hLimit / imgH;
     var r = math.min(rW, rH);
 
-    var w2 = (imgW * r).toInt();
-    var h2 = (imgH * r).toInt();
-
-    var canvasW = w2;
-    var canvasH = h2;
+    var canvasW = (imgW * r).toInt();
+    var canvasH = (imgH * r).toInt();
 
     var canvas = CanvasElement(width: canvasW, height: canvasH);
 
@@ -469,8 +491,8 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    ctx.clearRect(0, 0, w2, h2);
-    ctx.drawImageScaled(imgSrc, 0, 0, w2, h2);
+    ctx.clearRect(0, 0, canvasW, canvasH);
+    ctx.drawImageScaled(imgSrc, 0, 0, canvasW, canvasH);
 
     var photoScaleMimeType = this.photoScaleMimeType;
 
@@ -557,82 +579,6 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     var file = getInputFile();
     if (file == null || !isFileAudio()) return null;
     return AudioFileReader(file);
-  }
-}
-
-class _DialogEditPhoto extends UIDialog {
-  final UICapture uiCapture;
-
-  _DialogEditPhoto(this.uiCapture)
-      : super(null,
-            hideUIRoot: false,
-            showCloseButton: true,
-            backgroundGrey: 16,
-            backgroundAlpha: 0.75,
-            backgroundBlur: 2);
-
-  _CanvasEditImage? _canvasEditImage;
-
-  @override
-  dynamic renderContent() async {
-    var dataURL = uiCapture.selectedFileDataAsDataURLBase64;
-    if (dataURL == null) {
-      hide();
-      return;
-    }
-
-    if (_canvasEditImage == null) {
-      var img = ImageElement(src: dataURL);
-      await img.onLoad.first;
-
-      _canvasEditImage = _CanvasEditImage(img);
-    }
-
-    return [
-      _canvasEditImage!,
-      $br(),
-      $button(style: 'btn btn-primary', content: '{{intl:btnSave}}'),
-    ];
-  }
-}
-
-class _CanvasEditImage extends ExternalElementNode {
-  final ImageElement img;
-
-  _CanvasEditImage(this.img) : super(_buildCanvas(img)) {
-    render();
-  }
-
-  static CanvasElement _buildCanvas(ImageElement img) {
-    var imgW = img.naturalWidth;
-    var imgH = img.naturalHeight;
-
-    var w = math.min(imgW, window.innerWidth ?? imgW);
-    var h = math.min(imgH, window.innerHeight ?? imgH);
-
-    return CanvasElement(width: w, height: h)
-      ..style.boxShadow = '0px 1px 18px 5px rgba(0, 0, 0, 0.45)';
-  }
-
-  CanvasElement get canvas => externalElement as CanvasElement;
-
-  int get imgWidth => img.naturalWidth;
-
-  int get imgHeight => img.naturalHeight;
-
-  int get imgX => (imgWidth - canvasWidth) ~/ 2;
-
-  int get imgY => (imgHeight - canvasHeight) ~/ 2;
-
-  int get canvasWidth => canvas.width!;
-
-  int get canvasHeight => canvas.height!;
-
-  void render() {
-    var canvas = this.canvas;
-    var context2d = canvas.context2D;
-
-    context2d.drawImage(img, imgX, imgY);
   }
 }
 
@@ -988,6 +934,8 @@ class AudioFileReader extends URLFileReader {
   final EventStream<AudioElement> onLoadAudio = EventStream();
 }
 
+/// A Button that captures a photo.
+/// See [UICapture].
 class UIButtonCapturePhoto extends UICapture {
   final String? text;
   final dynamic buttonContent;
@@ -1003,6 +951,8 @@ class UIButtonCapturePhoto extends UICapture {
       super.captureMaxWidth,
       super.captureMaxHeight,
       super.captureDataFormat,
+      super.editCapture,
+      super.photoEditor,
       super.selectedFileData,
       super.navigate,
       super.navigateParameters,
@@ -1128,13 +1078,17 @@ class UIButtonCapturePhoto extends UICapture {
   }
 }
 
+/// A generic capture button.
+/// See [UICapture].
 class UIButtonCapture extends UICapture {
   final String text;
 
   final String? fontSize;
 
   UIButtonCapture(Element? parent, this.text, CaptureType captureType,
-      {String? fieldName,
+      {super.editCapture,
+      super.photoEditor,
+      String? fieldName,
       String? navigate,
       Map<String, String>? navigateParameters,
       ParametersProvider? navigateParametersProvider,

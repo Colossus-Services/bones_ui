@@ -26,6 +26,7 @@ export 'src/component/component_async.dart';
 export 'src/component/controlled_component.dart';
 export 'src/component/data_source.dart';
 export 'src/component/dialog.dart';
+export 'src/component/dialog_edit_image.dart';
 export 'src/component/infos_table.dart';
 export 'src/component/input_config.dart';
 export 'src/component/loading.dart';

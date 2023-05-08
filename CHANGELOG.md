@@ -1,3 +1,11 @@
+## 2.1.23
+
+- New `UIDialogEditImage`.
+- `UICapture`:
+  - Added field `photoEditor` and `editCapture`.
+- intl_messages: ^2.1.5
+- intl: ^0.18.1
+
 ## 2.1.22
 
 - Allow nullable `parent` in components:
