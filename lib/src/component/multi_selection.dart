@@ -1,6 +1,7 @@
 import 'dart:html';
 
 import 'package:collection/collection.dart' show IterableExtension;
+import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
@@ -45,11 +46,16 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   Map? _options;
 
   bool? multiSelection;
+
+  final List _initialSelections;
+
   final bool allowInputValue;
 
   final int optionsPanelMargin;
 
   final String separator;
+
+  final bool autoInputFontShrink;
 
   late InteractionCompleter _optionsPanelInteractionCompleter;
 
@@ -60,13 +66,16 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   UIMultiSelection(Element? parent, Map? options,
       {this.fieldName = 'multi-selection',
       this.multiSelection = true,
+      List? selections,
       this.allowInputValue = false,
       this.optionsPanelMargin = 20,
       this.separator = ' ; ',
+      this.autoInputFontShrink = true,
       Duration? selectionMaxDelay,
       dynamic classes,
       dynamic style})
       : _options = options ?? {},
+        _initialSelections = selections ?? [],
         super(parent,
             componentClass: 'ui-multi-selection',
             classes: classes,
@@ -354,30 +363,75 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   }
 
   void _updateElementText() {
-    if (_input == null) return;
+    var input = _input;
+    if (input == null) return;
+
+    input.style.fontSize = '';
 
     if (isAllChecked) {
-      _input!.value = '*';
+      input.value = '*';
     } else {
       var labels = selectedLabels;
 
       if (isNotEmptyObject(labels) || !allowInputValue) {
         var sep = separator;
-        _input!.value = selectedLabels.join(sep);
+        var text = selectedLabels.join(sep);
+        input.value = text;
+
+        _autoAdjustInputFont(input, text);
       }
+    }
+  }
+
+  void _autoAdjustInputFont(InputElement input, String text) {
+    if (!autoInputFontShrink) return;
+
+    input.style.fontSize = '';
+
+    var inputWidth = input.offsetWidth;
+    if (inputWidth <= 0) return;
+
+    var inputComputedStyle = input.getComputedStyle();
+
+    var paddingLeft =
+        CSSLength.parse(inputComputedStyle.paddingLeft)?.value ?? 0;
+    var paddingRight =
+        CSSLength.parse(inputComputedStyle.paddingRight)?.value ?? 0;
+
+    inputWidth -= (paddingLeft + paddingRight).toInt();
+
+    var textDim = measureText(text,
+        fontFamily: inputComputedStyle.fontFamily,
+        fontSize: inputComputedStyle.fontSize,
+        bold: inputComputedStyle.fontStyle == 'bold');
+
+    var textWidth = textDim?.width ?? text.length * 16;
+
+    if (textWidth > inputWidth) {
+      var fontSize = '80%';
+
+      for (var r = 0.95; r >= 0.60; r -= 0.05) {
+        var w = textWidth * r;
+        fontSize = "${(r * 100).toInt()}%";
+        if (w < inputWidth) break;
+      }
+
+      input.style.fontSize = fontSize;
     }
   }
 
   @override
   dynamic render() {
     if (_input == null) {
-      _input = InputElement()..type = 'text';
+      var input = _input = InputElement()
+        ..classes.add('ui-multi-selection-input')
+        ..type = 'text';
 
-      _input!.style.padding = '5px 10px';
-      _input!.style.border = '1px solid #ccc';
-      _input!.style.width = '100%';
-      _input!.style.backgroundColor = 'inherit';
-      _input!.style.color = 'inherit';
+      input
+        ..style.padding = '5px 10px'
+        ..style.border = '1px solid #ccc'
+        ..style.width = '100%'
+        ..style.color = 'inherit';
 
       //style="cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%"
 
@@ -392,7 +446,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
       _optionsPanel!.classes.add('shadow');
       _optionsPanel!.classes.add('p-2');
-      _optionsPanel!.classes.add('ui-multiselection-options-menu');
+      _optionsPanel!.classes.add('ui-multi-selection-options-menu');
 
       window.onResize.listen((e) => _updateDivOptionsPosition());
 
@@ -445,7 +499,17 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     var checksList = _renderPanelOptions();
     _checkElements = checksList;
 
+    _updateElementText();
+
     return [_input, _optionsPanel];
+  }
+
+  @override
+  void posRender() {
+    // For adjustment after attach element to DOM (after input have dimensions):
+    if (autoInputFontShrink) {
+      Future.delayed(Duration(milliseconds: 50), () => _updateElementText());
+    }
   }
 
   bool _overElement = false;
@@ -465,11 +529,16 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   void _mouseLeave(Element? elem) {
     if (elem == _input) {
       _overElement = false;
+      // Give some delay (allow mouse enter on panel before leave input).
+      _updateDivOptionsViewAsync();
     } else {
       _overDivOptions = false;
+      _updateDivOptionsView();
     }
+  }
 
-    _updateDivOptionsView();
+  void _updateDivOptionsViewAsync() {
+    Future.delayed(Duration(milliseconds: 30), () => _updateDivOptionsView());
   }
 
   void _updateDivOptionsView() {
@@ -536,7 +605,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       _updateElementText();
       _optionsPanelInteractionCompleter.triggerIfHasInteraction();
     } else {
-      _optionsPanel!.style.display = null;
+      _optionsPanel!.style.display = '';
     }
   }
 
@@ -683,7 +752,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     var optKey = '${optEntry.key}';
     var optValue = '${optEntry.value}';
 
-    var check = isCheckedByID(optKey) ?? false;
+    var check = isCheckedByID(optKey) ??
+        (_initialSelections.contains(optKey) ||
+            _initialSelections.contains(optEntry.key));
 
     InputElementBase checkElem;
 
@@ -726,6 +797,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
     var cell2 = row.addCell()..style.textAlign = 'left';
 
+    cell2.children.add(SpanElement()..innerHtml = '&nbsp;');
     cell2.children.add(label);
   }
 
