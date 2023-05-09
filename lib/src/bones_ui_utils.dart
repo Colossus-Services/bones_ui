@@ -51,22 +51,3 @@ String? resolveToText(Object? o) {
     return o.toString();
   }
 }
-
-/*
-CanvasElement? _getTextWidthCanvas;
-
-int? measureText(String text,
-    {required String fontFamily, required Object fontSize, bool bold = false}) {
-  final canvas = _getTextWidthCanvas ??= CanvasElement();
-  final ctx = canvas.context2D;
-
-  var fontSizeStr = fontSize is num ? '${fontSize}px' : fontSize.toString();
-
-  var font = '${bold ? 'bold ' : ''}$fontSizeStr $fontFamily';
-  ctx.font = font;
-
-  final m = ctx.measureText(text);
-  return m.width?.toInt();
-}
-
- */

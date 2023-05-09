@@ -7,6 +7,10 @@
   - `text` getter/setter now is an `String` alias to `buttonContent`. 
 - `UICalendar`, `UIColorPicker`, `UIMasonry`, `UIMultiSelection`:
   - Call `requestRefresh` when possible
+- `UIMultiSelection`:
+  - Added field `autoInputFontShrink`.
+- intl_messages: ^2.1.6
+- dom_tools: ^2.1.16
 
 ## 2.1.23
 

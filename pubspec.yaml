@@ -15,8 +15,8 @@ dependencies:
   swiss_knife: ^3.1.5
   dynamic_call: ^2.0.1
   mercury_client: ^2.1.8
-  intl_messages: ^2.1.5
-  dom_tools: ^2.1.15
+  intl_messages: ^2.1.6
+  dom_tools: ^2.1.16
   dom_builder: ^2.1.7
   json_render: ^2.0.5
   json_object_mapper: ^2.0.1
