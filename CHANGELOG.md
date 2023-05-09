@@ -8,6 +8,7 @@
 - `UICalendar`, `UIColorPicker`, `UIMasonry`, `UIMultiSelection`:
   - Call `requestRefresh` when possible
 - `UIMultiSelection`:
+  - Constructor: added parameter `selections` for initial selections. 
   - Added field `autoInputFontShrink`.
 - intl_messages: ^2.1.6
 - dom_tools: ^2.1.16
