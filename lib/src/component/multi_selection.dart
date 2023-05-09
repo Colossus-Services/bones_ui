@@ -95,7 +95,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
   set options(Map value) {
     _options = value;
-    refresh();
+    requestRefresh();
   }
 
   @override

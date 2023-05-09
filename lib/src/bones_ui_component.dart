@@ -712,6 +712,28 @@ abstract class UIComponent extends UIEventHandler {
     _rendered = false;
   }
 
+  Future? _requestRefresh;
+
+  /// Requests a [refresh] using [Future.microtask].
+  /// - Once a [refresh] has been requested but hasn't been performed yet,
+  ///   any subsequent requests will be ignored until a [refresh] is executed.
+  /// - This method is useful to avoid unnecessary [refresh]es due consecutive
+  ///   state changes.
+  void requestRefresh() {
+    if (_requestRefresh != null) return;
+
+    Future.microtask(() {
+      var req = _requestRefresh;
+
+      refresh();
+
+      // if `refresh` didn't clear `_requestRefresh`:
+      if (req != null && identical(req, _requestRefresh)) {
+        _requestRefresh = null;
+      }
+    });
+  }
+
   bool __refreshFromExternalCall = false;
 
   bool get isRefreshFromExternalCall => __refreshFromExternalCall;
@@ -953,6 +975,7 @@ abstract class UIComponent extends UIEventHandler {
 
   void _callRenderImpl(bool clear) {
     _renderCount++;
+    _requestRefresh = null;
 
     var content = this.content;
 

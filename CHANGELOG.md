@@ -1,3 +1,13 @@
+## 2.1.24
+
+- `UIComponent`:
+  - Added `requestRefresh`.
+- `UIButton` and `UIButtonLoader`:
+  - Changed `text` to `buttonContent`
+  - `text` getter/setter now is an `String` alias to `buttonContent`. 
+- `UICalendar`, `UIColorPicker`, `UIMasonry`, `UIMultiSelection`:
+  - Call `requestRefresh` when possible
+
 ## 2.1.23
 
 - New `UIDialogEditImage`.

@@ -99,7 +99,7 @@ class UICalendarPopup extends UIComponent
   }
 
   void _updateButtonText() {
-    _button.text = buttonText;
+    _button.buttonContent = buttonText;
   }
 
   String get buttonText {
@@ -112,7 +112,7 @@ class UICalendarPopup extends UIComponent
   @override
   dynamic render() {
     var text = buttonText;
-    _button.text = text;
+    _button.buttonContent = text;
     return _button;
   }
 
@@ -248,7 +248,8 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
     _events.sort();
     _inputDateInteractionCompleter.cancel();
     onChange.add(this);
-    refresh();
+
+    requestRefresh();
   }
 
   @override

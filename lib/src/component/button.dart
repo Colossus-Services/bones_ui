@@ -9,6 +9,7 @@ import '../bones_ui_base.dart';
 import '../bones_ui_component.dart';
 import '../bones_ui_generator.dart';
 import '../bones_ui_navigator.dart';
+import '../bones_ui_utils.dart';
 import 'loading.dart';
 
 /// Base class for button components.
@@ -176,10 +177,10 @@ class UIButton extends UIButtonBase {
           [
             UIComponentAttributeHandler<UIButton, String>('text',
                 parser: parseString,
-                getter: (c) => c._text,
-                setter: (c, v) => c._text = v ?? '',
-                appender: (c, v) => c._text = (c._text ?? '') + (v ?? ''),
-                cleaner: (c) => c._text = '')
+                getter: (c) => c.text,
+                setter: (c, v) => c.text = v,
+                appender: (c, v) => c.text = v,
+                cleaner: (c) => c.text = null)
           ],
           hasChildrenElements: false,
           contentAsText: true);
@@ -188,13 +189,13 @@ class UIButton extends UIButtonBase {
     UIComponent.registerGenerator(generator);
   }
 
-  /// Text/label of the button.
-  String? _text;
+  /// The content of the button.
+  Object? _buttonContent;
 
   /// Font size of the button.
   String? _fontSize;
 
-  UIButton(Element? parent, String? text,
+  UIButton(Element? parent, Object? buttonContent,
       {String? navigate,
       Map<String, String>? navigateParameters,
       ParametersProvider? navigateParametersProvider,
@@ -205,7 +206,9 @@ class UIButton extends UIButtonBase {
       dynamic style2,
       bool small = false,
       String? fontSize})
-      : super(parent,
+      : _buttonContent = buttonContent,
+        _fontSize = fontSize,
+        super(parent,
             navigate: navigate,
             navigateParameters: navigateParameters,
             navigateParametersProvider: navigateParametersProvider,
@@ -217,18 +220,20 @@ class UIButton extends UIButtonBase {
             ],
             style: style,
             style2: style2,
-            generator: generator) {
-    this.text = text;
-    this.fontSize = fontSize;
-  }
+            generator: generator);
 
-  String? get text => _text;
+  /// The [buttonContent] as text.
+  String? get text => resolveToText(_buttonContent);
 
-  set text(String? value) {
-    value ??= '';
-    if (value != _text) {
-      _text = value;
-      refresh();
+  set text(String? value) => buttonContent = value;
+
+  /// The content of the button.
+  Object? get buttonContent => _buttonContent;
+
+  set buttonContent(Object? value) {
+    if (value != _buttonContent) {
+      _buttonContent = value;
+      requestRefresh();
     }
   }
 
@@ -241,7 +246,7 @@ class UIButton extends UIButtonBase {
 
     if (_fontSize != value) {
       _fontSize = value;
-      refresh();
+      requestRefresh();
     }
   }
 
@@ -251,7 +256,7 @@ class UIButton extends UIButtonBase {
   }
 
   @override
-  String? renderButton() {
+  Object? renderButton() {
     if (disabled) {
       content!.style.opacity = '0.7';
     } else {
@@ -259,9 +264,9 @@ class UIButton extends UIButtonBase {
     }
 
     if (fontSize != null && fontSize!.isNotEmpty) {
-      return "<span style='font-size: $fontSize'>$text</span>";
+      return $span(style: 'font-size: $fontSize', content: _buttonContent);
     } else {
-      return text;
+      return _buttonContent;
     }
   }
 
@@ -329,7 +334,7 @@ class UIButtonLoader extends UIButtonBase {
     var loadingConfig =
         UILoadingConfig.parse(attributes['loading-config']?.value);
 
-    return UIButtonLoader(parent, contentHolder?.text,
+    return UIButtonLoader(parent, contentNodes,
         loadedTextStyle: loadedTextStyle,
         loadedTextClass: loadedTextClass,
         loadedTextErrorStyle: loadedTextErrorStyle,
@@ -341,13 +346,15 @@ class UIButtonLoader extends UIButtonBase {
         buttonClasses: buttonClasses,
         buttonStyle: buttonStyle);
   }, [
-    UIComponentAttributeHandler<UIButtonLoader, String>('text',
-        parser: parseString,
-        getter: (c) => c._text,
-        setter: (c, v) => c._text = v ?? '',
-        appender: (c, v) => c._text = (c._text ?? '') + (v ?? ''),
-        cleaner: (c) => c._text = '')
-  ], hasChildrenElements: false, contentAsText: true);
+    UIComponentAttributeHandler<UIButtonLoader, String>(
+      'text',
+      parser: parseString,
+      getter: (c) => c.text,
+      setter: (c, v) => c.text = v,
+      appender: (c, v) => c.text = v,
+      cleaner: (c) => c.text = null,
+    )
+  ], usesContentHolder: false, hasChildrenElements: true);
 
   static void register() {
     UIComponent.registerGenerator(generator);
@@ -355,8 +362,8 @@ class UIButtonLoader extends UIButtonBase {
 
   final UILoadingConfig? loadingConfig;
 
-  /// Text/label of the button.
-  String? _text;
+  /// Content of the button.
+  Object? _buttonContent;
 
   final TextProvider? _loadedTextOK;
 
@@ -375,7 +382,7 @@ class UIButtonLoader extends UIButtonBase {
 
   UIButtonLoader(
     Element? parent,
-    String? text, {
+    Object? buttonContent, {
     this.loadingConfig,
     dynamic loadedTextOK,
     dynamic loadedTextError,
@@ -403,6 +410,7 @@ class UIButtonLoader extends UIButtonBase {
         _buttonClasses = TextProvider.from(buttonClasses),
         _buttonStyle = TextProvider.from(buttonStyle),
         withProgress = withProgress ?? false,
+        _buttonContent = buttonContent,
         super(parent,
             navigate: navigate,
             navigateParameters: navigateParameters,
@@ -412,16 +420,20 @@ class UIButtonLoader extends UIButtonBase {
             componentClass: ['ui-button-loader', componentClass],
             style: style,
             style2: style2,
-            generator: generator) {
-    this.text = text;
-  }
+            generator: generator);
 
-  String? get text => _text;
+  /// The [buttonContent] as text.
+  String? get text => resolveToText(_buttonContent);
 
-  set text(String? value) {
+  set text(String? value) => buttonContent = value;
+
+  /// The button content.
+  Object? get buttonContent => _buttonContent;
+
+  set buttonContent(Object? value) {
     value ??= '';
-    if (value != _text) {
-      _text = value;
+    if (value != _buttonContent) {
+      _buttonContent = value;
       refreshInternal();
     }
   }
@@ -461,7 +473,7 @@ class UIButtonLoader extends UIButtonBase {
     return $button(
         classes: _buttonClasses?.text,
         style: _buttonStyle?.text,
-        content: text);
+        content: _buttonContent);
   }
 
   void _setLoadedMessageStyle({bool error = false}) {

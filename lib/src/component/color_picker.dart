@@ -233,7 +233,7 @@ class UIColorPicker extends UIComponent {
 
     _notifyColorChange();
 
-    refresh();
+    requestRefresh();
   }
 
   set hsvColor(HSVColor? hsvColor) {
@@ -246,7 +246,7 @@ class UIColorPicker extends UIComponent {
 
     _notifyColorChange();
 
-    refresh();
+    requestRefresh();
   }
 
   set hslColor(HSLColor? hsvColor) {
@@ -259,7 +259,7 @@ class UIColorPicker extends UIComponent {
 
     _notifyColorChange();
 
-    refresh();
+    requestRefresh();
   }
 
   void _notifyColorChange() {

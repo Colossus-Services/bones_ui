@@ -274,7 +274,7 @@ class UIMasonry extends UIComponent {
   }
 
   void _onResize() {
-    refresh();
+    requestRefresh();
   }
 
   List<_MasonryLine>? _renderedLines;
@@ -328,7 +328,7 @@ class UIMasonry extends UIComponent {
 
   void _updateDimensionsAndRefresh() {
     updateDimensions();
-    refresh();
+    requestRefresh();
   }
 
   @override
