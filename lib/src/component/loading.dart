@@ -550,7 +550,7 @@ abstract class UILoading {
       divLoading.add(DIVElement());
     }
 
-    var div = $div(content: [divLoading]);
+    var div = $div(content: divLoading);
 
     if (inline) {
       div.style.put('display', 'inline-block');

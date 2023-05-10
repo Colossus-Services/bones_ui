@@ -1,3 +1,8 @@
+## 2.1.25
+
+- dom_tools: ^2.1.17
+- dom_builder: ^2.1.8
+
 ## 2.1.24
 
 - `UIComponent`:
