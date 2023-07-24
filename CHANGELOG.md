@@ -1,3 +1,28 @@
+## 2.1.26
+
+- `UIComponent`:
+  - Expose `getContentUIComponent`
+  - `addTo`, `insertTo`, `setParent`: new parameter `parentUIComponent`.
+  - New static function `resolveParentUIComponent`.
+- `UIDOMGenerator`:
+  - New `_resolveParentUIComponent`.
+- `UIInputTable`:
+  - `_addTableRowCell`: call `UIComponent.resolveParentUIComponent` for child elements.
+- sdk: '>=3.0.0 <4.0.0'
+- intl_messages: ^2.1.14
+- dom_builder: ^2.1.9
+- collection: ^1.17.2
+- args: ^2.4.2
+- logging: ^1.2.0
+- test: ^1.24.4
+- test_api: ^0.6.1
+- test_core: ^0.5.4
+- stream_channel: ^2.1.2
+- stack_trace: ^1.11.1
+- build_web_compilers: ^4.0.4
+- build_runner: ^2.4.6
+- lints: ^2.1.1
+
 ## 2.1.25
 
 - dom_tools: ^2.1.17

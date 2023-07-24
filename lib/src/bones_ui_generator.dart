@@ -393,11 +393,15 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       if (element is Element) {
         element.append(componentContent!);
         component.setParent(element);
+        _resolveParentUIComponent(element, component.content,
+            childUIComponent: component);
         component.ensureRendered();
         return [componentContent];
+      } else {
+        _resolveParentUIComponent(element, component.content,
+            childUIComponent: component);
+        return null;
       }
-
-      return null;
     } else if (externalElement is MessageBuilder) {
       var text = externalElement.build();
       var span = SpanElement();
@@ -407,6 +411,13 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
     }
 
     return super.addExternalElementToElement(element, externalElement);
+  }
+
+  @override
+  bool addChildToElement(Node? parent, Node? child) {
+    var ok = super.addChildToElement(parent, child);
+    _resolveParentUIComponent(parent, child);
+    return ok;
   }
 
   @override
@@ -424,11 +435,16 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
     if (futureElementResolved is Element) {
       var parentComponent =
           UIRoot.getInstance()!.findUIComponentByChild(futureElementResolved);
+
       if (parentComponent != null) {
         parentComponent.componentInternals
             .parseAttributes([futureElementResolved]);
         parentComponent.componentInternals
             .ensureAllRendered([futureElementResolved]);
+
+        _resolveParentUIComponent(
+            parentComponent.content, futureElementResolved,
+            parentUIComponent: parentComponent);
       }
     }
   }
@@ -453,11 +469,13 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
     if (ok && child2 != null && child2.isNotEmpty) {
       var uiRoot = UIRoot.getInstance();
 
-      for (var e in child2.whereType<Element>()) {
-        var uiComponent =
-            uiRoot!.getUIComponentByContent(e, includePurgedEntries: true);
+      for (var element in child2.whereType<Element>()) {
+        var uiComponent = uiRoot!
+            .getUIComponentByContent(element, includePurgedEntries: true);
         if (uiComponent != null) {
           uiComponent.setParent(parent as Element);
+          _resolveParentUIComponent(parent, element,
+              childUIComponent: uiComponent);
           uiComponent.ensureRendered();
         }
       }
@@ -473,6 +491,15 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       setElementsBGBlur(rootElement);
       setElementsDivCentered(rootElement);
     }
+  }
+
+  void _resolveParentUIComponent(Node? parent, Node? child,
+      {UIComponent? parentUIComponent, UIComponent? childUIComponent}) {
+    UIComponent.resolveParentUIComponent(
+        parent: parent,
+        parentUIComponent: parentUIComponent,
+        element: child,
+        elementUIComponent: childUIComponent);
   }
 }
 

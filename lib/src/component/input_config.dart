@@ -693,7 +693,7 @@ class UIInputTable extends UIComponent {
         var div = createDiv();
         celInput.children.add(div);
 
-        inputRendered.setParent(div);
+        inputRendered.setParent(div, parentUIComponent: this);
         inputRendered.ensureRendered();
 
         if (inputRendered is UIColorPickerInput) {
@@ -769,6 +769,14 @@ class UIInputTable extends UIComponent {
     cell.children.clear();
 
     td.children.addAll(children);
+
+    for (var element in children) {
+      UIComponent.resolveParentUIComponent(
+          parent: content,
+          parentUIComponent: this,
+          element: element,
+          recursive: true);
+    }
   }
 
   Object? _resolveRow(Object? row) {

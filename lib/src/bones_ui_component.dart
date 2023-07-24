@@ -141,7 +141,7 @@ abstract class UIComponent extends UIEventHandler {
   static final Expando<UIComponent> _contentsUIComponents =
       Expando<UIComponent>('_content:UIComponent');
 
-  static _getContentUIComponent(Element content) =>
+  static getContentUIComponent(Element content) =>
       _contentsUIComponents[content];
 
   void _setContent(Element content) {
@@ -154,12 +154,12 @@ abstract class UIComponent extends UIEventHandler {
     _contentsUIComponents[content] = this;
   }
 
-  void addTo(Element parent) {
-    _setParentImpl(parent, true);
+  void addTo(Element parent, {UIComponent? parentUIComponent}) {
+    _setParentImpl(parent, parentUIComponent, true);
   }
 
-  void insertTo(int index, Element parent) {
-    _setParentImpl(parent, true);
+  void insertTo(int index, Element parent, {UIComponent? parentUIComponent}) {
+    _setParentImpl(parent, parentUIComponent, true);
     parent.nodes.insert(index, content!);
   }
 
@@ -174,11 +174,12 @@ abstract class UIComponent extends UIEventHandler {
   UIComponent? clone() => null;
 
   /// Sets the [parent] [Element].
-  Element? setParent(Element parent) {
-    return _setParentImpl(parent, true);
+  Element? setParent(Element parent, {UIComponent? parentUIComponent}) {
+    return _setParentImpl(parent, parentUIComponent, true);
   }
 
-  Element? _setParentImpl(Element? parent, bool addToParent) {
+  Element? _setParentImpl(
+      Element? parent, UIComponent? parentUIComponent, bool addToParent) {
     if (parent == null) throw StateError('Null parent');
 
     if (_content != null) {
@@ -198,7 +199,7 @@ abstract class UIComponent extends UIEventHandler {
       }
     }
 
-    _parentUIComponent = null;
+    _parentUIComponent = parentUIComponent;
     _parent = parent;
 
     if (_content != null && addToParent) {
@@ -233,7 +234,7 @@ abstract class UIComponent extends UIEventHandler {
 
     var myParent = parent;
     if (myParent != null) {
-      foundUIParent = _getContentUIComponent(myParent);
+      foundUIParent = getContentUIComponent(myParent);
     }
 
     foundUIParent ??=
@@ -244,6 +245,78 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     return foundUIParent;
+  }
+
+  static void resolveParentUIComponent(
+      {Node? parent,
+      Node? element,
+      UIComponent? parentUIComponent,
+      UIComponent? elementUIComponent,
+      bool recursive = false}) {
+    if ((parent == null && parentUIComponent == null) ||
+        (element == null && elementUIComponent == null)) {
+      return;
+    }
+
+    if (elementUIComponent == null && element is Element) {
+      elementUIComponent = _resolveNodeUIComponent(element);
+    }
+
+    if (elementUIComponent == null) {
+      if (recursive && element is Element && element.children.isNotEmpty) {
+        if (parentUIComponent == null && parent is Element) {
+          parentUIComponent =
+              _resolveNodeUIComponent(parent, getUIComponentByChild: true);
+        }
+
+        if (parentUIComponent != null) {
+          for (var child in element.children) {
+            resolveParentUIComponent(
+                parent: parent,
+                parentUIComponent: parentUIComponent,
+                element: child);
+          }
+        }
+      }
+
+      return;
+    }
+
+    if (elementUIComponent._parentUIComponent != null) {
+      return;
+    }
+
+    if (parentUIComponent == null && parent is Element) {
+      parentUIComponent =
+          _resolveNodeUIComponent(parent, getUIComponentByChild: true);
+    }
+
+    if (parentUIComponent != null) {
+      elementUIComponent._setParentUIComponent(parentUIComponent);
+    } else {
+      elementUIComponent._resolveParentUIComponent();
+    }
+  }
+
+  static UIComponent? _resolveNodeUIComponent(Node node,
+      {bool getUIComponentByChild = false}) {
+    if (node is Element) {
+      var component = UIComponent.getContentUIComponent(node);
+      if (component == null) {
+        var uiRoot = UIRoot.getInstance();
+
+        if (uiRoot != null) {
+          component =
+              uiRoot.getUIComponentByContent(node, includePurgedEntries: true);
+
+          if (component == null && getUIComponentByChild) {
+            component = uiRoot.getUIComponentByChild(node);
+          }
+        }
+      }
+      return component;
+    }
+    return null;
   }
 
   UIRoot? _uiRoot;
@@ -1468,7 +1541,7 @@ abstract class UIComponent extends UIEventHandler {
           _addElementToRenderList(value, value, renderedList, prevElemIndex);
     } else if (value is UIComponent) {
       if (value.parent != content) {
-        value._setParentImpl(content, false);
+        value._setParentImpl(content, this, false);
       }
       prevElemIndex = _addElementToRenderList(
           value, value.content!, renderedList, prevElemIndex);
