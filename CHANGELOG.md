@@ -1,4 +1,4 @@
-## 2.1.26
+## 2.2.0
 
 - `UIComponent`:
   - Expose `getContentUIComponent`
@@ -8,6 +8,7 @@
   - New `_resolveParentUIComponent`.
 - `UIInputTable`:
   - `_addTableRowCell`: call `UIComponent.resolveParentUIComponent` for child elements.
+
 - sdk: '>=3.0.0 <4.0.0'
 - intl_messages: ^2.1.14
 - dom_builder: ^2.1.9
