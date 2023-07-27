@@ -1,3 +1,12 @@
+## 2.2.1
+
+- `SelectElementExtension`: added `selectedOptionsSafe`.
+- `ElementExtension.resolveElementValue`:
+  - Handle bug on `SelectElement.selectedOptions` calling `selectedOptionsSafe`.
+
+- intl_messages: ^2.1.15
+- resource_portable: ^3.1.0
+
 ## 2.2.0
 
 - `UIComponent`:

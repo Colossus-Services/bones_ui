@@ -38,7 +38,7 @@ extension ElementExtension on Element {
     if (self is TextAreaElement) {
       return self.value;
     } else if (self is SelectElement) {
-      var selected = self.selectedOptions;
+      var selected = self.selectedOptionsSafe;
       if (selected.isEmpty) return '';
       return MapProperties.toStringValue(selected.map((opt) => opt.value));
     } else if (self is InputElement) {
@@ -99,5 +99,13 @@ extension SelectElementExtension on SelectElement {
   bool selectIndex(int index) {
     selectedIndex = index;
     return dispatchChangeEvent();
+  }
+
+  List<OptionElement> get selectedOptionsSafe {
+    try {
+      return selectedOptions;
+    } catch (_) {
+      return [];
+    }
   }
 }
