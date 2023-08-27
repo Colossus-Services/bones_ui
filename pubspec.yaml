@@ -11,25 +11,26 @@ executables:
   bones_ui_test:
 
 dependencies:
-  expressions: ^0.2.5
-  swiss_knife: ^3.1.5
-  dynamic_call: ^2.0.1
-  mercury_client: ^2.1.8
   intl_messages: ^2.2.0
   dom_tools: ^2.1.17
   dom_builder: ^2.1.9
   json_render: ^2.0.5
   json_object_mapper: ^2.0.1
+  swiss_knife: ^3.1.5
+  statistics: ^1.0.25
+  mercury_client: ^2.1.8
+  dynamic_call: ^2.0.1
+  project_template: ^1.0.2
+  resource_portable: ^3.1.0
+  extended_type: ^2.0.1
+  expressions: ^0.2.5
   html_unescape: ^2.0.0
   intl: ^0.18.1
   enum_to_string: ^2.0.1
   yaml: ^3.1.2
   archive: ^3.3.7
-  collection: ^1.17.2
+  collection: ^1.18.0
   args: ^2.4.2
-  project_template: ^1.0.2
-  resource_portable: ^3.1.0
-  extended_type: ^2.0.1
   logging: ^1.2.0
   path: ^1.8.3
   test: ^1.24.6
@@ -37,7 +38,6 @@ dependencies:
   test_core: ^0.5.6
   stream_channel: ^2.1.2
   stack_trace: ^1.11.1
-  statistics: ^1.0.25
 
 
 dev_dependencies:
