@@ -1,3 +1,20 @@
+## 2.2.2
+
+- `UIComponent`:
+  - Added `selectElement` and `selectElements`: aliases to `querySelector` and `querySelectorAll`.
+  - `getField`: add parameter `def`.
+  - Added `getFieldAs`.
+  - Added `getFieldsGroupEntriesByPrefix`, `getFieldsGroupListByPrefix`, `getFieldsGroupByPrefix`.
+  - Added `getFieldsGroupKeysByPrefix`, `getFieldsGroupValuesByPrefix`.
+  - Added `getFieldsGroupChecks`, `getFieldsGroupCheckedKeys`.
+
+- Dart CI: update and optimize jobs.
+
+- intl_messages: ^2.2.0
+- statistics: ^1.0.25
+- test: ^1.24.6
+- test_core: ^0.5.6
+
 ## 2.2.1
 
 - `SelectElementExtension`: added `selectedOptionsSafe`.

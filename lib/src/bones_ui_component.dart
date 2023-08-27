@@ -8,6 +8,8 @@ import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
 import 'package:json_render/json_render.dart';
+import 'package:statistics/statistics.dart'
+    show Decimal, DynamicInt, DynamicNumber;
 import 'package:swiss_knife/swiss_knife.dart';
 
 import 'bones_ui_async_content.dart';
@@ -726,15 +728,19 @@ abstract class UIComponent extends UIEventHandler {
               (elem is Element && elem.id == id),
           deep);
 
-  dynamic getRenderedUIComponentById(dynamic id, [bool? deep]) {
+  T? getRenderedUIComponentById<T extends UIComponent>(dynamic id,
+      [bool? deep]) {
     if (id == null) return null;
     var components = getRenderedUIComponents(deep);
-    return components.firstWhereOrNull((e) => e.id == id);
+    return components.whereType<T>().firstWhereOrNull((e) => e.id == id);
   }
 
-  List<UIComponent> getRenderedUIComponentsByIds(List ids, [bool? deep]) {
+  List<UIComponent> getRenderedUIComponentsByIds<T extends UIComponent>(
+      List ids,
+      [bool? deep]) {
     if (ids.isEmpty) return <UIComponent>[];
     return getRenderedUIComponents(deep)
+        .whereType<T>()
         .where((e) => e.id != null && ids.contains(e.id))
         .toList();
   }
@@ -2041,8 +2047,11 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  Element? getFieldElement(String? fieldName) =>
-      findInContentChildDeep((e) => getElementFieldName(e) == fieldName);
+  E? getFieldElement<E extends Element>(String? fieldName) {
+    var elem =
+        findInContentChildDeep((e) => getElementFieldName(e) == fieldName);
+    return elem is E ? elem : null;
+  }
 
   Object? getFieldComponent(String? fieldName) {
     if (fieldName == null) return null;
@@ -2143,16 +2152,25 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   /// Alias to [content.querySelector].
-  Element? querySelector(String? selectors) {
+  E? querySelector<E extends Element>(String? selectors) {
     if (selectors == null || selectors.isEmpty) return null;
-    return content?.querySelector(selectors);
+    var elem = content?.querySelector(selectors);
+    return elem is E ? elem : null;
   }
+
+  /// Alias to [content.querySelector].
+  E? selectElement<E extends Element>(String? selectors) =>
+      querySelector<E>(selectors);
 
   /// Alias to [content.querySelectorAll].
   List<T> querySelectorAll<T extends Element>(String? selectors) {
     if (selectors == null || selectors.isEmpty) return <T>[];
     return content?.querySelectorAll(selectors) ?? <T>[];
   }
+
+  /// Alias to [content.querySelectorAll].
+  List<T> selectElements<T extends Element>(String? selectors) =>
+      querySelectorAll(selectors);
 
   bool clearContent() {
     content!.nodes.clear();
@@ -2286,29 +2304,225 @@ abstract class UIComponent extends UIEventHandler {
 
   List<String> getFieldsNames() => getFieldsElementsMap().keys.toList();
 
-  String? getField(String? fieldName) {
-    if (fieldName == null) return null;
+  String? getField(String? fieldName, [String? def]) {
+    if (fieldName == null) return def;
     var field = getFieldExtended(fieldName);
-    return field?.toString();
+    return field?.toString() ?? def;
   }
 
-  V? getFieldExtended<V>(String? fieldName) {
-    if (fieldName == null) return null;
+  V? getFieldExtended<V>(String? fieldName, [V? def]) {
+    if (fieldName == null) return def;
     var fieldComponent = getFieldComponent(fieldName);
-    if (fieldComponent == null) return null;
+    if (fieldComponent == null) return def;
 
     if (fieldComponent is UIField) {
-      return fieldComponent.getFieldValue() as V?;
+      return fieldComponent.getFieldValue() as V? ?? def;
     } else if (fieldComponent is UIComponent) {
       var val = parseChildElementValue(fieldComponent.content);
-      return val as V?;
+      return val as V? ?? def;
     } else if (fieldComponent is Element) {
       var val = parseChildElementValue(fieldComponent);
-      return val as V?;
+      return val as V? ?? def;
     } else {
-      return fieldComponent.toString() as V?;
+      return fieldComponent.toString() as V? ?? def;
     }
   }
+
+  T? getFieldAs<T>(String? fieldName, [T? def]) {
+    var value = getField(fieldName);
+    if (value == null) return null;
+
+    if (T == String) {
+      return value as T;
+    } else if (T == int) {
+      return parseInt(value, def as int?) as T?;
+    } else if (T == double) {
+      return parseDouble(value, def as double?) as T?;
+    } else if (T == num) {
+      return parseNum(value, def as num?) as T?;
+    } else if (T == bool) {
+      return parseBool(value, def as bool?) as T?;
+    } else if (T == Decimal) {
+      return Decimal.parse(value) as T? ?? def;
+    } else if (T == DynamicInt) {
+      return DynamicInt.parse(value) as T? ?? def;
+    } else if (T == DynamicNumber) {
+      return DynamicNumber.parse(value) as T? ?? def;
+    } else {
+      return null;
+    }
+  }
+
+  static T Function(String s) _parserFor<T>() {
+    var parser = _parserForImpl<T>();
+    return (s) => parser(s) as T;
+  }
+
+  static T? Function(String s) _parserForNullable<T>() {
+    var parser = _parserForImpl<T>();
+    return (s) => parser(s) as T?;
+  }
+
+  static Object? Function(String s) _parserForImpl<T>() {
+    if (T == int) {
+      return parseInt;
+    } else if (T == double) {
+      return parseDouble;
+    } else if (T == num) {
+      return parseNum;
+    } else if (T == bool) {
+      return parseBool;
+    } else {
+      return (s) => s;
+    }
+  }
+
+  List<MapEntry<K, V?>> getFieldsGroupEntriesByPrefix<K, V>(
+    String groupPrefix, {
+    Map<String, String?>? fields,
+    String keyDelimiter = '_',
+    String Function(String key)? keyPart,
+    K Function(String key)? keyAs,
+    V? Function(String key)? valueAs,
+    bool Function(K key, V? value)? filter,
+  }) {
+    keyPart ??= (k) => k.split(keyDelimiter).last;
+    keyAs ??= _parserFor<K>();
+    valueAs ??= _parserForNullable<V>();
+
+    fields ??= getFields();
+
+    var entries =
+        fields.entries.where((e) => e.key.startsWith(groupPrefix)).map((e) {
+      var key = keyPart!(e.key);
+      var value = e.value ?? '';
+      var k = keyAs!(key);
+      var v = valueAs!(value);
+      return k != null ? MapEntry(k, v) : null;
+    }).whereNotNull();
+
+    if (filter != null) {
+      entries = entries.where((e) => filter(e.key, e.value));
+    }
+
+    return entries.toList();
+  }
+
+  Map<K, List<V>> getFieldsGroupListByPrefix<K, V>(
+    String groupPrefix, {
+    Map<String, String?>? fields,
+    String keyDelimiter = '_',
+    String Function(String key)? keyPart,
+    K Function(String key)? keyAs,
+    V? Function(String key)? valueAs,
+    bool Function(K key, V? value)? filter,
+  }) {
+    var entries = getFieldsGroupEntriesByPrefix<K, V>(groupPrefix,
+        fields: fields,
+        keyDelimiter: keyDelimiter,
+        keyPart: keyPart,
+        keyAs: keyAs,
+        valueAs: valueAs,
+        filter: filter);
+
+    var groups = entries.groupListsBy((e) => e.key);
+
+    var map = groups.map(
+        (k, l) => MapEntry(k, l.map((e) => e.value).whereType<V>().toList()));
+
+    return map;
+  }
+
+  List<K> getFieldsGroupKeysByPrefix<K>(
+    String groupPrefix, {
+    Map<String, String?>? fields,
+    String keyDelimiter = '_',
+    String Function(String key)? keyPart,
+    K Function(String key)? keyAs,
+    bool Function(K key, Object? value)? filter,
+  }) =>
+      getFieldsGroupEntriesByPrefix(groupPrefix,
+              fields: fields,
+              keyDelimiter: keyDelimiter,
+              keyPart: keyPart,
+              keyAs: keyAs,
+              filter: filter)
+          .map((e) => e.key)
+          .toSet()
+          .toList();
+
+  List<V> getFieldsGroupValuesByPrefix<V>(
+    String groupPrefix, {
+    Map<String, String?>? fields,
+    String keyDelimiter = '_',
+    String Function(String key)? keyPart,
+    V? Function(String key)? valueAs,
+    bool Function(Object key, V? value)? filter,
+  }) =>
+      getFieldsGroupEntriesByPrefix(groupPrefix,
+              fields: fields,
+              keyDelimiter: keyDelimiter,
+              keyPart: keyPart,
+              valueAs: valueAs,
+              filter: filter)
+          .map((e) => e.value)
+          .whereType<V>()
+          .toList();
+
+  Map<K, V?> getFieldsGroupByPrefix<K, V>(
+    String groupPrefix, {
+    Map<String, String?>? fields,
+    String keyDelimiter = '_',
+    String Function(String key)? keyPart,
+    K Function(String key)? keyAs,
+    V? Function(String key)? valueAs,
+    bool Function(K key, V? value)? filter,
+  }) {
+    var entries = getFieldsGroupEntriesByPrefix<K, V>(groupPrefix,
+        fields: fields,
+        keyDelimiter: keyDelimiter,
+        keyPart: keyPart,
+        keyAs: keyAs,
+        valueAs: valueAs,
+        filter: filter);
+
+    var map = Map.fromEntries(entries);
+    return map;
+  }
+
+  Map<K, bool> getFieldsGroupChecks<K>(
+    String groupPrefix, {
+    Map<String, String?>? fields,
+    String keyDelimiter = '_',
+    String Function(String key)? keyPart,
+    K Function(String key)? keyAs,
+    bool Function(K key, bool? value)? filter,
+  }) =>
+      getFieldsGroupByPrefix<K, bool?>(
+        groupPrefix,
+        fields: fields,
+        keyDelimiter: keyDelimiter,
+        keyPart: keyPart,
+        keyAs: keyAs,
+        valueAs: (v) => parseBool(v, false)!,
+        filter: filter,
+      ).map((k, v) => MapEntry(k, v!));
+
+  List<K> getFieldsGroupCheckedKeys<K>(
+    String groupPrefix, {
+    Map<String, String?>? fields,
+    String keyDelimiter = '_',
+    String Function(String key)? keyPart,
+    K Function(String key)? keyAs,
+  }) =>
+      getFieldsGroupChecks<K>(
+        groupPrefix,
+        fields: fields,
+        keyDelimiter: keyDelimiter,
+        keyPart: keyPart,
+        keyAs: keyAs,
+        filter: (k, v) => v == true,
+      ).keys.toList();
 
   bool isEmptyField(String? fieldName) {
     if (fieldName == null) return false;
