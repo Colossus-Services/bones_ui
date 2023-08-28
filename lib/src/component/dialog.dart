@@ -91,7 +91,8 @@ abstract class UIDialogBase extends UIComponent {
     for (var button in buttons) {
       button.onClick.listen((event) {
         // Call it asynchronously to allow custom listeners to be called 1st.
-        Future.microtask(() => _callOnDialogButtonClick(event));
+        Future.delayed(
+            Duration(milliseconds: 50), () => _callOnDialogButtonClick(event));
       });
     }
   }
