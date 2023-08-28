@@ -3,6 +3,8 @@
 - `UIDialogBase`:
   - Execute the `onClick` listeners of the buttons asynchronously (to allow custom listeners to be executed 1st).  
 
+- dom_builder: ^2.2.0
+
 ## 2.2.2
 
 - `UIComponent`:

@@ -13,7 +13,7 @@ executables:
 dependencies:
   intl_messages: ^2.2.0
   dom_tools: ^2.1.17
-  dom_builder: ^2.1.9
+  dom_builder: ^2.2.0
   json_render: ^2.0.5
   json_object_mapper: ^2.0.1
   swiss_knife: ^3.1.5
