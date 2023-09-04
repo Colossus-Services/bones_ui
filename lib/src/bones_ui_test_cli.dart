@@ -78,12 +78,12 @@ Future<void> main([List<String> args = const <String>[]]) async {
 
 /// A Bones_UI test runner.
 class BonesUITestRunner {
-  final BonesUIComiler bonesUIComiler;
+  final BonesUICompiler bonesUICompiler;
 
   /// The Bones_UI test config file. Default: `bones_ui_test_config.yaml`
   late final File bonesUiTestConfigFile;
 
-  /// The Bones_UI test templat HTML file. Default: `bones_ui_test.html.tpl`
+  /// The Bones_UI test template HTML file. Default: `bones_ui_test.html.tpl`
   final String bonesUITestTemplateFileName;
 
   /// The original arguments.
@@ -98,7 +98,7 @@ class BonesUITestRunner {
   /// The [Directory] to save the test logs and reports.
   late final Directory? logDirectory;
 
-  Directory get bonesUICompileDir => bonesUIComiler.compileDir;
+  Directory get bonesUICompileDir => bonesUICompiler.compileDir;
 
   File get bonesUITestTemplateFile =>
       File(pack_path.join(bonesUICompileDir.path, bonesUITestTemplateFileName));
@@ -109,7 +109,7 @@ class BonesUITestRunner {
       String bonesUITestConfigFileName = 'bones_ui_test_config.yaml',
       this.bonesUITestTemplateFileName = 'bones_ui_test.html.tpl'})
       : args = args ?? <String>[],
-        bonesUIComiler = BonesUIComiler(compileDir: compileDir) {
+        bonesUICompiler = BonesUICompiler(compileDir: compileDir) {
     var args = this.args.toList();
 
     bonesUiTestConfigFile =
@@ -241,7 +241,7 @@ class BonesUITestRunner {
   }
 
   Future<void> prepare() async {
-    bonesUIComiler.prepare();
+    bonesUICompiler.prepare();
 
     final platform = this.platform;
     final allKnownPlatforms = this.allKnownPlatforms;
@@ -271,7 +271,7 @@ class BonesUITestRunner {
 
     var testArgs = resolveTestArgs();
 
-    await bonesUIComiler.compile();
+    await bonesUICompiler.compile();
 
     var configurationPath = resolveTestConfigurationPath(parsedArgs);
 
@@ -280,7 +280,7 @@ class BonesUITestRunner {
       Runtime.firefox,
       Runtime.safari,
       Runtime.internetExplorer
-    ], () => BonesUIPlatform.create(bonesUIComiler, showUI: showUI));
+    ], () => BonesUIPlatform.create(bonesUICompiler, showUI: showUI));
 
     print(
         '\n══════════════════════════════════════════════════════════════════════');
@@ -299,7 +299,7 @@ class BonesUITestRunner {
 
     _processJsonReportFile();
 
-    bonesUIComiler.close();
+    bonesUICompiler.close();
 
     return true;
   }
@@ -673,14 +673,14 @@ timeout: 60s
 
 /// A Bones_UI project compiler.
 /// To run the UI tests the project must be compiled first.
-class BonesUIComiler {
+class BonesUICompiler {
   /// The project directory. Default: [Directory.current]
   final Directory projectDir;
 
-  /// The compilation directory. Defaylts to a random temporary directory (`dart_test_bones_ui_*`)
+  /// The compilation directory. Defaults to a random temporary directory (`dart_test_bones_ui_*`)
   final Directory compileDir;
 
-  BonesUIComiler({Directory? projectDir, Directory? compileDir})
+  BonesUICompiler({Directory? projectDir, Directory? compileDir})
       : projectDir = (projectDir ?? Directory.current).absolute,
         compileDir = (compileDir ?? _createTempBonesUICompilerDir()).absolute;
 
@@ -834,7 +834,7 @@ class DartRunner {
 }
 
 /// The Bones_UI plugin:
-/// a [PlatformPlugin] based on a wrapped [BrowserPlatform] instance and a [BonesUIComiler].
+/// a [PlatformPlugin] based on a wrapped [BrowserPlatform] instance and a [BonesUICompiler].
 class BonesUIPlatform extends PlatformPlugin
     implements CustomizablePlatform<ExecutableSettings> {
   static Future<BrowserPlatform> _startBrowserPlatformSafe(String root) async {
@@ -856,31 +856,31 @@ class BonesUIPlatform extends PlatformPlugin
   }
 
   /// Instantiates a [BonesUIPlatform].
-  static Future<BonesUIPlatform> create(BonesUIComiler bonesUIComiler,
+  static Future<BonesUIPlatform> create(BonesUICompiler bonesUICompiler,
       {bool showUI = false}) async {
-    final compileDirPath = bonesUIComiler.compileDir.path;
+    final compileDirPath = bonesUICompiler.compileDir.path;
 
     if (compileDirPath.length < 5) {
       throw StateError("Invalid compile directory: $compileDirPath");
     }
 
     var browserPlatform = await _startBrowserPlatformSafe(compileDirPath);
-    return BonesUIPlatform(browserPlatform, bonesUIComiler, showUI: showUI);
+    return BonesUIPlatform(browserPlatform, bonesUICompiler, showUI: showUI);
   }
 
   /// The wrapped [BrowserPlatform] instance.
   final BrowserPlatform browserPlatform;
 
   /// The Bones_UI project compiler.
-  final BonesUIComiler bonesUIComiler;
+  final BonesUICompiler bonesUICompiler;
 
   /// If `true` runs the tests showing the UI in the browser.
   final bool showUI;
 
-  BonesUIPlatform(this.browserPlatform, this.bonesUIComiler,
+  BonesUIPlatform(this.browserPlatform, this.bonesUICompiler,
       {this.showUI = false});
 
-  bool get headleass => !showUI;
+  bool get headless => !showUI;
 
   @override
   Future<RunnerSuite?> load(String path, SuitePlatform platform,
@@ -889,7 +889,7 @@ class BonesUIPlatform extends PlatformPlugin
 
     var prevWorkingDir = Directory.current;
 
-    var bonesUICompileDir = bonesUIComiler.compileDir;
+    var bonesUICompileDir = bonesUICompiler.compileDir;
 
     Directory.current = bonesUICompileDir;
 
@@ -913,14 +913,14 @@ class BonesUIPlatform extends PlatformPlugin
   @override
   ExecutableSettings parsePlatformSettings(YamlMap settings) {
     var map = Map.from(settings);
-    map['headless'] = headleass;
+    map['headless'] = headless;
 
     var settings2 = YamlMap.wrap(map);
 
     return browserPlatform.parsePlatformSettings(settings2);
   }
 
-  /// Closes this instance, the [bonesUIComiler] and the wrapped [browserPlatform].
+  /// Closes this instance, the [bonesUICompiler] and the wrapped [browserPlatform].
   @override
   Future close() async {
     await browserPlatform.close();

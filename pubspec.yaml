@@ -18,7 +18,7 @@ dependencies:
   json_object_mapper: ^2.0.1
   swiss_knife: ^3.1.5
   statistics: ^1.0.25
-  mercury_client: ^2.1.8
+  mercury_client: ^2.2.0
   dynamic_call: ^2.0.1
   project_template: ^1.0.2
   resource_portable: ^3.1.0
