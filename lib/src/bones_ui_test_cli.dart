@@ -95,6 +95,12 @@ class BonesUITestRunner {
   /// Returns `true` if `--show-ui` was passed.
   late final bool showUI;
 
+  /// If defined, enables/disables deferred libraries.
+  /// - If `false` (disabled), it passes the argument `--disable-program-split` to the `dart2js` compiler.
+  /// - If `true` (enabled), it forces the removal of the argument `--disable-program-split` from `--dart2js-args`.
+  /// - If `null`, it uses the default behavior of the test compiler (deferred libraries enabled).
+  late final bool? enableDeferredLibraries;
+
   /// The [Directory] to save the test logs and reports.
   late final Directory? logDirectory;
 
@@ -118,6 +124,13 @@ class BonesUITestRunner {
     var argHeadless = args.remove('--headless');
     var argShowUI = args.remove('--show-ui');
 
+    var argEnableDeferredLibraries =
+        args.remove('--enable-deferred-libraries') ||
+            args.remove('--enable-deferred-library');
+    var argDisableDeferredLibraries =
+        args.remove('--disable-deferred-libraries') ||
+            args.remove('--disable-deferred-library');
+
     String? logDir;
     {
       var idx = args.indexOf('--log-dir');
@@ -136,6 +149,18 @@ class BonesUITestRunner {
     }
 
     showUI = argShowUI && !argHeadless;
+
+    if (argDisableDeferredLibraries) {
+      enableDeferredLibraries = false;
+    } else if (argEnableDeferredLibraries) {
+      enableDeferredLibraries = true;
+    } else {
+      //enableDeferredLibraries = null;
+
+      // Disabled by default due issue:
+      // https://github.com/dart-lang/test/issues/2088
+      enableDeferredLibraries = false;
+    }
 
     logDirectory = logDir != null ? Directory(logDir) : null;
 
@@ -157,7 +182,7 @@ class BonesUITestRunner {
   /// Returns `true` if running the browser in headless mode.
   /// - Options `--show-ui` and `--pause-after-load` will deativate `headless` mode.
   /// - See [showUI].
-  bool get headleass => !showUI && !pauseAfterLoad;
+  bool get headless => !showUI && !pauseAfterLoad;
 
   /// Returns `true` if in debug mode.
   bool get debug => parsedArgs.debug;
@@ -200,6 +225,11 @@ class BonesUITestRunner {
     print('-h, --help                            Show this usage information.');
     print(
         '    --show-ui                         Run the tests showing the UI in the browser.');
+
+    print('');
+    print('    --enable-deferred-libraries       Enables deferred libraries.');
+    print(
+        '    --disable-deferred-libraries      Disables deferred libraries. (default due issue test#2088)');
 
     print('\nOptions from `dart test`:');
     print('-t, --tags                            Select a tag: -t basic');
@@ -285,9 +315,16 @@ class BonesUITestRunner {
     print(
         '\n══════════════════════════════════════════════════════════════════════');
     print(
-        '** Show UI: $showUI ${headleass ? '(headless)' : '(showing browser)'}');
-    print('** Test ARGS: ${testArgs.join(' ')}');
-    print('** Executing tests...\n');
+        '\n** Show UI: $showUI ${headless ? '(headless)' : '(showing browser)'}');
+
+    final enableDeferredLibraries = this.enableDeferredLibraries;
+    if (enableDeferredLibraries != null) {
+      print(
+          '** Deferred libraries: ${enableDeferredLibraries ? 'enabled' : 'disabled'}');
+    }
+
+    print('\n** Test ARGS: ${testArgs.join(' ')}');
+    print('\n** Executing tests...\n');
 
     testArgs.insertAll(0, [
       '--configuration',
@@ -531,8 +568,7 @@ class BonesUITestRunner {
 
     final suiteDefaults = parsedArgs.suiteDefaults;
 
-    var testTimeout =
-        !headleass ? Timeout.none : suiteDefaults.metadata.timeout;
+    var testTimeout = !headless ? Timeout.none : suiteDefaults.metadata.timeout;
 
     var testIgnoreTimeouts = suiteDefaults.ignoreTimeouts;
     var testRunSkipped = suiteDefaults.runSkipped;
@@ -549,6 +585,20 @@ class BonesUITestRunner {
     var logDirectory = this.logDirectory;
     if (logDirectory != null) {
       logDirectory.createSync(recursive: true);
+    }
+
+    final enableDeferredLibraries = this.enableDeferredLibraries;
+
+    if (enableDeferredLibraries != null) {
+      testDart2jsArgs2 = testDart2jsArgs2.toList();
+
+      if (enableDeferredLibraries) {
+        testDart2jsArgs2.removeWhere((e) => e == '--disable-program-split');
+      } else {
+        if (!testDart2jsArgs2.contains('--disable-program-split')) {
+          testDart2jsArgs2.add('--disable-program-split');
+        }
+      }
     }
 
     var testArgs = <String>[

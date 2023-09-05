@@ -1,3 +1,12 @@
+## 2.2.4
+
+- Bones_UI CLI:
+  - Added options `--enable-deferred-libraries` and `--disable-deferred-libraries`.
+- `BonesUITestRunner`: added field `enableDeferredLibraries`.
+- Fix typos.
+
+- archive: ^3.3.8
+
 ## 2.2.3
 
 - `UIDialogBase`:
