@@ -1,3 +1,9 @@
+## 2.2.5
+
+- dom_builder: ^2.2.1
+- archive: ^3.4.2
+- dependency_validator: ^3.2.3
+
 ## 2.2.4
 
 - Bones_UI CLI:
