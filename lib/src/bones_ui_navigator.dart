@@ -484,7 +484,7 @@ class UINavigator {
       _navigables.add(navigable);
     }
 
-    clearDetachedNavigables();
+    clearDetachedNavigables(ignore: navigable);
   }
 
   static final String _navigableComponentSelector =
@@ -523,13 +523,15 @@ class UINavigator {
   }
 
   /// Removes from navigables cache detached elements.
-  void clearDetachedNavigables() {
+  void clearDetachedNavigables({UINavigableComponent? ignore}) {
     var list = selectNavigables();
     var navigables = _navigables.toList();
 
     var uiRoot = UIRoot.getInstance();
 
     for (var container in navigables) {
+      if (identical(ignore, container)) continue;
+
       var navigableContent = container.content;
       if (!list.contains(navigableContent) &&
           (uiRoot != null &&
@@ -940,11 +942,15 @@ abstract class UINavigableContent extends UINavigableComponent {
       {this.topMargin = 0,
       dynamic classes,
       dynamic classes2,
+      dynamic style,
+      dynamic style2,
       bool inline = true,
       bool renderOnConstruction = false})
       : super(parent, routes,
             classes: classes,
             classes2: classes2,
+            style: style,
+            style2: style2,
             inline: inline,
             renderOnConstruction: renderOnConstruction);
 

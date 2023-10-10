@@ -26,7 +26,7 @@ DOMElement $uiSVG({
   bool commented = false,
 }) {
   return $tag(
-    'ui-button-loader',
+    'ui-svg',
     id: id,
     classes: classes,
     style: style,
@@ -167,7 +167,7 @@ class UISVG extends UIComponent {
     }
   }
 
-  Element _renderFromSVGContent() {
+  Element? _renderFromSVGContent() {
     return buildSVGElement(svgContent);
   }
 
@@ -176,7 +176,7 @@ class UISVG extends UIComponent {
 
     var resourceContent = _resourceContentCache.get(src)!;
 
-    Element element;
+    Element? element;
 
     if (resourceContent.isLoaded) {
       var content = resourceContent.getContentIfLoaded();
@@ -196,8 +196,12 @@ class UISVG extends UIComponent {
   static final NodeValidatorBuilder _svgNodeValidator =
       createStandardNodeValidator(svg: true, allowSvgForeignObject: true);
 
-  dart_svg.SvgElement buildSVGElement([String? content]) {
+  dart_svg.SvgElement? buildSVGElement([String? content]) {
     content ??= svgContent;
+
+    if (content == null || content.isEmpty) {
+      return null;
+    }
 
     var svg = createHTML(content, _svgNodeValidator) as dart_svg.SvgElement;
 

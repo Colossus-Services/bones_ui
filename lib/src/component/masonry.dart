@@ -1,6 +1,7 @@
 import 'dart:html';
 
-import 'package:collection/collection.dart' show IterableExtension;
+import 'package:collection/collection.dart'
+    show IterableExtension, IterableNullableExtension;
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
@@ -137,8 +138,7 @@ class UIMasonry extends UIComponent {
 
     _masonryWidthSize.set(masonryWidthSize);
     _masonryHeightSize.set(masonryHeightSize);
-    _computeGCDCache = CachedComputation(
-        _computeGCDImpl as int Function(Parameters2<List<int?>, double?>));
+    _computeGCDCache = CachedComputation(_computeGCDImpl);
   }
 
   int? computeMasonryWidthSize(int? masonrySize) =>
@@ -167,9 +167,9 @@ class UIMasonry extends UIComponent {
   int _computeGCD(List<int?> ns, double? tolerance) =>
       _computeGCDCache.compute(Parameters2(ns, tolerance));
 
-  int _computeGCDImpl(Parameters2<List<int>, double> parameters) {
-    var ns = parameters.a;
-    var tolerance = parameters.b;
+  int _computeGCDImpl(Parameters2<List<int?>, double?> parameters) {
+    var ns = parameters.a.whereNotNull().toList();
+    var tolerance = parameters.b ?? 0;
 
     if (ns.isEmpty) return 0;
     if (ns.length == 1) return ns[0];
@@ -224,14 +224,14 @@ class UIMasonry extends UIComponent {
     return minRatioEntry.key;
   }
 
-  List<int?> _getItemsDimension(
+  List<int> _getItemsDimension(
       int? Function(MasonryItem item) dimensionGetter) {
     var dimension = <int?>{};
     for (var item in items) {
       var n = dimensionGetter(item);
       dimension.add(n);
     }
-    var list = dimension.where((n) => n != null && n >= 10).toList();
+    var list = dimension.whereNotNull().where((n) => n >= 10).toList();
     list.sort();
     return list;
   }
@@ -359,7 +359,7 @@ class UIMasonry extends UIComponent {
     }
   }
 
-  int? _sortItems(_MasonryRenderable a, _MasonryRenderable b) {
+  int _sortItems(_MasonryRenderable a, _MasonryRenderable b) {
     var h1 = a.masonryHeight;
     var h2 = b.masonryHeight;
     var cmp = h2.compareTo(h1);
@@ -373,8 +373,7 @@ class UIMasonry extends UIComponent {
 
   List<_MasonryLine> _buildLines(
       List<_MasonryRenderItem> renderItems, int lineMaxWidth) {
-    renderItems.sort(
-        _sortItems as int Function(_MasonryRenderItem, _MasonryRenderItem)?);
+    renderItems.sort(_sortItems);
 
     var lines = <_MasonryLine>[];
     var line = _MasonryLine(this);
@@ -413,12 +412,12 @@ class UIMasonry extends UIComponent {
       lines.add(line);
     }
 
-    lines.sort(_sortLines as int Function(_MasonryLine, _MasonryLine)?);
+    lines.sort(_sortLines);
 
     return lines;
   }
 
-  int? _sortLines(_MasonryLine l1, _MasonryLine l2) {
+  int _sortLines(_MasonryLine l1, _MasonryLine l2) {
     var w1 = l1.masonryWidth;
     var w2 = l2.masonryWidth;
 
@@ -1006,7 +1005,24 @@ class _MasonryRenderItem extends _MasonryRenderable {
     div1.append(div2);
     div2.append(div3);
     div3.append(div4);
-    div4.append(item.element);
+
+    Object? element = item.element;
+
+    if (element is UIComponent) {
+      element.ensureRendered(true);
+      element = element.content;
+    } else if (element is DOMElement) {
+      element =
+          element.buildDOM(generator: UIComponent.domGenerator, parent: div4);
+    } else {
+      var htmlRoot = $htmlRoot(element);
+      element =
+          htmlRoot?.buildDOM(generator: UIComponent.domGenerator, parent: div4);
+    }
+
+    if (element is Element) {
+      div4.append(element);
+    }
 
     return div1;
   }

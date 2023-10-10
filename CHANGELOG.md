@@ -1,3 +1,12 @@
+## 2.2.6
+
+- `UINavigableContent`: added `style` to constructor.
+- Fix `UIMasonry`.
+- Fix `$uiSVG`.
+- `UINavigator`:
+  - `clearDetachedNavigables`: added parameter `ignore`. 
+- dom_builder: ^2.2.2
+
 ## 2.2.5
 
 - dom_builder: ^2.2.1

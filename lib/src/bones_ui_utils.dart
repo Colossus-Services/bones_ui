@@ -1,7 +1,7 @@
 import 'dart:html';
 
-import 'package:dom_builder/dom_builder.dart';
 import 'package:collection/collection.dart';
+import 'package:dom_builder/dom_builder.dart';
 
 /// Returns a [StackTrace] ensuring that no error will be thrown.
 StackTrace stackTraceSafe() {
