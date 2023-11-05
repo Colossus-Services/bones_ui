@@ -1,3 +1,12 @@
+## 2.2.7
+
+- statistics: ^1.0.26
+- expressions: ^0.2.5+1
+- archive: ^3.4.7
+- test: ^1.24.9
+- test_core: ^0.5.9
+- build_web_compilers: ^4.0.6
+
 ## 2.2.6
 
 - `UINavigableContent`: added `style` to constructor.
