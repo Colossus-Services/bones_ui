@@ -1,3 +1,8 @@
+## 2.2.8
+
+- `UITestChainNode`:
+  - Added: `selectWhere`, `selectFirstWhere`, `selectWhereUntil`, `selectFirstWhereUntil`.
+
 ## 2.2.7
 
 - statistics: ^1.0.26

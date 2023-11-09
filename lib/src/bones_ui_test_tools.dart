@@ -11,7 +11,6 @@ import 'package:stack_trace/stack_trace.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart';
 import 'package:test/test.dart' as pkg_test;
-
 // ignore: implementation_imports
 import 'package:test_api/src/backend/invoker.dart' as pkg_test_invoker;
 
@@ -849,6 +848,71 @@ abstract class UITestChain<
           {bool expected = false}) =>
       querySelectorAll<O>(selectors, expected: expected);
 
+  /// Alias to [querySelectorAll] + `where`.
+  UITestChainNode<U, List<O>, T> selectWhere<O extends Element>(
+      String? selectors, bool Function(Element element) test,
+      {bool expected = false}) {
+    var sel = querySelectorAll(selectors);
+    var elems = sel.element.whereType<O>().where(test).toList();
+
+    if (expected) {
+      expect(elems.isNotEmpty, isTrue,
+          reason: "Can't find selected elements: $selectors");
+    }
+
+    return UITestChainNode(testChainRoot, elems, this as T);
+  }
+
+  /// Alias to [querySelectorAll] + `firstWhereOrNull`.
+  UITestChainNode<U, O?, T> selectFirstWhere<O extends Element>(
+      String? selectors, bool Function(Element element) test,
+      {bool expected = false}) {
+    var sel = querySelectorAll<O>(selectors);
+    var elem = sel.element.whereType<O>().firstWhereOrNull(test);
+
+    if (expected) {
+      expect(elem, pkg_test.isNotNull,
+          reason: "Can't find selected element: $selectors");
+    }
+
+    return UITestChainNode(testChainRoot, elem, this as T);
+  }
+
+  /// Alias to [sleepUntilElement] + [querySelectorAll] + `where`.
+  Future<UITestChainNode<U, List<O>, T>> selectWhereUntil<O extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {int? timeoutMs,
+          int? intervalMs,
+          int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper,
+          bool expected = false}) =>
+      sleepUntilElement(selectors ?? '*',
+              timeoutMs: timeoutMs,
+              intervalMs: intervalMs,
+              minMs: minMs,
+              mapper: mapper,
+              validator: (elems) => elems.any(test))
+          .selectWhere<O>(selectors, test)
+          .then((o) => o as UITestChainNode<U, List<O>, T>);
+
+  /// Alias to [sleepUntilElement] + [querySelectorAll] + `firstWhereOrNull`.
+  Future<UITestChainNode<U, O, T>> selectFirstWhereUntil<O extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {int? timeoutMs,
+          int? intervalMs,
+          int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper,
+          bool expected = false}) =>
+      sleepUntilElement(selectors ?? '*',
+              timeoutMs: timeoutMs,
+              intervalMs: intervalMs,
+              minMs: minMs,
+              mapper: mapper,
+              validator: (elems) => elems.any(test))
+          .selectFirstWhere<O>(selectors, test)
+          .then((o) => UITestChainNode<U, O, T>(
+              o.testChainRoot as UITestChainRoot<U>, o.element!, this as T));
+
   UITestChainNode<U, O, T> map<O>(O Function(E e) mapper) =>
       UITestChainNode(testChainRoot, mapper(element), this as T);
 
@@ -1312,6 +1376,45 @@ extension FutureUITestChainExtension<
           {bool expected = false}) =>
       thenChain((o) => o.selectAll<Q>(selectors, expected: expected));
 
+  Future<UITestChainNode<U, List<Q>, T>> selectWhere<Q extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {bool expected = false}) =>
+      thenChain((o) => o.selectWhere<Q>(selectors, test, expected: expected));
+
+  Future<UITestChainNode<U, Q?, T>> selectFirstWhere<Q extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {bool expected = false}) =>
+      thenChain(
+          (o) => o.selectFirstWhere<Q>(selectors, test, expected: expected));
+
+  Future<UITestChainNode<U, List<Q>, T>> selectWhereUntil<Q extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {int? timeoutMs,
+          int? intervalMs,
+          int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper,
+          bool expected = false}) =>
+      thenChain((o) => o.selectWhereUntil<Q>(selectors, test,
+          timeoutMs: timeoutMs,
+          intervalMs: intervalMs,
+          minMs: minMs,
+          mapper: mapper,
+          expected: expected));
+
+  Future<UITestChainNode<U, Q, T>> selectFirstWhereUntil<Q extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {int? timeoutMs,
+          int? intervalMs,
+          int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper,
+          bool expected = false}) =>
+      thenChain((o) => o.selectFirstWhereUntil<Q>(selectors, test,
+          timeoutMs: timeoutMs,
+          intervalMs: intervalMs,
+          minMs: minMs,
+          mapper: mapper,
+          expected: expected));
+
   Future<UITestChainNode<U, R, T>> map<R>(R Function(E e) mapper) =>
       then((o) => o.map<R>(mapper));
 
@@ -1414,6 +1517,46 @@ extension FutureUITestChainNodeExtension<
           {bool expected = false}) =>
       thenChain((o) => o.selectAll<O>(selectors, expected: expected)
           as UITestChainNode<U, List<O>, T>);
+
+  Future<UITestChainNode<U, List<O>, T>> selectWhere<O extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {bool expected = false}) =>
+      thenChain((o) => o.selectWhere<O>(selectors, test, expected: expected)
+          as UITestChainNode<U, List<O>, T>);
+
+  Future<UITestChainNode<U, O?, T>> selectFirstWhere<O extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {bool expected = false}) =>
+      thenChain((o) => o.selectFirstWhere<O>(selectors, test,
+          expected: expected) as UITestChainNode<U, O?, T>);
+
+  Future<UITestChainNode<U, List<O>, T>> selectWhereUntil<O extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {int? timeoutMs,
+          int? intervalMs,
+          int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper,
+          bool expected = false}) =>
+      thenChain((o) => o.selectWhereUntil<O>(selectors, test,
+          timeoutMs: timeoutMs,
+          intervalMs: intervalMs,
+          minMs: minMs,
+          mapper: mapper,
+          expected: expected) as UITestChainNode<U, List<O>, T>);
+
+  Future<UITestChainNode<U, O?, T>> selectFirstWhereUntil<O extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {int? timeoutMs,
+          int? intervalMs,
+          int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper,
+          bool expected = false}) =>
+      thenChain((o) => o.selectFirstWhereUntil<O>(selectors, test,
+          timeoutMs: timeoutMs,
+          intervalMs: intervalMs,
+          minMs: minMs,
+          mapper: mapper,
+          expected: expected) as UITestChainNode<U, O?, T>);
 
   Future<UITestChainNode<U, R, T>> map<R>(R Function(E e) mapper) =>
       then((o) => o.map<R>(mapper) as UITestChainNode<U, R, T>);
