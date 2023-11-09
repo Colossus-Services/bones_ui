@@ -7,7 +7,7 @@ import 'package:bones_ui/src/bones_ui_test_cli.dart' as bones_ui_test_cli;
 ///   dart run bones_ui:bones_ui_test %args
 /// ```
 ///
-/// This is a similar approch of `dart test`,
+/// This is a similar approach of `dart test`,
 /// that actually calls `dart run test:test %args`.
 Future<void> main(List<String> args) async {
   await bones_ui_test_cli.main(args);
