@@ -272,11 +272,8 @@ class BUIRender extends UINavigableComponent {
 
   DOMTreeMap? get renderedTreeMap => _renderedTreeMap;
 
-  DOMNode? getMappedDOMNodeInTreeMap(dynamic element) {
-    return _renderedTreeMap != null
-        ? _renderedTreeMap!.getMappedDOMNode(element)
-        : null;
-  }
+  DOMNode? getMappedDOMNodeInTreeMap(dynamic element) =>
+      _renderedTreeMap?.getMappedDOMNode(element);
 
   bool rebuildSourceFromDOMTreeMap(
       {bool withIndent = false, String indent = '  '}) {
@@ -1138,7 +1135,7 @@ class BUIManifest {
 
   BUIManifest(this._resource) {
     _resource!.onLoad.listen((_) => _onLoad());
-    _resource!.load();
+    _resource.load();
   }
 
   static BUIManifest? from(dynamic manifest) {

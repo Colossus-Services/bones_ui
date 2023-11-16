@@ -1,3 +1,13 @@
+## 2.3.0
+
+- selectFirstWhereUntil:
+  - Removed parameter `expected`.
+  - Throw exception when can't select element.
+
+- sdk: '>=3.2.0 <4.0.0'
+- intl_messages: ^2.2.1
+- archive: ^3.4.9
+
 ## 2.2.8
 
 - `UITestChainNode`:

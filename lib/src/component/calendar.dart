@@ -103,7 +103,7 @@ class UICalendarPopup extends UIComponent
   }
 
   String get buttonText {
-    if (_buttonText != null) return _buttonText!;
+    if (_buttonText != null) return _buttonText;
 
     var currentDate = _calendar.currentDate;
     return '${currentDate.year}/${currentDate.month}/${currentDate.day}';

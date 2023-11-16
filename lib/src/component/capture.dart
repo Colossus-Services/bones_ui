@@ -1155,7 +1155,7 @@ class UIButtonCapture extends UICapture {
 
     content!.children.removeWhere((e) => (e is SpanElement || e is BRElement));
 
-    var fileName = selectedFile != null ? selectedFile!.name : null;
+    var fileName = selectedFile?.name;
 
     if (fileName != null && fileName.isNotEmpty) {
       content!.children.add(BRElement());
