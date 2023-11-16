@@ -1,3 +1,8 @@
+## 2.3.2
+
+- `UIDialogBase`, `UIDialog`:
+  - Added `onClickListenOnlyForDialogButtonClass` to constructor.
+
 ## 2.3.1
 
 - `UITestChain`

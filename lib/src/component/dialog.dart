@@ -34,6 +34,7 @@ abstract class UIDialogBase extends UIComponent {
       this.padding = '6px',
       this.fullScreen = true,
       this.removeFromDomOnHide = true,
+      this.onClickListenOnlyForDialogButtonClass = false,
       int backgroundGrey = 0,
       double backgroundAlpha = 0.80,
       this.backgroundBlur})
@@ -82,7 +83,7 @@ abstract class UIDialogBase extends UIComponent {
   static final String dialogButtonClass = 'ui-dialog-button';
   static final String dialogButtonCancelClass = 'ui-dialog-button-cancel';
 
-  bool onClickListenOnlyForDialogButtonClass = false;
+  bool onClickListenOnlyForDialogButtonClass;
 
   @override
   void posRender() {
@@ -328,12 +329,16 @@ class UIDialog extends UIDialogBase {
     var show = parseBool(attributes['show'], false)!;
     var showCloseButton = parseBool(attributes['show-close-button'], true)!;
     var removeOnHide = parseBool(attributes['remove-on-hide'], true)!;
+    var onClickListenOnlyForDialogButtonClass = parseBool(
+        attributes['on-click-listen-only-for-dialog-button-class'], true)!;
 
     return UIDialog(contentNodes,
         show: show,
         showCloseButton: showCloseButton,
         addToParent: true,
-        removeFromDomOnHide: removeOnHide);
+        removeFromDomOnHide: removeOnHide,
+        onClickListenOnlyForDialogButtonClass:
+            onClickListenOnlyForDialogButtonClass);
   }, [], hasChildrenElements: false);
 
   static void register() {
@@ -355,6 +360,7 @@ class UIDialog extends UIDialogBase {
       super.padding,
       super.fullScreen,
       super.removeFromDomOnHide,
+      super.onClickListenOnlyForDialogButtonClass,
       super.backgroundGrey,
       super.backgroundAlpha,
       super.backgroundBlur,
