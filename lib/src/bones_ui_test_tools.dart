@@ -895,8 +895,11 @@ abstract class UITestChain<
           .selectWhere<O>(selectors, test)
           .thenChain((o) {
         if (expected) {
+          var sel =
+              selectAll(selectors).element.map((e) => e.simplify()).toList();
+
           expect(o.element, pkg_test.isNotEmpty,
-              reason: "Can't find any selected element: $selectors");
+              reason: "Can't find any selected element: $selectors -> $sel");
         }
         return o as UITestChainNode<U, List<O>, T>;
       });
@@ -917,8 +920,13 @@ abstract class UITestChain<
           .selectFirstWhere<O>(selectors, test)
           .thenChain((o) {
         var elem = o.element;
-        expect(elem, pkg_test.isNotNull,
-            reason: "Can't find selected element: $selectors");
+        if (elem == null) {
+          var sel =
+              selectAll(selectors).element.map((e) => e.simplify()).toList();
+
+          expect(elem, pkg_test.isNotNull,
+              reason: "Can't find selected element: $selectors -> $sel");
+        }
         return UITestChainNode<U, O, T>(
             o.testChainRoot as UITestChainRoot<U>, elem!, this as T);
       });
