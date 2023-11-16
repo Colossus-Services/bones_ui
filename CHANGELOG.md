@@ -1,3 +1,8 @@
+## 2.3.1
+
+- `UITestChain`
+  - Added `selectUntil`
+
 ## 2.3.0
 
 - selectFirstWhereUntil:

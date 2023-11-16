@@ -931,6 +931,30 @@ abstract class UITestChain<
             o.testChainRoot as UITestChainRoot<U>, elem!, this as T);
       });
 
+  /// Alias to [sleepUntilElement] + [querySelectorAll]
+  Future<UITestChainNode<U, O, T>> selectUntil<O extends Element>(
+          String? selectors,
+          {int? timeoutMs,
+          int? intervalMs,
+          int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper}) =>
+      sleepUntilElement(selectors ?? '*',
+              timeoutMs: timeoutMs,
+              intervalMs: intervalMs,
+              minMs: minMs,
+              mapper: mapper)
+          .selectExpected(selectors)
+          .then((o) {
+        var elem = o.element;
+        if (elem is! O) {
+          expect(elem, pkg_test.isA<O>(),
+              reason: "Selected element not of type `$O`: $elem");
+        }
+
+        return UITestChainNode<U, O, T>(
+            o.testChainRoot as UITestChainRoot<U>, elem as O, this as T);
+      });
+
   UITestChainNode<U, O, T> map<O>(O Function(E e) mapper) =>
       UITestChainNode(testChainRoot, mapper(element), this as T);
 
@@ -1560,17 +1584,33 @@ extension FutureUITestChainNodeExtension<
           mapper: mapper,
           expected: expected) as UITestChainNode<U, List<O>, T>);
 
-  Future<UITestChainNode<U, O?, T>> selectFirstWhereUntil<O extends Element>(
+  Future<UITestChainNode<U, O, T>> selectFirstWhereUntil<O extends Element>(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           Iterable<Element> Function(List<Element> elems)? mapper}) =>
-      thenChain((o) => o.selectFirstWhereUntil<O>(selectors, test,
-          timeoutMs: timeoutMs,
-          intervalMs: intervalMs,
-          minMs: minMs,
-          mapper: mapper) as UITestChainNode<U, O?, T>);
+      thenChain((o) => o
+          .selectFirstWhereUntil<O>(selectors, test,
+              timeoutMs: timeoutMs,
+              intervalMs: intervalMs,
+              minMs: minMs,
+              mapper: mapper)
+          .then((o) => o as UITestChainNode<U, O, T>));
+
+  Future<UITestChainNode<U, O, T>> selectUntil<O extends Element>(
+          String? selectors,
+          {int? timeoutMs,
+          int? intervalMs,
+          int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper}) =>
+      thenChain((o) => o
+          .selectUntil<O>(selectors,
+              timeoutMs: timeoutMs,
+              intervalMs: intervalMs,
+              minMs: minMs,
+              mapper: mapper)
+          .then((o) => o as UITestChainNode<U, O, T>));
 
   Future<UITestChainNode<U, R, T>> map<R>(R Function(E e) mapper) =>
       then((o) => o.map<R>(mapper) as UITestChainNode<U, R, T>);
