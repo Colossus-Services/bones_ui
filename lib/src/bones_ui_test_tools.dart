@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert' as dart_convert;
-import 'dart:html';
 import 'dart:html' as dart_html;
+import 'dart:html';
 import 'dart:js' as js;
 import 'dart:math';
 
@@ -9,8 +9,8 @@ import 'package:archive/archive.dart';
 import 'package:collection/collection.dart';
 import 'package:stack_trace/stack_trace.dart';
 import 'package:stream_channel/stream_channel.dart';
-import 'package:test/test.dart';
 import 'package:test/test.dart' as pkg_test;
+import 'package:test/test.dart';
 // ignore: implementation_imports
 import 'package:test_api/src/backend/invoker.dart' as pkg_test_invoker;
 
@@ -893,7 +893,13 @@ abstract class UITestChain<
               mapper: mapper,
               validator: (elems) => elems.any(test))
           .selectWhere<O>(selectors, test)
-          .then((o) => o as UITestChainNode<U, List<O>, T>);
+          .then((o) {
+        if (expected) {
+          expect(o.element, pkg_test.isNotEmpty,
+              reason: "Can't find any selected element: $selectors");
+        }
+        return o as UITestChainNode<U, List<O>, T>;
+      });
 
   /// Alias to [sleepUntilElement] + [querySelectorAll] + `firstWhereOrNull`.
   Future<UITestChainNode<U, O, T>> selectFirstWhereUntil<O extends Element>(
@@ -901,8 +907,7 @@ abstract class UITestChain<
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
-          Iterable<Element> Function(List<Element> elems)? mapper,
-          bool expected = false}) =>
+          Iterable<Element> Function(List<Element> elems)? mapper}) =>
       sleepUntilElement(selectors ?? '*',
               timeoutMs: timeoutMs,
               intervalMs: intervalMs,
@@ -910,8 +915,13 @@ abstract class UITestChain<
               mapper: mapper,
               validator: (elems) => elems.any(test))
           .selectFirstWhere<O>(selectors, test)
-          .then((o) => UITestChainNode<U, O, T>(
-              o.testChainRoot as UITestChainRoot<U>, o.element!, this as T));
+          .then((o) {
+        var elem = o.element;
+        expect(elem, pkg_test.isNotNull,
+            reason: "Can't find selected element: $selectors");
+        return UITestChainNode<U, O, T>(
+            o.testChainRoot as UITestChainRoot<U>, elem!, this as T);
+      });
 
   UITestChainNode<U, O, T> map<O>(O Function(E e) mapper) =>
       UITestChainNode(testChainRoot, mapper(element), this as T);
@@ -1406,14 +1416,12 @@ extension FutureUITestChainExtension<
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
-          Iterable<Element> Function(List<Element> elems)? mapper,
-          bool expected = false}) =>
+          Iterable<Element> Function(List<Element> elems)? mapper}) =>
       thenChain((o) => o.selectFirstWhereUntil<Q>(selectors, test,
           timeoutMs: timeoutMs,
           intervalMs: intervalMs,
           minMs: minMs,
-          mapper: mapper,
-          expected: expected));
+          mapper: mapper));
 
   Future<UITestChainNode<U, R, T>> map<R>(R Function(E e) mapper) =>
       then((o) => o.map<R>(mapper));
@@ -1549,14 +1557,12 @@ extension FutureUITestChainNodeExtension<
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
-          Iterable<Element> Function(List<Element> elems)? mapper,
-          bool expected = false}) =>
+          Iterable<Element> Function(List<Element> elems)? mapper}) =>
       thenChain((o) => o.selectFirstWhereUntil<O>(selectors, test,
           timeoutMs: timeoutMs,
           intervalMs: intervalMs,
           minMs: minMs,
-          mapper: mapper,
-          expected: expected) as UITestChainNode<U, O?, T>);
+          mapper: mapper) as UITestChainNode<U, O?, T>);
 
   Future<UITestChainNode<U, R, T>> map<R>(R Function(E e) mapper) =>
       then((o) => o.map<R>(mapper) as UITestChainNode<U, R, T>);
