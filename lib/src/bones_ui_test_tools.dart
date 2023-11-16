@@ -732,7 +732,7 @@ abstract class UITestChain<
               timeoutMs: timeoutMs,
               intervalMs: intervalMs,
               minMs: minMs)
-          .then((_) => this as T);
+          .thenChain((_) => this as T);
 
   /// Alias to [testUISleepUntilRoute].
   Future<T> sleepUntilRoute(String route,
@@ -749,7 +749,7 @@ abstract class UITestChain<
               intervalMs: intervalMs,
               minMs: minMs,
               expected: expected)
-          .then((_) => this as T);
+          .thenChain((_) => this as T);
 
   /// Alias to [testUISleepUntilRoutes].
   Future<T> sleepUntilRoutes(List<String> routes,
@@ -762,7 +762,7 @@ abstract class UITestChain<
               intervalMs: intervalMs,
               minMs: minMs,
               expected: expected)
-          .then((_) => this as T);
+          .thenChain((_) => this as T);
 
   /// Alias to [testUISleepUntilElement].
   Future<T> sleepUntilElement(String selectors,
@@ -780,7 +780,7 @@ abstract class UITestChain<
               mapper: mapper,
               validator: validator,
               expected: expected)
-          .then((_) => this as T);
+          .thenChain((_) => this as T);
 
   /// Alias to [Element.querySelector] or [UIComponent.querySelector].
   UITestChainNode<U, Element?, T> querySelector(String? selectors,
@@ -893,7 +893,7 @@ abstract class UITestChain<
               mapper: mapper,
               validator: (elems) => elems.any(test))
           .selectWhere<O>(selectors, test)
-          .then((o) {
+          .thenChain((o) {
         if (expected) {
           expect(o.element, pkg_test.isNotEmpty,
               reason: "Can't find any selected element: $selectors");
@@ -915,7 +915,7 @@ abstract class UITestChain<
               mapper: mapper,
               validator: (elems) => elems.any(test))
           .selectFirstWhere<O>(selectors, test)
-          .then((o) {
+          .thenChain((o) {
         var elem = o.element;
         expect(elem, pkg_test.isNotNull,
             reason: "Can't find selected element: $selectors");
@@ -934,7 +934,7 @@ abstract class UITestChain<
   FutureOr<T> callAsync(dynamic Function(E e) call) {
     var ret = call(element);
     if (ret is Future) {
-      return ret.then((_) => this as T);
+      return ret.thenChain((_) => this as T);
     } else {
       return this as T;
     }
@@ -1033,20 +1033,20 @@ abstract class UITestChain<
   Future<T> expectLater(dynamic actual, dynamic matcher, {String? reason}) {
     return pkg_test
         .expectLater(actual, matcher, reason: reason)
-        .then((_) => this as T);
+        .thenChain((_) => this as T);
   }
 
   Future<T> expectMatchLater(dynamic matcher, {String? reason}) {
     return pkg_test
         .expectLater(element, matcher, reason: reason)
-        .then((_) => this as T);
+        .thenChain((_) => this as T);
   }
 
   Future<T> expectMappedLater<R>(R Function(E e) mapper, dynamic matcher,
       {String? reason}) {
     return pkg_test
         .expectLater(mapper(element), matcher, reason: reason)
-        .then((_) => this as T);
+        .thenChain((_) => this as T);
   }
 
   T expectRoute(String route, {String? reason}) {
@@ -1580,7 +1580,7 @@ extension FutureUITestChainNodeExtension<
         var ret = o.callAsync(call);
         if (ret is Future) {
           final future = ret as Future;
-          return future.then((o) => o as T);
+          return future.thenChain((o) => o as T);
         } else {
           return ret as T;
         }
