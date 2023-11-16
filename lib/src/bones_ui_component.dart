@@ -1810,8 +1810,7 @@ abstract class UIComponent extends UIEventHandler {
 
   bool get hasDataSource => _dataSourceCall != null;
 
-  DataSource? get dataSource =>
-      _dataSourceCall != null ? _dataSourceCall!.dataSource : null;
+  DataSource? get dataSource => _dataSourceCall?.dataSource;
 
   DataSourceCall? get dataSourceCall => _dataSourceCall;
 
@@ -1918,7 +1917,7 @@ abstract class UIComponent extends UIEventHandler {
       case 'data-source':
         return dataSourceCallString;
       default:
-        return _generator != null ? _generator!.getAttribute(this, name) : null;
+        return _generator?.getAttribute(this, name);
     }
   }
 
@@ -1959,7 +1958,7 @@ abstract class UIComponent extends UIEventHandler {
       default:
         {
           if (_generator != null) {
-            _generator!.setAttribute(this, name, value);
+            _generator.setAttribute(this, name, value);
             return true;
           } else {
             return false;
@@ -2001,7 +2000,7 @@ abstract class UIComponent extends UIEventHandler {
       default:
         {
           if (_generator != null) {
-            _generator!.appendAttribute(this, name, value);
+            _generator.appendAttribute(this, name, value);
             return true;
           } else {
             return false;
@@ -2038,7 +2037,7 @@ abstract class UIComponent extends UIEventHandler {
       default:
         {
           if (_generator != null) {
-            _generator!.clearAttribute(this, name);
+            _generator.clearAttribute(this, name);
             return true;
           } else {
             return false;

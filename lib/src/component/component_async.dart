@@ -148,13 +148,11 @@ class UIComponentAsync extends UIComponent {
   bool get isWithError =>
       _asyncContent != null ? _asyncContent!.isWithError : false;
 
-  DateTime? get loadTime =>
-      _asyncContent != null ? _asyncContent!.loadTime : null;
+  DateTime? get loadTime => _asyncContent?.loadTime;
 
   int get loadCount => _asyncContent != null ? _asyncContent!.loadCount : 0;
 
-  Map<String, dynamic>? get asyncContentProperties =>
-      _asyncContent != null ? _asyncContent!.properties : null;
+  Map<String, dynamic>? get asyncContentProperties => _asyncContent?.properties;
 
   bool asyncContentEqualsProperties(Map<String, dynamic> properties) =>
       _asyncContent != null

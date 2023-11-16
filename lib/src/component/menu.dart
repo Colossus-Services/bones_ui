@@ -73,7 +73,7 @@ class MenuEntry<P> extends MenuItem {
     _icon = ElementProvider.from(icon);
   }
 
-  Element? get iconElement => _icon != null ? _icon!.element : null;
+  Element? get iconElement => _icon?.element;
 
   bool get hasSubMenu => _subMenu != null ? _subMenu!.isNotEmpty : false;
 

@@ -215,7 +215,7 @@ class UIAsyncContent {
 
   void _scheduleRefresh() {
     if (_refreshInterval != null && !_stopped) {
-      Future.delayed(_refreshInterval!, refresh);
+      Future.delayed(_refreshInterval, refresh);
     }
   }
 
@@ -268,7 +268,7 @@ class UIAsyncContent {
   /// Returns true if this content is expired ([elapsedLoadTime] > [_refreshInterval]).
   bool get isExpired =>
       _refreshInterval != null &&
-      elapsedLoadTime > _refreshInterval!.inMilliseconds;
+      elapsedLoadTime > _refreshInterval.inMilliseconds;
 
   /// Returns [true] if has a [_refreshInterval].
   bool get hasAutoRefresh => _refreshInterval != null;

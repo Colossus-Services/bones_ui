@@ -236,7 +236,7 @@ class InputConfig {
     Element? element;
 
     if (_inputRender != null) {
-      var obj = _inputRender!(this);
+      var obj = _inputRender(this);
 
       if (obj == null) {
         return null;

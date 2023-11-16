@@ -101,10 +101,9 @@ abstract class ResourceConfig<D extends ConfigDocument> {
   @override
   int get hashCode => _resourceContent != null ? _resourceContent.hashCode : 0;
 
-  Uri? get uri => _resourceContent != null ? _resourceContent!.uri : null;
+  Uri? get uri => _resourceContent?.uri;
 
-  Future<Uri?>? get uriResolved =>
-      _resourceContent != null ? _resourceContent!.uriResolved : null;
+  Future<Uri?>? get uriResolved => _resourceContent?.uriResolved;
 
   Future<Uri?> resolveURL(String url) =>
       ResourceContent.resolveURLFromReference(resourceContent, url);
