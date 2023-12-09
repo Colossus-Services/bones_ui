@@ -2201,9 +2201,13 @@ abstract class UIComponent extends UIEventHandler {
         getFieldsElementsMap(fields: fields, ignoreFields: ignoreFields);
 
     var entries = fieldsElementsMap.entries.toList();
+
+    var entriesUIComponents = Map.fromEntries(
+        entries.map((e) => MapEntry(e.value, findUIComponentByChild(e.value))));
+
     entries.sort((a, b) {
-      var aUiComponent = findUIComponentByChild(a.value);
-      var bUiComponent = findUIComponentByChild(b.value);
+      var aUiComponent = entriesUIComponents[a.value];
+      var bUiComponent = entriesUIComponents[b.value];
       var aIsUIComponent = aUiComponent != null;
       var bIsUIComponent = bUiComponent != null;
 

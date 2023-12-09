@@ -1,3 +1,8 @@
+## 2.3.3
+
+- `UIComponent`:
+  - Optimize `getFields`.
+
 ## 2.3.2
 
 - `UIDialogBase`, `UIDialog`:
