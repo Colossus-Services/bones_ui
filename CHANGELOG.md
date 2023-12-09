@@ -3,6 +3,9 @@
 - `UIComponent`:
   - Optimize `getFields`.
 
+- intl_messages: ^2.2.2
+- path: ^1.9.0
+
 ## 2.3.2
 
 - `UIDialogBase`, `UIDialog`:

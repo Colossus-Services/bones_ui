@@ -11,7 +11,7 @@ executables:
   bones_ui_test:
 
 dependencies:
-  intl_messages: ^2.2.1
+  intl_messages: ^2.2.2
   dom_tools: ^2.1.17
   dom_builder: ^2.2.2
   json_render: ^2.0.5
@@ -32,7 +32,7 @@ dependencies:
   collection: ^1.18.0
   args: ^2.4.2
   logging: ^1.2.0
-  path: ^1.8.3
+  path: ^1.9.0
   test: ^1.24.9
   test_api: ^0.6.1
   test_core: ^0.5.9
