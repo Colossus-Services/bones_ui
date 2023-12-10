@@ -1,7 +1,7 @@
 ## 2.3.3
 
 - `UIComponent`:
-  - Optimize: `getFields`, `parseChildElementValue`.
+  - Optimize: `getFields`, `parseChildElementValue` and `getFieldExtended`.
 - `ElementExtension`:
   - Optimize: `resolveElementValue`
 

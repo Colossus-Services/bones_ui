@@ -2328,7 +2328,8 @@ abstract class UIComponent extends UIEventHandler {
     if (fieldComponent is UIField) {
       return fieldComponent.getFieldValue() as V? ?? def;
     } else if (fieldComponent is UIComponent) {
-      var val = parseChildElementValue(fieldComponent.content);
+      var val = parseChildElementValue(fieldComponent.content,
+          childUiComponent: fieldComponent);
       return val as V? ?? def;
     } else if (fieldComponent is Element) {
       var val = parseChildElementValue(fieldComponent);
