@@ -2191,9 +2191,11 @@ abstract class UIComponent extends UIEventHandler {
       content!.children, [], true, (e) => getElementFieldName(e) != null);
 
   String? parseChildElementValue(Element? childElement,
-          {bool allowTextAsValue = true}) =>
+          {UIComponent? childUiComponent, bool allowTextAsValue = true}) =>
       childElement?.resolveElementValue(
-          parentUIComponent: this, allowTextAsValue: allowTextAsValue);
+          parentUIComponent: this,
+          uiComponent: childUiComponent,
+          allowTextAsValue: allowTextAsValue);
 
   Map<String, String?> getFields(
       {List<String>? fields, List<String>? ignoreFields}) {
@@ -2225,7 +2227,12 @@ abstract class UIComponent extends UIEventHandler {
     for (var entry in entries) {
       var key = entry.key;
       if (fieldsValues.containsKey(key)) continue;
-      var value = parseChildElementValue(entry.value);
+
+      var uiComponent = entriesUIComponents[entry.value];
+
+      var value =
+          parseChildElementValue(entry.value, childUiComponent: uiComponent);
+
       fieldsValues[key] = value;
     }
 

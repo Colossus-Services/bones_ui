@@ -1,7 +1,9 @@
 ## 2.3.3
 
 - `UIComponent`:
-  - Optimize `getFields`.
+  - Optimize: `getFields`, `parseChildElementValue`.
+- `ElementExtension`:
+  - Optimize: `resolveElementValue`
 
 - intl_messages: ^2.2.2
 - path: ^1.9.0

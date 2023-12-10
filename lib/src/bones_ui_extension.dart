@@ -18,8 +18,10 @@ extension ElementExtension on Element {
 
   /// Resolves the value of this [Element].
   String? resolveElementValue(
-      {UIComponent? parentUIComponent, bool allowTextAsValue = true}) {
-    var uiComponent = resolveUIComponent(parentUIComponent: parentUIComponent);
+      {UIComponent? parentUIComponent,
+      UIComponent? uiComponent,
+      bool allowTextAsValue = true}) {
+    uiComponent ??= resolveUIComponent(parentUIComponent: parentUIComponent);
 
     if (uiComponent != null) {
       if (uiComponent is UIField) {
