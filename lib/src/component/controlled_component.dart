@@ -27,16 +27,15 @@ abstract class UIControlledComponent extends UIComponent {
 
   final ControllerPropertiesType controllersPropertiesType;
 
-  UIControlledComponent(Element? parent, this.loadingContent, this.errorContent,
+  UIControlledComponent(super.parent, this.loadingContent, this.errorContent,
       {this.resultLoadingContent,
       this.resultErrorContent,
       ControllerPropertiesType? controllersPropertiesType,
-      dynamic classes,
-      dynamic classes2})
+      super.classes,
+      super.classes2})
       : controllersPropertiesType = controllersPropertiesType ??
             ControllerPropertiesType.controllerValue,
-        super(parent,
-            classes: classes, classes2: classes2, renderOnConstruction: false);
+        super(renderOnConstruction: false);
 
   UIComponentAsync? _componentAsync;
 

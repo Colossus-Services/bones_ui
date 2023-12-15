@@ -77,7 +77,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   final CapturePhotoEditor? photoEditor;
 
-  UICapture(Element? container, this.captureType,
+  UICapture(super.container, this.captureType,
       {String? fieldName,
       this.captureAspectRatio,
       this.captureMaxWidth,
@@ -86,22 +86,15 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       this.editCapture = false,
       this.photoEditor,
       Object? selectedFileData,
-      String? navigate,
-      Map<String, String>? navigateParameters,
-      ParametersProvider? navigateParametersProvider,
-      dynamic classes,
-      dynamic classes2,
-      dynamic style,
+      super.navigate,
+      super.navigateParameters,
+      super.navigateParametersProvider,
+      super.classes,
+      super.classes2,
+      super.style,
       dynamic componentClass})
       : fieldName = fieldName ?? 'capture',
-        super(container,
-            classes: classes,
-            classes2: classes2,
-            style: style,
-            componentClass: ['ui-capture', componentClass],
-            navigate: navigate,
-            navigateParameters: navigateParameters,
-            navigateParametersProvider: navigateParametersProvider) {
+        super(componentClass: ['ui-capture', componentClass]) {
     this.selectedFileData = selectedFileData;
   }
 
@@ -883,7 +876,7 @@ class URLFileReader {
 }
 
 class ImageFileReader extends URLFileReader {
-  ImageFileReader(File file) : super(file);
+  ImageFileReader(super.file);
 
   @override
   void onLoad(String? dataURL, String type) {
@@ -895,7 +888,7 @@ class ImageFileReader extends URLFileReader {
 }
 
 class VideoFileReader extends URLFileReader {
-  VideoFileReader(File file) : super(file);
+  VideoFileReader(super.file);
 
   @override
   void onLoad(String? dataURL, String type) {
@@ -915,7 +908,7 @@ class VideoFileReader extends URLFileReader {
 }
 
 class AudioFileReader extends URLFileReader {
-  AudioFileReader(File file) : super(file);
+  AudioFileReader(super.file);
 
   @override
   void onLoad(String? dataURL, String type) {

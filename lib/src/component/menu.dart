@@ -122,7 +122,7 @@ class UIMenu extends UIComponent {
 
   final String? zIndex;
 
-  UIMenu(Element? parent, Iterable<MenuItem> entries,
+  UIMenu(super.parent, Iterable<MenuItem> entries,
       {bool? vertical,
       String? itemSeparator,
       this.backgroundBlur,
@@ -130,15 +130,14 @@ class UIMenu extends UIComponent {
       this.itemOverBgColor,
       this.popupItemOverBgColor,
       this.scrollbarColors,
-      dynamic classes,
-      dynamic style,
+      super.classes,
+      super.style,
       this.popupOffset,
       this.popupClasses,
       this.popupStyle,
       this.zIndex})
       : itemSeparator = ElementProvider.from(itemSeparator ?? ' | ')!,
-        super(parent,
-            componentClass: 'ui-menu', classes: classes, style: style) {
+        super(componentClass: 'ui-menu') {
     this.entries = entries.toList();
     this.vertical = vertical;
 
@@ -355,7 +354,7 @@ class UIPopupMenu extends UIComponent {
 
   final List<String>? scrollbarColors;
 
-  UIPopupMenu(Element? parent, Iterable<MenuItem>? entries,
+  UIPopupMenu(super.parent, Iterable<MenuItem>? entries,
       {this.group,
       this.point,
       PopupPosition? popupPosition,
@@ -364,16 +363,14 @@ class UIPopupMenu extends UIComponent {
       this.backgroundBlur,
       this.itemOverBgColor,
       this.scrollbarColors,
-      dynamic classes,
-      dynamic style})
+      super.classes,
+      super.style})
       : popupPosition = popupPosition ?? PopupPosition.below,
         targetElement = ElementProvider.from(targetElement),
-        super(parent,
+        super(
             componentClass: 'ui-popup-menu',
             componentStyle:
-                'max-height: 80vh; max-width: 80vw; overflow: auto; scrollbar-color: auto;',
-            classes: classes,
-            style: style) {
+                'max-height: 80vh; max-width: 80vw; overflow: auto; scrollbar-color: auto;') {
     this.entries = (entries ?? <MenuItem>[]).toList();
 
     removeEmptyEntries(scrollbarColors);

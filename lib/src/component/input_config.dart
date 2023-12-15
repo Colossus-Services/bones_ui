@@ -477,7 +477,7 @@ class UIInputTable extends UIComponent {
   final String? inputErrorClass;
   final String? invalidValueClass;
 
-  UIInputTable(Element? parent, this._inputs,
+  UIInputTable(super.parent, this._inputs,
       {List? extraRows,
       this.actionListenerComponent,
       this.actionListener,
@@ -486,8 +486,8 @@ class UIInputTable extends UIComponent {
       this.invalidValueClass,
       this.showLabels = true,
       this.showInvalidMessages = true,
-      dynamic classes,
-      dynamic style,
+      super.classes,
+      super.style,
       dynamic tableClasses,
       String? tableStyle,
       dynamic inputsClasses})
@@ -497,8 +497,7 @@ class UIInputTable extends UIComponent {
         _tableClasses = UIComponent.parseClasses(tableClasses),
         _tableStyle = tableStyle?.trim(),
         _inputsClasses = UIComponent.parseClasses(inputsClasses),
-        super(parent,
-            componentClass: 'ui-infos-table', classes: classes, style: style);
+        super(componentClass: 'ui-infos-table');
 
   InputConfig? getInputConfig(String fieldName) =>
       _inputs.firstWhereOrNull((e) => e.fieldName == fieldName);

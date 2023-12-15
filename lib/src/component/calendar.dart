@@ -62,7 +62,7 @@ class UICalendarPopup extends UIComponent
   late final UICalendar _calendar;
   late final UIButton _button;
 
-  UICalendarPopup(Element? parent,
+  UICalendarPopup(super.parent,
       {String? buttonText,
       String? fieldName,
       DateTime? currentDate,
@@ -73,8 +73,7 @@ class UICalendarPopup extends UIComponent
       double backgroundAlpha = 0.80,
       int? backgroundBlur})
       : fieldName = fieldName ?? 'calendar',
-        _buttonText = buttonText,
-        super(parent) {
+        _buttonText = buttonText {
     _calendar = UICalendar(
       null,
       fieldName: fieldName,
@@ -178,7 +177,7 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
 
   Set<CalendarMode> _allowedModes;
 
-  UICalendar(Element? parent,
+  UICalendar(super.parent,
       {String? fieldName,
       List<CalendarEvent>? events,
       CalendarMode mode = CalendarMode.week,
@@ -192,8 +191,7 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
         timeInterval = timeInterval ?? 60,
         _currentDate = currentDate ?? today(),
         firstDayOfWeek = firstDayOfWeek ?? _getFirstDayOfWeek(),
-        _allowedModes = (allowedModes ?? CalendarMode.values).toSet(),
-        super(parent);
+        _allowedModes = (allowedModes ?? CalendarMode.values).toSet();
 
   Set<CalendarMode> get allowedModes =>
       UnmodifiableSetView<CalendarMode>(_allowedModes);

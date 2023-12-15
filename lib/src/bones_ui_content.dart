@@ -9,17 +9,12 @@ abstract class UIContent extends UIComponent {
   /// Optional top margin (in px) for the content.
   int topMargin;
 
-  UIContent(Element? parent,
+  UIContent(super.parent,
       {this.topMargin = 0,
-      dynamic classes,
-      dynamic classes2,
-      bool inline = true,
-      bool renderOnConstruction = false})
-      : super(parent,
-            classes: classes,
-            classes2: classes2,
-            inline: inline,
-            renderOnConstruction: renderOnConstruction);
+      super.classes,
+      super.classes2,
+      super.inline,
+      super.renderOnConstruction});
 
   @override
   List render() {

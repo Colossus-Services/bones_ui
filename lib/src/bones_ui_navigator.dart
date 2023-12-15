@@ -700,29 +700,21 @@ abstract class UINavigableComponent extends UIComponent {
 
   Map<String, String>? _currentRouteParameters;
 
-  UINavigableComponent(Element? parent, Iterable<String> routes,
+  UINavigableComponent(super.parent, Iterable<String> routes,
       {dynamic componentClass,
       dynamic componentStyle,
-      dynamic classes,
-      dynamic classes2,
-      dynamic style,
-      dynamic style2,
-      dynamic id,
-      bool inline = true,
+      super.classes,
+      super.classes2,
+      super.style,
+      super.style2,
+      super.id,
+      super.inline,
       bool renderOnConstruction = false})
       : _routes = routes.toList(),
-        super(parent,
-            componentClass: [
-              UINavigableComponent.componentClass,
-              componentClass
-            ],
-            classes: classes,
-            classes2: classes2,
-            style: style,
-            style2: style2,
-            id: id,
-            inline: inline,
-            renderOnConstruction: renderOnConstruction) {
+        super(componentClass: [
+          UINavigableComponent.componentClass,
+          componentClass
+        ], renderOnConstruction: renderOnConstruction) {
     _normalizeRoutes();
 
     if (findRoutes!) updateRoutes();
@@ -938,21 +930,14 @@ abstract class UINavigableContent extends UINavigableComponent {
   /// Optional top margin (in px) for the content.
   int topMargin;
 
-  UINavigableContent(Element? parent, List<String> routes,
+  UINavigableContent(super.parent, List<String> super.routes,
       {this.topMargin = 0,
-      dynamic classes,
-      dynamic classes2,
-      dynamic style,
-      dynamic style2,
-      bool inline = true,
-      bool renderOnConstruction = false})
-      : super(parent, routes,
-            classes: classes,
-            classes2: classes2,
-            style: style,
-            style2: style2,
-            inline: inline,
-            renderOnConstruction: renderOnConstruction);
+      super.classes,
+      super.classes2,
+      super.style,
+      super.style2,
+      super.inline,
+      super.renderOnConstruction});
 
   @override
   dynamic render() {

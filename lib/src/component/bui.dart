@@ -630,13 +630,12 @@ class BUIViewProvider extends BUIViewProviderBase {
   final Map<String, BUIView> footers = {};
   final Map<String?, BUIView> views = {};
 
-  BUIViewProvider(String? name,
-      {DataAssets? dataAssets,
+  BUIViewProvider(super.name,
+      {super.dataAssets,
       this.navbar,
       Iterable<BUIView>? headers,
       Iterable<BUIView>? footers,
-      Iterable<BUIView>? views})
-      : super(name, dataAssets: dataAssets) {
+      Iterable<BUIView>? views}) {
     this.headers.addAll(BUIView.toViewsMap(headers));
     this.footers.addAll(BUIView.toViewsMap(footers));
     this.views.addAll(BUIView.toViewsMap(views));

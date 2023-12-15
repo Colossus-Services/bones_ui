@@ -90,8 +90,7 @@ mixin DefaultTemplate {
 }
 
 class MyCommandInfo extends CommandInfo with DefaultTemplate {
-  MyCommandInfo(String cliTitle, ConsolePrinter consolePrinter)
-      : super(cliTitle, consolePrinter);
+  MyCommandInfo(super.cliTitle, super.consolePrinter);
 
   @override
   String get usage => usageWithDefaultTemplate(super.usage);
@@ -101,8 +100,7 @@ class MyCommandInfo extends CommandInfo with DefaultTemplate {
 }
 
 class MyCommandCreate extends CommandCreate with DefaultTemplate {
-  MyCommandCreate(String cliTitle, ConsolePrinter consolePrinter)
-      : super(cliTitle, consolePrinter);
+  MyCommandCreate(super.cliTitle, super.consolePrinter);
 
   @override
   String get usage => usageWithDefaultTemplate(super.usage);

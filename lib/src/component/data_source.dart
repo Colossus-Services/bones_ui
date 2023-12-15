@@ -28,9 +28,9 @@ class UIDataSource extends UIComponent {
     UIComponent.registerGenerator(generator);
   }
 
-  UIDataSource(Element? parent, dynamic dataSource)
+  UIDataSource(super.parent, dynamic dataSource)
       : _dataSource = DataSourceHttp.from(dataSource),
-        super(parent, componentClass: 'ui-data-source');
+        super(componentClass: 'ui-data-source');
 
   @override
   Element createContentElement(bool inline) {
