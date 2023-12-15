@@ -16,25 +16,18 @@ import 'loading.dart';
 abstract class UIButtonBase extends UIComponent {
   static final eventClick = 'CLICK';
 
-  UIButtonBase(Element? parent,
+  UIButtonBase(super.parent,
       {String? navigate,
       Map<String, String>? navigateParameters,
       ParametersProvider? navigateParametersProvider,
-      dynamic classes,
-      dynamic classes2,
+      super.classes,
+      super.classes2,
       dynamic componentClass,
-      dynamic style,
-      dynamic style2,
-      dynamic componentStyle,
-      UIComponentGenerator? generator})
-      : super(parent,
-            classes: classes,
-            classes2: classes2,
-            componentClass: ['ui-button', componentClass],
-            style: style,
-            style2: style2,
-            componentStyle: componentStyle,
-            generator: generator) {
+      super.style,
+      super.style2,
+      super.componentStyle,
+      super.generator})
+      : super(componentClass: ['ui-button', componentClass]) {
     registerClickListener(onClickEvent);
 
     if (navigate != null) {
@@ -195,32 +188,23 @@ class UIButton extends UIButtonBase {
   /// Font size of the button.
   String? _fontSize;
 
-  UIButton(Element? parent, Object? buttonContent,
-      {String? navigate,
-      Map<String, String>? navigateParameters,
-      ParametersProvider? navigateParametersProvider,
-      dynamic classes,
-      dynamic classes2,
+  UIButton(super.parent, Object? buttonContent,
+      {super.navigate,
+      super.navigateParameters,
+      super.navigateParametersProvider,
+      super.classes,
+      super.classes2,
       dynamic componentClass,
-      dynamic style,
-      dynamic style2,
+      super.style,
+      super.style2,
       bool small = false,
       String? fontSize})
       : _buttonContent = buttonContent,
         _fontSize = fontSize,
-        super(parent,
-            navigate: navigate,
-            navigateParameters: navigateParameters,
-            navigateParametersProvider: navigateParametersProvider,
-            classes: classes,
-            classes2: classes2,
-            componentClass: [
-              small ? 'ui-button-small' : 'ui-button',
-              componentClass
-            ],
-            style: style,
-            style2: style2,
-            generator: generator);
+        super(componentClass: [
+          small ? 'ui-button-small' : 'ui-button',
+          componentClass
+        ], generator: generator);
 
   /// The [buttonContent] as text.
   String? get text => resolveToText(_buttonContent);
@@ -381,7 +365,7 @@ class UIButtonLoader extends UIButtonBase {
   final bool withProgress;
 
   UIButtonLoader(
-    Element? parent,
+    super.parent,
     Object? buttonContent, {
     this.loadingConfig,
     dynamic loadedTextOK,
@@ -390,15 +374,15 @@ class UIButtonLoader extends UIButtonBase {
     dynamic loadedTextClass,
     dynamic loadedTextErrorStyle,
     dynamic loadedTextErrorClass,
-    String? navigate,
-    Map<String, String>? navigateParameters,
-    ParametersProvider? navigateParametersProvider,
-    dynamic classes,
-    dynamic classes2,
+    super.navigate,
+    super.navigateParameters,
+    super.navigateParametersProvider,
+    super.classes,
+    super.classes2,
     dynamic componentClass,
     dynamic buttonClasses,
-    dynamic style,
-    dynamic style2,
+    super.style,
+    super.style2,
     dynamic buttonStyle,
     bool? withProgress,
   })  : _loadedTextOK = TextProvider.from(loadedTextOK),
@@ -411,15 +395,8 @@ class UIButtonLoader extends UIButtonBase {
         _buttonStyle = TextProvider.from(buttonStyle),
         withProgress = withProgress ?? false,
         _buttonContent = buttonContent,
-        super(parent,
-            navigate: navigate,
-            navigateParameters: navigateParameters,
-            navigateParametersProvider: navigateParametersProvider,
-            classes: classes,
-            classes2: classes2,
+        super(
             componentClass: ['ui-button-loader', componentClass],
-            style: style,
-            style2: style2,
             generator: generator);
 
   /// The [buttonContent] as text.

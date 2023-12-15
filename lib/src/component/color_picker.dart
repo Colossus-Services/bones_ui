@@ -18,7 +18,7 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
 
   final int _pickerHeight;
 
-  UIColorPickerInput(Element? parent,
+  UIColorPickerInput(super.parent,
       {this.placeholder,
       String? fieldName,
       String? value = '',
@@ -27,8 +27,7 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
       : fieldName = fieldName ?? 'color-picker',
         _initialValue = value ?? '',
         _pickerWidth = pickerWidth,
-        _pickerHeight = pickerHeight,
-        super(parent);
+        _pickerHeight = pickerHeight;
 
   @override
   String getFieldValue() => _input?.value ?? '';
@@ -198,9 +197,9 @@ class UIColorPicker extends UIComponent {
 
   int pointSize;
 
-  UIColorPicker(Element? parent,
+  UIColorPicker(super.parent,
       {Color? color, this.width = 200, this.height = 200, this.pointSize = 6})
-      : super(parent, componentClass: 'ui-color-picker') {
+      : super(componentClass: 'ui-color-picker') {
     this.color = color ?? Color.BLUE;
   }
 

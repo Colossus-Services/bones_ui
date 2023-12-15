@@ -10,7 +10,7 @@ void main() async {
 
 // `Bones_UI` root.
 class MyRoot extends UIRoot {
-  MyRoot(Element? rootContainer) : super(rootContainer);
+  MyRoot(super.rootContainer);
 
   MyMenu? _menu;
   MyFooter? _footer;
@@ -38,7 +38,7 @@ class MyRoot extends UIRoot {
 
 // Top menu.
 class MyMenu extends UIComponent {
-  MyMenu(Element? parent) : super(parent);
+  MyMenu(super.parent);
 
   // Renders a fixed top menu with sections 'home' and 'help'.
   @override
@@ -61,7 +61,7 @@ class MyMenu extends UIComponent {
 
 // Footer
 class MyFooter extends UIComponent {
-  MyFooter(Element? parent) : super(parent);
+  MyFooter(super.parent);
 
   // Renders a fixed top menu with sections 'home' and 'help'.
   @override
@@ -99,7 +99,7 @@ class MyNavigable extends UINavigableComponent {
 
 // The `home` route.
 class MyHome extends UIComponent {
-  MyHome(Element? parent) : super(parent);
+  MyHome(super.parent);
 
   @override
   dynamic render() {
@@ -120,7 +120,7 @@ class MyHome extends UIComponent {
 
 // The `help` route.
 class MyHelp extends UIComponent {
-  MyHelp(Element? parent) : super(parent);
+  MyHelp(super.parent);
 
   @override
   dynamic render() {
@@ -151,7 +151,7 @@ class MyHelp extends UIComponent {
 
 // The `components` route.
 class MyComponents extends UIComponent {
-  MyComponents(Element? parent) : super(parent);
+  MyComponents(super.parent);
 
   @override
   dynamic render() {

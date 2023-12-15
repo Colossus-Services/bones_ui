@@ -24,14 +24,14 @@ void main() {
 }
 
 class MyRoot extends UIRoot {
-  MyRoot(Element? rootContainer) : super(rootContainer);
+  MyRoot(super.rootContainer);
 
   @override
   UIComponent? renderContent() => MyHome(content!);
 }
 
 class MyHome extends UIComponent {
-  MyHome(Element? parent) : super(parent, id: 'my-home');
+  MyHome(super.parent) : super(id: 'my-home');
 
   @override
   render() => '<h1>Home</h1><p> Hello world!';

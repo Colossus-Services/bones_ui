@@ -70,12 +70,12 @@ class UIClipImage extends UIComponent {
 
   String color;
 
-  UIClipImage(Element container, this._img,
+  UIClipImage(Element super.container, this._img,
       {this.imgWidth = 0,
       this.imgHeight = 0,
       this.color = '#00ff00',
       dynamic classes})
-      : super(container, classes: 'ui-dialog', classes2: classes);
+      : super(classes: 'ui-dialog', classes2: classes);
 
   @override
   void configure() {

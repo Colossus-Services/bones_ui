@@ -38,19 +38,18 @@ abstract class UIRoot extends UIComponent {
 
   final String? name;
 
-  UIRoot(Element? rootContainer,
+  UIRoot(super.rootContainer,
       {this.name,
       dynamic style,
       dynamic classes,
-      UIComponentClearParent clearParent =
+      UIComponentClearParent super.clearParent =
           UIComponentClearParent.onInitialRender,
       this.readyTimeout = const Duration(seconds: 15)})
-      : super(rootContainer,
+      : super(
             style: style,
             classes: classes,
             componentClass: 'ui-root',
-            construct: false,
-            clearParent: clearParent) {
+            construct: false) {
     _initializeAll();
 
     final componentInternals = this.componentInternals;

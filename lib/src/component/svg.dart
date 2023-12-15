@@ -128,16 +128,16 @@ class UISVG extends UIComponent {
   /// Color to render the SVG.
   String? color;
 
-  UISVG(Element? parent,
+  UISVG(super.parent,
       {this.src,
       this.svgContent,
       this.width = '20px',
       this.height = '20px',
       this.title,
       this.color,
-      String? classes,
-      String? style})
-      : super(parent, componentClass: 'ui-svg', classes: classes, style: style);
+      String? super.classes,
+      String? super.style})
+      : super(componentClass: 'ui-svg');
 
   CSSLength? get widthAsCSSLength => CSSLength.parse(width);
 

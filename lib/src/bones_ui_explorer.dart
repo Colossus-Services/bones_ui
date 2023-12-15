@@ -471,14 +471,13 @@ class _UIExplorerCatalog extends UIComponent {
   final MapProperties _documentListing;
 
   _UIExplorerCatalog(
-      UIElement? parent,
+      super.parent,
       this.documentInputConfig,
       this._documentViewer,
       this._documentPreview,
       this._documentStorage,
-      this._documentListing,
-      {dynamic classes})
-      : super(parent, classes: classes, renderOnConstruction: false);
+      this._documentListing)
+      : super(renderOnConstruction: false);
 
   @override
   dynamic render() {

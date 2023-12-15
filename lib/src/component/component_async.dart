@@ -1,11 +1,9 @@
 import 'dart:async';
-import 'dart:html';
 
 import 'package:swiss_knife/swiss_knife.dart';
 
 import '../bones_ui_async_content.dart';
 import '../bones_ui_component.dart';
-import '../bones_ui_generator.dart';
 
 typedef RenderPropertiesProvider = Map<String, dynamic> Function();
 typedef RenderAsync = Future<dynamic>? Function(
@@ -53,29 +51,20 @@ class UIComponentAsync extends UIComponent {
   /// [loadingContent] Content to show while loading.
   /// [errorContent] Content to show on error.
   /// [refreshInterval] Refresh interval [Duration].
-  UIComponentAsync(Element? parent, this._renderPropertiesProvider,
+  UIComponentAsync(super.parent, this._renderPropertiesProvider,
       this._renderAsync, this.loadingContent, this.errorContent,
       {this.refreshInterval,
       this.cacheRenderAsync = true,
-      dynamic componentClass,
-      dynamic componentStyle,
-      dynamic classes,
-      dynamic classes2,
-      dynamic style,
-      dynamic style2,
-      dynamic id,
-      UIComponentGenerator? generator,
+      super.componentClass,
+      super.componentStyle,
+      super.classes,
+      super.classes2,
+      super.style,
+      super.style2,
+      super.id,
+      super.generator,
       bool renderOnConstruction = false})
-      : super(parent,
-            componentClass: componentClass,
-            componentStyle: componentStyle,
-            classes: classes,
-            classes2: classes2,
-            style: style,
-            style2: style2,
-            id: id,
-            generator: generator,
-            renderOnConstruction: false) {
+      : super(renderOnConstruction: false) {
     _renderPropertiesProvider ??= renderPropertiesProvider;
     _renderAsync ??= renderAsync;
 

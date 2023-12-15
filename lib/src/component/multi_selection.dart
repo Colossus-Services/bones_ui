@@ -63,7 +63,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
   final EventStream<UIMultiSelection> onSelect = EventStream();
 
-  UIMultiSelection(Element? parent, Map? options,
+  UIMultiSelection(super.parent, Map? options,
       {this.fieldName = 'multi-selection',
       this.multiSelection = true,
       List? selections,
@@ -72,14 +72,12 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       this.separator = ' ; ',
       this.autoInputFontShrink = true,
       Duration? selectionMaxDelay,
-      dynamic classes,
-      dynamic style})
+      super.classes,
+      super.style})
       : _options = options ?? {},
         _initialSelections = selections ?? [],
-        super(parent,
+        super(
             componentClass: 'ui-multi-selection',
-            classes: classes,
-            style: style,
             renderOnConstruction: false,
             generator: generator) {
     _optionsPanelInteractionCompleter = InteractionCompleter('optionsPanel',

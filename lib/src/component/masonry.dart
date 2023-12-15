@@ -110,7 +110,7 @@ class UIMasonry extends UIComponent {
   late CachedComputation<int, Parameters2<List<int?>, double?>,
       Parameters2<List<int>, double>> _computeGCDCache;
 
-  UIMasonry(Element? parent, Iterable<MasonryItem> items,
+  UIMasonry(super.parent, Iterable<MasonryItem> items,
       {int? masonryWidthSize,
       int? masonryHeightSize,
       int? itemsMargin,
@@ -118,11 +118,10 @@ class UIMasonry extends UIComponent {
       String? width,
       String? height,
       this.scrollbarColors,
-      dynamic classes,
-      dynamic style})
+      super.classes,
+      super.style})
       : items = List<MasonryItem>.from(items),
-        super(parent,
-            componentClass: 'ui-masonry', classes: classes, style: style) {
+        super(componentClass: 'ui-masonry') {
     this.width = width;
     this.height = height;
     this.itemsMargin = itemsMargin;
@@ -739,9 +738,8 @@ class _MasonryRenderGroup extends _MasonryRenderable {
   final int maxWidth;
 
   _MasonryRenderGroup(
-      UIMasonry masonry, List<_MasonryRenderable> items, this.maxWidth)
-      : _items = items,
-        super(masonry);
+      super.masonry, List<_MasonryRenderable> items, this.maxWidth)
+      : _items = items;
 
   List<_MasonryRenderable> get items => _items.toList();
 
@@ -947,7 +945,7 @@ class _MasonryRenderItem extends _MasonryRenderable {
   final int id;
   final MasonryItem item;
 
-  _MasonryRenderItem(UIMasonry masonry, this.id, this.item) : super(masonry);
+  _MasonryRenderItem(super.masonry, this.id, this.item);
 
   int? _masonryWidth;
 
