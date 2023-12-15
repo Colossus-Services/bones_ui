@@ -1,3 +1,11 @@
+## 2.4.0
+
+- New `bones_ui_web.dart`:
+  - Avoid imports to `dart:html` in preparation to use of `dart:web` or other alternatives.
+  - New typedef `UINode` and `UIElement`.
+- `UIComponent`:
+  - `toContentElements`: changed to named parameters.
+
 ## 2.3.3
 
 - `UIComponent`:

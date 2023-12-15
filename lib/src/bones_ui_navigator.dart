@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:html';
 
 import 'package:collection/collection.dart';
 import 'package:swiss_knife/swiss_knife.dart';
@@ -8,6 +7,7 @@ import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_root.dart';
+import 'bones_ui_web.dart';
 
 /// Handles navigation and routes.
 class UINavigator {
@@ -19,9 +19,9 @@ class UINavigator {
   }
 
   UINavigator._() {
-    window.onHashChange.listen((e) => _onChangeRoute(e as HashChangeEvent));
+    navigationOnChangeRoute(_onChangeRoute);
 
-    var href = window.location.href;
+    var href = navigationURL();
     var url = Uri.parse(href);
 
     var routeFragment = _parseRouteFragment(url);
@@ -37,7 +37,7 @@ class UINavigator {
   }
 
   /// Returns [true] if this device is online.
-  static bool get isOnline => window.navigator.onLine ?? false;
+  static bool get isOnline => navigationIsOnline();
 
   /// Returns [true] if this device is off-line.
   static bool get isOffline => !isOnline;
@@ -47,17 +47,19 @@ class UINavigator {
   /// See: [https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts]
   static bool get isSecureContext {
     try {
-      return window.isSecureContext ?? false;
+      return navigationIsSecureContext();
     } catch (e, s) {
       logger.error('Error calling `window.isSecureContext`', e, s);
       return false;
     }
   }
 
-  void _onChangeRoute(HashChangeEvent event) {
-    var uri = Uri.parse(event.newUrl!);
-    UIConsole.log(
-        'UINavigator._onChangeRoute: new: $uri > previous: ${event.oldUrl}');
+  void _onChangeRoute(String? oldURL, String? newUrl) {
+    if (newUrl == null) return;
+
+    var uri = Uri.parse(newUrl);
+    UIConsole.log('UINavigator._onChangeRoute: new: $uri > previous: $oldURL');
+
     _navigateToFromURL(uri);
   }
 
@@ -414,7 +416,7 @@ class UINavigator {
 
     if (routeQueryString.isNotEmpty) fragment += '?$routeQueryString';
 
-    var locationUrl = window.location.href;
+    var locationUrl = navigationURL();
     var locationUrl2 = locationUrl.contains('#')
         ? locationUrl.replaceFirst(RegExp(r'#.*'), fragment)
         : '$locationUrl$fragment';
@@ -425,7 +427,7 @@ class UINavigator {
     }
 
     if (!fromURL) {
-      window.history.pushState({}, routeTitle, locationUrl2);
+      navigationHistoryPush(routeTitle, locationUrl2);
     }
 
     clearDetachedNavigables();
@@ -493,14 +495,14 @@ class UINavigator {
   /// Returns [List<Element>] that are from navigable components.
   ///
   /// [element] If null uses [document] to select sub elements.
-  List<Element> selectNavigables([Element? element]) {
+  List<UIElement> selectNavigables([UIElement? element]) {
     return element != null
         ? element.querySelectorAll(_navigableComponentSelector)
-        : document.querySelectorAll(_navigableComponentSelector);
+        : documentQuerySelectorAll(_navigableComponentSelector);
   }
 
   /// Find in [element] tree nodes with attribute `navigate`.
-  List<String> findElementNavigableRoutes(Element? element) {
+  List<String> findElementNavigableRoutes(UIElement? element) {
     // ignore: omit_local_variable_types
     List<String> routes = [];
 
@@ -510,7 +512,7 @@ class UINavigator {
   }
 
   void _findElementNavigableRoutes(
-      List<Element> elements, List<String> routes) {
+      List<UIElement> elements, List<String> routes) {
     for (var elem in elements) {
       var navigateRoute = elem.getAttribute('navigate');
       if (navigateRoute != null &&
@@ -543,7 +545,7 @@ class UINavigator {
 
   /// Register a `onClick` listener in [element] to navigate to [route]
   /// with [parameters].
-  static StreamSubscription? navigateOnClick(Element element, String? route,
+  static StreamSubscription? navigateOnClick(UIElement element, String? route,
       [Map<String, String>? parameters,
       ParametersProvider? parametersProvider,
       bool force = false]) {
@@ -585,7 +587,7 @@ class UINavigator {
     return null;
   }
 
-  static bool clearNavigateOnClick(Element element) {
+  static bool clearNavigateOnClick(UIElement element) {
     var attrRoute = element.getAttribute('__navigate__route');
     element.removeAttribute('__navigate__route');
     element.removeAttribute('__navigate__parameters');
@@ -601,7 +603,7 @@ class UINavigator {
   }
 
   /// Returns the current `navigate` property of [element].
-  static String? getNavigateOnClick(Element element) {
+  static String? getNavigateOnClick(UIElement element) {
     var attrRoute = element.getAttribute('__navigate__route');
 
     if (isNotEmptyObject(attrRoute)) {
@@ -700,7 +702,7 @@ abstract class UINavigableComponent extends UIComponent {
 
   Map<String, String>? _currentRouteParameters;
 
-  UINavigableComponent(Element? parent, Iterable<String> routes,
+  UINavigableComponent(UIElement? parent, Iterable<String> routes,
       {dynamic componentClass,
       dynamic componentStyle,
       dynamic classes,
@@ -775,7 +777,7 @@ abstract class UINavigableComponent extends UIComponent {
 
     this.findRoutes = findRoutes;
 
-    UIConsole.log('_normalizeRoutes: $_routes -> $routesOk');
+    // UIConsole.log('_normalizeRoutes: $_routes -> $routesOk');
 
     _routes = routesOk;
   }
@@ -938,7 +940,7 @@ abstract class UINavigableContent extends UINavigableComponent {
   /// Optional top margin (in px) for the content.
   int topMargin;
 
-  UINavigableContent(Element? parent, List<String> routes,
+  UINavigableContent(UIElement? parent, List<String> routes,
       {this.topMargin = 0,
       dynamic classes,
       dynamic classes2,
@@ -960,7 +962,7 @@ abstract class UINavigableContent extends UINavigableComponent {
     List allRendered = [];
 
     if (topMargin > 0) {
-      var divTopMargin = Element.div();
+      var divTopMargin = UIElement.div();
       divTopMargin.style.width = '100%';
       divTopMargin.style.height = '${topMargin}px';
 
