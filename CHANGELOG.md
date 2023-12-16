@@ -4,6 +4,8 @@
   - Avoid imports to `dart:html` in preparation to use of `dart:web` or other alternatives.
   - New typedef `UINode` and `UIElement`.
 - `UIComponent`:
+  - Constructor:
+    - parameter `parent` now accepts `Element` or `UIComponent`.
   - `toContentElements`: changed to named parameters.
 
 ## 2.3.3
