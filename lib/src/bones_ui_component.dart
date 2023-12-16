@@ -85,8 +85,13 @@ abstract class UIComponent extends UIEventHandler {
 
   void _resolveParent(Object? parent) {
     _resolveParentUIComponent(parent);
-    if (_parent == null && parent is UIElement) {
-      _parent = parent;
+
+    if (_parent == null) {
+      if (parent is UIElement) {
+        _parent = parent;
+      } else if (parent is UIComponent) {
+        _parent = parent.content;
+      }
     }
   }
 
@@ -238,11 +243,22 @@ abstract class UIComponent extends UIEventHandler {
   void _setParentUIComponent(UIComponent? uiParent) {
     if (uiParent != null) {
       _parentUIComponent = uiParent;
-      _parent = uiParent.content;
+
+      var parentContent = uiParent.content;
+      if (parentContent != null) {
+        var prevParent = _parent;
+
+        if (prevParent == null) {
+          var content = _content;
+          if (identical(content?.parent, parentContent)) {
+            _parent = parentContent;
+          }
+        }
+      }
+
       _uiRoot = uiParent._uiRoot;
     } else {
       _parentUIComponent = null;
-      _parent = null;
       _uiRoot = null;
     }
   }
