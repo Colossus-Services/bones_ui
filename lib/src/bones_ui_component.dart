@@ -75,11 +75,18 @@ abstract class UIComponent extends UIEventHandler {
       UIComponentGenerator? generator})
       : globalID = ++_globalIDCount,
         _generator = generator {
-    _resolveParentUIComponent(parent);
+    _resolveParent(parent);
 
     if (construct) {
       _construct(preserveRender, inline, classes, classes2, componentClass,
           style, style2, componentStyle, renderOnConstruction);
+    }
+  }
+
+  void _resolveParent(Object? parent) {
+    _resolveParentUIComponent(parent);
+    if (_parent == null && parent is UIElement) {
+      _parent = parent;
     }
   }
 
@@ -107,7 +114,10 @@ abstract class UIComponent extends UIEventHandler {
       assert(_content != null);
 
       if (_parentUIComponent == null && _parent != null) {
-        _setParentUIComponent(_getUIComponentByContent(_parent));
+        var uiParent = _getUIComponentByContent(_parent);
+        if (uiParent != null) {
+          _setParentUIComponent(uiParent);
+        }
       }
 
       registerInUIRoot();
