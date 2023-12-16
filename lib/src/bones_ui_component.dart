@@ -104,7 +104,11 @@ abstract class UIComponent extends UIEventHandler {
         _setContent(createContentElement(inline));
       }
 
-      _setParentUIComponent(_getUIComponentByContent(_parent));
+      assert(_content != null);
+
+      if (_parentUIComponent == null && _parent != null) {
+        _setParentUIComponent(_getUIComponentByContent(_parent));
+      }
 
       registerInUIRoot();
 
@@ -114,9 +118,10 @@ abstract class UIComponent extends UIEventHandler {
       configureStyle(style, style2, componentStyle);
 
       if (clearParent == UIComponentClearParent.onConstruct) {
-        _parent!.nodes.clear();
+        _parent?.nodes.clear();
       }
-      _parent!.append(_content!);
+
+      _parent?.append(_content!);
 
       configure();
 
@@ -167,7 +172,8 @@ abstract class UIComponent extends UIEventHandler {
 
   /// Called by constructor to register this component in the [UIRoot] tree.
   void registerInUIRoot() {
-    UIRoot.getInstance()!.registerUIComponentInTree(this);
+    var uiRoot = this.uiRoot ?? UIRoot.getInstance();
+    uiRoot?.registerUIComponentInTree(this);
   }
 
   /// Called in the beginning of constructor.
@@ -378,14 +384,14 @@ abstract class UIComponent extends UIEventHandler {
     setID(id);
   }
 
-  void setID(dynamic id) {
+  void setID(Object? id) {
     if (id != null) {
       var idStr = parseString(id, '')!.trim();
-      if (id is String) {
-        id = idStr;
-      }
-
       if (idStr.isNotEmpty) {
+        if (id is String) {
+          id = idStr;
+        }
+
         this.id = id;
         _content!.id = idStr;
         return;
@@ -932,10 +938,12 @@ abstract class UIComponent extends UIEventHandler {
       UIRoot.getInstance()?.isAnyComponentRendering ?? false;
 
   static UIComponent? _getUIComponentByContent(UIElement? content) {
+    if (content == null) return null;
     return UIRoot.getInstance()?.getUIComponentByContent(content);
   }
 
   static UIComponent? _getUIComponentByChild(UIElement? content) {
+    if (content == null) return null;
     return UIRoot.getInstance()?.getUIComponentByChild(content);
   }
 
@@ -1063,11 +1071,12 @@ abstract class UIComponent extends UIEventHandler {
 
     var content = this.content;
 
-    if (_parent != null) {
+    final parent = _parent;
+    if (parent != null) {
       if (clearParent == UIComponentClearParent.onRender ||
           (clearParent == UIComponentClearParent.onInitialRender &&
               _renderCount == 1)) {
-        var nodes = List<UINode>.from(_parent!.nodes);
+        var nodes = List<UINode>.from(parent.nodes);
 
         var containsContent = false;
         for (var node in nodes) {
@@ -1079,10 +1088,10 @@ abstract class UIComponent extends UIEventHandler {
         }
 
         if (!containsContent) {
-          _parent!.append(content!);
+          parent.append(content!);
         }
-      } else if (!_parent!.nodes.contains(content)) {
-        _parent!.append(content!);
+      } else if (!parent.nodes.contains(content)) {
+        parent.append(content!);
       }
     }
 
