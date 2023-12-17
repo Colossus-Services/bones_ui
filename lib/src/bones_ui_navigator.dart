@@ -492,7 +492,7 @@ class UINavigator {
   static final String _navigableComponentSelector =
       '.${UINavigableComponent.componentClass}';
 
-  /// Returns [List<Element>] that are from navigable components.
+  /// Returns [List<UIElement>] that are from navigable components.
   ///
   /// [element] If null uses [document] to select sub elements.
   List<UIElement> selectNavigables([UIElement? element]) {

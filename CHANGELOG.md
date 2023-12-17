@@ -3,6 +3,7 @@
 - New `bones_ui_web.dart`:
   - Avoid imports to `dart:html` in preparation to use of `dart:web` or other alternatives.
   - New typedef `UINode` and `UIElement`.
+- Replace usage of `Element` to `UIElement` and `Node` to `UINode`.
 - `UIComponent`:
   - Constructor:
     - parameter `parent` now accepts `Element` or `UIComponent`.
