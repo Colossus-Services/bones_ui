@@ -8,6 +8,7 @@ import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_root.dart';
+import 'bones_ui_web.dart';
 
 /// Handles navigation and routes.
 class UINavigator {
@@ -490,17 +491,17 @@ class UINavigator {
   static final String _navigableComponentSelector =
       '.${UINavigableComponent.componentClass}';
 
-  /// Returns [List<Element>] that are from navigable components.
+  /// Returns [List<UIElement>] that are from navigable components.
   ///
   /// [element] If null uses [document] to select sub elements.
-  List<Element> selectNavigables([Element? element]) {
+  List<UIElement> selectNavigables([UIElement? element]) {
     return element != null
         ? element.querySelectorAll(_navigableComponentSelector)
         : document.querySelectorAll(_navigableComponentSelector);
   }
 
   /// Find in [element] tree nodes with attribute `navigate`.
-  List<String> findElementNavigableRoutes(Element? element) {
+  List<String> findElementNavigableRoutes(UIElement? element) {
     // ignore: omit_local_variable_types
     List<String> routes = [];
 
@@ -510,7 +511,7 @@ class UINavigator {
   }
 
   void _findElementNavigableRoutes(
-      List<Element> elements, List<String> routes) {
+      List<UIElement> elements, List<String> routes) {
     for (var elem in elements) {
       var navigateRoute = elem.getAttribute('navigate');
       if (navigateRoute != null &&
@@ -543,7 +544,7 @@ class UINavigator {
 
   /// Register a `onClick` listener in [element] to navigate to [route]
   /// with [parameters].
-  static StreamSubscription? navigateOnClick(Element element, String? route,
+  static StreamSubscription? navigateOnClick(UIElement element, String? route,
       [Map<String, String>? parameters,
       ParametersProvider? parametersProvider,
       bool force = false]) {
@@ -585,7 +586,7 @@ class UINavigator {
     return null;
   }
 
-  static bool clearNavigateOnClick(Element element) {
+  static bool clearNavigateOnClick(UIElement element) {
     var attrRoute = element.getAttribute('__navigate__route');
     element.removeAttribute('__navigate__route');
     element.removeAttribute('__navigate__parameters');
@@ -601,7 +602,7 @@ class UINavigator {
   }
 
   /// Returns the current `navigate` property of [element].
-  static String? getNavigateOnClick(Element element) {
+  static String? getNavigateOnClick(UIElement element) {
     var attrRoute = element.getAttribute('__navigate__route');
 
     if (isNotEmptyObject(attrRoute)) {

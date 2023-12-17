@@ -6,6 +6,7 @@ import 'package:swiss_knife/swiss_knife.dart';
 
 import '../bones_ui_generator.dart';
 import '../bones_ui_navigator.dart';
+import '../bones_ui_web.dart';
 import 'loading.dart';
 
 class UITemplateElementGenerator extends ElementGeneratorBase {
@@ -22,16 +23,16 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
   @override
   Element generate(
-      DOMGenerator<Node> domGenerator,
-      DOMTreeMap<Node> treeMap,
+      DOMGenerator<UINode> domGenerator,
+      DOMTreeMap<UINode> treeMap,
       String? tag,
       DOMElement? domParent,
-      Node? parent,
+      UINode? parent,
       DOMNode domNode,
       Map<String, DOMAttribute> attributes,
-      Node? contentHolder,
+      UINode? contentHolder,
       List<DOMNode>? contentNodes,
-      DOMContext<Node>? context) {
+      DOMContext<UINode>? context) {
     context ??= domGenerator.domContext;
 
     var domElement = domNode as DOMElement;
@@ -65,12 +66,12 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
   void _generateFromTemplateHTML(
       String html,
-      DOMGenerator<Node> domGenerator,
-      DOMTreeMap<Node> treeMap,
+      DOMGenerator<UINode> domGenerator,
+      DOMTreeMap<UINode> treeMap,
       DOMElement domElement,
       DivElement element,
       Map<String, DOMAttribute> attributes,
-      DOMContext<Node>? domContext) {
+      DOMContext<UINode>? domContext) {
     try {
       var template = DOMTemplate.tryParse(html);
 
@@ -120,9 +121,9 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   }
 
   void _generateElementContentFromTemplate(
-      DOMGenerator<Node> domGenerator,
-      DOMTreeMap<Node> treeMap,
-      DOMContext<Node>? domContext,
+      DOMGenerator<UINode> domGenerator,
+      DOMTreeMap<UINode> treeMap,
+      DOMContext<UINode>? domContext,
       DOMTemplateNode template,
       Map<String, dynamic> variables,
       DOMElement domElement,
@@ -146,8 +147,8 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   }
 
   void _generateElementContentFromHTML(
-      DOMGenerator<Node> domGenerator,
-      DOMTreeMap<Node> treeMap,
+      DOMGenerator<UINode> domGenerator,
+      DOMTreeMap<UINode> treeMap,
       String html,
       DOMElement domElement,
       DivElement element) {
@@ -180,8 +181,8 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   }
 
   Map<String, dynamic> getTemplateVariables(DOMGenerator domGenerator,
-      Map<String, DOMAttribute> attributes, DOMContext<Node>? domContext) {
-    domContext ??= domGenerator.domContext as DOMContext<Node>?;
+      Map<String, DOMAttribute> attributes, DOMContext<UINode>? domContext) {
+    domContext ??= domGenerator.domContext as DOMContext<UINode>?;
     if (domContext == null) return {};
 
     var variables = domContext.variables;
@@ -291,13 +292,13 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   }
 
   @override
-  bool isGeneratedElement(Node element) {
+  bool isGeneratedElement(UINode element) {
     return element is DivElement && element.classes.contains(tag);
   }
 
   @override
   DOMElement? revert(DOMGenerator domGenerator, DOMTreeMap? treeMap,
-      DOMElement? domParent, Node? parent, Node? node) {
+      DOMElement? domParent, UINode? parent, UINode? node) {
     if (node is DivElement) {
       var domElement =
           $tag(tag, classes: node.classes.join(' '), style: node.style.cssText);

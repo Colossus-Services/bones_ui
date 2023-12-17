@@ -4,6 +4,8 @@ import 'dart:html';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:logging/logging.dart' as logging;
 
+import 'bones_ui_web.dart';
+
 StreamSubscription<logging.LogRecord>? _loggingListenSubscription;
 
 void _logToConsole() {
@@ -365,31 +367,31 @@ class UIConsole {
 
     var consoleButtons = DivElement();
 
-    var buttonClose = Element.span()..text = '[X]';
+    var buttonClose = UIElement.span()..text = '[X]';
     buttonClose.style.cursor = 'pointer';
     buttonClose.onClick.listen((m) => hide());
 
-    var buttonCopy = Element.span()..text = '[Copy All]';
+    var buttonCopy = UIElement.span()..text = '[Copy All]';
     buttonCopy.style.cursor = 'pointer';
     buttonCopy.onClick.listen((m) => copy());
 
-    var buttonZoomIn = Element.span()..text = '[ + ]';
+    var buttonZoomIn = UIElement.span()..text = '[ + ]';
     buttonZoomIn.style.cursor = 'zoom-in';
 
-    var buttonZoomOut = Element.span()..text = '[ - ]';
+    var buttonZoomOut = UIElement.span()..text = '[ - ]';
     buttonZoomOut.style.cursor = 'zoom-out';
 
-    var buttonClear = Element.span()..text = '[Clear]';
+    var buttonClear = UIElement.span()..text = '[Clear]';
     buttonClear.style.cursor = 'pointer';
 
     consoleButtons.children.add(buttonClose);
-    consoleButtons.children.add(Element.span()..innerHtml = '&nbsp;&nbsp;');
+    consoleButtons.children.add(UIElement.span()..innerHtml = '&nbsp;&nbsp;');
     consoleButtons.children.add(buttonCopy);
-    consoleButtons.children.add(Element.span()..innerHtml = '&nbsp;&nbsp;');
+    consoleButtons.children.add(UIElement.span()..innerHtml = '&nbsp;&nbsp;');
     consoleButtons.children.add(buttonZoomIn);
-    consoleButtons.children.add(Element.span()..innerHtml = '&nbsp;&nbsp;');
+    consoleButtons.children.add(UIElement.span()..innerHtml = '&nbsp;&nbsp;');
     consoleButtons.children.add(buttonZoomOut);
-    consoleButtons.children.add(Element.span()..innerHtml = '&nbsp;&nbsp;');
+    consoleButtons.children.add(UIElement.span()..innerHtml = '&nbsp;&nbsp;');
     consoleButtons.children.add(buttonClear);
 
     var consoleText = DivElement();
@@ -472,7 +474,7 @@ class UIConsole {
     }
   }
 
-  void _copyElementToClipboard(Element elem) {
+  void _copyElementToClipboard(UIElement elem) {
     var selection = window.getSelection()!;
     var range = document.createRange();
 

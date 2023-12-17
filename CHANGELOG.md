@@ -1,3 +1,9 @@
+##
+
+- New `bones_ui_web.dart`:
+  - New  `UIElement` and `UINode`.
+- Replace usage of `Element` to `UIElement` and `Node` to `UINode`.
+
 ## 2.3.3
 
 - `UIComponent`:

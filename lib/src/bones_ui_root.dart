@@ -12,6 +12,7 @@ import 'bones_ui_component.dart';
 import 'bones_ui_document.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_navigator.dart';
+import 'bones_ui_web.dart';
 import 'component/button.dart';
 import 'component/data_source.dart';
 import 'component/dialog.dart';
@@ -109,7 +110,7 @@ abstract class UIRoot extends UIComponent {
       .where((e) => e.value.isRendering)
       .isNotEmpty;
 
-  UIComponent? getUIComponentByContent(Element? uiComponentContent,
+  UIComponent? getUIComponentByContent(UIElement? uiComponentContent,
       {bool includePurgedEntries = false}) {
     if (uiComponentContent == null) return null;
     if (includePurgedEntries) {
@@ -119,13 +120,13 @@ abstract class UIRoot extends UIComponent {
     }
   }
 
-  UIComponent? getUIComponentByChild(Element? child,
+  UIComponent? getUIComponentByChild(UIElement? child,
       {bool includePurgedEntries = false}) {
     return _uiComponentsTree.getParentValue(child,
         includePurgedEntries: includePurgedEntries);
   }
 
-  List<UIComponent>? getSubUIComponentsByElement(Element? element,
+  List<UIComponent>? getSubUIComponentsByElement(UIElement? element,
       {bool includePurgedEntries = false}) {
     if (element == null ||
         (!_uiComponentsTree.isInTree(element) && !(includePurgedEntries))) {
@@ -330,7 +331,7 @@ abstract class UIRoot extends UIComponent {
   /// Called to render the UI when it's closed.
   /// - See [isClosed] and [close].
   /// - If you implement this method do not remove [content] from parent when closing this [UIRoot].
-  Element? renderClosed() => null;
+  UIElement? renderClosed() => null;
 
   /// [EventStream] for when this [UIRoot] is closed.
   final EventStream<UIRoot> onClose = EventStream();

@@ -4,6 +4,7 @@ import 'package:collection/collection.dart' show IterableExtension;
 import 'package:expressions/expressions.dart';
 
 import 'bones_ui_component.dart';
+import 'bones_ui_web.dart';
 
 typedef ElementProvider = dynamic Function(String id, bool all);
 typedef ElementPropertyResolver = dynamic Function(
@@ -74,7 +75,7 @@ class ElementExpression extends SimpleExpression {
   }
 }
 
-typedef ValueFromElement = String Function(Element elem);
+typedef ValueFromElement = String Function(UIElement elem);
 typedef ElementCoordsValue = String Function(
     int parentWidth, int parentHeight, int width, int height);
 typedef ElementPercentageValue = String Function(
@@ -504,7 +505,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 class UILayout {
   final UIComponent parent;
 
-  final Element element;
+  final UIElement element;
 
   final String layout;
 
@@ -532,7 +533,7 @@ class UILayout {
   dynamic _getElementProperty(dynamic elem, String? property) {
     if (property == null) return null;
 
-    if (elem is Element) {
+    if (elem is UIElement) {
       property = property.toLowerCase();
 
       if (property == 'x') {
@@ -556,20 +557,20 @@ class UILayout {
     }
   }
 
-  int _getElementIndex(Element elem) {
+  int _getElementIndex(UIElement elem) {
     var idx = elem.parent!.children.indexOf(elem);
     return idx;
   }
 
-  int _getElementIndexByID(Element elem) {
+  int _getElementIndexByID(UIElement elem) {
     var elemID = elem.id;
-    List<Element> elemsSameID = elem.parent!.querySelectorAll('#$elemID');
+    List<UIElement> elemsSameID = elem.parent!.querySelectorAll('#$elemID');
     if (elemsSameID.isEmpty) return -1;
     var idx = elemsSameID.indexOf(elem);
     return idx;
   }
 
-  Map<String, int> _getElementCenter(Element elem) {
+  Map<String, int> _getElementCenter(UIElement elem) {
     var x = elem.offsetLeft;
     var y = elem.offsetTop;
     var w = elem.offsetWidth;
@@ -594,7 +595,7 @@ class UILayout {
     refreshAll();
   }
 
-  static final Map<Element, UILayout> _instances = {};
+  static final Map<UIElement, UILayout> _instances = {};
 
   static void refreshAll() {
     //UIConsole.log("UILayout.refreshAll()") ;

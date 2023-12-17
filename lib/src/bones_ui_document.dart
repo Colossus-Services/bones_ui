@@ -1,5 +1,3 @@
-import 'dart:html';
-
 import 'package:dom_tools/dom_tools.dart';
 import 'package:json_render/json_render.dart';
 import 'package:swiss_knife/swiss_knife.dart';
@@ -7,6 +5,7 @@ import 'package:swiss_knife/swiss_knife.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_generator.dart';
 import 'component/component_async.dart';
+import 'bones_ui_web.dart';
 
 /// Represents an [url] link, with an optional [target].
 class URLLink {
@@ -119,7 +118,7 @@ class UIDocument extends UIComponentAsync {
 
   ResourceContent? _resourceContent;
 
-  UIDocument(Element? parent, ResourceContent? resourceContent,
+  UIDocument(UIElement? parent, ResourceContent? resourceContent,
       {loadingContent,
       errorContent,
       dynamic classes,

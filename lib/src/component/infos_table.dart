@@ -3,6 +3,7 @@ import 'dart:html';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import '../bones_ui_component.dart';
+import '../bones_ui_web.dart';
 
 /// Component that renders a table with information.
 class UIInfosTable extends UIComponent {
@@ -96,7 +97,7 @@ class UIInfosTable extends UIComponent {
 
       cell2.setAttribute('align', 'center');
 
-      if (v is Element) {
+      if (v is UIElement) {
         cell2.children.add(v);
       } else {
         cell2.innerHtml = v.toString();

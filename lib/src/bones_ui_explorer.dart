@@ -12,6 +12,7 @@ import 'package:yaml/yaml.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_document.dart';
 import 'bones_ui_navigator.dart';
+import 'bones_ui_web.dart';
 import 'component/button.dart';
 import 'component/component_async.dart';
 import 'component/controlled_component.dart';
@@ -328,7 +329,7 @@ class UIExplorer extends UIComponentAsync {
 
   final ExplorerModel model;
 
-  UIExplorer(Element? parent, dynamic model,
+  UIExplorer(UIElement? parent, dynamic model,
       {loadingContent, errorContent, dynamic classes})
       : model = ExplorerModel.from(model)!,
         super(parent, null, null, loadingContent, errorContent,
@@ -561,7 +562,7 @@ class _UIExplorerQuery extends UIControlledComponent {
   final MapProperties _viewer;
 
   _UIExplorerQuery(
-      Element? parent, this.inputConfig, this._executor, this._viewer,
+      UIElement? parent, this.inputConfig, this._executor, this._viewer,
       {dynamic loadingContent, dynamic errorContent, dynamic classes})
       : super(parent, loadingContent, errorContent,
             controllersPropertiesType: ControllerPropertiesType.implementation,
@@ -658,11 +659,11 @@ class _ViewerRender {
   _ViewerRender(this.config);
 
   Future<dynamic> render(
-      Element? output, String? contentType, dynamic content) async {
+      UIElement? output, String? contentType, dynamic content) async {
     var type = config.getPropertyAsStringTrimLC('type', 'html');
 
     if (type == 'html') {
-      if (content is Node) {
+      if (content is UINode) {
         return content;
       } else if (content is DOMElement) {
         return content;
@@ -676,7 +677,8 @@ class _ViewerRender {
     return null;
   }
 
-  DivElement renderJson(Element? output, String? contentType, dynamic content) {
+  DivElement renderJson(
+      UIElement? output, String? contentType, dynamic content) {
     var jsonRender = content is String
         ? JSONRender.fromJSONAsString(content)
         : JSONRender.fromJSON(content);
