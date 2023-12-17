@@ -9,6 +9,7 @@ import 'package:swiss_knife/swiss_knife.dart';
 import '../bones_ui_base.dart';
 import '../bones_ui_component.dart';
 import '../bones_ui_generator.dart';
+import '../bones_ui_web.dart';
 
 /// A component that renders a multi-selection input.
 class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
@@ -484,7 +485,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
         if (_optionsPanel == null) return;
 
         var overDivOptions = nodeTreeContainsAny(
-            _optionsPanel!, e.targetTouches!.map((t) => t.target as Node));
+            _optionsPanel!, e.targetTouches!.map((t) => t.target as UINode));
         if (!overDivOptions && _isShowing()) {
           _toggleDivOptions(true);
         }

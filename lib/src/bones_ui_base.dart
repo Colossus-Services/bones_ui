@@ -7,6 +7,7 @@ import 'package:intl_messages/intl_messages.dart';
 import 'bones_ui_async_content.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_log.dart';
+import 'bones_ui_web.dart';
 
 typedef UIEventListener = void Function(dynamic event, List? params);
 
@@ -95,7 +96,7 @@ class UIDeviceOrientation extends EventHandlerPrivate {
 bool isComponentInDOM(dynamic element) {
   if (element == null) return false;
 
-  if (element is Node) {
+  if (element is UINode) {
     return document.body!.contains(element);
   } else if (element is UIComponent) {
     return isComponentInDOM(element.renderedElements);
@@ -116,7 +117,7 @@ bool isComponentInDOM(dynamic element) {
 bool canBeInDOM(dynamic element) {
   if (element == null) return false;
 
-  if (element is Node) {
+  if (element is UINode) {
     return true;
   } else if (element is UIComponent) {
     return true;
@@ -130,8 +131,8 @@ bool canBeInDOM(dynamic element) {
 }
 
 typedef FilterRendered = bool Function(dynamic elem);
-typedef FilterElement = bool Function(Element elem);
-typedef ForEachElement = void Function(Element elem);
+typedef FilterElement = bool Function(UIElement elem);
+typedef ForEachElement = void Function(UIElement elem);
 typedef ForEachComponent = void Function(Object elem);
 typedef ParametersProvider = Map<String, String> Function();
 
@@ -241,7 +242,7 @@ class TextProvider {
 }
 
 class ElementProvider {
-  Element? _element;
+  UIElement? _element;
 
   String? _html;
 
@@ -261,7 +262,7 @@ class ElementProvider {
     if (element == null) return null;
     if (element is ElementProvider) return element;
     if (element is String) return ElementProvider.fromHTML(element);
-    if (element is Element) return ElementProvider.fromElement(element);
+    if (element is UIElement) return ElementProvider.fromElement(element);
     if (element is UIComponent) return ElementProvider.fromUIComponent(element);
     if (element is DOMNode) return ElementProvider.fromDOMNode(element);
     return null;
@@ -271,7 +272,7 @@ class ElementProvider {
     if (element == null) return false;
     if (element is ElementProvider) return true;
     if (element is String) return true;
-    if (element is Element) return true;
+    if (element is UIElement) return true;
     if (element is UIComponent) return true;
     if (element is DOMNode) return true;
     return false;
@@ -282,7 +283,7 @@ class ElementProvider {
     return elem != null ? element!.outerHtml : null;
   }
 
-  Element? get element {
+  UIElement? get element {
     if (_element != null) {
       return _element;
     }
@@ -301,14 +302,14 @@ class ElementProvider {
     if (_domNode != null) {
       var runtime = _domNode!.runtime;
       if (runtime.exists) {
-        return runtime.node as Element?;
+        return runtime.node as UIElement?;
       } else {
         return _domNode!.buildDOM(generator: UIComponent.domGenerator)
-            as Element?;
+            as UIElement?;
       }
     }
 
-    throw StateError("Can't provide an Element: $this");
+    throw StateError("Can't provide an UIElement: $this");
   }
 
   @override
@@ -318,7 +319,7 @@ class ElementProvider {
 }
 
 class CSSProvider {
-  Element? _element;
+  UIElement? _element;
 
   String? _html;
 
@@ -338,7 +339,7 @@ class CSSProvider {
     if (provider == null) return null;
     if (provider is CSSProvider) return provider;
     if (provider is String) return CSSProvider.fromHTML(provider);
-    if (provider is Element) return CSSProvider.fromElement(provider);
+    if (provider is UIElement) return CSSProvider.fromElement(provider);
     if (provider is UIComponent) return CSSProvider.fromUIComponent(provider);
     if (provider is DOMNode) return CSSProvider.fromDOMNode(provider);
     return null;
@@ -348,7 +349,7 @@ class CSSProvider {
     if (element == null) return false;
     if (element is CSSProvider) return true;
     if (element is String) return true;
-    if (element is Element) return true;
+    if (element is UIElement) return true;
     if (element is UIComponent) return true;
     if (element is DOMNode) return true;
     return false;
@@ -375,10 +376,10 @@ class CSSProvider {
     if (_domNode != null) {
       var runtime = _domNode!.runtime;
       if (runtime.exists) {
-        return cssFromElement(runtime.node as Element);
+        return cssFromElement(runtime.node as UIElement);
       } else {
-        var element =
-            _domNode!.buildDOM(generator: UIComponent.domGenerator) as Element;
+        var element = _domNode!.buildDOM(generator: UIComponent.domGenerator)
+            as UIElement;
         return cssFromElement(element);
       }
     }
@@ -386,7 +387,7 @@ class CSSProvider {
     throw StateError("Can't provide CSS from: $this");
   }
 
-  static CSS cssFromElement(Element element) {
+  static CSS cssFromElement(UIElement element) {
     if (isNodeInDOM(element)) {
       return CSS(element.getComputedStyle().cssText);
     } else {

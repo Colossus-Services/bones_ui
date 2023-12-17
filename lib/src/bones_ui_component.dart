@@ -22,6 +22,7 @@ import 'bones_ui_layout.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_navigator.dart';
 import 'bones_ui_root.dart';
+import 'bones_ui_web.dart';
 import 'component/input_config.dart';
 
 /// [UIComponent] behavior to clear the component.
@@ -33,7 +34,7 @@ abstract class UIComponent extends UIEventHandler {
   static final UIDOMGenerator domGenerator = UIDOMGenerator();
 
   /// The [DOMContext] of the [domGenerator].
-  static DOMContext<Node> get domContext => domGenerator.domContext!;
+  static DOMContext<UINode> get domContext => domGenerator.domContext!;
 
   /// Register a [generator] for a type of [UIComponent].
   static bool registerGenerator(UIComponentGenerator generator) {
@@ -50,16 +51,16 @@ abstract class UIComponent extends UIEventHandler {
 
   UIComponent? _parentUIComponent;
 
-  Element? _parent;
+  UIElement? _parent;
   final UIComponentClearParent? clearParent;
 
-  Element? _content;
+  UIElement? _content;
 
   bool? _constructing;
 
   bool? get constructing => _constructing;
 
-  UIComponent(Element? parent,
+  UIComponent(UIElement? parent,
       {dynamic componentClass,
       dynamic componentStyle,
       dynamic classes,
@@ -138,15 +139,15 @@ abstract class UIComponent extends UIEventHandler {
         _refreshInternal,
       );
 
-  Element? _getContent() => _content;
+  UIElement? _getContent() => _content;
 
   static final Expando<UIComponent> _contentsUIComponents =
       Expando<UIComponent>('_content:UIComponent');
 
-  static getContentUIComponent(Element content) =>
+  static getContentUIComponent(UIElement content) =>
       _contentsUIComponents[content];
 
-  void _setContent(Element content) {
+  void _setContent(UIElement content) {
     var prev = _content;
     if (prev != null && !identical(prev, content)) {
       _contentsUIComponents[prev] = null;
@@ -156,11 +157,11 @@ abstract class UIComponent extends UIEventHandler {
     _contentsUIComponents[content] = this;
   }
 
-  void addTo(Element parent, {UIComponent? parentUIComponent}) {
+  void addTo(UIElement parent, {UIComponent? parentUIComponent}) {
     _setParentImpl(parent, parentUIComponent, true);
   }
 
-  void insertTo(int index, Element parent, {UIComponent? parentUIComponent}) {
+  void insertTo(int index, UIElement parent, {UIComponent? parentUIComponent}) {
     _setParentImpl(parent, parentUIComponent, true);
     parent.nodes.insert(index, content!);
   }
@@ -175,8 +176,8 @@ abstract class UIComponent extends UIEventHandler {
 
   UIComponent? clone() => null;
 
-  /// Sets the [parent] [Element].
-  Element? setParent(Element parent, {UIComponent? parentUIComponent}) {
+  /// Sets the [parent] [UIElement].
+  UIElement? setParent(Element parent, {UIComponent? parentUIComponent}) {
     return _setParentImpl(parent, parentUIComponent, true);
   }
 
@@ -250,8 +251,8 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   static void resolveParentUIComponent(
-      {Node? parent,
-      Node? element,
+      {UINode? parent,
+      UINode? element,
       UIComponent? parentUIComponent,
       UIComponent? elementUIComponent,
       bool recursive = false}) {
@@ -300,7 +301,7 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  static UIComponent? _resolveNodeUIComponent(Node node,
+  static UIComponent? _resolveNodeUIComponent(UINode node,
       {bool getUIComponentByChild = false}) {
     if (node is Element) {
       var component = UIComponent.getContentUIComponent(node);
@@ -1062,7 +1063,7 @@ abstract class UIComponent extends UIEventHandler {
       if (clearParent == UIComponentClearParent.onRender ||
           (clearParent == UIComponentClearParent.onInitialRender &&
               _renderCount == 1)) {
-        var nodes = List<Node>.from(_parent!.nodes);
+        var nodes = List<UINode>.from(_parent!.nodes);
 
         var containsContent = false;
         for (var node in nodes) {
@@ -1340,7 +1341,7 @@ abstract class UIComponent extends UIEventHandler {
   /// Renders the elements of this component.
   ///
   /// Accepted return types:
-  /// - `dart:html` [Node] and [Element].
+  /// - `dart:html` [UINode] and [Element].
   /// - [DIVElement], [DOMNode], [AsDOMElement] and [AsDOMNode].
   /// - [Future].
   /// - [UIAsyncContent].
@@ -1461,7 +1462,7 @@ abstract class UIComponent extends UIEventHandler {
             .map((e) {
               return _normalizeRenderListValue(content, e);
             })
-            .cast<Node>()
+            .cast<UINode>()
             .toList();
 
         if (append) {
@@ -1542,7 +1543,7 @@ abstract class UIComponent extends UIEventHandler {
 
     value = _normalizeRenderListValue(content, value);
 
-    if (value is Node) {
+    if (value is UINode) {
       prevElemIndex =
           _addElementToRenderList(value, value, renderedList, prevElemIndex);
     } else if (value is UIComponent) {
@@ -1712,7 +1713,7 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   int _addElementToRenderList(
-      dynamic value, Node element, List renderedList, int prevElemIndex) {
+      dynamic value, UINode element, List renderedList, int prevElemIndex) {
     var content = this.content!;
 
     var idx = content.nodes.indexOf(element);
@@ -2176,13 +2177,13 @@ abstract class UIComponent extends UIEventHandler {
     return true;
   }
 
-  bool setContentNodes(List<Node> nodes) {
+  bool setContentNodes(List<UINode> nodes) {
     content!.nodes.clear();
     content!.nodes.addAll(nodes);
     return true;
   }
 
-  bool appendToContent(List<Node> nodes) {
+  bool appendToContent(List<UINode> nodes) {
     content!.nodes.addAll(nodes);
     return true;
   }

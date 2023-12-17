@@ -20,6 +20,7 @@ import 'bones_ui_component.dart';
 import 'bones_ui_extension.dart';
 import 'bones_ui_navigator.dart';
 import 'bones_ui_root.dart';
+import 'bones_ui_web.dart';
 
 const bonesUiTestToolTitle = 'Bones_UI/${BonesUI.version} - Test';
 
@@ -53,14 +54,14 @@ bool isHeadlessUI() {
 
 /// Initializes the test [UIRoot] using the [uiRootInstantiator] to instantiate it.
 Future<U> initializeTestUIRoot<U extends UIRoot>(
-        U Function(Element rootContainer) uiRootInstantiator,
+        U Function(UIElement rootContainer) uiRootInstantiator,
         {String outputDivID = 'test-output',
         Duration initialRenderTimeout = const Duration(seconds: 5)}) =>
     _chainCapture(() => _initializeTestUIRootImpl<U>(
         uiRootInstantiator, outputDivID, initialRenderTimeout));
 
 Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
-    U Function(Element rootContainer) uiRootInstantiator,
+    U Function(UIElement rootContainer) uiRootInstantiator,
     String outputDivID,
     Duration initialRenderTimeout) async {
   printTestToolTitle();
@@ -313,18 +314,18 @@ Future<bool> testUISleepUntilRoutes(List<String> routes,
   });
 }
 
-/// Calls [testUISleepUntil] checking if [root] has an [Element] matching [selectors].
+/// Calls [testUISleepUntil] checking if [root] has an [UIElement] matching [selectors].
 Future<bool> testUISleepUntilElement(Object? root, String selectors,
     {int? timeoutMs,
     int? intervalMs,
     int? minMs,
-    Iterable<Element> Function(List<Element> elems)? mapper,
-    bool Function(List<Element> elems)? validator,
+    Iterable<UIElement> Function(List<UIElement> elems)? mapper,
+    bool Function(List<UIElement> elems)? validator,
     bool expected = false}) {
   root ??= document.documentElement;
 
-  if (root is! Element && root is! UIComponent) {
-    throw ArgumentError("`root` is not an `Element` or `UIComponent`");
+  if (root is! UIElement && root is! UIComponent) {
+    throw ArgumentError("`root` is not an `UIElement` or `UIComponent`");
   }
 
   var stackTrace = StackTrace.current;
@@ -449,7 +450,7 @@ Future<void> testMultipleUI(Map<String, FutureOr<void> Function()> testsMain,
 /// since the UI will be in an undefined state.
 void testUI<U extends UIRoot>(
   String testUIName,
-  U Function(Element rootContainer) uiRootInstantiator,
+  U Function(UIElement rootContainer) uiRootInstantiator,
   void Function(UITestContext<U> context) body, {
   String outputDivID = 'test-output',
   Duration initialRenderTimeout = const Duration(seconds: 5),
@@ -473,7 +474,7 @@ int _testUIIDCount = 0;
 
 void _testUIImpl<U extends UIRoot>(
   String testUIName,
-  U Function(Element rootContainer) uiRootInstantiator,
+  U Function(UIElement rootContainer) uiRootInstantiator,
   void Function(UITestContext<U> context) body,
   String outputDivID,
   Duration initialRenderTimeout,
@@ -1789,7 +1790,7 @@ extension TestFutureUIComponentExtension<E extends UIComponent> on Future<E?> {
       then((e) => e.selectAll<T>(selectors));
 }
 
-extension TestNodeExtension on Node? {
+extension TestNodeExtension on UINode? {
   String simplify(
           {bool trim = true,
           bool collapseSapces = true,
@@ -1803,7 +1804,7 @@ extension TestNodeExtension on Node? {
       '';
 }
 
-extension TestIterableNodeExtension on Iterable<Node>? {
+extension TestIterableNodeExtension on Iterable<UINode>? {
   List<String> simplify(
           {bool trim = true,
           bool collapseSapces = true,

@@ -1,6 +1,5 @@
-import 'dart:html';
-
 import 'bones_ui_component.dart';
+import 'bones_ui_web.dart';
 
 class UIComponentInternals {
   final UIComponent component;
@@ -23,9 +22,9 @@ class UIComponentInternals {
     bool renderOnConstruction,
   ) _construct;
 
-  final Element? Function() _getContent;
+  final UIElement? Function() _getContent;
 
-  final void Function(Element content) _setContent;
+  final void Function(UIElement content) _setContent;
 
   UIComponentInternals(
     this.component,
@@ -57,7 +56,7 @@ class UIComponentInternals {
       _construct(preserveRender, inline, classes, classes2, componentClass,
           style, style2, componentStyle, renderOnConstruction);
 
-  Element? getContent() => _getContent();
+  UIElement? getContent() => _getContent();
 
-  void setContent(Element content) => _setContent(content);
+  void setContent(UIElement content) => _setContent(content);
 }

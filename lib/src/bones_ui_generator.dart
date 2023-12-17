@@ -9,13 +9,14 @@ import 'bones_ui_async_content.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_navigator.dart';
 import 'bones_ui_root.dart';
+import 'bones_ui_web.dart';
 import 'component/bui.dart';
 import 'component/template.dart';
 
 typedef UIComponentInstantiator<C extends UIComponent> = C Function(
-    Element? parent,
+    UIElement? parent,
     Map<String, DOMAttribute> attributes,
-    Node? contentHolder,
+    UINode? contentHolder,
     List<DOMNode>? contentNodes);
 
 typedef UIComponentAttributeParser<T> = T? Function(dynamic value);
@@ -85,7 +86,7 @@ class UIComponentAttributeHandler<C extends UIComponent, T> {
 /// A generator of [UIComponent] based in a HTML tag,
 /// for `dom_builder` (extends [ElementGenerator]).
 class UIComponentGenerator<C extends UIComponent>
-    extends ElementGenerator<Element> {
+    extends ElementGenerator<UIElement> {
   @override
   final String tag;
   @override
@@ -122,19 +123,19 @@ class UIComponentGenerator<C extends UIComponent>
             attributes.map(((attr) => MapEntry(attr.name!, attr))));
 
   @override
-  Element generate(
-      DOMGenerator<Node> domGenerator,
-      DOMTreeMap<Node> treeMap,
+  UIElement generate(
+      DOMGenerator<UINode> domGenerator,
+      DOMTreeMap<UINode> treeMap,
       tag,
       DOMElement? domParent,
-      Node? parent,
+      UINode? parent,
       DOMNode domNode,
       Map<String, DOMAttribute> attributes,
-      Node? contentHolder,
+      UINode? contentHolder,
       List<DOMNode>? contentNodes,
-      DOMContext<Node>? context) {
+      DOMContext<UINode>? context) {
     var component = instantiator(
-        parent as Element?, attributes, contentHolder, contentNodes);
+        parent as UIElement?, attributes, contentHolder, contentNodes);
     var anySet = component.appendAttributes(attributes.values);
 
     if (anySet) {
@@ -147,8 +148,8 @@ class UIComponentGenerator<C extends UIComponent>
   }
 
   @override
-  bool isGeneratedElement(Node element) {
-    if (element is Element) {
+  bool isGeneratedElement(UINode element) {
+    if (element is UIElement) {
       var tag = element.tagName.toLowerCase();
       if (tag != generatedTag) return false;
       var classes = element.classes;
@@ -194,8 +195,12 @@ class UIComponentGenerator<C extends UIComponent>
   }
 
   @override
-  DOMElement? revert(DOMGenerator<Node> domGenerator, DOMTreeMap<Node>? treeMap,
-      DOMElement? domParent, Element? parent, Element? node) {
+  DOMElement? revert(
+      DOMGenerator<UINode> domGenerator,
+      DOMTreeMap<UINode>? treeMap,
+      DOMElement? domParent,
+      UIElement? parent,
+      UIElement? node) {
     var attributes = node != null
         ? Map<String, String>.fromEntries(node.attributes.entries)
         : <String, String>{};
@@ -270,9 +275,9 @@ class UIComponentGenerator<C extends UIComponent>
   }
 }
 
-abstract class ElementGeneratorBase extends ElementGenerator<Node> {
+abstract class ElementGeneratorBase extends ElementGenerator<UINode> {
   void setElementAttributes(
-      Element element, Map<String, DOMAttribute> attributes) {
+      UIElement element, Map<String, DOMAttribute> attributes) {
     element.classes.add(tag);
 
     var attrClass = attributes['class'];
@@ -296,7 +301,7 @@ abstract class ElementGeneratorBase extends ElementGenerator<Node> {
 }
 
 /// A [DOMGenerator] (from package `dom_builder`)
-/// able to generate [Element] (from `dart:html`).
+/// able to generate [UIElement] (from `dart:html`).
 class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   UIDOMGenerator() {
     registerElementGenerator(BUIElementGenerator());
@@ -304,7 +309,7 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
 
     domActionExecutor = UIDOMActionExecutor();
 
-    domContext = DOMContext<Node>(intlMessageResolver: resolveIntlMessage);
+    domContext = DOMContext<UINode>(intlMessageResolver: resolveIntlMessage);
 
     setupContextVariables();
   }
@@ -343,11 +348,11 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
         .toList();
   }
 
-  static void setElementsBGBlur(Element element) {
+  static void setElementsBGBlur(UIElement element) {
     setTreeElementsBackgroundBlur(element, 'bg-blur');
   }
 
-  static void setElementsDivCentered(Element element) {
+  static void setElementsDivCentered(UIElement element) {
     setTreeElementsDivCentered(element, 'div-centered-vh',
         centerVertically: true, centerHorizontally: true);
 
@@ -361,7 +366,7 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   }
 
   @override
-  DOMTreeMap<Node> createGenericDOMTreeMap() => createDOMTreeMap();
+  DOMTreeMap<UINode> createGenericDOMTreeMap() => createDOMTreeMap();
 
   @override
   bool canHandleExternalElement(externalElement) {
@@ -377,10 +382,10 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   }
 
   @override
-  List<Node>? addExternalElementToElement(Node element, externalElement) {
+  List<UINode>? addExternalElementToElement(UINode element, externalElement) {
     if (externalElement is List) {
       if (externalElement.isEmpty) return null;
-      var children = <Node>[];
+      var children = <UINode>[];
       for (var elem in externalElement) {
         var child = addExternalElementToElement(element, elem)!;
         children.addAll(child);
@@ -390,7 +395,7 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       var component = externalElement;
       var componentContent = component.content;
 
-      if (element is Element) {
+      if (element is UIElement) {
         element.append(componentContent!);
         component.setParent(element);
         _resolveParentUIComponent(element, component.content,
@@ -414,7 +419,7 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   }
 
   @override
-  bool addChildToElement(Node? parent, Node? child) {
+  bool addChildToElement(UINode? parent, UINode? child) {
     var ok = super.addChildToElement(parent, child);
     _resolveParentUIComponent(parent, child);
     return ok;
@@ -423,16 +428,16 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   @override
   void attachFutureElement(
       DOMElement? domParent,
-      Node? parent,
+      UINode? parent,
       DOMNode domElement,
-      Node? templateElement,
+      UINode? templateElement,
       futureElementResolved,
-      DOMTreeMap<Node> treeMap,
-      DOMContext<Node>? context) {
+      DOMTreeMap<UINode> treeMap,
+      DOMContext<UINode>? context) {
     super.attachFutureElement(domParent, parent, domElement, templateElement,
         futureElementResolved, treeMap, context);
 
-    if (futureElementResolved is Element) {
+    if (futureElementResolved is UIElement) {
       var parentComponent =
           UIRoot.getInstance()!.findUIComponentByChild(futureElementResolved);
 
@@ -450,7 +455,7 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   }
 
   @override
-  List<Node>? toElements(elements) {
+  List<UINode>? toElements(elements) {
     if (elements is UIComponent) {
       var content = elements.content;
       return content != null ? [content] : null;
@@ -463,17 +468,18 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   }
 
   @override
-  bool replaceChildElement(Node parent, Node? child1, List<Node>? child2) {
+  bool replaceChildElement(
+      UINode parent, UINode? child1, List<UINode>? child2) {
     var ok = super.replaceChildElement(parent, child1, child2);
 
     if (ok && child2 != null && child2.isNotEmpty) {
       var uiRoot = UIRoot.getInstance();
 
-      for (var element in child2.whereType<Element>()) {
+      for (var element in child2.whereType<UIElement>()) {
         var uiComponent = uiRoot!
             .getUIComponentByContent(element, includePurgedEntries: true);
         if (uiComponent != null) {
-          uiComponent.setParent(parent as Element);
+          uiComponent.setParent(parent as UIElement);
           _resolveParentUIComponent(parent, element,
               childUIComponent: uiComponent);
           uiComponent.ensureRendered();
@@ -485,15 +491,15 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   }
 
   @override
-  void finalizeGeneratedTree(DOMTreeMap<Node> treeMap) {
+  void finalizeGeneratedTree(DOMTreeMap<UINode> treeMap) {
     var rootElement = treeMap.rootElement;
-    if (rootElement is Element) {
+    if (rootElement is UIElement) {
       setElementsBGBlur(rootElement);
       setElementsDivCentered(rootElement);
     }
   }
 
-  void _resolveParentUIComponent(Node? parent, Node? child,
+  void _resolveParentUIComponent(UINode? parent, UINode? child,
       {UIComponent? parentUIComponent, UIComponent? childUIComponent}) {
     UIComponent.resolveParentUIComponent(
         parent: parent,
@@ -505,7 +511,8 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
 
 class UIDOMActionExecutor extends DOMActionExecutorDartHTML {
   @override
-  Node? callLocale(Node? target, List<String> parameters, DOMContext? context) {
+  UINode? callLocale(
+      UINode? target, List<String> parameters, DOMContext? context) {
     var variables = context?.variables ?? {};
     var event = (variables['event'] as Map?) ?? {};
     var locale = event['value'] ?? '';

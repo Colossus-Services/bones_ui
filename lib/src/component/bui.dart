@@ -14,6 +14,7 @@ import '../bones_ui_base.dart';
 import '../bones_ui_component.dart';
 import '../bones_ui_generator.dart';
 import '../bones_ui_navigator.dart';
+import '../bones_ui_web.dart';
 import 'component_async.dart';
 import 'loading.dart';
 import 'svg.dart';
@@ -24,16 +25,16 @@ class BUIElementGenerator extends ElementGeneratorBase {
 
   @override
   DivElement generate(
-      DOMGenerator<Node> domGenerator,
-      DOMTreeMap<Node> treeMap,
+      DOMGenerator<UINode> domGenerator,
+      DOMTreeMap<UINode> treeMap,
       String? tag,
       DOMElement? domParent,
-      Node? parent,
+      UINode? parent,
       DOMNode domNode,
       Map<String, DOMAttribute> attributes,
-      Node? contentHolder,
+      UINode? contentHolder,
       List<DOMNode>? contentNodes,
-      DOMContext<Node>? context) {
+      DOMContext<UINode>? context) {
     var buiElement = DivElement();
 
     setElementAttributes(buiElement, attributes);
@@ -44,13 +45,13 @@ class BUIElementGenerator extends ElementGeneratorBase {
   }
 
   @override
-  bool isGeneratedElement(Node element) {
+  bool isGeneratedElement(UINode element) {
     return element is DivElement && element.classes.contains(tag);
   }
 
   @override
   DOMElement? revert(DOMGenerator domGenerator, DOMTreeMap? treeMap,
-      DOMElement? domParent, Node? parent, Node? node) {
+      DOMElement? domParent, UINode? parent, UINode? node) {
     if (node is DivElement) {
       var bui =
           $tag(tag, classes: node.classes.join(' '), style: node.style.cssText);
@@ -72,7 +73,7 @@ class BUIElementGenerator extends ElementGeneratorBase {
 }
 
 class BUIRender extends UINavigableComponent {
-  final DOMGenerator<Node> renderDomGenerator;
+  final DOMGenerator<UINode> renderDomGenerator;
   final DataAssets? _dataAssets;
 
   BUIRenderSource? _navbarSource;
@@ -82,7 +83,7 @@ class BUIRender extends UINavigableComponent {
 
   BUIRender(Element? parent,
       {dynamic source,
-      DOMGenerator<Node>? domGenerator,
+      DOMGenerator<UINode>? domGenerator,
       DataAssets? dataAssets,
       BUIViewProviderBase? viewProvider,
       dynamic classes,
@@ -326,7 +327,7 @@ class BUIRender extends UINavigableComponent {
       renderContainer!.style.width = '100%';
       renderContainer!.style.height = '100%';
     } else {
-      var nodes = List<Node>.from(renderContainer!.nodes);
+      var nodes = List<UINode>.from(renderContainer!.nodes);
 
       for (var node in nodes) {
         if (node != _navbarElement) {
@@ -426,7 +427,7 @@ class BUIRender extends UINavigableComponent {
     }
   }
 
-  Node? _namedElementProvider(
+  UINode? _namedElementProvider(
       String name,
       DOMGenerator<dynamic>? domGenerator,
       DOMTreeMap<dynamic> treeMap,
@@ -445,8 +446,8 @@ class BUIRender extends UINavigableComponent {
 
     if (view == null) return null;
 
-    var domContext = DOMContext<Node?>(
-        parent: domGenerator!.domContext as DOMContext<Node?>?);
+    var domContext = DOMContext<UINode?>(
+        parent: domGenerator!.domContext as DOMContext<UINode?>?);
 
     var buiCode = view.buiCode;
 
@@ -917,7 +918,7 @@ String _decodeBytesToString(List<int> bytes) {
 }
 
 class BUIRenderSource {
-  final DOMGenerator<Node> domGenerator;
+  final DOMGenerator<UINode> domGenerator;
 
   final Element? Function() renderContainer;
 
@@ -1102,10 +1103,10 @@ class BUIRenderSource {
     }
   }
 
-  DOMTreeMap<Node> get sourceAsDOMTreeMap => generateTree();
+  DOMTreeMap<UINode> get sourceAsDOMTreeMap => generateTree();
 
-  DOMTreeMap<Node> generateTree(
-      {bool appendToContainer = false, DOMContext<Node>? context}) {
+  DOMTreeMap<UINode> generateTree(
+      {bool appendToContainer = false, DOMContext<UINode>? context}) {
     var rootNode = sourceAsDOMElement ?? DIVElement();
     return domGenerator.generateMapped(rootNode,
         parent: appendToContainer ? renderContainer() : null, context: context);

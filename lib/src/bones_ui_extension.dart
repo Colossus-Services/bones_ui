@@ -5,9 +5,10 @@ import 'package:swiss_knife/swiss_knife.dart';
 import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_root.dart';
+import 'bones_ui_web.dart';
 
-extension ElementExtension on Element {
-  /// Resolves the [UIComponent] of this [Element].
+extension ElementExtension on UIElement {
+  /// Resolves the [UIComponent] of this [UIElement].
   UIComponent? resolveUIComponent({UIComponent? parentUIComponent}) {
     if (parentUIComponent != null) {
       return parentUIComponent.findUIComponentByChild(this);
@@ -16,7 +17,7 @@ extension ElementExtension on Element {
     }
   }
 
-  /// Resolves the value of this [Element].
+  /// Resolves the value of this [UIElement].
   String? resolveElementValue(
       {UIComponent? parentUIComponent,
       UIComponent? uiComponent,
@@ -87,11 +88,11 @@ extension ElementExtension on Element {
   }
 }
 
-extension IterableElementExtension<E extends Element> on Iterable<E> {
-  /// Returns a [List] of [UIComponent] of this [Iterable] of [Element]s.
+extension IterableElementExtension<E extends UIElement> on Iterable<E> {
+  /// Returns a [List] of [UIComponent] of this [Iterable] of [UIElement]s.
   List<UIComponent?> get uiComponents => map((e) => e.uiComponent).toList();
 
-  /// Returns a [List] of values of this [Iterable] of [Element]s.
+  /// Returns a [List] of values of this [Iterable] of [UIElement]s.
   List<String?> get elementsValues => map((e) => e.elementValue).toList();
 }
 

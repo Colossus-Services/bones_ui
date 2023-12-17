@@ -9,6 +9,7 @@ import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_utils.dart';
+import 'bones_ui_web.dart';
 
 typedef AsyncContentProvider = Future<dynamic>? Function();
 
@@ -391,9 +392,9 @@ dynamic _ensureElementForDOM(dynamic element) {
 }
 
 bool _isElementForDOM(dynamic element) {
-  if (element is Element) {
+  if (element is UIElement) {
     return true;
-  } else if (element is Node) {
+  } else if (element is UINode) {
     return true;
   } else if (element is UIComponent) {
     return true;
