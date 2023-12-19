@@ -33,19 +33,30 @@ void main() {
       expect(uiRoot.querySelector('#my-home'), isNull);
       expect(uiRoot.querySelector('#my-contact'), isNotNull);
 
-      {
-        var myContact = uiRoot.querySelector<web.DivElement>('#my-contact');
-        expect(myContact?.text, isNot(contains('foo@mail.com')));
-      }
+      var myContact1 = uiRoot.querySelector<web.DivElement>('#my-contact');
+      expect(myContact1!.text, isNot(contains('foo@mail.com')));
+
+      expect(isComponentInDOM(myContact1), isTrue);
+      expect(canBeInDOM(myContact1), isTrue);
+      expect(canBeInDOM(myContact1.text), isFalse);
+
+      var uiContact1 = uiRoot.getUIComponentByContent(myContact1);
+      expect(uiContact1, isA<MyContact>());
 
       await testUISleep(ms: 1200);
 
-      {
-        var myContact = uiRoot.querySelector<web.DivElement>('#my-contact');
-        expect(myContact, isA<web.DivElement>());
+      var myContact2 = uiRoot.querySelector<web.DivElement>('#my-contact');
+      expect(myContact2, isA<web.DivElement>());
 
-        expect(myContact?.text, contains('foo@mail.com'));
-      }
+      expect(myContact2?.text, contains('foo@mail.com'));
+      expect(isComponentInDOM(myContact1), isTrue);
+
+      var uiContact2 = uiRoot.getUIComponentByContent(myContact2);
+      expect(uiContact2, isA<MyContact>());
+
+      expect(uiRoot.getUIComponentByContent(myContact1), isA<MyContact>());
+
+      expect(identical(uiContact1, uiContact2), isTrue);
 
       var btn2 = uiRoot.selectExpected<web.ButtonElement>('*');
       expect(btn2, isA<web.ButtonElement>());
@@ -55,6 +66,8 @@ void main() {
       await testUISleep(ms: 200);
 
       expect(uiRoot.querySelector('#my-contact'), isNull);
+      expect(isComponentInDOM(myContact1), isFalse);
+      expect(canBeInDOM(myContact1), isTrue);
 
       var myHome2 = uiRoot.querySelector('#my-home');
       expect(myHome2, isA<web.DivElement>());
