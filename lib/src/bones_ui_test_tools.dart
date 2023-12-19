@@ -11,6 +11,7 @@ import 'package:stack_trace/stack_trace.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart' as pkg_test;
 import 'package:test/test.dart';
+
 // ignore: implementation_imports
 import 'package:test_api/src/backend/invoker.dart' as pkg_test_invoker;
 
@@ -1728,16 +1729,16 @@ extension TestFutureElementExtension<E extends Element> on Future<E?> {
 }
 
 extension TestUIComponentNullableExtension on UIComponent? {
-  Element? select(String? selectors) {
+  E? select<E extends UIElement>(String? selectors) {
     var self = this;
     if (self == null || selectors == null || selectors.isEmpty) return null;
-    return self.querySelector(selectors);
+    return self.querySelector<E>(selectors);
   }
 
-  Element selectExpected(String? selectors) {
+  E selectExpected<E extends UIElement>(String? selectors) {
     var self = this;
     var e = selectors != null && selectors.isNotEmpty
-        ? self?.querySelector(selectors)
+        ? self?.querySelector<E>(selectors)
         : null;
     if (e == null) {
       throw TestFailure("Can't find element: `$selectors`");
@@ -1745,7 +1746,7 @@ extension TestUIComponentNullableExtension on UIComponent? {
     return e;
   }
 
-  List<Element> selectAll<E extends Element>(String? selectors) {
+  List<E> selectAll<E extends Element>(String? selectors) {
     var self = this;
     if (self == null || selectors == null || selectors.isEmpty) return <E>[];
     return self.querySelectorAll<E>(selectors);

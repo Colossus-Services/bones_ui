@@ -2177,8 +2177,12 @@ abstract class UIComponent extends UIEventHandler {
   /// Alias to [content.querySelector].
   E? querySelector<E extends UIElement>(String? selectors) {
     if (selectors == null || selectors.isEmpty) return null;
-    var elem = content?.querySelector(selectors);
-    return elem is E ? elem : null;
+    if (E == UIElement) {
+      var elem = content?.querySelector(selectors);
+      return elem is E ? elem : null;
+    } else {
+      return content?.querySelectorAll(selectors).whereType<E>().firstOrNull;
+    }
   }
 
   /// Alias to [content.querySelector].
@@ -2188,7 +2192,8 @@ abstract class UIComponent extends UIEventHandler {
   /// Alias to [content.querySelectorAll].
   List<T> querySelectorAll<T extends UIElement>(String? selectors) {
     if (selectors == null || selectors.isEmpty) return <T>[];
-    return content?.querySelectorAll(selectors) ?? <T>[];
+    return content?.querySelectorAll(selectors).whereType<T>().toList() ??
+        <T>[];
   }
 
   /// Alias to [content.querySelectorAll].
