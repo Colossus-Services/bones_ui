@@ -31,11 +31,21 @@ void main() {
       await testUISleep(ms: 200);
 
       expect(uiRoot.querySelector('#my-home'), isNull);
+      expect(uiRoot.querySelector('#my-contact'), isNotNull);
 
-      var myContact = uiRoot.querySelector<web.DivElement>('#my-contact');
-      expect(myContact, isA<web.DivElement>());
+      {
+        var myContact = uiRoot.querySelector<web.DivElement>('#my-contact');
+        expect(myContact?.text, isNot(contains('foo@mail.com')));
+      }
 
-      expect(myContact?.text, contains('foo@mail.com'));
+      await testUISleep(ms: 1200);
+
+      {
+        var myContact = uiRoot.querySelector<web.DivElement>('#my-contact');
+        expect(myContact, isA<web.DivElement>());
+
+        expect(myContact?.text, contains('foo@mail.com'));
+      }
 
       var btn2 = uiRoot.selectExpected<web.ButtonElement>('*');
       expect(btn2, isA<web.ButtonElement>());
@@ -88,7 +98,11 @@ class MyContact extends UIComponent {
   MyContact(super.parent) : super(id: 'my-contact');
 
   @override
-  render() => $div(content: [
+  render() {
+    return Future.delayed(Duration(milliseconds: 1000), _myRender);
+  }
+
+  _myRender() => $div(content: [
         $tag('h1', content: 'Contact'),
         $p(),
         $span(content: 'foo@mail.com'),
