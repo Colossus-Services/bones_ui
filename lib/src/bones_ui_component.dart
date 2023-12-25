@@ -1704,7 +1704,17 @@ abstract class UIComponent extends UIEventHandler {
 
       _buildRenderList(loadedContent, renderedList, content!.nodes.length - 1);
 
-      content!.nodes.addAll(tail);
+      if (tail.isNotEmpty) {
+        var renderedComponents = renderedList
+            .whereType<UIComponent>()
+            .map((e) => e.content)
+            .toList();
+
+        tail.removeWhere(
+            (e) => renderedList.contains(e) || renderedComponents.contains(e));
+
+        content!.nodes.addAll(tail);
+      }
 
       minRenderedElementsIdx ??= 0;
       _renderedElements!.insertAll(minRenderedElementsIdx, renderedList);
