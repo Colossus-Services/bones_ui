@@ -9,6 +9,9 @@
     - parameter `parent` now accepts `Element` or `UIComponent`.
   - `toContentElements`: changed to named parameters.
 
+- intl_messages: ^2.2.3
+- dom_tools: ^2.2.0
+
 ## 2.3.3
 
 - `UIComponent`:
