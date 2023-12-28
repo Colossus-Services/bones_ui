@@ -1,5 +1,4 @@
 import 'dart:convert' as dart_convert;
-import 'dart:html';
 
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
@@ -677,8 +676,7 @@ class _ViewerRender {
     return null;
   }
 
-  DivElement renderJson(
-      UIElement? output, String? contentType, dynamic content) {
+  dynamic renderJson(UIElement? output, String? contentType, dynamic content) {
     var jsonRender = content is String
         ? JSONRender.fromJSONAsString(content)
         : JSONRender.fromJSON(content);

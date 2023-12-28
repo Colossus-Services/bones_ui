@@ -97,7 +97,7 @@ abstract class UIButtonBase extends UIComponent {
   dynamic render() {
     var rendered = renderButton();
 
-    var renderAll = toContentElements(rendered, false, false);
+    var renderAll = toContentElements(rendered, parseAttributes: false);
     _onClickListen(renderAll);
 
     var renderedHidden = renderHidden();
