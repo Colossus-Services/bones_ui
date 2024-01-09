@@ -323,6 +323,32 @@ DOMElement $uiDialog({
 }
 
 class UIDialog extends UIDialogBase {
+  /// Returns all the `.ui-dialog` as [UIDialogBase].
+  static List<UIDialogBase> getAllDialogs() {
+    var dialogs = window.document.querySelectorAll('.ui-dialog');
+
+    return dialogs
+        .map(UIComponent.getContentUIComponent)
+        .whereType<UIDialogBase>()
+        .toList();
+  }
+
+  /// Removes and clears all the `.ui-dialog` [Element]s.
+  static void removeAllDialogs() {
+    var dialogs = window.document.querySelectorAll('.ui-dialog');
+
+    for (var d in dialogs) {
+      var component = UIComponent.getContentUIComponent(d);
+      if (component is UIDialogBase) {
+        component.hide();
+      }
+
+      component?.clear();
+
+      d.remove();
+    }
+  }
+
   static final UIComponentGenerator<UIDialog> generator =
       UIComponentGenerator<UIDialog>('ui-dialog', 'div', 'ui-dialog', '',
           (parent, attributes, contentHolder, contentNodes) {

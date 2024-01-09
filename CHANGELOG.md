@@ -1,3 +1,13 @@
+## 2.4.1
+
+- `UIDialog`:
+  - Added `getAllDialogs` and `removeAllDialogs`.
+
+- mercury_client: ^2.2.1
+- swiss_knife: ^3.1.6
+- archive: ^3.4.10
+- build_web_compilers: ^4.0.8
+
 ## 2.4.0
 
 - New `bones_ui_web.dart`:
