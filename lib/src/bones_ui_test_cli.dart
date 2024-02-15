@@ -309,7 +309,6 @@ class BonesUITestRunner {
       Runtime.chrome,
       Runtime.firefox,
       Runtime.safari,
-      Runtime.internetExplorer
     ], () => BonesUIPlatform.create(bonesUICompiler, showUI: showUI));
 
     print(
@@ -887,24 +886,6 @@ class DartRunner {
 /// a [PlatformPlugin] based on a wrapped [BrowserPlatform] instance and a [BonesUICompiler].
 class BonesUIPlatform extends PlatformPlugin
     implements CustomizablePlatform<ExecutableSettings> {
-  static Future<BrowserPlatform> _startBrowserPlatformSafe(String root) async {
-    while (true) {
-      var platform = await BrowserPlatform.start(root: root);
-      var url = platform.url;
-      var urlPath = url.path.toLowerCase();
-
-      if (!urlPath.contains('%2f') && !urlPath.contains('%5c')) {
-        print('** `BrowserPlatform` start OK: $url');
-        return platform;
-      }
-
-      print('** `BrowserPlatform` URL has invalid characters: $url');
-      platform.close();
-
-      print('-- Retrying `BrowserPlatform.start`...');
-    }
-  }
-
   /// Instantiates a [BonesUIPlatform].
   static Future<BonesUIPlatform> create(BonesUICompiler bonesUICompiler,
       {bool showUI = false}) async {
@@ -914,7 +895,7 @@ class BonesUIPlatform extends PlatformPlugin
       throw StateError("Invalid compile directory: $compileDirPath");
     }
 
-    var browserPlatform = await _startBrowserPlatformSafe(compileDirPath);
+    var browserPlatform = await BrowserPlatform.start(root: compileDirPath);
     return BonesUIPlatform(browserPlatform, bonesUICompiler, showUI: showUI);
   }
 

@@ -697,7 +697,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     _optionsPanel!.children.clear();
 
     if (_options!.isEmpty) {
-      _optionsPanel!.append(createHTML(''' 
+      _optionsPanel!.append(createHTML('''
           <div style="text-align: center; width: 100%">
             <i>${IntlBasicDictionary.msg('no_options')}</i>
           </div>

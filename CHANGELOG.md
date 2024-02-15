@@ -1,3 +1,21 @@
+## 2.5.0
+
+- sdk: '>=3.3.0 <4.0.0'
+
+- intl_messages: ^2.3.0
+- dom_tools: ^2.3.0
+- json_render: ^2.1.0
+- swiss_knife: ^3.2.0
+- statistics: ^1.1.0
+- project_template: ^1.1.0
+- intl: ^0.19.0
+- test: ^1.25.2
+- test_api: ^0.7.0
+- test_core: ^0.6.0
+
+- build_web_compilers: ^4.0.9
+- build_runner: ^2.4.8
+
 ## 2.4.1
 
 - `UIDialog`:
