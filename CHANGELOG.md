@@ -1,3 +1,8 @@
+## 2.5.1
+
+- `bones_ui_web`:
+  - `setValue`: Update handling of `CheckboxInputElement`.
+
 ## 2.5.0
 
 - sdk: '>=3.3.0 <4.0.0'
