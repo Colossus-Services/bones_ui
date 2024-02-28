@@ -1,5 +1,6 @@
 import 'dart:html' as web;
 import 'package:dom_tools/dom_tools.dart';
+import 'package:swiss_knife/swiss_knife.dart';
 
 typedef UIElement = web.Element;
 typedef UINode = web.Node;
@@ -40,7 +41,10 @@ extension UIElementExtension on UIElement {
   void setValue(String? value) {
     final element = this;
 
-    if (element is web.InputElement) {
+    if (element is web.CheckboxInputElement) {
+      var checked = parseBool(value) ?? false;
+      element.checked = checked;
+    } else if (element is web.InputElement) {
       element.value = value;
     } else {
       element.text = value;
