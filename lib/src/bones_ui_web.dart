@@ -41,11 +41,14 @@ extension UIElementExtension on UIElement {
   void setValue(String? value) {
     final element = this;
 
-    if (element is web.CheckboxInputElement) {
-      var checked = parseBool(value) ?? false;
-      element.checked = checked;
-    } else if (element is web.InputElement) {
-      element.value = value;
+    if (element is web.InputElement) {
+      var type = element.type;
+      if (type == 'checkbox') {
+        var checked = parseBool(value) ?? false;
+        element.checked = checked;
+      } else {
+        element.value = value;
+      }
     } else {
       element.text = value;
     }

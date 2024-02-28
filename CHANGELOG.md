@@ -1,3 +1,8 @@
+## 2.5.2
+
+- `UIElementExtension`:
+  - Fix `setValue` for `checkbox`.
+
 ## 2.5.1
 
 - `bones_ui_web`:
