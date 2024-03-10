@@ -1,3 +1,10 @@
+## 2.5.3
+
+- `testUI`:
+  - Fix `tearDownAll`, declared before `setUpAll` (before call to `spawnHybridUri`). 
+
+- `SpawnHybrid`: added field `finalizer`.
+
 ## 2.5.2
 
 - `UIElementExtension`:

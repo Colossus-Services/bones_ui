@@ -377,7 +377,11 @@ class SpawnHybrid {
   /// Optional callback for the [StreamChannel] returned by [spawnHybridUri] spawn.
   dynamic Function(StreamChannel? channel)? callback;
 
-  SpawnHybrid(this.uri, {this.message, this.callback});
+  /// Optional finalizer for the [StreamChannel] returned by [spawnHybridUri] spawn.
+  /// Called in teardown.
+  dynamic Function(StreamChannel? channel)? finalizer;
+
+  SpawnHybrid(this.uri, {this.message, this.callback, this.finalizer});
 
   @override
   String toString() {
@@ -420,17 +424,20 @@ Future<void> testMultipleUI(Map<String, FutureOr<void> Function()> testsMain,
     print('testMultipleUI> shuflle(shuffleSeed: $shuffleSeed)');
   }
 
-  print('testMultipleUI> tests:');
+  print('testMultipleUI:');
   for (var e in testsMain.entries) {
     var testPath = e.key;
     print('  -- $testPath');
   }
+
+  print('');
 
   for (var e in entries) {
     var testPath = e.key;
     var main = e.value;
     _testMultipleUIPath = testPath;
     await main();
+    await Future.delayed(Duration(milliseconds: 100));
   }
 }
 
@@ -490,8 +497,34 @@ void _testUIImpl<U extends UIRoot>(
   group(testUIName, () {
     U? uiRoot;
 
+    StreamChannel? channel;
+
+    // Teardown needs to be added before call to `spawnHybridUri`,
+    // since `spawnHybridUri` will terminate the process with its
+    // own `addTearDown` beforehand:
+    tearDownAll(() async {
+      context.setTestWindowTitle('tearDown');
+
+      if (uiRoot != null) {
+        uiRoot!.close();
+        await testUISleep(ms: 100);
+      }
+
+      final finalizer = spawnHybrid?.finalizer;
+      if (finalizer != null) {
+        await finalizer(channel);
+      }
+
+      if (teardown != null) {
+        teardown(context);
+      }
+    });
+
     setUpAll(() async {
       if (testMultipleUIPath != null) {
+        print('');
+        print(
+            '--------------------------------------------------------------------------------');
         print('[Bones_UI] testMultipleUI> path: $testMultipleUIPath');
       }
 
@@ -502,8 +535,6 @@ void _testUIImpl<U extends UIRoot>(
       if (preSetup != null) {
         await preSetup();
       }
-
-      StreamChannel? channel;
 
       if (spawnHybrid != null) {
         context.setTestWindowTitle('spawnHybridUri: ${spawnHybrid.uri} ...');
@@ -525,19 +556,6 @@ void _testUIImpl<U extends UIRoot>(
 
       if (posSetup != null) {
         await posSetup(context);
-      }
-    });
-
-    tearDownAll(() async {
-      context.setTestWindowTitle('tearDown');
-
-      if (uiRoot != null) {
-        uiRoot!.close();
-        await testUISleep(ms: 100);
-      }
-
-      if (teardown != null) {
-        teardown(context);
       }
     });
 
