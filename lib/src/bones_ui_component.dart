@@ -1414,7 +1414,9 @@ abstract class UIComponent extends UIEventHandler {
   List<dynamic> toContentElements(dynamic rendered,
       {bool append = false, bool parseAttributes = true}) {
     try {
-      var list = _toContentElementsImpl(rendered, append);
+      var domContext = UIComponentDOMContext(this, domGenerator.domContext);
+
+      var list = _toContentElementsImpl(rendered, append, domContext);
 
       if (parseAttributes) {
         _parseAttributes(content!.children);
@@ -1450,7 +1452,8 @@ abstract class UIComponent extends UIEventHandler {
 
   static final _listDynamicRuntimeType = <dynamic>[].runtimeType;
 
-  List<dynamic>? toRenderableList(Object? list) {
+  List<dynamic>? toRenderableList(Object? list,
+      [DOMContext<UINode>? domContext]) {
     if (list == null) return null;
 
     List<dynamic> renderableList;
@@ -1483,8 +1486,9 @@ abstract class UIComponent extends UIEventHandler {
     return renderableList;
   }
 
-  List<dynamic> _toContentElementsImpl(Object? rendered, bool append) {
-    var renderableList = toRenderableList(rendered);
+  List<dynamic> _toContentElementsImpl(
+      Object? rendered, bool append, DOMContext<UINode>? domContext) {
+    var renderableList = toRenderableList(rendered, domContext);
 
     var content = this.content!;
 
@@ -1499,14 +1503,14 @@ abstract class UIComponent extends UIEventHandler {
     if (isListOfStrings(renderableList)) {
       var html = renderableList.join('\n');
 
-      var values = _normalizeRenderListValue(content, html);
+      var values = _normalizeRenderListValue(content, html, domContext);
 
       var nodes = (values is List
               ? values
               : (values is Iterable ? values.toList() : [values]))
           .expand((e) => e is List ? e : [e])
           .map((e) {
-            return _normalizeRenderListValue(content, e);
+            return _normalizeRenderListValue(content, e, domContext);
           })
           .cast<UINode>()
           .toList();
@@ -1534,22 +1538,27 @@ abstract class UIComponent extends UIEventHandler {
       var prevElemIndex = -1;
 
       for (var value in renderableList) {
-        prevElemIndex = _buildRenderList(value, renderedList2, prevElemIndex);
+        prevElemIndex =
+            _buildRenderList(value, renderedList2, prevElemIndex, domContext);
       }
 
       return renderedList2;
     }
   }
 
-  dynamic _normalizeRenderListValue(UIElement? content, value) {
+  dynamic _normalizeRenderListValue(
+      UIElement? content, value, DOMContext<UINode>? domContext) {
     if (value is DOMNode) {
-      return value.buildDOM(generator: domGenerator, parent: content);
+      return value.buildDOM(
+          generator: domGenerator, parent: content, context: domContext);
     } else if (value is AsDOMElement) {
       var element = value.asDOMElement;
-      return element.buildDOM(generator: domGenerator, parent: content);
+      return element.buildDOM(
+          generator: domGenerator, parent: content, context: domContext);
     } else if (value is AsDOMNode) {
       var node = value.asDOMNode;
-      return node.buildDOM(generator: domGenerator, parent: content);
+      return node.buildDOM(
+          generator: domGenerator, parent: content, context: domContext);
     } else if (value is String) {
       var nodes = $html(value);
       return nodes;
@@ -1579,12 +1588,12 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  int _buildRenderList(
-      dynamic value, List<dynamic> renderedList, int prevElemIndex) {
+  int _buildRenderList(dynamic value, List<dynamic> renderedList,
+      int prevElemIndex, DOMContext<UINode>? domContext) {
     if (value == null) return prevElemIndex;
     var content = this.content;
 
-    value = _normalizeRenderListValue(content, value);
+    value = _normalizeRenderListValue(content, value, domContext);
 
     if (value is UINode) {
       prevElemIndex =
@@ -1596,17 +1605,19 @@ abstract class UIComponent extends UIEventHandler {
       prevElemIndex = _addElementToRenderList(
           value, value.content!, renderedList, prevElemIndex);
     } else if (value is UIAsyncContent) {
-      prevElemIndex =
-          _addUIAsyncContentToRenderList(value, renderedList, prevElemIndex);
+      prevElemIndex = _addUIAsyncContentToRenderList(
+          value, renderedList, prevElemIndex, domContext);
     } else if (value is List) {
       for (var elem in value) {
-        prevElemIndex = _buildRenderList(elem, renderedList, prevElemIndex);
+        prevElemIndex =
+            _buildRenderList(elem, renderedList, prevElemIndex, domContext);
       }
     } else if (value is Function) {
       try {
         // ignore: avoid_dynamic_calls
         var result = value();
-        prevElemIndex = _buildRenderList(result, renderedList, prevElemIndex);
+        prevElemIndex =
+            _buildRenderList(result, renderedList, prevElemIndex, domContext);
       } catch (e, s) {
         UIConsole.error('Error calling function: $value', e, s);
       }
@@ -1643,7 +1654,8 @@ abstract class UIComponent extends UIEventHandler {
 
   bool get isLoadingUIAsyncContent => _loadingAsyncContents.isNotEmpty;
 
-  void _resolveUIAsyncContentLoaded(UIAsyncContent asyncContent) {
+  void _resolveUIAsyncContentLoaded(
+      UIAsyncContent asyncContent, DOMContext<UINode>? domContext) {
     if (!asyncContent.isLoaded) return;
 
     if (asyncContent.isLoaded && !asyncContent.hasAutoRefresh) {
@@ -1693,7 +1705,8 @@ abstract class UIComponent extends UIEventHandler {
 
     var renderedList = [];
     if (maxContentIdx == null || maxContentIdx >= content!.nodes.length) {
-      _buildRenderList(loadedContent, renderedList, content!.nodes.length - 1);
+      _buildRenderList(
+          loadedContent, renderedList, content!.nodes.length - 1, domContext);
 
       _renderedElements!.addAll(renderedList);
     } else {
@@ -1702,7 +1715,8 @@ abstract class UIComponent extends UIEventHandler {
         content!.nodes.remove(e);
       }
 
-      _buildRenderList(loadedContent, renderedList, content!.nodes.length - 1);
+      _buildRenderList(
+          loadedContent, renderedList, content!.nodes.length - 1, domContext);
 
       if (tail.isNotEmpty) {
         var renderedComponents = renderedList
@@ -1734,14 +1748,14 @@ abstract class UIComponent extends UIEventHandler {
     _callPosAsyncRender();
   }
 
-  int _addUIAsyncContentToRenderList(
-      UIAsyncContent asyncContent, List renderedList, int prevElemIndex) {
+  int _addUIAsyncContentToRenderList(UIAsyncContent asyncContent,
+      List renderedList, int prevElemIndex, DOMContext<UINode>? domContext) {
     if (!asyncContent.isLoaded ||
         asyncContent.isExpired ||
         asyncContent.hasAutoRefresh) {
       _loadingAsyncContents.add(asyncContent);
       asyncContent.onLoadContent.listen((c) {
-        _resolveUIAsyncContentLoaded(asyncContent);
+        _resolveUIAsyncContentLoaded(asyncContent, domContext);
       }, singletonIdentifier: this);
     }
 
@@ -1755,8 +1769,8 @@ abstract class UIComponent extends UIEventHandler {
 
     var renderIdx = renderedList.length;
 
-    prevElemIndex =
-        _buildRenderList(asyncContent.content, renderedList, prevElemIndex);
+    prevElemIndex = _buildRenderList(
+        asyncContent.content, renderedList, prevElemIndex, domContext);
 
     var rendered = renderedList.sublist(renderIdx).toList();
 

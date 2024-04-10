@@ -300,6 +300,18 @@ abstract class ElementGeneratorBase extends ElementGenerator<UINode> {
   }
 }
 
+class UIComponentDOMContext extends DOMContext<UINode> {
+  final UIComponent uiComponent;
+
+  UIComponentDOMContext(this.uiComponent, DOMContext<UINode>? parent)
+      : super(parent: parent, intlMessageResolver: parent?.intlMessageResolver);
+
+  @override
+  String toString() {
+    return 'UIComponentDOMContext{viewport: $viewport, resolveCSSViewportUnit: $resolveCSSViewportUnit resolveCSSURL: $resolveCSSURL}@$uiComponent';
+  }
+}
+
 /// A [DOMGenerator] (from package `dom_builder`)
 /// able to generate [UIElement] (from `dart:html`).
 class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
@@ -438,8 +450,14 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
         futureElementResolved, treeMap, context);
 
     if (futureElementResolved is UIElement) {
-      var parentComponent =
-          UIRoot.getInstance()!.findUIComponentByChild(futureElementResolved);
+      UIComponent? parentComponent;
+
+      if (context is UIComponentDOMContext) {
+        parentComponent = context.uiComponent;
+      } else {
+        parentComponent =
+            UIRoot.getInstance()!.findUIComponentByChild(futureElementResolved);
+      }
 
       if (parentComponent != null) {
         parentComponent.componentInternals
