@@ -1,3 +1,17 @@
+## 2.5.4
+
+- New `UIComponentDOMContext`.
+
+- `UIDOMGenerator`:
+  - Optimize `attachFutureElement` using `UIComponentDOMContext.uiComponent` to resolve `parentComponent`. 
+
+- mercury_client: ^2.2.2
+- test: ^1.25.3
+- test_api: ^0.7.1
+- test_core: ^0.6.1
+- build_web_compilers: ^4.0.10
+- build_runner: ^2.4.9
+
 ## 2.5.3
 
 - `testUI`:
