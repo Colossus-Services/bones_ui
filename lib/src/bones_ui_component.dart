@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:bones_ui/src/bones_ui_utils.dart';
 import 'package:collection/collection.dart'
@@ -118,10 +119,24 @@ abstract class UIComponent extends UIEventHandler {
 
       assert(_content != null);
 
-      if (_parentUIComponent == null && _parent != null) {
-        var uiParent = _getUIComponentByContent(_parent);
-        if (uiParent != null) {
-          _setParentUIComponent(uiParent);
+      if (_parentUIComponent == null) {
+        if (_parent != null) {
+          var uiParent = _getUIComponentByContent(_parent);
+          if (uiParent != null) {
+            _setParentUIComponent(uiParent);
+          } else {
+            var renderingUIComponent =
+                UIComponent.parentRenderingUIComponent(this);
+            if (renderingUIComponent != null) {
+              _setParentUIComponent(renderingUIComponent);
+            }
+          }
+        } else if (this is! UIRootComponent) {
+          var renderingUIComponent =
+              UIComponent.parentRenderingUIComponent(this);
+          if (renderingUIComponent != null) {
+            _setParentUIComponent(renderingUIComponent);
+          }
         }
       }
 
@@ -187,8 +202,14 @@ abstract class UIComponent extends UIEventHandler {
 
   /// Called by constructor to register this component in the [UIRoot] tree.
   void registerInUIRoot() {
-    var uiRoot = this.uiRoot ?? UIRoot.getInstance();
-    uiRoot?.registerUIComponentInTree(this);
+    var uiRootComponent = this.uiRootComponent;
+
+    if (uiRootComponent != null) {
+      uiRootComponent.registerUIComponentInTree(this);
+    } else {
+      var uiRoot = UIRoot.getInstance();
+      uiRoot?.registerUIComponentInTree(this);
+    }
   }
 
   /// Called in the beginning of constructor.
@@ -233,8 +254,10 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   /// Returns a [List] of sub [UIComponent].
-  List<UIComponent> get subUIComponents =>
-      UIRoot.getInstance()?.getSubUIComponentsByElement(content) ?? [];
+  List<UIComponent> get subUIComponents {
+    var uiRootComponent = this.uiRootComponent;
+    return uiRootComponent?.getSubUIComponentsByElement(content) ?? [];
+  }
 
   /// Returns a [List] of sub [UIComponent] deeply in the tree.
   List<UIComponent> get subUIComponentsDeeply =>
@@ -257,9 +280,11 @@ abstract class UIComponent extends UIEventHandler {
       }
 
       _uiRoot = uiParent._uiRoot;
+      _uiRootComponent = uiParent._uiRootComponent;
     } else {
       _parentUIComponent = null;
       _uiRoot = null;
+      _uiRootComponent = null;
     }
   }
 
@@ -367,6 +392,19 @@ abstract class UIComponent extends UIEventHandler {
     var parent = parentUIComponent;
     if (parent == null) return null;
     return _uiRoot = parent.uiRoot;
+  }
+
+  UIRootComponent? _uiRootComponent;
+
+  /// Returns the [UIRootComponent] that is parent of this [UIComponent] instance,
+  /// or `null` if it's not in an [UIRoot] components tree.
+  UIRootComponent? get uiRootComponent =>
+      _uiRootComponent ??= _resolveUIRootComponent();
+
+  UIRootComponent? _resolveUIRootComponent() {
+    var parent = parentUIComponent;
+    if (parent == null) return null;
+    return _uiRootComponent = parent.uiRootComponent;
   }
 
   bool _showing = true;
@@ -1091,6 +1129,82 @@ abstract class UIComponent extends UIEventHandler {
 
   int get renderCount => _renderCount;
 
+  static final Queue<Zone> _renderingZonePool = Queue();
+
+  Zone _catchRenderingZone() {
+    if (_renderingZonePool.isNotEmpty) {
+      return _renderingZonePool.removeLast();
+    }
+    return Zone.current.fork();
+  }
+
+  void _releaseRenderingZone(Zone zone) {
+    _renderingZonePool.addLast(zone);
+  }
+
+  Zone? _renderingZone;
+
+  Zone _resolveRenderingZone() {
+    var renderingZone = _renderingZone;
+    if (renderingZone != null) return renderingZone;
+
+    return _catchRenderingZone();
+  }
+
+  static final Expando<UIComponent> _asyncRenderingZoneComponent = Expando();
+
+  void _setRenderingZoneUIComponent(Zone renderingZone) {
+    _renderingZone = renderingZone;
+    _asyncRenderingZoneComponent[renderingZone] = this;
+  }
+
+  static final Queue<UIComponent> _renderingUIComponent = Queue();
+
+  /// Returns the current synchronous rendering [UIComponent] in the rendering stack.
+  static UIComponent? get renderingUIComponent {
+    var renderingComponent = _renderingUIComponent.lastOrNull;
+    return renderingComponent;
+  }
+
+  /// Returns the parent rendering [UIComponent] for the parameter [uiComponent].
+  /// - Can also resolve the parent during asynchronous rendering.
+  static UIComponent? parentRenderingUIComponent(UIComponent uiComponent) {
+    var renderingComponent = _renderingUIComponent.lastOrNull;
+
+    if (renderingComponent != null) {
+      if (!identical(renderingComponent, uiComponent)) {
+        return renderingComponent;
+      }
+
+      if (_renderingUIComponent.length > 1) {
+        var l = _renderingUIComponent.toList();
+        for (var i = l.length - 2; i >= 0; --i) {
+          var o = l[i];
+          if (!identical(o, uiComponent)) {
+            return o;
+          }
+        }
+      }
+
+      return null;
+    }
+
+    Zone? currentZone = Zone.current;
+
+    while (currentZone != null) {
+      var asyncComponent = _asyncRenderingZoneComponent[currentZone];
+      if (asyncComponent == null) {
+        return null;
+      } else if (!identical(asyncComponent, uiComponent)) {
+        return asyncComponent;
+      }
+
+      currentZone = currentZone.parent;
+    }
+
+    return null;
+  }
+
   void _callRenderImpl(bool clear) {
     _renderCount++;
     _requestRefresh = null;
@@ -1126,10 +1240,34 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     _rendering = true;
+    _renderingUIComponent.addLast(this);
+
+    var renderingZone = _resolveRenderingZone();
+
+    Object? rendered;
     try {
-      _doRender();
+      rendered = renderingZone.run(_doRender);
     } finally {
       _rendering = false;
+
+      var lastRendering = _renderingUIComponent.lastOrNull;
+      if (identical(lastRendering, this)) {
+        _renderingUIComponent.removeLast();
+      } else {
+        UIConsole.error(
+            'Last `_renderingComponent` != `this`: $lastRendering != $this');
+      }
+
+      // Asynchronous render:
+      // Mark `renderingZone` with `this` [UIComponent].
+      if (rendered is Future) {
+        _setRenderingZoneUIComponent(renderingZone);
+      }
+      // Normal render:
+      // Release `renderingZone` in the pool to be reused.
+      else {
+        _releaseRenderingZone(renderingZone);
+      }
 
       try {
         _notifyRendered();
@@ -1153,7 +1291,7 @@ abstract class UIComponent extends UIEventHandler {
   int? _renderDeviceWidth;
   int? _renderDeviceHeight;
 
-  void _doRender() {
+  Object? _doRender() {
     var currentLocale = UIRoot.getCurrentLocale();
 
     _renderLocale = currentLocale;
@@ -1178,19 +1316,19 @@ abstract class UIComponent extends UIEventHandler {
           }
         }
 
-        return;
+        return null;
       }
     } catch (e, s) {
       UIConsole.error('$this isAccessible error', e, s);
-      return;
+      return null;
     }
 
+    Object? rendered;
     try {
       _callPreRender();
 
       _rendered = true;
 
-      dynamic rendered;
       if (preserveRender &&
           !_renderedWithError &&
           _renderedElements != null &&
@@ -1228,6 +1366,8 @@ abstract class UIComponent extends UIEventHandler {
     _callPosRender();
 
     _markRenderTime();
+
+    return rendered;
   }
 
   void _finalizeRender() {

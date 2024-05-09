@@ -1,3 +1,23 @@
+## 2.5.5
+
+- New `UIRootComponent`:
+  - Implemented by `UIRoot` and `UIDialogBase`
+
+- `UIComponent`:
+  - Extends `UIRootComponent`.
+  - Added getter `uiRootComponent`.
+  - Added `renderingUIComponent`: returns the current rendering component in the stack,
+  - Added `parentRenderingUIComponent`: can resolve asynchronous parent renderer.
+  - `_construct`: improved parent `UIComponent` resolution.
+
+- `UIDialogBase` extends `UIRootComponent`:
+  - `getRenderedUIComponentById`, `getRenderedUIComponents`: fix resolution of child `UIComponent`s. 
+
+- archive: ^3.5.1
+- args: ^2.5.0
+- test: ^1.25.5
+- test_core: ^0.6.2
+
 ## 2.5.4
 
 - New `UIComponentDOMContext`.
