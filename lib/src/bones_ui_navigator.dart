@@ -939,7 +939,8 @@ abstract class UINavigableContent extends UINavigableComponent {
       super.style,
       super.style2,
       super.inline,
-      super.renderOnConstruction});
+      super.renderOnConstruction,
+      super.id});
 
   @override
   dynamic render() {

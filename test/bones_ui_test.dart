@@ -23,6 +23,9 @@ void main() {
 
       expect(myHome?.text, contains('Hello world'));
 
+      expect(myHome?.text, contains('- uiRoot: MyRoot'));
+      expect(myHome?.text, contains('- uiRootComponent: MyRoot'));
+
       var btn1 = uiRoot.selectExpected<web.ButtonElement>('*');
       expect(btn1, isA<web.ButtonElement>());
       expect(btn1.text, equals('Go to: contact'));
@@ -34,7 +37,9 @@ void main() {
       expect(uiRoot.querySelector('#my-contact'), isNotNull);
 
       var myContact1 = uiRoot.querySelector<web.DivElement>('#my-contact');
-      expect(myContact1!.text, isNot(contains('foo@mail.com')));
+
+      expect(myContact1!.text, contains('Loading...'));
+      expect(myContact1.text, isNot(contains('foo@mail.com')));
 
       expect(isComponentInDOM(myContact1), isTrue);
       expect(canBeInDOM(myContact1), isTrue);
@@ -50,6 +55,9 @@ void main() {
 
       expect(myContact2?.text, contains('foo@mail.com'));
       expect(isComponentInDOM(myContact1), isTrue);
+
+      expect(myContact1.text, contains('* uiRoot: MyRoot'));
+      expect(myContact1.text, contains('* uiRootComponent: MyRoot'));
 
       var uiContact2 = uiRoot.getUIComponentByContent(myContact2);
       expect(uiContact2, isA<MyContact>());
@@ -76,7 +84,7 @@ void main() {
 }
 
 class MyRoot extends UIRoot {
-  MyRoot(super.rootContainer);
+  MyRoot(super.rootContainer) : super(id: 'MyRoot');
 
   late final _myContent = MyContent(this);
 
@@ -85,7 +93,8 @@ class MyRoot extends UIRoot {
 }
 
 class MyContent extends UINavigableContent {
-  MyContent(Object? parent) : super(parent, ['home', 'contact']);
+  MyContent(Object? parent)
+      : super(parent, ['home', 'contact'], id: 'MyContent');
 
   @override
   renderRoute(String? route, Map<String, String>? parameters) {
@@ -103,12 +112,20 @@ class MyHome extends UIComponent {
   MyHome(super.parent) : super(id: 'my-home');
 
   @override
-  render() =>
-      '<h1>Home</h1><p>Hello world!<br><hr><button navigate="contact">Go to: contact</button>';
+  render() => '<h1>Home</h1>'
+      '<p>Hello world!<br>'
+      '<hr>'
+      '- uiRoot: ${uiRoot?.id} <br>'
+      '- uiRootComponent: ${uiRootComponent?.id} '
+      '<hr>'
+      '<button navigate="contact">Go to: contact</button>';
 }
 
 class MyContact extends UIComponent {
   MyContact(super.parent) : super(id: 'my-contact');
+
+  @override
+  renderLoading() => 'Loading...';
 
   @override
   render() {
@@ -119,6 +136,9 @@ class MyContact extends UIComponent {
         $tag('h1', content: 'Contact'),
         $p(),
         $span(content: 'foo@mail.com'),
+        $hr(),
+        $div(content: ['* uiRoot: ', uiRoot?.id]),
+        $div(content: ['* uiRootComponent: ', uiRootComponent?.id]),
         $hr(),
         $button(attributes: {'navigate': 'home'}, content: 'Go to: home'),
       ]);

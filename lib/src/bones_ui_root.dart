@@ -123,6 +123,7 @@ abstract class UIRoot extends UIRootComponent {
       {this.name,
       dynamic style,
       dynamic classes,
+      super.id,
       UIComponentClearParent super.clearParent =
           UIComponentClearParent.onInitialRender,
       this.readyTimeout = const Duration(seconds: 15)})
