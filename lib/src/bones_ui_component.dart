@@ -550,6 +550,8 @@ abstract class UIComponent extends UIEventHandler {
   /// Resolves [text] `{{intl:key}}` messages.
   String resolveTextIntl(String text) {
     if (text.contains('{{')) {
+      var uiRoot = this.uiRoot ?? UIRoot.getInstance();
+
       var intlMessageResolver = uiRoot?.intlMessageResolver;
       intlMessageResolver ??=
           (String key, [Map<String, dynamic>? parameters]) => key;
