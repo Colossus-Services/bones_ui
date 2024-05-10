@@ -9,9 +9,15 @@
   - Added `renderingUIComponent`: returns the current rendering component in the stack,
   - Added `parentRenderingUIComponent`: can resolve asynchronous parent renderer.
   - `_construct`: improved parent `UIComponent` resolution.
+  - `resolveTextIntl`: improve resolution of `uiRoot` and call to `intlMessageResolver`.
 
 - `UIDialogBase` extends `UIRootComponent`:
   - `getRenderedUIComponentById`, `getRenderedUIComponents`: fix resolution of child `UIComponent`s. 
+
+- `UIInputTable`:
+  - Added field `scrollToInvalidElement`.
+- `InputConfig`:
+  - Added field `labelVerticalAlign`
 
 - archive: ^3.5.1
 - args: ^2.5.0
