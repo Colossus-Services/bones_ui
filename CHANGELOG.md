@@ -19,6 +19,7 @@
 - `InputConfig`:
   - Added field `labelVerticalAlign`
 
+- dom_builder: ^2.2.3
 - archive: ^3.5.1
 - args: ^2.5.0
 - test: ^1.25.5
