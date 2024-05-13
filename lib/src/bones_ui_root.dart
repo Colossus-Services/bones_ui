@@ -372,7 +372,7 @@ abstract class UIRoot extends UIRootComponent {
 
   /// Returns `true` if this [UIRoot] is closed.
   ///
-  /// - Seee [close] and [closeOperations].
+  /// - See [close] and [closeOperations].
   bool get isClosed => _closed;
 
   FutureOr<bool> close({bool refreshAfterClose = true}) {
@@ -386,6 +386,7 @@ abstract class UIRoot extends UIRootComponent {
         if (refreshAfterClose) {
           refresh(forceRender: true);
         }
+        UIConsole.log('UIRoot> closed!');
         onClose.add(this);
         return true;
       });
@@ -393,6 +394,7 @@ abstract class UIRoot extends UIRootComponent {
       if (refreshAfterClose) {
         refresh(forceRender: true);
       }
+      UIConsole.log('UIRoot> closed!');
       onClose.add(this);
       return true;
     }
