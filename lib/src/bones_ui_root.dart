@@ -20,91 +20,39 @@ import 'component/loading.dart';
 import 'component/multi_selection.dart';
 import 'component/svg.dart';
 
-/// The root for `Bones_UI` component tree.
-abstract class UIRoot extends UIComponent {
-  static UIRoot? _rootInstance;
-
-  /// Returns the current [UIRoot] instance.
-  static UIRoot? getInstance() {
-    return _rootInstance;
-  }
+/// Base class for [UIComponent]s serving as roots for other components.
+/// - Implemented by [UIRoot] and [UIDialogBase].
+/// - Handles registration of the tree of [UIComponent]s and sub-[UIComponent]s.
+abstract class UIRootComponent extends UIComponent {
+  UIRootComponent(super.parent,
+      {super.componentClass,
+      super.componentStyle,
+      super.classes,
+      super.classes2,
+      super.style,
+      super.style2,
+      super.clearParent,
+      super.inline,
+      super.construct,
+      super.renderOnConstruction,
+      super.preserveRender,
+      super.id,
+      super.generator});
 
   late DOMTreeReferenceMap<UIComponent> _uiComponentsTree;
 
-  LocalesManager? _localesManager;
-
-  Future<bool>? _futureInitializeLocale;
-
-  Duration readyTimeout;
-
-  final String? name;
-
-  UIRoot(super.rootContainer,
-      {this.name,
-      dynamic style,
-      dynamic classes,
-      UIComponentClearParent super.clearParent =
-          UIComponentClearParent.onInitialRender,
-      this.readyTimeout = const Duration(seconds: 15)})
-      : super(
-            style: style,
-            classes: classes,
-            componentClass: 'ui-root',
-            construct: false) {
-    _initializeAll();
-
-    final componentInternals = this.componentInternals;
-
-    if (componentInternals.getContent() == null) {
-      componentInternals.setContent(createContentElement(true));
-    }
-
+  void initializeUIComponentsTree() {
     _uiComponentsTree = DOMTreeReferenceMap(content!,
         keepPurgedKeys: true,
         maxPurgedEntries: 1000,
         purgedEntriesTimeout: Duration(minutes: 1));
-
-    _rootInstance = this;
-
-    componentInternals.construct(
-        false, true, classes, null, 'ui-root', style, null, null, false);
-
-    _localesManager =
-        createLocalesManager(_callInitializeLocale, _onDefineLocale);
-    _localesManager!.onPreDefineLocale.add(onPreDefineLocale);
-
-    _futureInitializeLocale = _localesManager!.initialize(getPreferredLocale);
-
-    window.onResize.listen(_onResize);
-
-    UIConsole.checkAutoEnable();
   }
-
-  /// Returns `true` if this instance is running from `bones_ui test` CLI.
-  bool get isTest => content?.classes.contains('__bones_ui_test__') ?? false;
 
   @override
   void registerInUIRoot() {}
 
-  /// Returns this [UIRoot] instance.
   @override
-  UIRoot get uiRoot => this;
-
-  /// The default loading to render for all [UIComponent] that do not implement [UIComponent.renderLoading].
-  @override
-  dynamic renderLoading() => null;
-
-  IntlMessageResolver? _intlMessageResolver;
-
-  IntlMessageResolver? get intlMessageResolver => _intlMessageResolver;
-
-  set intlMessageResolver(dynamic resolver) {
-    if (resolver is IntlMessages) {
-      _intlMessageResolver = resolver.buildMsg;
-    } else {
-      _intlMessageResolver = toIntlMessageResolver(resolver);
-    }
-  }
+  UIRootComponent get uiRootComponent;
 
   bool get isAnyComponentRendering => _uiComponentsTree.validEntries
       .where((e) => e.value.isRendering)
@@ -142,6 +90,100 @@ abstract class UIRoot extends UIComponent {
   }
 
   void purgeUIComponentsTree() => _uiComponentsTree.purge();
+
+  /// [EventStream] for when this [UIRoot] finishes to render UI.
+  final EventStream<UIRootComponent> onFinishRender = EventStream();
+
+  void notifyFinishRender() {
+    onFinishRender.add(this);
+
+    _uiComponentsTree.purge();
+    //print('FINISH RENDER> _uiComponentsTree: $_uiComponentsTree');
+  }
+}
+
+/// The root for `Bones_UI` component tree.
+abstract class UIRoot extends UIRootComponent {
+  static UIRoot? _rootInstance;
+
+  /// Returns the current [UIRoot] instance.
+  static UIRoot? getInstance() {
+    return _rootInstance;
+  }
+
+  LocalesManager? _localesManager;
+
+  Future<bool>? _futureInitializeLocale;
+
+  Duration readyTimeout;
+
+  final String? name;
+
+  UIRoot(super.rootContainer,
+      {this.name,
+      dynamic style,
+      dynamic classes,
+      super.id,
+      UIComponentClearParent super.clearParent =
+          UIComponentClearParent.onInitialRender,
+      this.readyTimeout = const Duration(seconds: 15)})
+      : super(
+            style: style,
+            classes: classes,
+            componentClass: 'ui-root',
+            construct: false) {
+    _initializeAll();
+
+    final componentInternals = this.componentInternals;
+
+    if (componentInternals.getContent() == null) {
+      componentInternals.setContent(createContentElement(true));
+    }
+
+    initializeUIComponentsTree();
+
+    _rootInstance = this;
+
+    componentInternals.construct(
+        false, true, classes, null, 'ui-root', style, null, null, false);
+
+    _localesManager =
+        createLocalesManager(_callInitializeLocale, _onDefineLocale);
+    _localesManager!.onPreDefineLocale.add(onPreDefineLocale);
+
+    _futureInitializeLocale = _localesManager!.initialize(getPreferredLocale);
+
+    window.onResize.listen(_onResize);
+
+    UIConsole.checkAutoEnable();
+  }
+
+  /// Returns `true` if this instance is running from `bones_ui test` CLI.
+  bool get isTest => content?.classes.contains('__bones_ui_test__') ?? false;
+
+  /// Returns this [UIRoot] instance.
+  @override
+  UIRoot get uiRoot => this;
+
+  /// Returns this [UIRoot] instance.
+  @override
+  UIRootComponent get uiRootComponent => this;
+
+  /// The default loading to render for all [UIComponent] that do not implement [UIComponent.renderLoading].
+  @override
+  dynamic renderLoading() => null;
+
+  IntlMessageResolver? _intlMessageResolver;
+
+  IntlMessageResolver? get intlMessageResolver => _intlMessageResolver;
+
+  set intlMessageResolver(dynamic resolver) {
+    if (resolver is IntlMessages) {
+      _intlMessageResolver = resolver.buildMsg;
+    } else {
+      _intlMessageResolver = toIntlMessageResolver(resolver);
+    }
+  }
 
   @override
   void onPreConstruct() {
@@ -264,16 +306,6 @@ abstract class UIRoot extends UIComponent {
   /// [EventStream] for when this [UIRoot] is initialized.
   final EventStream<UIRoot> onInitialize = EventStream();
 
-  /// [EventStream] for when this [UIRoot] finishes to render UI.
-  final EventStream<UIRoot> onFinishRender = EventStream();
-
-  void notifyFinishRender() {
-    onFinishRender.add(this);
-
-    _uiComponentsTree.purge();
-    //print('FINISH RENDER> _uiComponentsTree: $_uiComponentsTree');
-  }
-
   void _onReadyToInitialize() {
     UIConsole.log('UIRoot> ready to initialize!');
 
@@ -340,7 +372,7 @@ abstract class UIRoot extends UIComponent {
 
   /// Returns `true` if this [UIRoot] is closed.
   ///
-  /// - Seee [close] and [closeOperations].
+  /// - See [close] and [closeOperations].
   bool get isClosed => _closed;
 
   FutureOr<bool> close({bool refreshAfterClose = true}) {
@@ -354,6 +386,7 @@ abstract class UIRoot extends UIComponent {
         if (refreshAfterClose) {
           refresh(forceRender: true);
         }
+        UIConsole.log('UIRoot> closed!');
         onClose.add(this);
         return true;
       });
@@ -361,6 +394,7 @@ abstract class UIRoot extends UIComponent {
       if (refreshAfterClose) {
         refresh(forceRender: true);
       }
+      UIConsole.log('UIRoot> closed!');
       onClose.add(this);
       return true;
     }

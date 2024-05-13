@@ -506,7 +506,7 @@ void _testUIImpl<U extends UIRoot>(
       context.setTestWindowTitle('tearDown');
 
       if (uiRoot != null) {
-        uiRoot!.close();
+        await uiRoot!.close();
         await testUISleep(ms: 100);
       }
 
@@ -573,13 +573,13 @@ void _testUIImpl<U extends UIRoot>(
     body(context);
 
     test('close', () async {
-      context.setTestWindowTitle('tearDown');
+      context.setTestWindowTitle('close');
 
       if (uiRoot != null) {
         await uiRoot!.callRenderAndWait();
         await testUISleep(ms: 100);
 
-        uiRoot!.close();
+        await uiRoot!.close();
 
         expect(uiRoot!.isClosed, isTrue);
 

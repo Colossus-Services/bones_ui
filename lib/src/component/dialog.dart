@@ -11,7 +11,7 @@ import '../bones_ui_root.dart';
 import 'loading.dart';
 
 /// Component that renders a dialog.
-abstract class UIDialogBase extends UIComponent {
+abstract class UIDialogBase extends UIRootComponent {
   static final rootParent = document.body;
 
   final bool hideUIRoot;
@@ -45,7 +45,15 @@ abstract class UIDialogBase extends UIComponent {
           componentClass: 'ui-dialog',
         ) {
     _myConfigure(style);
+
+    initializeUIComponentsTree();
   }
+
+  @override
+  UIRoot? get uiRoot => null;
+
+  @override
+  UIRootComponent get uiRootComponent => this;
 
   void _myConfigure(dynamic style) {
     content!.style

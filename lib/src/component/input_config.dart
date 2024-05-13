@@ -54,6 +54,7 @@ class InputConfig {
   List<String> classes;
 
   String? labelStyle;
+  String? labelVerticalAlign;
 
   String? style;
 
@@ -77,6 +78,8 @@ class InputConfig {
       var attributes = findKeyValue(config, ['attributes'], true);
       var classes = findKeyValue(config, ['class', 'classes'], true);
       var labelStyle = findKeyValue(config, ['labelStyle'], true);
+      var labelVerticalAlign =
+          findKeyValue(config, ['labelVerticalAlign'], true);
       var style = findKeyValue(config, ['style'], true);
       var options = findKeyValue(config, ['options'], true);
       var optional = parseBool(findKeyValue(config, ['optional'], true), false);
@@ -98,6 +101,7 @@ class InputConfig {
           optional: optional,
           classes: classes,
           labelStyle: labelStyle,
+          labelVerticalAlign: labelVerticalAlign,
           style: style);
     }
 
@@ -116,6 +120,7 @@ class InputConfig {
     bool? optional = false,
     Object? classes,
     String? labelStyle,
+    String? labelVerticalAlign,
     String? style,
     FieldInputRender? inputRender,
     FieldValueProvider? valueProvider,
@@ -151,15 +156,15 @@ class InputConfig {
 
     _label = label;
 
-    if (labelStyle != null) {
-      labelStyle = labelStyle.trim();
-      this.labelStyle = labelStyle.isNotEmpty ? labelStyle : null;
-    }
+    this.labelStyle = _normalizeNotEmpty(labelStyle);
+    this.labelVerticalAlign = _normalizeNotEmpty(labelVerticalAlign);
+    this.style = _normalizeNotEmpty(style);
+  }
 
-    if (style != null) {
-      style = style.trim();
-      this.style = style.isNotEmpty ? style : null;
-    }
+  static String? _normalizeNotEmpty(String? s) {
+    if (s == null) return null;
+    s = s.trim();
+    return s.isNotEmpty ? s : null;
   }
 
   String get id => _id;
@@ -477,6 +482,8 @@ class UIInputTable extends UIComponent {
   final String? inputErrorClass;
   final String? invalidValueClass;
 
+  final bool scrollToInvalidElement;
+
   UIInputTable(super.parent, this._inputs,
       {List? extraRows,
       this.actionListenerComponent,
@@ -486,6 +493,7 @@ class UIInputTable extends UIComponent {
       this.invalidValueClass,
       this.showLabels = true,
       this.showInvalidMessages = true,
+      this.scrollToInvalidElement = true,
       super.classes,
       super.style,
       dynamic tableClasses,
@@ -594,7 +602,7 @@ class UIInputTable extends UIComponent {
 
         if (ok) {
           var element = getFieldElement(fieldName);
-          if (element != null) {
+          if (element != null && scrollToInvalidElement) {
             scrollToElement(element);
           }
         }
@@ -626,9 +634,11 @@ class UIInputTable extends UIComponent {
   @override
   dynamic render() {
     var form = FormElement();
+    form.style.width = '100%';
     form.autocomplete = 'off';
 
     var table = TableElement();
+    table.style.width = '100%';
 
     if (_tableClasses.isNotEmpty) {
       table.classes.addAll(_tableClasses);
@@ -646,8 +656,13 @@ class UIInputTable extends UIComponent {
       if (showLabels) {
         var label = input.label ?? '';
 
+        var verticalAlign = input.labelVerticalAlign?.trim();
+        if (verticalAlign == null || verticalAlign.isEmpty) {
+          verticalAlign = 'top';
+        }
+
         var cell = row.addCell()
-          ..style.verticalAlign = 'top'
+          ..style.verticalAlign = verticalAlign
           ..style.textAlign = 'right';
 
         var labelStyle = input.labelStyle;
