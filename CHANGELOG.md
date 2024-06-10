@@ -7,6 +7,11 @@
 - `UIComponent`:
   - Added `selectElementsValues`
 
+- dom_builder: ^2.2.5
+- test: ^1.25.7
+- test_api: ^0.7.2
+- test_core: ^0.6.4
+
 ## 2.5.5
 
 - New `UIRootComponent`:
