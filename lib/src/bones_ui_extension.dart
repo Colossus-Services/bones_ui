@@ -24,7 +24,7 @@ extension ElementExtension on UIElement {
       bool allowTextAsValue = true}) {
     var self = this;
 
-    if (self is InputElement ||
+    if (self is InputElementBase ||
         self is TextAreaElement ||
         self is SelectElement) {
       return resolveInputElementValue();
