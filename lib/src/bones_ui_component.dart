@@ -2366,6 +2366,19 @@ abstract class UIComponent extends UIEventHandler {
   List<T> selectElements<T extends UIElement>(String? selectors) =>
       querySelectorAll(selectors);
 
+  /// Alias to [content.querySelectorAll].
+  Map<String, String?> selectElementsValues<T extends UIElement>(
+      String? selectors) {
+    var entries = selectElements<T>(selectors).map((e) {
+      var k = e.getAttribute('name')?.trim();
+      if (k == null || k.isEmpty) {
+        k = e.id.trim();
+      }
+      return MapEntry(k, e.elementValue);
+    });
+    return Map.fromEntries(entries);
+  }
+
   bool clearContent() {
     content!.nodes.clear();
     return true;

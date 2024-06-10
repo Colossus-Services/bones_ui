@@ -22,6 +22,14 @@ extension ElementExtension on UIElement {
       {UIComponent? parentUIComponent,
       UIComponent? uiComponent,
       bool allowTextAsValue = true}) {
+    var self = this;
+
+    if (self is InputElementBase ||
+        self is TextAreaElement ||
+        self is SelectElement) {
+      return resolveInputElementValue();
+    }
+
     uiComponent ??= resolveUIComponent(parentUIComponent: parentUIComponent);
 
     if (uiComponent != null) {
@@ -36,6 +44,14 @@ extension ElementExtension on UIElement {
       }
     }
 
+    var value = self.getAttribute('field_value');
+    if (isEmptyObject(value) && allowTextAsValue) {
+      value = self.text;
+    }
+    return value;
+  }
+
+  String? resolveInputElementValue() {
     var self = this;
 
     if (self is TextAreaElement) {
@@ -56,11 +72,7 @@ extension ElementExtension on UIElement {
           return self.value;
       }
     } else {
-      var value = self.getAttribute('field_value');
-      if (isEmptyObject(value) && allowTextAsValue) {
-        value = self.text;
-      }
-      return value;
+      return null;
     }
   }
 

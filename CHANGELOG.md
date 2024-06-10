@@ -1,3 +1,12 @@
+## 2.5.6
+
+- `ElementExtension`:
+  - `resolveElementValue`: optimize for `InputElement`.
+  - Added `resolveInputElementValue`.
+
+- `UIComponent`:
+  - Added `selectElementsValues`
+
 ## 2.5.5
 
 - New `UIRootComponent`:
