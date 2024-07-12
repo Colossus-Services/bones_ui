@@ -646,10 +646,8 @@ class UITestContext<U extends UIRoot> {
     var uiName = isInitialized ? uiRoot.name : null;
     uiName = cleanText(uiName);
 
-    var prefix = [uiName, testName]
-        .whereNotNull()
-        .where((e) => e.isNotEmpty)
-        .join(' - ');
+    var prefix =
+        [uiName, testName].nonNulls.where((e) => e.isNotEmpty).join(' - ');
 
     var parts = [
       if (prefix.isNotEmpty) '[$prefix]',

@@ -1,7 +1,6 @@
 import 'dart:html';
 
-import 'package:collection/collection.dart'
-    show IterableExtension, IterableNullableExtension;
+import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
@@ -167,7 +166,7 @@ class UIMasonry extends UIComponent {
       _computeGCDCache.compute(Parameters2(ns, tolerance));
 
   int _computeGCDImpl(Parameters2<List<int?>, double?> parameters) {
-    var ns = parameters.a.whereNotNull().toList();
+    var ns = parameters.a.nonNulls.toList();
     var tolerance = parameters.b ?? 0;
 
     if (ns.isEmpty) return 0;
@@ -230,7 +229,7 @@ class UIMasonry extends UIComponent {
       var n = dimensionGetter(item);
       dimension.add(n);
     }
-    var list = dimension.whereNotNull().where((n) => n >= 10).toList();
+    var list = dimension.nonNulls.where((n) => n >= 10).toList();
     list.sort();
     return list;
   }

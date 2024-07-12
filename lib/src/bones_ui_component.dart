@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:bones_ui/src/bones_ui_utils.dart';
-import 'package:collection/collection.dart'
-    show IterableExtension, IterableNullableExtension;
+import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
@@ -708,7 +707,7 @@ abstract class UIComponent extends UIEventHandler {
           if (ret != null) return [ret];
           return _listFieldsEntriesInContentDeepImpl([e]);
         })
-        .whereNotNull()
+        .nonNulls
         .toList();
 
     return fieldsEntries;
@@ -2614,7 +2613,7 @@ abstract class UIComponent extends UIEventHandler {
       var k = keyAs!(key);
       var v = valueAs!(value);
       return k != null ? MapEntry(k, v) : null;
-    }).whereNotNull();
+    }).nonNulls;
 
     if (filter != null) {
       entries = entries.where((e) => filter(e.key, e.value));

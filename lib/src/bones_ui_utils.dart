@@ -1,4 +1,3 @@
-import 'package:collection/collection.dart';
 import 'package:dom_builder/dom_builder.dart';
 
 import 'bones_ui_web.dart';
@@ -41,7 +40,7 @@ String? resolveToText(Object? o) {
   if (o is String) {
     return o;
   } else if (o is Iterable) {
-    var l = o.whereNotNull().map(resolveToText).whereNotNull().toList();
+    var l = o.nonNulls.map(resolveToText).nonNulls.toList();
     return l.isEmpty ? null : l.join();
   } else if (o is UIElement) {
     return o.text;

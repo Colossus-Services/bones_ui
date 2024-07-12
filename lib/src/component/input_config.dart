@@ -818,7 +818,7 @@ class UIInputTable extends UIComponent {
 
     if (nodes == null) return null;
 
-    nodes = nodes.whereNotNull().toList();
+    nodes = nodes.nonNulls.toList();
     if (nodes.isEmpty) return null;
 
     TABLEElement? table;
