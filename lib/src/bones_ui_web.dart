@@ -1,4 +1,5 @@
 import 'dart:html' as web;
+import 'package:collection/collection.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
@@ -48,6 +49,25 @@ extension UIElementExtension on UIElement {
         element.checked = checked;
       } else {
         element.value = value;
+      }
+    } else if (element is web.SelectElement) {
+      if (value == null) {
+        element.selectedIndex = -1;
+      } else {
+        var options = element.options;
+
+        var opt = options.firstWhereOrNull((op) => op.value == value);
+
+        opt ??= options.firstWhereOrNull(
+            (op) => equalsIgnoreAsciiCase(op.value.trim(), value.trim()));
+
+        opt ??= options.firstWhereOrNull((op) {
+          var label = op.label;
+          return label != null &&
+              equalsIgnoreAsciiCase(label.trim(), value.trim());
+        });
+
+        element.selectedIndex = opt?.index ?? -1;
       }
     } else {
       element.text = value;

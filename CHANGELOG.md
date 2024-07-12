@@ -1,3 +1,14 @@
+## 2.5.7
+
+- `UIElementExtension`:
+  - `setValue`: handle `SelectElement`.
+
+- dom_tools: ^2.3.1
+- archive: ^3.6.1
+- test: ^1.25.8
+- test_api: ^0.7.3
+- test_core: ^0.6.5
+
 ## 2.5.6
 
 - `ElementExtension`:
