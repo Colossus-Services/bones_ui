@@ -68,7 +68,7 @@ Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
   printTestToolTitle();
 
   if (!isHeadlessUI()) {
-    slowUI();
+    //slowUI();
   }
 
   print('** Starting test `UIRoot`...');

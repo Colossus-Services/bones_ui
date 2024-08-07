@@ -1,3 +1,11 @@
+## 2.5.8
+
+- sdk: '>=3.4.0 <4.0.0'
+
+- intl_messages: ^2.3.1
+- statistics: ^1.1.1
+- extended_type: ^2.1.0
+
 ## 2.5.7
 
 - `UIElementExtension`:
