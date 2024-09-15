@@ -1004,12 +1004,35 @@ abstract class UIComponent extends UIEventHandler {
 
   static UIComponent? _getUIComponentByContent(UIElement? content) {
     if (content == null) return null;
-    return UIRoot.getInstance()?.getUIComponentByContent(content);
+    return _getUIComponent((o) => o.getUIComponentByContent(content));
   }
 
   static UIComponent? _getUIComponentByChild(UIElement? content) {
     if (content == null) return null;
-    return UIRoot.getInstance()?.getUIComponentByChild(content);
+    return _getUIComponent((o) => o.getUIComponentByChild(content));
+  }
+
+  static UIComponent? _getUIComponent(
+      UIComponent? Function(UIRootComponent uiRootComponent) caller) {
+    var uiRoot = UIRoot.getInstance();
+
+    var uiComponent = uiRoot == null ? null : caller(uiRoot);
+    if (uiComponent != null) {
+      return uiComponent;
+    }
+
+    if (uiComponent == null) {
+      for (var uiRootComponent in UIRootComponent.getInstances()) {
+        if (uiRootComponent == uiRoot) continue;
+
+        uiComponent = caller(uiRootComponent);
+        if (uiComponent != null) {
+          return uiComponent;
+        }
+      }
+    }
+
+    return null;
   }
 
   UIComponent? findUIComponentByID(String id) {
