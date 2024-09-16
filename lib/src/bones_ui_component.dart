@@ -1022,7 +1022,8 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     if (uiComponent == null) {
-      for (var uiRootComponent in UIRootComponent.getInstances()) {
+      var uiRootComponents = UIRootComponent.getInstances();
+      for (var uiRootComponent in uiRootComponents.reversed) {
         if (uiRootComponent == uiRoot) continue;
 
         uiComponent = caller(uiRootComponent);
