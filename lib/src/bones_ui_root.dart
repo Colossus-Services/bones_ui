@@ -24,6 +24,34 @@ import 'component/svg.dart';
 /// - Implemented by [UIRoot] and [UIDialogBase].
 /// - Handles registration of the tree of [UIComponent]s and sub-[UIComponent]s.
 abstract class UIRootComponent extends UIComponent {
+  static final List<WeakReference<UIRootComponent>> _rootComponentInstances =
+      [];
+
+  /// Returns the current [UIRootComponent] instances.
+  static List<UIRootComponent> getInstances() {
+    var instances = <UIRootComponent>[];
+
+    List<WeakReference<Object>>? del;
+
+    for (var ref in _rootComponentInstances) {
+      var o = ref.target;
+      if (o != null) {
+        instances.add(o);
+      } else {
+        del ??= [];
+        del.add(ref);
+      }
+    }
+
+    if (del != null) {
+      for (var ref in del) {
+        _rootComponentInstances.remove(ref);
+      }
+    }
+
+    return instances;
+  }
+
   UIRootComponent(super.parent,
       {super.componentClass,
       super.componentStyle,
@@ -37,7 +65,9 @@ abstract class UIRootComponent extends UIComponent {
       super.renderOnConstruction,
       super.preserveRender,
       super.id,
-      super.generator});
+      super.generator}) {
+    _rootComponentInstances.add(WeakReference(this));
+  }
 
   late DOMTreeReferenceMap<UIComponent> _uiComponentsTree;
 

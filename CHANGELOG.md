@@ -1,3 +1,14 @@
+## 2.5.9
+
+- `UIRootComponent`:
+  - Constructor:
+    - register at `_rootComponentInstances`, using `WeakReference`.
+  - Added `getInstances`.
+
+- `UIComponent`:
+  - `_getUIComponentByContent`, `_getUIComponentByChild`:
+    - Search first through `UIRoot.getInstance()` and also through `UIRootComponent.getInstances()`.
+
 ## 2.5.8
 
 - sdk: '>=3.4.0 <4.0.0'
