@@ -1432,7 +1432,9 @@ abstract class UIComponent extends UIEventHandler {
       _waitingRender = null;
     }
 
-    Future.delayed(Duration(milliseconds: 1), () => onRender.add(this));
+    if (onRender.isUsed) {
+      Future.delayed(Duration(milliseconds: 1), () => onRender.add(this));
+    }
   }
 
   Completer<bool>? _waitingRender;
@@ -1483,8 +1485,20 @@ abstract class UIComponent extends UIEventHandler {
     _scheduleCheckFinishedRendered();
   }
 
+  static Future<void>? _scheduleCheckFinishedRenderedFuture;
+
   static void _scheduleCheckFinishedRendered() {
-    Future.delayed(Duration(milliseconds: 300), _checkFinishedRendered);
+    var future = _scheduleCheckFinishedRenderedFuture;
+    if (future != null) return;
+
+    future = _scheduleCheckFinishedRenderedFuture =
+        Future.delayed(Duration(milliseconds: 300), _checkFinishedRendered);
+
+    future.then((_) {
+      if (identical(future, _scheduleCheckFinishedRenderedFuture)) {
+        _scheduleCheckFinishedRenderedFuture = null;
+      }
+    });
   }
 
   static void _checkFinishedRendered() {
@@ -1496,7 +1510,8 @@ abstract class UIComponent extends UIEventHandler {
     if (delay > 100) {
       _notifyFinishRendered();
     } else {
-      _scheduleCheckFinishedRendered();
+      Future.delayed(
+          Duration(milliseconds: 100), _scheduleCheckFinishedRendered);
     }
   }
 

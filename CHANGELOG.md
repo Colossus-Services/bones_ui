@@ -1,3 +1,9 @@
+## 2.5.11
+
+- `UIComponent`:
+  - Optimize`_notifyRendered`.
+  - Optimize `_scheduleCheckFinishedRendered`.
+
 ## 2.5.10
 
 - sdk: '>=3.5.0 <4.0.0'
