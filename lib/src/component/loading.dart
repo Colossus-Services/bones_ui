@@ -453,8 +453,6 @@ String? getUILoadingTypeClass(UILoadingType type) {
       return 'ui-loading-ripple';
     case UILoadingType.ellipsis:
       return 'ui-loading-ellipsis';
-    default:
-      return null;
   }
 }
 
@@ -474,8 +472,6 @@ int _getUILoadingTypeSubDivs(UILoadingType type) {
       return 2;
     case UILoadingType.ellipsis:
       return 4;
-    default:
-      return 0;
   }
 }
 

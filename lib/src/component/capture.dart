@@ -733,8 +733,6 @@ class _CapturedData {
             }
           }
         }
-      default:
-        throw StateError("Unknown format: $dataFormat");
     }
   }
 

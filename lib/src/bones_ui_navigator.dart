@@ -353,7 +353,9 @@ class UINavigator {
 
     if (!force &&
         _lastNavigateRoute == route &&
-        isEquivalentMap(parameters, _lastNavigateRouteParameters)) return;
+        isEquivalentMap(parameters, _lastNavigateRouteParameters)) {
+      return;
+    }
 
     var routeNavigable = findNavigable(route);
 

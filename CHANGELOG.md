@@ -1,3 +1,25 @@
+## 2.5.10
+
+- sdk: '>=3.5.0 <4.0.0'
+
+- intl_messages: ^2.3.4
+- dom_builder: ^2.2.6
+- swiss_knife: ^3.2.2
+- statistics: ^1.1.3
+- mercury_client: ^2.2.4
+- extended_type: ^2.1.1
+- expressions: ^0.2.5+2
+- args: ^2.6.0
+- logging: ^1.3.0
+- path: ^1.9.1
+- test: ^1.25.13
+- test_api: ^0.7.4
+- test_core: ^0.6.8
+- stack_trace: ^1.12.0
+
+- build_web_compilers: ^4.1.0
+- build_runner: ^2.4.14
+
 ## 2.5.9
 
 - `UIRootComponent`:
