@@ -468,48 +468,76 @@ abstract class UIComponent extends UIEventHandler {
   static final RegExp _classesEntryDelimiter = RegExp(r'[\s,;]+');
 
   static List<String> parseClasses(dynamic classes1, [dynamic classes2]) {
-    var c1 = _parseClasses(classes1);
-    if (classes2 == null) return c1;
+    if (classes1 != null && classes2 != null) {
+      var c1 = _parseClasses(classes1);
+      var c2 = _parseClasses(classes2);
 
-    var c2 = _parseClasses(classes2);
-
-    var set = c1.toSet();
-    set.addAll(c2);
-
-    return set.toList();
+      if (c1.isNotEmpty && c2.isNotEmpty) {
+        return {...c1, ...c2}.toList();
+      } else if (c1.isNotEmpty) {
+        return c1.length > 1 ? c1.toSet().toList() : c1;
+      } else if (c2.isNotEmpty) {
+        return c2.length > 1 ? c2.toSet().toList() : c2;
+      } else {
+        return <String>[];
+      }
+    } else if (classes1 != null) {
+      var c1 = _parseClasses(classes1);
+      return c1.length > 1 ? c1.toSet().toList() : c1;
+    } else if (classes2 != null) {
+      var c2 = _parseClasses(classes2);
+      return c2.length > 1 ? c2.toSet().toList() : c2;
+    } else {
+      return <String>[];
+    }
   }
 
   static List<String> _parseClasses(classes) => toFlatListOfStrings(classes,
       delimiter: _classesEntryDelimiter, trim: true, ignoreEmpty: true);
 
-  void configureClasses(dynamic classes1,
-      [dynamic classes2, dynamic componentClasses]) {
+  void configureClasses(Object? classes1,
+      [Object? classes2, Object? componentClasses]) {
     var content = this.content!;
     content.classes.add('ui-component');
 
-    var classesNamesComponent = parseClasses(componentClasses);
-    content.classes.addAll(classesNamesComponent);
+    if (componentClasses != null) {
+      var classesNamesComponent = parseClasses(componentClasses);
+      content.classes.addAll(classesNamesComponent);
+    }
 
     appendClasses(classes1, classes2);
   }
 
   void appendClasses(dynamic classes1, [dynamic classes2]) {
-    var classesNames = <String>[
-      ...parseClasses(classes1),
-      ...parseClasses(classes2)
-    ];
+    List<String> classesNames;
+    if (classes1 != null && classes2 != null) {
+      classesNames = <String>[
+        if (classes1 != null) ...parseClasses(classes1),
+        if (classes2 != null) ...parseClasses(classes2)
+      ];
+    } else if (classes1 != null) {
+      classesNames = parseClasses(classes1);
+    } else if (classes2 != null) {
+      classesNames = parseClasses(classes2);
+    } else {
+      return;
+    }
 
     var classesNamesRemove = classesNames
         .where((e) => e.startsWith('!'))
         .map((e) => e.substring(1))
         .toList();
 
-    classesNames.removeWhere((s) => s.startsWith('!'));
+    if (classesNamesRemove.isNotEmpty) {
+      classesNames.removeWhere((s) => s.startsWith('!'));
+    }
 
     var content = this.content!;
-
     content.classes.addAll(classesNames);
-    content.classes.removeAll(classesNamesRemove);
+
+    if (classesNamesRemove.isNotEmpty) {
+      content.classes.removeAll(classesNamesRemove);
+    }
   }
 
   static final RegExp _cssEntryDelimiter = RegExp(r'\s*;\s*');
@@ -1234,29 +1262,41 @@ abstract class UIComponent extends UIEventHandler {
     _renderCount++;
     _requestRefresh = null;
 
-    var content = this.content;
+    var content = this.content!;
 
     final parent = _parent;
     if (parent != null) {
       if (clearParent == UIComponentClearParent.onRender ||
           (clearParent == UIComponentClearParent.onInitialRender &&
               _renderCount == 1)) {
-        var nodes = List<UINode>.from(parent.nodes);
+        // content not added to parent:
+        if (!identical(content.parentNode, parent)) {
+          parent.nodes.clear();
+          parent.append(content);
+        }
+        // content already added, remove other nodes:
+        else {
+          var nodes = List<UINode>.from(parent.nodes);
 
-        var containsContent = false;
-        for (var node in nodes) {
-          if (identical(node, content)) {
-            containsContent = true;
-          } else {
-            node.remove();
+          var containsContent = false;
+          for (var node in nodes) {
+            if (identical(node, content)) {
+              containsContent = true;
+            } else {
+              node.remove();
+            }
+          }
+
+          // Improbable to happen, unless it's an odd browser:
+          if (!containsContent) {
+            parent.append(content);
           }
         }
-
-        if (!containsContent) {
-          parent.append(content!);
+      } else {
+        var appended = identical(content.parentNode, parent);
+        if (!appended) {
+          parent.append(content);
         }
-      } else if (!parent.nodes.contains(content)) {
-        parent.append(content!);
       }
     }
 
@@ -1731,25 +1771,15 @@ abstract class UIComponent extends UIEventHandler {
     if (value is DOMNode) {
       return value.buildDOM(
           generator: domGenerator, parent: content, context: domContext);
-    } else if (value is AsDOMElement) {
-      var element = value.asDOMElement;
-      return element.buildDOM(
-          generator: domGenerator, parent: content, context: domContext);
-    } else if (value is AsDOMNode) {
-      var node = value.asDOMNode;
-      return node.buildDOM(
-          generator: domGenerator, parent: content, context: domContext);
     } else if (value is String) {
       var nodes = $html(value);
       return nodes;
-    } else if (value is Map ||
-        (value is List && listMatchesAll(value, (dynamic e) => e is Map))) {
-      var jsonRender = JSONRender.fromJSON(value)
-        ..renderMode = JSONRenderMode.view
-        ..addAllKnownTypeRenders();
-      return jsonRender.render();
-    } else if (value is Iterable && value is! List) {
-      return value.toList();
+    } else if (value is List) {
+      return value;
+    } else if (value is UINode) {
+      return value;
+    } else if (value is Function) {
+      return value;
     } else if (value is Future) {
       var asyncContent = UIAsyncContent.future(
         value,
@@ -1763,6 +1793,24 @@ abstract class UIComponent extends UIEventHandler {
         properties: {'__Future__': value},
       )..parentUIComponent = this;
       return asyncContent;
+    } else if (value is UIComponent) {
+      return value;
+    } else if (value is Iterable) {
+      return value.toList();
+    } else if (value is AsDOMElement) {
+      var element = value.asDOMElement;
+      return element.buildDOM(
+          generator: domGenerator, parent: content, context: domContext);
+    } else if (value is AsDOMNode) {
+      var node = value.asDOMNode;
+      return node.buildDOM(
+          generator: domGenerator, parent: content, context: domContext);
+    } else if (value is Map ||
+        (value is List && listMatchesAll(value, (dynamic e) => e is Map))) {
+      var jsonRender = JSONRender.fromJSON(value)
+        ..renderMode = JSONRenderMode.view
+        ..addAllKnownTypeRenders();
+      return jsonRender.render();
     } else {
       return value;
     }
@@ -1845,7 +1893,8 @@ abstract class UIComponent extends UIEventHandler {
     var prevRendered = _renderedAsyncContents[asyncContent];
     if (prevRendered == null) return;
 
-    if (_renderedElements == null) {
+    final renderedElements = _renderedElements;
+    if (renderedElements == null) {
       return;
     }
 
@@ -1853,9 +1902,9 @@ abstract class UIComponent extends UIEventHandler {
 
     for (var e in prevRendered) {
       if (e == null) continue;
-      var idx = _renderedElements!.indexOf(e);
+      var idx = renderedElements.indexOf(e);
       if (idx >= 0) {
-        _renderedElements!.removeAt(idx);
+        renderedElements.removeAt(idx);
         if (minRenderedElementsIdx == null || idx < minRenderedElementsIdx) {
           minRenderedElementsIdx = idx;
         }
@@ -1869,11 +1918,12 @@ abstract class UIComponent extends UIEventHandler {
 
     int? maxContentIdx;
 
-    for (var node in content!.nodes.toList()) {
+    final content = this.content!;
+    for (var node in content.nodes.toList()) {
       if (prevElements.contains(node)) {
-        var idx = content!.nodes.indexOf(node);
+        var idx = content.nodes.indexOf(node);
         if (idx >= 0) {
-          content!.nodes.removeAt(idx);
+          content.nodes.removeAt(idx);
           if (maxContentIdx == null || idx > maxContentIdx) {
             maxContentIdx = idx;
           }
@@ -1884,19 +1934,19 @@ abstract class UIComponent extends UIEventHandler {
     var loadedContent = asyncContent.content;
 
     var renderedList = [];
-    if (maxContentIdx == null || maxContentIdx >= content!.nodes.length) {
+    if (maxContentIdx == null || maxContentIdx >= content.nodes.length) {
       _buildRenderList(
-          loadedContent, renderedList, content!.nodes.length - 1, domContext);
+          loadedContent, renderedList, content.nodes.length - 1, domContext);
 
-      _renderedElements!.addAll(renderedList);
+      renderedElements.addAll(renderedList);
     } else {
-      var tail = content!.nodes.sublist(maxContentIdx).toList();
+      var tail = content.nodes.sublist(maxContentIdx).toList();
       for (var e in tail) {
-        content!.nodes.remove(e);
+        content.nodes.remove(e);
       }
 
       _buildRenderList(
-          loadedContent, renderedList, content!.nodes.length - 1, domContext);
+          loadedContent, renderedList, content.nodes.length - 1, domContext);
 
       if (tail.isNotEmpty) {
         var renderedComponents = renderedList
@@ -1907,18 +1957,18 @@ abstract class UIComponent extends UIEventHandler {
         tail.removeWhere(
             (e) => renderedList.contains(e) || renderedComponents.contains(e));
 
-        content!.nodes.addAll(tail);
+        content.nodes.addAll(tail);
       }
 
       minRenderedElementsIdx ??= 0;
-      _renderedElements!.insertAll(minRenderedElementsIdx, renderedList);
+      renderedElements.insertAll(minRenderedElementsIdx, renderedList);
     }
 
     _ensureAllRendered(renderedList);
 
     try {
-      _parseAttributes(content!.children);
-      _parseAttributesPosRender(content!.children);
+      _parseAttributes(content.children);
+      _parseAttributesPosRender(content.children);
     } catch (e, s) {
       UIConsole.error('$this _parseAttributesPosRender(...) error', e, s);
     }
