@@ -1,3 +1,21 @@
+## 2.5.12
+
+- `UIComponent`:
+  - Optimize `parseClasses`, `configureClasses`, `appendClasses`.
+  - `_callRenderImpl`: optimize check if parent contains content.
+  - `_normalizeRenderListValue`: optimize type check order.
+  - Improve null-safe code.
+
+- `bones_ui_layout`: optimize.
+
+- dom_tools: ^2.3.2
+- dom_builder: ^2.2.7
+- swiss_knife: ^3.2.3
+- yaml: ^3.1.3
+- test: ^1.25.14
+- stream_channel: ^2.1.3
+- stack_trace: ^1.12.1
+
 ## 2.5.11
 
 - `UIComponent`:
