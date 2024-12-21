@@ -1,4 +1,6 @@
 @TestOn('browser')
+library;
+
 import 'package:bones_ui/bones_ui_test.dart';
 import 'package:test/test.dart';
 import 'dart:html' as web;

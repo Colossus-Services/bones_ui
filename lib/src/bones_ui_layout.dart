@@ -1,6 +1,5 @@
 import 'dart:html';
 
-import 'package:collection/collection.dart' show IterableExtension;
 import 'package:expressions/expressions.dart';
 
 import 'bones_ui_component.dart';
@@ -598,29 +597,29 @@ class UILayout {
   static final Map<UIElement, UILayout> _instances = {};
 
   static void refreshAll() {
+    if (_instances.isEmpty) return;
+
     //UIConsole.log("UILayout.refreshAll()") ;
-    var list = _instances.values.toList();
+    var list = _instances.values.toList(growable: false);
     for (var u in list) {
       u.refresh();
     }
   }
 
   static void checkInstances() {
-    var list = _instances.values.toList();
+    if (_instances.isEmpty) return;
+
+    var list = _instances.values.toList(growable: false);
     for (var u in list) {
       u._checkRegistration();
     }
   }
 
-  static bool someInstanceNeedsRefresh() {
-    // ignore: omit_local_variable_types
-    UILayout? uiLayout =
-        _instances.values.firstWhereOrNull((u) => u.needsRefresh);
-    return uiLayout != null;
-  }
+  static bool someInstanceNeedsRefresh() =>
+      _instances.isNotEmpty && _instances.values.any((u) => u.needsRefresh);
 
   bool _checkRegistration() {
-    if (element.isConnected!) {
+    if (element.isConnected == true) {
       _register();
       return true;
     } else {
