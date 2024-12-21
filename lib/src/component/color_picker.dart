@@ -579,10 +579,10 @@ class UIColorPicker extends UIComponent {
   }
 
   void _allUp(_) {
-    _squareUp(_);
-    _lumaUp(_);
-    _saturationUp(_);
-    _hueUp(_);
+    _squareUp(null);
+    _lumaUp(null);
+    _saturationUp(null);
+    _hueUp(null);
   }
 
   bool get isPressed =>
