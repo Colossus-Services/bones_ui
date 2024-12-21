@@ -1,7 +1,7 @@
 ## 2.5.12
 
 - `UIComponent`:
-  - Optimize `parseClasses`, `configureClasses`, `appendClasses`.
+  - Optimize `parseClasses`, `configureClasses`, `appendClasses` and `appendStyle`.
   - `_callRenderImpl`: optimize check if parent contains content.
   - `_normalizeRenderListValue`: optimize type check order.
   - Improve null-safe code.

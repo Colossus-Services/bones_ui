@@ -467,7 +467,7 @@ abstract class UIComponent extends UIEventHandler {
 
   static final RegExp _classesEntryDelimiter = RegExp(r'[\s,;]+');
 
-  static List<String> parseClasses(dynamic classes1, [dynamic classes2]) {
+  static List<String> parseClasses(Object? classes1, [Object? classes2]) {
     if (classes1 != null && classes2 != null) {
       var c1 = _parseClasses(classes1);
       var c2 = _parseClasses(classes2);
@@ -508,12 +508,12 @@ abstract class UIComponent extends UIEventHandler {
     appendClasses(classes1, classes2);
   }
 
-  void appendClasses(dynamic classes1, [dynamic classes2]) {
+  void appendClasses(Object? classes1, [Object? classes2]) {
     List<String> classesNames;
     if (classes1 != null && classes2 != null) {
       classesNames = <String>[
-        if (classes1 != null) ...parseClasses(classes1),
-        if (classes2 != null) ...parseClasses(classes2)
+        ...parseClasses(classes1),
+        ...parseClasses(classes2)
       ];
     } else if (classes1 != null) {
       classesNames = parseClasses(classes1);
@@ -545,30 +545,54 @@ abstract class UIComponent extends UIEventHandler {
   static List<String> parseStyle(style1) => toFlatListOfStrings(style1,
       delimiter: _cssEntryDelimiter, trim: true, ignoreEmpty: true);
 
-  void configureStyle(dynamic style1,
-      [dynamic style2, dynamic componentStyle]) {
+  void configureStyle(Object? style1,
+      [Object? style2, Object? componentStyle]) {
     appendStyle(componentStyle, style1, style2);
   }
 
-  void appendStyle(dynamic style1, [dynamic style2, dynamic style3]) {
-    var styles1 = parseStyle(style1);
-    var styles2 = parseStyle(style2);
-    var styles3 = parseStyle(style3);
+  void appendStyle(Object? style1, [Object? style2, Object? style3]) {
+    List<String> allStyles;
 
-    styles1.addAll(styles2);
-    styles1.addAll(styles3);
-
-    if (styles1.isNotEmpty) {
-      var allStyles = styles1.join('; ');
-
-      var cssText = content!.style.cssText ?? '';
-      if (cssText == '') {
-        cssText = allStyles;
+    if (style1 != null) {
+      var styles1 = parseStyle(style1);
+      if (style2 != null) {
+        var styles2 = parseStyle(style2);
+        if (style3 != null) {
+          var styles3 = parseStyle(style3);
+          allStyles = [...styles1, ...styles2, ...styles3];
+        } else {
+          allStyles = [...styles1, ...styles2];
+        }
       } else {
-        cssText += allStyles;
+        allStyles = styles1;
+      }
+    } else if (style2 != null) {
+      var styles2 = parseStyle(style2);
+      if (style3 != null) {
+        var styles3 = parseStyle(style3);
+        allStyles = [...styles2, ...styles3];
+      } else {
+        allStyles = styles2;
+      }
+    } else if (style3 != null) {
+      allStyles = parseStyle(style3);
+    } else {
+      return;
+    }
+
+    if (allStyles.isNotEmpty) {
+      var allStylesLine = allStyles.join('; ');
+
+      final content = this.content!;
+
+      var cssText = content.style.cssText ?? '';
+      if (cssText == '') {
+        cssText = allStylesLine;
+      } else {
+        cssText += allStylesLine;
       }
 
-      content!.style.cssText = cssText;
+      content.style.cssText = cssText;
     }
   }
 
