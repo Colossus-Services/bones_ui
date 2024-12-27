@@ -919,26 +919,35 @@ abstract class UIComponent extends UIEventHandler {
     _rendered = false;
   }
 
-  Future? _requestRefresh;
+  Future<void>? _requestRefresh;
 
-  /// Requests a [refresh] using [Future.microtask].
-  /// - Once a [refresh] has been requested but hasn't been performed yet,
-  ///   any subsequent requests will be ignored until a [refresh] is executed.
-  /// - This method is useful to avoid unnecessary [refresh]es due consecutive
+  /// Requests a [refresh] using [Future.microtask] or [Future.delayed].
+  ///
+  /// - If a [refresh] request is already pending, subsequent requests are ignored
+  ///   until the current [refresh] is completed.
+  /// - This method prevents redundant [refresh] operations triggered by rapid
   ///   state changes.
-  void requestRefresh() {
-    if (_requestRefresh != null) return;
+  /// - If a [delay] is provided, the request uses [Future.delayed]; otherwise,
+  ///   it defaults to [Future.microtask].
+  void requestRefresh({Duration? delay}) {
+    var future = _requestRefresh;
+    if (future != null) return;
 
-    Future.microtask(() {
-      var req = _requestRefresh;
-
-      refresh();
-
-      // if `refresh` didn't clear `_requestRefresh`:
-      if (req != null && identical(req, _requestRefresh)) {
-        _requestRefresh = null;
-      }
-    });
+    if (delay != null && delay.inMilliseconds >= 1) {
+      _requestRefresh = future = Future.delayed(delay, () {
+        if (identical(future, _requestRefresh)) {
+          _requestRefresh = null;
+        }
+        refresh();
+      });
+    } else {
+      _requestRefresh = future = Future.microtask(() {
+        if (identical(future, _requestRefresh)) {
+          _requestRefresh = null;
+        }
+        refresh();
+      });
+    }
   }
 
   bool __refreshFromExternalCall = false;

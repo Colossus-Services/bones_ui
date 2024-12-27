@@ -1,3 +1,8 @@
+## 2.5.13
+
+- `UIComponent`:
+  - `requestRefresh`: added optional parameter `delay`.
+
 ## 2.5.12
 
 - `UIComponent`:
