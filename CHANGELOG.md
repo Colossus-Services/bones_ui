@@ -1,3 +1,15 @@
+## 3.0.0-beta.1
+
+- CI: test with `dart2js` and `dart2wasm` (on Chrome).
+
+- sdk: '>=3.6.0 <4.0.0'
+
+- js_interop_utils: ^1.0.1
+- web_utils: ^1.0.1
+- web: ^1.1.0
+- collection: ^1.19.0
+- lints: ^5.1.1
+
 ## 2.5.13
 
 - `UIComponent`:
