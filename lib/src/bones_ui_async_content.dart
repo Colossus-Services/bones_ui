@@ -1,15 +1,14 @@
 import 'dart:async';
-import 'dart:html';
 
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_utils.dart';
-import 'bones_ui_web.dart';
 
 typedef AsyncContentProvider = Future<dynamic>? Function();
 
@@ -366,23 +365,24 @@ class UIAsyncContent {
   }
 }
 
-dynamic _ensureElementForDOM(dynamic element) {
+dynamic _ensureElementForDOM(Object? element) {
   if (_isElementForDOM(element)) {
     return element;
   }
 
   if (element is String) {
     if (element.contains('<') && element.contains('>')) {
-      var div = createDivInline(element);
-      if (div.childNodes.isEmpty) return div;
+      var div = createDivInline(html: element);
+      var childNodes = div.childNodes;
+      if (childNodes.isEmpty) return div;
 
-      if (div.childNodes.length == 1) {
-        return div.childNodes.first;
+      if (childNodes.length == 1) {
+        return childNodes.toIterable().first;
       } else {
         div;
       }
     } else {
-      var span = SpanElement();
+      var span = HTMLSpanElement();
       setElementInnerHTML(span, element);
       return span;
     }
@@ -391,10 +391,8 @@ dynamic _ensureElementForDOM(dynamic element) {
   return element;
 }
 
-bool _isElementForDOM(dynamic element) {
-  if (element is UIElement) {
-    return true;
-  } else if (element is UINode) {
+bool _isElementForDOM(Object? element) {
+  if (element.isNode) {
     return true;
   } else if (element is UIComponent) {
     return true;

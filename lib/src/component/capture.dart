@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'dart:convert' as data_convert;
-import 'dart:html';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart' hide MimeType;
 
 import '../bones_ui_base.dart';
 import '../bones_ui_log.dart';
@@ -62,8 +62,8 @@ enum CaptureDataFormat {
   url,
 }
 
-typedef CapturePhotoEditor = FutureOr<ImageElement?> Function(
-    ImageElement image);
+typedef CapturePhotoEditor = FutureOr<HTMLImageElement?> Function(
+    HTMLImageElement image);
 
 /// Base class for capture components.
 /// See [UIButtonCapture] and [UIButtonCapturePhoto].
@@ -218,26 +218,26 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   void posRender() {
     super.posRender();
 
-    var fieldCapture = getInputCapture() as FileUploadInputElement;
+    var fieldCapture = getInputCapture() as HTMLInputElement;
     fieldCapture.onChange.listen((e) => _callOnCapture(fieldCapture, e));
   }
 
   final EventStream<UICapture> onCapture = EventStream();
 
-  void _callOnCapture(FileUploadInputElement input, Event event) async {
+  void _callOnCapture(HTMLInputElement input, Event event) async {
     await _readFile(input);
 
     onCaptureFile(input, event);
     onCapture.add(this);
   }
 
-  void onCaptureFile(FileUploadInputElement input, Event event) {
+  void onCaptureFile(HTMLInputElement input, Event event) {
     var file = getInputFile();
 
     if (file != null) {
       UIConsole.log('onCapture> $input > $event > ${event.type} > $file');
       UIConsole.log(
-          'file> ${file.name} ; ${file.type} ; ${file.lastModified} ; ${file.relativePath}');
+          'file> ${file.name} ; ${file.type} ; ${file.lastModified} ; ${file.webkitRelativePath}');
     }
   }
 
@@ -340,9 +340,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   /// This is useful to avoid issues with device orientation and image rotation.
   bool removeExifFromImage = true;
 
-  Future<void> _readFile(FileUploadInputElement input) async {
+  Future<void> _readFile(HTMLInputElement input) async {
     if (input.files!.isNotEmpty) {
-      var file = input.files!.first;
+      var file = input.files!.item(0);
 
       _selectedFile = file;
 
@@ -374,9 +374,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     if (captureType.isPhoto) {
       var fileURL = capturedData.dataAsURL();
 
-      var imageElement = ImageElement()..src = fileURL;
+      var imageElement = HTMLImageElement()..src = fileURL;
 
-      if (imageElement.complete ?? false) {
+      if (imageElement.complete) {
         return _filterCapturedPhoto(capturedData, imageElement);
       } else {
         return imageElement.onLoad.first
@@ -401,7 +401,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   // This is only called after load [image].
   Future<_CapturedData> _filterCapturedPhoto(
-      _CapturedData capturedData, ImageElement image) async {
+      _CapturedData capturedData, HTMLImageElement image) async {
     if (editCapture) {
       var photoEditor = this.photoEditor;
       if (photoEditor != null) {
@@ -418,7 +418,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       }
     }
 
-    if (!(image.complete ?? false)) {
+    if (!(image.complete)) {
       await image.onLoad.first;
     }
 
@@ -442,7 +442,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       assert(imgH2 <= imgH);
 
       if (imgW2 != imgW || imgH2 != imgH) {
-        var canvas = CanvasElement(width: imgW2, height: imgH2);
+        var canvas = HTMLCanvasElement()
+          ..width = imgW2
+          ..height = imgH2;
 
         var ctx = canvas.context2D;
         ctx.imageSmoothingEnabled = true;
@@ -452,7 +454,13 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
         var x = (imgW2 - imgW) ~/ 2;
         var y = (imgH2 - imgH) ~/ 2;
-        ctx.drawImageScaled(image, x, y, imgW, imgH);
+        ctx.drawImageScaled(
+          image,
+          x.toDouble(),
+          y.toDouble(),
+          imgW.toDouble(),
+          imgH.toDouble(),
+        );
 
         imgW = imgW2;
         imgH = imgH2;
@@ -477,7 +485,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     var canvasW = (imgW * r).toInt();
     var canvasH = (imgH * r).toInt();
 
-    var canvas = CanvasElement(width: canvasW, height: canvasH);
+    var canvas = HTMLCanvasElement()
+      ..width = canvasW
+      ..height = canvasH;
 
     var ctx = canvas.context2D;
 
@@ -485,7 +495,13 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     ctx.imageSmoothingQuality = 'high';
 
     ctx.clearRect(0, 0, canvasW, canvasH);
-    ctx.drawImageScaled(imgSrc, 0, 0, canvasW, canvasH);
+    ctx.drawImageScaled(
+      imgSrc,
+      0,
+      0,
+      canvasW.toDouble(),
+      canvasH.toDouble(),
+    );
 
     var photoScaleMimeType = this.photoScaleMimeType;
 
@@ -505,7 +521,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     return capturedData2;
   }
 
-  Future<Object?> _readFileInput(FileUploadInputElement input) async {
+  Future<Object?> _readFileInput(HTMLInputElement input) async {
     switch (captureDataFormat) {
       case CaptureDataFormat.arrayBuffer:
         return await readFileInputElementAsArrayBuffer(
@@ -529,16 +545,18 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   @override
   void onClickEvent(event, List? params) {
-    var input = getInputCapture() as FileUploadInputElement;
-    input.value = null;
+    var input = getInputCapture() as HTMLInputElement;
+    input.value = '';
     input.click();
   }
 
-  Element? getInputCapture() => getFieldElement(fieldName);
+  Element? getInputCapture() => getFieldElementNonTyped(fieldName);
 
   File? getInputFile() {
-    var input = getInputCapture() as FileUploadInputElement?;
-    return input != null && input.files!.isNotEmpty ? input.files![0] : null;
+    var input = getInputCapture() as HTMLInputElement?;
+    if (input == null) return null;
+    var files = input.files!;
+    return files.isNotEmpty ? files.item(0) : null;
   }
 
   bool isFileImage() {
@@ -847,11 +865,22 @@ class URLFileReader {
     });
 
     fileReader.onLoad.listen((e) {
-      var dataURL = fileReader.result as String;
+      var dataURL = fileReader.result.dartify()?.toString();
       _notifyOnLoad(dataURL);
     });
 
-    fileReader.readAsDataUrl(_file);
+    fileReader.onLoadEnd.listen((event) {
+      final error = fileReader.error;
+
+      if (error != null) {
+        _notifyOnLoad(null);
+      } else {
+        var dataURL = fileReader.result.dartify()?.toString();
+        _notifyOnLoad(dataURL);
+      }
+    });
+
+    fileReader.readAsDataURL(_file);
   }
 
   void _notifyOnLoad(String? dataURL) {
@@ -878,11 +907,16 @@ class ImageFileReader extends URLFileReader {
 
   @override
   void onLoad(String? dataURL, String type) {
-    var img = ImageElement(src: dataURL);
+    var img = HTMLImageElement();
+
+    if (dataURL != null && dataURL.isNotEmpty) {
+      img.src = dataURL;
+    }
+
     onLoadImage.add(img);
   }
 
-  final EventStream<ImageElement> onLoadImage = EventStream();
+  final EventStream<HTMLImageElement> onLoadImage = EventStream();
 }
 
 class VideoFileReader extends URLFileReader {
@@ -890,19 +924,19 @@ class VideoFileReader extends URLFileReader {
 
   @override
   void onLoad(String? dataURL, String type) {
-    var video = VideoElement();
+    var video = HTMLVideoElement();
     video.controls = true;
 
-    var sourceElement = SourceElement();
+    var sourceElement = HTMLSourceElement();
     sourceElement.src = dataURL!;
     sourceElement.type = type;
 
-    video.children.add(sourceElement);
+    video.appendChild(sourceElement);
 
     onLoadVideo.add(video);
   }
 
-  final EventStream<VideoElement> onLoadVideo = EventStream();
+  final EventStream<HTMLVideoElement> onLoadVideo = EventStream();
 }
 
 class AudioFileReader extends URLFileReader {
@@ -910,19 +944,19 @@ class AudioFileReader extends URLFileReader {
 
   @override
   void onLoad(String? dataURL, String type) {
-    var audio = AudioElement();
+    var audio = HTMLAudioElement();
     audio.controls = true;
 
-    var sourceElement = SourceElement();
+    var sourceElement = HTMLSourceElement();
     sourceElement.src = dataURL!;
     sourceElement.type = type;
 
-    audio.children.add(sourceElement);
+    audio.appendChild(sourceElement);
 
     onLoadAudio.add(audio);
   }
 
-  final EventStream<AudioElement> onLoadAudio = EventStream();
+  final EventStream<HTMLAudioElement> onLoadAudio = EventStream();
 }
 
 /// A Button that captures a photo.
@@ -1006,7 +1040,7 @@ class UIButtonCapturePhoto extends UICapture {
   String? selectedImageStyle;
 
   @override
-  void onCaptureFile(FileUploadInputElement input, Event event) {
+  void onCaptureFile(HTMLInputElement input, Event event) {
     if (showSelectedImageInButton) {
       showSelectedImage();
     }
@@ -1020,16 +1054,15 @@ class UIButtonCapturePhoto extends UICapture {
 
     var content = this.content!;
 
-    for (var e in _selectedImageElements) {
-      content.children.remove(e);
-    }
+    content.removeNodes(_selectedImageElements);
 
     if (onlyShowSelectedImageInButton) {
-      content.children.removeWhere((e) => !e.hidden);
+      content.removeNodeWhere((e) => !(e.asElementChecked?.hidden ?? false));
     }
 
-    var img = ImageElement(src: dataURL)
-      ..classes.add('ui-capture-img')
+    var img = HTMLImageElement()
+      ..src = dataURL
+      ..classList.add('ui-capture-img')
       ..style.margin = '2px 4px'
       ..style.maxHeight = '100%';
 
@@ -1042,22 +1075,22 @@ class UIButtonCapturePhoto extends UICapture {
     }
 
     if (isNotEmptyObject(selectedImageClasses)) {
-      img.classes.addAll(selectedImageClasses!);
+      img.classList.addAll(selectedImageClasses!);
     }
 
     if (isNotEmptyString(selectedImageStyle, trim: true)) {
-      img.style.cssText = '${img.style.cssText ?? ''}; $selectedImageStyle';
+      img.style.cssText = '${img.style.cssText}; $selectedImageStyle';
     }
 
     _selectedImageElements.clear();
     if (!onlyShowSelectedImageInButton) {
-      _selectedImageElements.add(BRElement());
+      _selectedImageElements.add(HTMLBRElement());
     }
     _selectedImageElements.add(img);
 
     img.onClick.listen((e) => fireClickEvent(e));
 
-    content.children.addAll(_selectedImageElements);
+    content.appendNodes(_selectedImageElements);
   }
 
   void setWideButton() {
@@ -1065,7 +1098,7 @@ class UIButtonCapturePhoto extends UICapture {
   }
 
   void setNormalButton() {
-    content!.style.width = null;
+    content!.style.width = '';
   }
 }
 
@@ -1134,7 +1167,7 @@ class UIButtonCapture extends UICapture {
   bool showSelectedFileInButton = true;
 
   @override
-  void onCaptureFile(FileUploadInputElement input, Event event) {
+  void onCaptureFile(HTMLInputElement input, Event event) {
     if (showSelectedFileInButton) {
       showSelectedFile();
     }
@@ -1144,13 +1177,16 @@ class UIButtonCapture extends UICapture {
     var dataURL = selectedFileDataAsDataURLBase64;
     if (dataURL == null) return;
 
-    content!.children.removeWhere((e) => (e is SpanElement || e is BRElement));
+    final content = this.content;
+
+    content!.removeNodeWhere(
+        (e) => (e.isA<HTMLSpanElement>() || e.isA<HTMLBRElement>()));
 
     var fileName = selectedFile?.name;
 
     if (fileName != null && fileName.isNotEmpty) {
-      content!.children.add(BRElement());
-      content!.children.add(SpanElement()..text = fileName);
+      content.appendChild(HTMLBRElement());
+      content.appendChild(HTMLSpanElement()..text = fileName);
     }
   }
 
@@ -1159,6 +1195,6 @@ class UIButtonCapture extends UICapture {
   }
 
   void setNormalButton() {
-    content!.style.width = null;
+    content!.style.width = '';
   }
 }

@@ -1,8 +1,7 @@
-import 'dart:html';
-
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import '../bones_ui_base.dart';
 import '../bones_ui_component.dart';
@@ -39,7 +38,7 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
 
   int get pickerHeight => _pickerHeight;
 
-  InputElement? _input;
+  HTMLInputElement? _input;
 
   @override
   dynamic render() {
@@ -120,7 +119,7 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
   }
 
   void _updateColorFromPicker(
-      Object? color, InputElement input, DivElement colorButton) {
+      Object? color, HTMLInputElement input, HTMLDivElement colorButton) {
     if (color is! Color) return;
 
     var pickerColor = CSSColor.from([color.red, color.green, color.blue]);
@@ -148,11 +147,11 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
 
   EventStream<UIColorPickerInput> onFocus = EventStream();
 
-  void _dispatchInputChange(InputElement input) {
+  void _dispatchInputChange(HTMLInputElement input) {
     input.dispatchEvent(Event('change'));
   }
 
-  void _updateColorFromInput(InputElement input, UIColorPicker picker) {
+  void _updateColorFromInput(HTMLInputElement input, UIColorPicker picker) {
     var inputColor = CSSColor.from(input.value);
 
     var color = picker.color!;
@@ -163,7 +162,7 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
     }
   }
 
-  void _switchColorInputType(InputElement input, UIColorPicker picker) {
+  void _switchColorInputType(HTMLInputElement input, UIColorPicker picker) {
     var inputColor = CSSColor.from(input.value);
 
     if (inputColor != null) {
@@ -180,13 +179,19 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
     }
   }
 
-  InputElement _renderGenericInput(String inputType, inputValue) {
-    var inputHtml = '''
-      <input style='width: calc(100% - 20px)' type="$inputType" ${inputValue != null ? 'value="$inputValue"' : ''}>
-    ''';
+  HTMLInputElement _renderGenericInput(String inputType, inputValue) {
+    // var inputHtml = '''
+    //   <input style='width: calc(100% - 20px)' type="$inputType" ${inputValue != null ? 'value="$inputValue"' : ''}>
+    // ''';
 
-    var input = createHTML(inputHtml);
-    return input as InputElement;
+    var input = HTMLInputElement()
+      ..style.cssText = 'width: calc(100% - 20px)'
+      ..type = inputType
+      ..value = inputValue ?? '';
+
+    //var input = createHTML(html: inputHtml);
+    //return input as HTMLInputElement;
+    return input;
   }
 }
 
@@ -272,31 +277,31 @@ class UIColorPicker extends UIComponent {
   HSLColor? get hslColor => _hslColor;
 
   // ignore: non_constant_identifier_names
-  DivElement? _panel_all;
+  HTMLDivElement? _panel_all;
 
   // ignore: non_constant_identifier_names
-  DivElement? _panel_ViewColor_Saturation;
+  HTMLDivElement? _panel_ViewColor_Saturation;
 
   // ignore: non_constant_identifier_names
-  DivElement? _panel_Saturation_Luma_Square;
+  HTMLDivElement? _panel_Saturation_Luma_Square;
 
-  DivElement? _viewColor;
+  HTMLDivElement? _viewColor;
 
-  DivElement? _saturation;
+  HTMLDivElement? _saturation;
 
-  DivElement? _luma;
+  HTMLDivElement? _luma;
 
-  DivElement? _square;
+  HTMLDivElement? _square;
 
-  DivElement? _hue;
+  HTMLDivElement? _hue;
 
-  DivElement? _point;
+  HTMLDivElement? _point;
 
-  DivElement? _saturationBar;
+  HTMLDivElement? _saturationBar;
 
-  DivElement? _lumaBar;
+  HTMLDivElement? _lumaBar;
 
-  DivElement? _hueBar;
+  HTMLDivElement? _hueBar;
 
   bool _squarePressed = false;
 
@@ -344,8 +349,8 @@ class UIColorPicker extends UIComponent {
 
       _disableTransitions(_saturation!);
 
-      _panel_ViewColor_Saturation!.children.add(_viewColor!);
-      _panel_ViewColor_Saturation!.children.add(_saturation!);
+      _panel_ViewColor_Saturation!.appendChild(_viewColor!);
+      _panel_ViewColor_Saturation!.appendChild(_saturation!);
 
       _luma = createDivInline()
         ..style.width = '${barSize}px'
@@ -367,7 +372,7 @@ class UIColorPicker extends UIComponent {
 
       _disableTransitions(_point!);
 
-      _square!.children.add(_point!);
+      _square!.appendChild(_point!);
 
       _lumaBar = createDiv()
         ..style.width = '${barSize}px'
@@ -376,7 +381,7 @@ class UIColorPicker extends UIComponent {
 
       _disableTransitions(_lumaBar!);
 
-      _luma!.children.add(_lumaBar!);
+      _luma!.appendChild(_lumaBar!);
 
       _saturationBar = createDiv()
         ..style.width = '1px'
@@ -386,11 +391,11 @@ class UIColorPicker extends UIComponent {
 
       _disableTransitions(_saturationBar!);
 
-      _saturation!.children.add(_saturationBar!);
+      _saturation!.appendChild(_saturationBar!);
 
-      _panel_Saturation_Luma_Square!.children.add(_panel_ViewColor_Saturation!);
-      _panel_Saturation_Luma_Square!.children.add(_luma!);
-      _panel_Saturation_Luma_Square!.children.add(_square!);
+      _panel_Saturation_Luma_Square!.appendChild(_panel_ViewColor_Saturation!);
+      _panel_Saturation_Luma_Square!.appendChild(_luma!);
+      _panel_Saturation_Luma_Square!.appendChild(_square!);
 
       _hue = createDiv()
         ..style.backgroundColor = 'red'
@@ -408,10 +413,10 @@ class UIColorPicker extends UIComponent {
 
       _disableTransitions(_hueBar!);
 
-      _hue!.children.add(_hueBar!);
+      _hue!.appendChild(_hueBar!);
 
-      _panel_all!.children.add(_panel_Saturation_Luma_Square!);
-      _panel_all!.children.add(_hue!);
+      _panel_all!.appendChild(_panel_Saturation_Luma_Square!);
+      _panel_all!.appendChild(_hue!);
 
       //
 
@@ -513,8 +518,8 @@ class UIColorPicker extends UIComponent {
   void _squareClick(MouseEvent event) {
     var target = event.target;
     if (target == _square) {
-      var x = event.offset.x.toInt();
-      var y = event.offset.y.toInt();
+      var x = event.offsetX.toInt();
+      var y = event.offsetY.toInt();
       _adjustPoint(x, y);
     }
   }
@@ -534,7 +539,7 @@ class UIColorPicker extends UIComponent {
   void _lumaClick(MouseEvent event) {
     var target = event.target;
     if (target == _luma || target == _square) {
-      var y = event.offset.y.toInt();
+      var y = event.offsetY.toInt();
       _adjustLumaBar(y);
     }
   }
@@ -550,7 +555,7 @@ class UIColorPicker extends UIComponent {
   void _saturationClick(MouseEvent event) {
     var target = event.target;
     if (target == _saturation || target == _square) {
-      var x = event.offset.x.toInt();
+      var x = event.offsetX.toInt();
       _adjustSaturationBar(x);
     }
   }
@@ -564,7 +569,7 @@ class UIColorPicker extends UIComponent {
   void _hueClick(MouseEvent event) {
     var target = event.target;
     if (target == _hue || target == _square || target == _luma) {
-      var x = event.offset.x.toInt();
+      var x = event.offsetX.toInt();
       if (target == _square) {
         x += _barSize;
       }
@@ -691,6 +696,6 @@ class UIColorPicker extends UIComponent {
 
 void _disableTransitions(Element element) {
   element.style
-    ..transition = 'none'
+    ?..transition = 'none'
     ..animation = 'none';
 }

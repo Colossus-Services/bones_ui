@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:collection/collection.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
@@ -497,10 +498,10 @@ class UINavigator {
   /// Returns [List<UIElement>] that are from navigable components.
   ///
   /// [element] If null uses [document] to select sub elements.
-  List<UIElement> selectNavigables([UIElement? element]) {
+  List<Element> selectNavigables([UIElement? element]) {
     return element != null
-        ? element.querySelectorAll(_navigableComponentSelector)
-        : documentQuerySelectorAll(_navigableComponentSelector);
+        ? element.querySelectorAll(_navigableComponentSelector).toElements()
+        : documentQuerySelectorAll(_navigableComponentSelector).toList();
   }
 
   /// Find in [element] tree nodes with attribute `navigate`.
@@ -522,7 +523,7 @@ class UINavigator {
           !routes.contains(navigateRoute)) {
         routes.add(navigateRoute);
       }
-      _findElementNavigableRoutes(elem.children, routes);
+      _findElementNavigableRoutes(elem.children.toList(), routes);
     }
   }
 
@@ -547,7 +548,7 @@ class UINavigator {
 
   /// Register a `onClick` listener in [element] to navigate to [route]
   /// with [parameters].
-  static StreamSubscription? navigateOnClick(UIElement element, String? route,
+  static StreamSubscription? navigateOnClick(Element element, String? route,
       [Map<String, String>? parameters,
       ParametersProvider? parametersProvider,
       bool force = false]) {
@@ -579,8 +580,9 @@ class UINavigator {
 
       subscriptionHolder.add(subscription);
 
-      if (element.style.cursor.isEmpty) {
-        element.style.cursor = 'pointer';
+      var cursor = element.style?.cursor ?? '';
+      if (cursor.isEmpty) {
+        element.style?.cursor = 'pointer';
       }
 
       return subscription;
@@ -589,7 +591,7 @@ class UINavigator {
     return null;
   }
 
-  static bool clearNavigateOnClick(UIElement element) {
+  static bool clearNavigateOnClick(HTMLElement element) {
     var attrRoute = element.getAttribute('__navigate__route');
     element.removeAttribute('__navigate__route');
     element.removeAttribute('__navigate__parameters');
@@ -950,7 +952,7 @@ abstract class UINavigableContent extends UINavigableComponent {
     List allRendered = [];
 
     if (topMargin > 0) {
-      var divTopMargin = UIElement.div();
+      var divTopMargin = HTMLDivElement();
       divTopMargin.style.width = '100%';
       divTopMargin.style.height = '${topMargin}px';
 

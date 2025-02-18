@@ -1,10 +1,8 @@
-import 'dart:html';
-
 import 'package:bones_ui/bones_ui_kit.dart';
 
 void main() async {
   // Create `bones_ui` root and initialize it:
-  var root = MyRoot(querySelector('#output'));
+  var root = MyRoot(document.querySelector('#output'));
   root.initialize();
 }
 
@@ -162,7 +160,7 @@ class MyComponents extends UIComponent {
       '<hr>',
       UIButton(content, 'UIButton')
         ..onClick.listen((event) => _showAlert('<b>UIButton Clicked:</b>',
-            'x: ${event.client.x}<br> y: ${event.client.y}')),
+            'x: ${event.clientX}<br> y: ${event.clientY}')),
       '<hr>',
       UIInputTable(content, [
         InputConfig('name', 'Name', type: 'text'),

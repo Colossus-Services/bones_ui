@@ -1,9 +1,9 @@
-import 'dart:html';
-
-import 'package:dom_builder/dom_builder_dart_html.dart';
+import 'package:dom_builder/dom_builder_web.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
+import 'package:statistics/statistics.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import 'bones_ui_async_content.dart';
 import 'bones_ui_component.dart';
@@ -149,10 +149,11 @@ class UIComponentGenerator<C extends UIComponent>
 
   @override
   bool isGeneratedElement(UINode element) {
-    if (element is UIElement) {
-      var tag = element.tagName.toLowerCase();
+    final element2 = element.asElementChecked;
+    if (element2 != null) {
+      var tag = element2.tagName.toLowerCase();
       if (tag != generatedTag) return false;
-      var classes = element.classes;
+      var classes = element2.classList.toList();
       var match = classes.containsAll(componentClass.asAttributeValues!);
       print(classes);
       print('$componentClass -> $match');
@@ -201,9 +202,8 @@ class UIComponentGenerator<C extends UIComponent>
       DOMElement? domParent,
       UIElement? parent,
       UIElement? node) {
-    var attributes = node != null
-        ? Map<String, String>.fromEntries(node.attributes.entries)
-        : <String, String>{};
+    var attributes =
+        node != null ? node.attributes.toMap() : <String, String>{};
 
     var classes = _parseNodeClass(attributes);
     var style = _parseNodeStyle(attributes);
@@ -278,23 +278,23 @@ class UIComponentGenerator<C extends UIComponent>
 abstract class ElementGeneratorBase extends ElementGenerator<UINode> {
   void setElementAttributes(
       UIElement element, Map<String, DOMAttribute> attributes) {
-    element.classes.add(tag);
+    element.classList.add(tag);
 
     var attrClass = attributes['class'];
 
     if (attrClass != null && attrClass.valueLength > 0) {
-      element.classes.addAll(attrClass.values!);
+      element.classList.addAll(attrClass.values!);
     }
 
     var attrStyle = attributes['style'];
 
     if (attrStyle != null && attrStyle.valueLength > 0) {
-      var prevCssText = element.style.cssText;
+      var prevCssText = element.style?.cssText;
       if (prevCssText == '') {
-        element.style.cssText = attrStyle.value;
+        element.style?.cssText = attrStyle.value ?? '';
       } else {
         var cssText2 = '$prevCssText; ${attrStyle.value} ;';
-        element.style.cssText = cssText2;
+        element.style?.cssText = cssText2;
       }
     }
   }
@@ -314,7 +314,7 @@ class UIComponentDOMContext extends DOMContext<UINode> {
 
 /// A [DOMGenerator] (from package `dom_builder`)
 /// able to generate [UIElement] (from `dart:html`).
-class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
+class UIDOMGenerator extends DOMGeneratorWebImpl {
   UIDOMGenerator() {
     registerElementGenerator(BUIElementGenerator());
     registerElementGenerator(UITemplateElementGenerator());
@@ -407,23 +407,24 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       var component = externalElement;
       var componentContent = component.content;
 
-      if (element is UIElement) {
-        element.append(componentContent!);
-        component.setParent(element);
-        _resolveParentUIComponent(element, component.content,
+      final element2 = element.asElementChecked;
+      if (element2 != null) {
+        element2.appendChild(componentContent!);
+        component.setParent(element2);
+        _resolveParentUIComponent(element2, component.content,
             childUIComponent: component);
         component.ensureRendered();
         return [componentContent];
       } else {
-        _resolveParentUIComponent(element, component.content,
+        _resolveParentUIComponent(element2, component.content,
             childUIComponent: component);
         return null;
       }
     } else if (externalElement is MessageBuilder) {
       var text = externalElement.build();
-      var span = SpanElement();
+      var span = HTMLSpanElement();
       setElementInnerHTML(span, text);
-      element.append(span);
+      element.appendChild(span);
       return [span];
     }
 
@@ -443,20 +444,20 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
       UINode? parent,
       DOMNode domElement,
       UINode? templateElement,
-      futureElementResolved,
+      Object? futureElementResolved,
       DOMTreeMap<UINode> treeMap,
       DOMContext<UINode>? context) {
     super.attachFutureElement(domParent, parent, domElement, templateElement,
         futureElementResolved, treeMap, context);
 
-    if (futureElementResolved is UIElement) {
+    if (futureElementResolved.isElement) {
       UIComponent? parentComponent;
 
       if (context is UIComponentDOMContext) {
         parentComponent = context.uiComponent;
       } else {
-        parentComponent =
-            UIRoot.getInstance()!.findUIComponentByChild(futureElementResolved);
+        parentComponent = UIRoot.getInstance()!
+            .findUIComponentByChild(futureElementResolved as UIElement);
       }
 
       if (parentComponent != null) {
@@ -466,7 +467,7 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
             .ensureAllRendered([futureElementResolved]);
 
         _resolveParentUIComponent(
-            parentComponent.content, futureElementResolved,
+            parentComponent.content, futureElementResolved as UIElement,
             parentUIComponent: parentComponent);
       }
     }
@@ -511,8 +512,8 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   @override
   void finalizeGeneratedTree(DOMTreeMap<UINode> treeMap) {
     var rootElement = treeMap.rootElement;
-    if (rootElement is UIElement) {
-      setElementsBGBlur(rootElement);
+    if (rootElement.isElement) {
+      setElementsBGBlur(rootElement as Element);
       setElementsDivCentered(rootElement);
     }
   }
@@ -527,7 +528,7 @@ class UIDOMGenerator extends DOMGeneratorDartHTMLImpl {
   }
 }
 
-class UIDOMActionExecutor extends DOMActionExecutorDartHTML {
+class UIDOMActionExecutor extends DOMActionExecutorWebHTML {
   @override
   UINode? callLocale(
       UINode? target, List<String> parameters, DOMContext? context) {

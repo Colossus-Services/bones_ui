@@ -1,4 +1,4 @@
-import 'dart:html';
+import 'package:web_utils/web_utils.dart';
 
 import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
@@ -14,7 +14,7 @@ class UIDataSource extends UIComponent {
           'ui-data-source',
           '',
           (parent, attributes, contentHolder, contentNodes) =>
-              UIDataSource(parent, contentHolder?.text),
+              UIDataSource(parent, contentHolder?.textContent),
           [
             UIComponentAttributeHandler<UIDataSource, String>('data-source',
                 getter: (c) => c._dataSource!.toJson(true),
@@ -33,9 +33,9 @@ class UIDataSource extends UIComponent {
         super(componentClass: 'ui-data-source');
 
   @override
-  Element createContentElement(bool inline) {
-    var div = createDiv(inline);
-    div.hidden = true;
+  HTMLElement createContentElement(bool inline) {
+    var div = createDiv(inline: inline);
+    div.hidden = true.toJS;
     div.style.display = 'node';
     div.style.visibility = 'hidden';
     return div;
@@ -52,12 +52,12 @@ class UIDataSource extends UIComponent {
 
   @override
   void configure() {
-    content!.hidden = true;
+    content!.hidden = true.toJS;
   }
 
   @override
   dynamic render() {
     var json = dataSource!.toJson(true);
-    return PreElement().text = '\n$json\n';
+    return HTMLPreElement.pre()..text = '\n$json\n';
   }
 }

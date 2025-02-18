@@ -1,12 +1,12 @@
 import 'dart:async';
-import 'dart:html';
 
-import 'package:dom_builder/dom_builder_dart_html.dart';
+import 'package:dom_builder/dom_builder_web.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import 'bones_ui_component.dart';
 import 'bones_ui_document.dart';
@@ -189,7 +189,7 @@ abstract class UIRoot extends UIRootComponent {
   }
 
   /// Returns `true` if this instance is running from `bones_ui test` CLI.
-  bool get isTest => content?.classes.contains('__bones_ui_test__') ?? false;
+  bool get isTest => content?.classList.contains('__bones_ui_test__') ?? false;
 
   /// Returns this [UIRoot] instance.
   @override
@@ -235,9 +235,9 @@ abstract class UIRoot extends UIRootComponent {
   }
 
   // ignore: use_function_type_syntax_for_parameters
-  SelectElement? buildLanguageSelector(refreshOnChange()) {
+  HTMLSelectElement? buildLanguageSelector(refreshOnChange()) {
     return _localesManager!.buildLanguageSelector(refreshOnChange)
-        as SelectElement?;
+        as HTMLSelectElement?;
   }
 
   Future<bool> _callInitializeLocale(String locale) {
@@ -453,7 +453,12 @@ void _initializeAll() {
 
 void _configure() {
   Dimension.parsers.add((v) {
-    return v is Screen ? Dimension(v.width!, v.height!) : null;
+    if (v.asJSAny.isA<Screen>()) {
+      final screen = v as Screen;
+      return Dimension(screen.width, screen.height);
+    } else {
+      return null;
+    }
   });
 }
 

@@ -1,15 +1,14 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:bones_ui/src/bones_ui_utils.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
-import 'package:json_render/json_render.dart';
 import 'package:statistics/statistics.dart'
     show Decimal, DynamicInt, DynamicNumber;
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import 'bones_ui_async_content.dart';
 import 'bones_ui_base.dart';
@@ -21,8 +20,10 @@ import 'bones_ui_layout.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_navigator.dart';
 import 'bones_ui_root.dart';
+import 'bones_ui_utils.dart';
 import 'bones_ui_web.dart';
 import 'component/input_config.dart';
+import 'component/json_render.dart';
 
 /// [UIComponent] behavior to clear the component.
 enum UIComponentClearParent { onConstruct, onInitialRender, onRender }
@@ -53,7 +54,7 @@ abstract class UIComponent extends UIEventHandler {
   UIElement? _parent;
   final UIComponentClearParent? clearParent;
 
-  UIElement? _content;
+  HTMLElement? _content;
 
   bool? _constructing;
 
@@ -87,8 +88,8 @@ abstract class UIComponent extends UIEventHandler {
     _resolveParentUIComponent(parent);
 
     if (_parent == null) {
-      if (parent is UIElement) {
-        _parent = parent;
+      if (parent.isElement) {
+        _parent = parent as Element;
       } else if (parent is UIComponent) {
         _parent = parent.content;
       }
@@ -147,7 +148,7 @@ abstract class UIComponent extends UIEventHandler {
       configureStyle(style, style2, componentStyle);
 
       if (clearParent == UIComponentClearParent.onConstruct) {
-        _parent?.nodes.clear();
+        _parent?.clear();
       }
 
       _parent?.append(_content!);
@@ -172,7 +173,7 @@ abstract class UIComponent extends UIEventHandler {
         _refreshInternal,
       );
 
-  UIElement? _getContent() => _content;
+  HTMLElement? _getContent() => _content;
 
   static final Expando<UIComponent> _contentsUIComponents =
       Expando<UIComponent>('_content:UIComponent');
@@ -180,7 +181,7 @@ abstract class UIComponent extends UIEventHandler {
   static UIComponent? getContentUIComponent(UIElement content) =>
       _contentsUIComponents[content];
 
-  void _setContent(UIElement content) {
+  void _setContent(HTMLElement content) {
     var prev = _content;
     if (prev != null && !identical(prev, content)) {
       _contentsUIComponents[prev] = null;
@@ -196,7 +197,7 @@ abstract class UIComponent extends UIEventHandler {
 
   void insertTo(int index, UIElement parent, {UIComponent? parentUIComponent}) {
     _setParentImpl(parent, parentUIComponent, true);
-    parent.nodes.insert(index, content!);
+    parent.insertChild(index, content!);
   }
 
   /// Called by constructor to register this component in the [UIRoot] tree.
@@ -227,12 +228,12 @@ abstract class UIComponent extends UIEventHandler {
 
     if (_content != null) {
       if (identical(_parent, parent)) {
-        if (!identical(_content!.parent, _parent)) {
+        if (!identical(_content!.parentElement, _parent)) {
           _parent!.append(_content!);
         }
         _resolveParentUIComponent(parentUIComponent ?? parent);
         return _parent;
-      } else if (identical(_content!.parent, parent)) {
+      } else if (identical(_content!.parentElement, parent)) {
         _resolveParentUIComponent(parentUIComponent ?? parent);
         return _parent;
       } else {
@@ -272,7 +273,7 @@ abstract class UIComponent extends UIEventHandler {
 
         if (prevParent == null) {
           var content = _content;
-          if (identical(content?.parent, parentContent)) {
+          if (identical(content?.parentElement, parentContent)) {
             _parent = parentContent;
           }
         }
@@ -297,9 +298,9 @@ abstract class UIComponent extends UIEventHandler {
       return parent;
     }
 
-    if (parent is! UIElement) return null;
+    if (!parent.isElement) return null;
 
-    var foundUIParent = getContentUIComponent(parent) ??
+    var foundUIParent = getContentUIComponent(parent as Element) ??
         _getUIComponentByContent(parent) ??
         _getUIComponentByChild(parent);
 
@@ -320,19 +321,21 @@ abstract class UIComponent extends UIEventHandler {
       return;
     }
 
-    if (elementUIComponent == null && element is UIElement) {
-      elementUIComponent = _resolveNodeUIComponent(element);
+    if (elementUIComponent == null && element.isElement) {
+      elementUIComponent = _resolveNodeUIComponent(element as Element);
     }
 
     if (elementUIComponent == null) {
-      if (recursive && element is UIElement && element.hasUIChildren) {
-        if (parentUIComponent == null && parent is UIElement) {
-          parentUIComponent =
-              _resolveNodeUIComponent(parent, getUIComponentByChild: true);
+      if (recursive &&
+          element.isElement &&
+          (element as Element).hasUIChildren) {
+        if (parentUIComponent == null && parent.isElement) {
+          parentUIComponent = _resolveNodeUIComponent(parent as Element,
+              getUIComponentByChild: true);
         }
 
         if (parentUIComponent != null) {
-          for (var child in element.children) {
+          for (var child in element.children.toIterable()) {
             resolveParentUIComponent(
                 parent: parent,
                 parentUIComponent: parentUIComponent,
@@ -348,9 +351,9 @@ abstract class UIComponent extends UIEventHandler {
       return;
     }
 
-    if (parentUIComponent == null && parent is UIElement) {
-      parentUIComponent =
-          _resolveNodeUIComponent(parent, getUIComponentByChild: true);
+    if (parentUIComponent == null && parent.isElement) {
+      parentUIComponent = _resolveNodeUIComponent(parent as Element,
+          getUIComponentByChild: true);
     }
 
     if (parentUIComponent != null) {
@@ -363,9 +366,9 @@ abstract class UIComponent extends UIEventHandler {
 
   static UIComponent? _resolveNodeUIComponent(UINode node,
       {bool getUIComponentByChild = false}) {
-    if (node is! UIElement) return null;
+    if (!node.isElement) return null;
 
-    var component = UIComponent.getContentUIComponent(node);
+    var component = UIComponent.getContentUIComponent(node as Element);
     if (component == null) {
       var uiRoot = UIRoot.getInstance();
 
@@ -414,7 +417,7 @@ abstract class UIComponent extends UIEventHandler {
 
   /// Hide component.
   void hide() {
-    _content!.hidden = true;
+    _content!.hidden = true.toJS;
 
     if (_showing) {
       _displayOnHidden = _content!.style.display;
@@ -426,10 +429,10 @@ abstract class UIComponent extends UIEventHandler {
 
   /// Show component.
   void show() {
-    _content!.hidden = false;
+    _content!.hidden = false.toJS;
 
     if (!_showing) {
-      _content!.style.display = _displayOnHidden;
+      _content!.style.display = _displayOnHidden ?? '';
       _displayOnHidden = null;
     }
 
@@ -498,11 +501,11 @@ abstract class UIComponent extends UIEventHandler {
   void configureClasses(Object? classes1,
       [Object? classes2, Object? componentClasses]) {
     var content = this.content!;
-    content.classes.add('ui-component');
+    content.classList.add('ui-component');
 
     if (componentClasses != null) {
       var classesNamesComponent = parseClasses(componentClasses);
-      content.classes.addAll(classesNamesComponent);
+      content.classList.addAll(classesNamesComponent);
     }
 
     appendClasses(classes1, classes2);
@@ -533,10 +536,10 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     var content = this.content!;
-    content.classes.addAll(classesNames);
+    content.classList.addAll(classesNames);
 
     if (classesNamesRemove.isNotEmpty) {
-      content.classes.removeAll(classesNamesRemove);
+      content.classList.removeAll(classesNamesRemove);
     }
   }
 
@@ -585,7 +588,7 @@ abstract class UIComponent extends UIEventHandler {
 
       final content = this.content!;
 
-      var cssText = content.style.cssText ?? '';
+      var cssText = content.style.cssText;
       if (cssText == '') {
         cssText = allStylesLine;
       } else {
@@ -635,18 +638,18 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  UIElement createContentElement(bool inline) {
-    return createDiv(inline);
+  HTMLElement createContentElement(bool inline) {
+    return createDiv(inline: inline);
   }
 
   UIElement? get parent => _parent;
 
-  UIElement? get content => _content;
+  HTMLElement? get content => _content;
 
   List<UIElement> getContentChildren(
       {FilterElement? filter, bool deep = true}) {
     return _getContentChildrenImpl(
-        _content!.children, <UIElement>[], deep, filter);
+        _content!.children.toList(), <UIElement>[], deep, filter);
   }
 
   List<UIElement> _getContentChildrenImpl(List<UIElement> list,
@@ -663,7 +666,7 @@ abstract class UIComponent extends UIEventHandler {
 
     if (deep) {
       for (var elem in list) {
-        _getContentChildrenImpl(elem.children, dst, true, filter);
+        _getContentChildrenImpl(elem.children.toList(), dst, true, filter);
       }
     }
 
@@ -671,7 +674,8 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   UIElement? findInContentChildDeep(FilterElement filter) =>
-      _findInContentChildDeepImpl(_content?.children ?? <UIElement>[], filter);
+      _findInContentChildDeepImpl(
+          _content?.children.toList() ?? <UIElement>[], filter);
 
   UIElement? _findInContentChildDeepImpl(
       List<UIElement> list, FilterElement filter) {
@@ -682,7 +686,7 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     for (var elem in list) {
-      var found = _findInContentChildDeepImpl(elem.children, filter);
+      var found = _findInContentChildDeepImpl(elem.children.toList(), filter);
       if (found != null) return found;
     }
 
@@ -691,7 +695,7 @@ abstract class UIComponent extends UIEventHandler {
 
   List<UIElement> findChildDeep(FilterElement filter) {
     var list = <UIElement>[];
-    _findChildDeepImpl(_content!.children, filter, list);
+    _findChildDeepImpl(_content!.children.toList(), filter, list);
     return list;
   }
 
@@ -706,12 +710,12 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     for (var elem in list) {
-      _findChildDeepImpl(elem.children, filter, dst);
+      _findChildDeepImpl(elem.children.toList(), filter, dst);
     }
   }
 
   MapEntry<String, Object>? findChildrenDeep(String fieldName) =>
-      _findChildrenDeepImpl(_content!.children, fieldName);
+      _findChildrenDeepImpl(_content!.children.toList(), fieldName);
 
   MapEntry<String, Object>? _findChildrenDeepImpl(
       List<UIElement> list, String fieldName) {
@@ -723,7 +727,7 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     for (var elem in list) {
-      var found = _findChildrenDeepImpl(elem.children, fieldName);
+      var found = _findChildrenDeepImpl(elem.children.toList(), fieldName);
       if (found != null) return found;
     }
 
@@ -736,7 +740,7 @@ abstract class UIComponent extends UIEventHandler {
   Map<String, Object> getFieldsComponentsMap(
       {List<String>? fields, List<String>? ignoreFields}) {
     var map = Map<String, Object>.fromEntries(
-        _listFieldsEntriesInContentDeepImpl(_content!.children));
+        _listFieldsEntriesInContentDeepImpl(_content!.children.toList()));
 
     if (fields != null) {
       map.removeWhere((key, value) => !fields.contains(key));
@@ -767,7 +771,7 @@ abstract class UIComponent extends UIEventHandler {
 
   String? _renderedElementsLocale;
 
-  List? _renderedElements;
+  List<Object>? _renderedElements;
 
   List? get renderedElements =>
       _renderedElements != null ? List.unmodifiable(_renderedElements!) : null;
@@ -853,7 +857,7 @@ abstract class UIComponent extends UIEventHandler {
       getRenderedElement(
           (elem) =>
               (elem is UIComponent && elem.id == id) ||
-              (elem is UIElement && elem.id == id),
+              (elem.isElement && (elem as Element).id == id),
           deep);
 
   T? getRenderedUIComponentById<T extends UIComponent>(dynamic id,
@@ -893,8 +897,8 @@ abstract class UIComponent extends UIEventHandler {
       for (var e in _renderedElements!) {
         if (e is UIComponent) {
           e.delete();
-        } else if (e is UIElement) {
-          e.remove();
+        } else if (e.isElement) {
+          (e as Element).remove();
         }
       }
     }
@@ -909,7 +913,7 @@ abstract class UIComponent extends UIEventHandler {
         e.remove();
       }
 
-      content.children.clear();
+      content.clear();
 
       if (removeFromParent) {
         content.remove();
@@ -1147,7 +1151,7 @@ abstract class UIComponent extends UIEventHandler {
       if (uiComp != null) return uiComp;
     }
 
-    for (var elem in _content!.children) {
+    for (var elem in _content!.children.toIterable()) {
       if (identical(content, elem)) {
         return this;
       }
@@ -1160,7 +1164,7 @@ abstract class UIComponent extends UIEventHandler {
     if (child == null) return null;
     if (identical(child, _content)) return this;
 
-    for (var elem in _content!.children) {
+    for (var elem in _content!.children.toIterable()) {
       if (identical(child, elem)) {
         return this;
       }
@@ -1304,12 +1308,12 @@ abstract class UIComponent extends UIEventHandler {
               _renderCount == 1)) {
         // content not added to parent:
         if (!identical(content.parentNode, parent)) {
-          parent.nodes.clear();
-          parent.append(content);
+          parent.clear();
+          parent.appendChild(content);
         }
         // content already added, remove other nodes:
         else {
-          var nodes = List<UINode>.from(parent.nodes);
+          var nodes = parent.childNodes.toList();
 
           var containsContent = false;
           for (var node in nodes) {
@@ -1456,7 +1460,7 @@ abstract class UIComponent extends UIEventHandler {
     _finalizeRender();
 
     try {
-      _parseAttributesPosRender(content!.children);
+      _parseAttributesPosRender(content!.children.toList());
     } catch (e, s) {
       UIConsole.error('$this _parseAttributesPosRender(...) error', e, s);
     }
@@ -1472,16 +1476,16 @@ abstract class UIComponent extends UIEventHandler {
     setTreeElementsBackgroundBlur(content!, 'bg-blur');
   }
 
-  void _ensureAllRendered(List elements) {
+  void _ensureAllRendered(List<Object?> elements) {
     if (elements.isEmpty) return;
 
     for (var e in elements) {
       if (e is UIComponent) {
         e.ensureRendered();
-      } else if (e is UIElement) {
+      } else if (e.isElement) {
         var subElements = [];
 
-        for (var child in e.children) {
+        for (var child in (e as Element).children.toList()) {
           var uiComponent = _getUIComponentByContent(child);
 
           if (uiComponent != null) {
@@ -1640,7 +1644,7 @@ abstract class UIComponent extends UIEventHandler {
   /// - [String], parsed as `HTML`.
   /// - [Map] (rendered as JSON).
   /// - [List] with previous types (recursively).
-  /// - [Function] that returns any previous type. Including [Function]<Future>, allowing `async` functions.
+  /// - [Function] that returns any previous type. Including [Function]<[Future]>, allowing `async` functions.
   dynamic render();
 
   /// Called after [render].
@@ -1664,7 +1668,7 @@ abstract class UIComponent extends UIEventHandler {
     connectDataSource();
   }
 
-  List<dynamic> toContentElements(dynamic rendered,
+  List<Object> toContentElements(dynamic rendered,
       {bool append = false, bool parseAttributes = true}) {
     try {
       var domContext = UIComponentDOMContext(this, domGenerator.domContext);
@@ -1672,20 +1676,20 @@ abstract class UIComponent extends UIEventHandler {
       var list = _toContentElementsImpl(rendered, append, domContext);
 
       if (parseAttributes) {
-        _parseAttributes(content!.children);
+        _parseAttributes(content!.children.toList());
       }
 
       return list;
     } catch (e, s) {
       logger.error(
           'Error converting rendered to content elements: $rendered', e, s);
-      return <dynamic>[];
+      return <Object>[];
     }
   }
 
-  static bool isRenderable(dynamic element) {
+  static bool isRenderable(Object? element) {
     if (element == null) return false;
-    return element is UIElement ||
+    return element.isElement ||
         element is UIContent ||
         element is UIAsyncContent;
   }
@@ -1739,7 +1743,7 @@ abstract class UIComponent extends UIEventHandler {
     return renderableList;
   }
 
-  List<dynamic> _toContentElementsImpl(
+  List<Object> _toContentElementsImpl(
       Object? rendered, bool append, DOMContext<UINode>? domContext) {
     var renderableList = toRenderableList(rendered, domContext);
 
@@ -1747,10 +1751,10 @@ abstract class UIComponent extends UIEventHandler {
 
     if (renderableList == null || renderableList.isEmpty) {
       if (!append) {
-        content.nodes.clear();
+        content.clear();
       }
 
-      return <dynamic>[];
+      return <Object>[];
     }
 
     if (isListOfStrings(renderableList)) {
@@ -1769,24 +1773,24 @@ abstract class UIComponent extends UIEventHandler {
           .toList();
 
       if (append) {
-        content.nodes.addAll(nodes);
+        content.appendAll(nodes);
       } else {
-        content.nodes.clear();
-        content.nodes.addAll(nodes);
+        content.clear();
+        content.appendAll(nodes);
       }
 
-      var renderedList = List<dynamic>.from(content.childNodes);
+      var renderedList = List<Object>.from(content.childNodes.toList());
       return renderedList;
     } else {
-      if (isListValuesIdentical(renderableList, content.nodes.toList())) {
-        return List<dynamic>.from(renderableList);
+      if (isListValuesIdentical(renderableList, content.childNodes.toList())) {
+        return List<Object>.from(renderableList);
       }
 
       for (var value in renderableList) {
         _removeFromContent(value);
       }
 
-      var renderedList2 = <dynamic>[];
+      var renderedList2 = <Object>[];
 
       var prevElemIndex = -1;
 
@@ -1800,7 +1804,7 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   dynamic _normalizeRenderListValue(
-      UIElement? content, value, DOMContext<UINode>? domContext) {
+      UIElement? content, Object? value, DOMContext<UINode>? domContext) {
     if (value is DOMNode) {
       return value.buildDOM(
           generator: domGenerator, parent: content, context: domContext);
@@ -1809,7 +1813,7 @@ abstract class UIComponent extends UIEventHandler {
       return nodes;
     } else if (value is List) {
       return value;
-    } else if (value is UINode) {
+    } else if (value.isNode) {
       return value;
     } else if (value is Function) {
       return value;
@@ -1840,25 +1844,22 @@ abstract class UIComponent extends UIEventHandler {
           generator: domGenerator, parent: content, context: domContext);
     } else if (value is Map ||
         (value is List && listMatchesAll(value, (dynamic e) => e is Map))) {
-      var jsonRender = JSONRender.fromJSON(value)
-        ..renderMode = JSONRenderMode.view
-        ..addAllKnownTypeRenders();
-      return jsonRender.render();
+      return UIJsonRender(null, json: value);
     } else {
       return value;
     }
   }
 
-  int _buildRenderList(dynamic value, List<dynamic> renderedList,
+  int _buildRenderList(Object? value, List<dynamic> renderedList,
       int prevElemIndex, DOMContext<UINode>? domContext) {
     if (value == null) return prevElemIndex;
     var content = this.content;
 
     value = _normalizeRenderListValue(content, value, domContext);
 
-    if (value is UINode) {
-      prevElemIndex =
-          _addElementToRenderList(value, value, renderedList, prevElemIndex);
+    if (value.isNode) {
+      prevElemIndex = _addElementToRenderList(
+          value, value as Node, renderedList, prevElemIndex);
     } else if (value is UIComponent) {
       if (value.parent != content) {
         value._setParentImpl(content, this, false);
@@ -1952,11 +1953,11 @@ abstract class UIComponent extends UIEventHandler {
     int? maxContentIdx;
 
     final content = this.content!;
-    for (var node in content.nodes.toList()) {
+    for (var node in content.childNodes.toList()) {
       if (prevElements.contains(node)) {
-        var idx = content.nodes.indexOf(node);
+        var idx = content.childNodes.indexOf(node);
         if (idx >= 0) {
-          content.nodes.removeAt(idx);
+          content.removeNodeAt(idx);
           if (maxContentIdx == null || idx > maxContentIdx) {
             maxContentIdx = idx;
           }
@@ -1966,20 +1967,20 @@ abstract class UIComponent extends UIEventHandler {
 
     var loadedContent = asyncContent.content;
 
-    var renderedList = [];
-    if (maxContentIdx == null || maxContentIdx >= content.nodes.length) {
-      _buildRenderList(
-          loadedContent, renderedList, content.nodes.length - 1, domContext);
+    var renderedList = <Object>[];
+    if (maxContentIdx == null || maxContentIdx >= content.childNodes.length) {
+      _buildRenderList(loadedContent, renderedList,
+          content.childNodes.length - 1, domContext);
 
       renderedElements.addAll(renderedList);
     } else {
-      var tail = content.nodes.sublist(maxContentIdx).toList();
+      var tail = content.childNodes.toList().sublist(maxContentIdx).toList();
       for (var e in tail) {
-        content.nodes.remove(e);
+        content.removeChild(e);
       }
 
-      _buildRenderList(
-          loadedContent, renderedList, content.nodes.length - 1, domContext);
+      _buildRenderList(loadedContent, renderedList,
+          content.childNodes.length - 1, domContext);
 
       if (tail.isNotEmpty) {
         var renderedComponents = renderedList
@@ -1990,7 +1991,7 @@ abstract class UIComponent extends UIEventHandler {
         tail.removeWhere(
             (e) => renderedList.contains(e) || renderedComponents.contains(e));
 
-        content.nodes.addAll(tail);
+        content.appendAll(tail);
       }
 
       minRenderedElementsIdx ??= 0;
@@ -2000,8 +2001,8 @@ abstract class UIComponent extends UIEventHandler {
     _ensureAllRendered(renderedList);
 
     try {
-      _parseAttributes(content.children);
-      _parseAttributesPosRender(content.children);
+      _parseAttributes(content.children.toList());
+      _parseAttributesPosRender(content.children.toList());
     } catch (e, s) {
       UIConsole.error('$this _parseAttributesPosRender(...) error', e, s);
     }
@@ -2046,15 +2047,15 @@ abstract class UIComponent extends UIEventHandler {
       dynamic value, UINode element, List renderedList, int prevElemIndex) {
     var content = this.content!;
 
-    var idx = content.nodes.indexOf(element);
+    var idx = content.childNodes.indexOf(element);
 
     if (idx < 0) {
       content.append(element);
-      idx = content.nodes.indexOf(element);
+      idx = content.childNodes.indexOf(element);
     } else if (idx < prevElemIndex) {
       element.remove();
       content.append(element);
-      idx = content.nodes.indexOf(element);
+      idx = content.childNodes.indexOf(element);
     }
 
     prevElemIndex = idx;
@@ -2063,11 +2064,11 @@ abstract class UIComponent extends UIEventHandler {
     return prevElemIndex;
   }
 
-  void _removeFromContent(dynamic value) {
+  void _removeFromContent(Object? value) {
     if (value == null) return;
 
-    if (value is UIElement) {
-      value.remove();
+    if (value.isElement) {
+      (value as Element).remove();
     } else if (value is UIComponent) {
       if (value.isRendered) {
         value.content!.remove();
@@ -2082,30 +2083,30 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  void _parseAttributes(List list) {
+  void _parseAttributes(List<Object?> list) {
     if (list.isEmpty) return;
 
-    for (var elem in list) {
-      if (elem is UIElement) {
-        _parseNavigate(elem);
-        _parseAction(elem);
-        _parseEvents(elem);
-        _parseDataSource(elem);
+    for (var elem in list.whereElement()) {
+      _parseNavigate(elem);
+      _parseAction(elem);
+      _parseEvents(elem);
+      _parseDataSource(elem);
 
-        try {
-          _parseAttributes(elem.children);
-        } catch (e) {
-          UIConsole.error('Error parsing attributes for element: $elem', e);
-        }
+      try {
+        _parseAttributes(elem.children.toList());
+      } catch (e) {
+        UIConsole.error('Error parsing attributes for element: $elem', e);
       }
     }
   }
 
-  void _parseAttributesPosRender(List list) {
+  void _parseAttributesPosRender(List<Object?> list) {
     if (list.isEmpty) return;
 
     for (var elem in list) {
-      if (elem is UIElement) {
+      if (elem.isHTMLElement) {
+        elem = elem as HTMLElement;
+
         try {
           _parseUiLayout(elem);
         } catch (e) {
@@ -2113,7 +2114,7 @@ abstract class UIComponent extends UIEventHandler {
         }
 
         try {
-          _parseAttributesPosRender(elem.children);
+          _parseAttributesPosRender(elem.children.toList());
         } catch (e) {
           UIConsole.error('Error parsing attributes for element: $elem', e);
         }
@@ -2234,7 +2235,7 @@ abstract class UIComponent extends UIEventHandler {
     return anySet;
   }
 
-  dynamic getAttribute(String? name) {
+  String? getAttribute(String? name) {
     name = _normalizeComponentAttributeName(name);
     if (name == null) return null;
 
@@ -2242,7 +2243,7 @@ abstract class UIComponent extends UIEventHandler {
       case 'style':
         return content!.style.cssText;
       case 'class':
-        return content!.classes.join(' ');
+        return content!.classList.value;
       case 'navigate':
         return UINavigator.getNavigateOnClick(content!);
       case 'data-source':
@@ -2272,8 +2273,8 @@ abstract class UIComponent extends UIEventHandler {
         }
       case 'class':
         {
-          content!.classes.clear();
-          content!.classes.addAll(parseAttributeValueAsStringList(value)!);
+          content!.classList.clear();
+          content!.classList.addAll(parseAttributeValueAsStringList(value)!);
           return true;
         }
       case 'navigate':
@@ -2352,7 +2353,7 @@ abstract class UIComponent extends UIEventHandler {
         }
       case 'class':
         {
-          content!.classes.clear();
+          content!.classList.clear();
           return true;
         }
       case 'navigate':
@@ -2377,10 +2378,16 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  E? getFieldElement<E extends UIElement>(String? fieldName) {
+  Element? getFieldElementNonTyped(String? fieldName) {
     var elem =
         findInContentChildDeep((e) => getElementFieldName(e) == fieldName);
-    return elem is E ? elem : null;
+    return elem;
+  }
+
+  E? getFieldElementTyped<E extends HTMLElement>(
+      String? fieldName, Web<E> webType) {
+    var elem = getFieldElementNonTyped(fieldName);
+    return elem.asElementOf<E>(webType);
   }
 
   Object? getFieldComponent(String? fieldName) {
@@ -2398,8 +2405,8 @@ abstract class UIComponent extends UIEventHandler {
   String? getComponentFieldName(Object obj) {
     if (obj is UIField) {
       return obj.fieldName;
-    } else if (obj is UIElement) {
-      return getElementFieldName(obj);
+    } else if (obj.isElement) {
+      return getElementFieldName(obj as Element);
     } else {
       return null;
     }
@@ -2462,35 +2469,69 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   /// Alias to [content.querySelector].
-  E? querySelector<E extends UIElement>(String? selectors) {
+  Element? querySelectorNonTyped(String? selectors) {
     if (selectors == null || selectors.isEmpty) return null;
-    if (E == UIElement) {
-      var elem = content?.querySelector(selectors);
-      return elem is E ? elem : null;
+    return content?.querySelector(selectors);
+  }
+
+  /// Alias to [content.querySelector].
+  E? querySelectorTyped<E extends Element>(String? selectors, Web<E> webType) {
+    if (selectors == null || selectors.isEmpty) return null;
+    if (webType == Web.Element) {
+      // Faster:
+      return content?.querySelector(selectors) as E?;
     } else {
-      return content?.querySelectorAll(selectors).whereType<E>().firstOrNull;
+      return content?.querySelectorAllTyped<E>(selectors, webType).firstOrNull;
     }
   }
 
   /// Alias to [content.querySelector].
-  E? selectElement<E extends UIElement>(String? selectors) =>
-      querySelector<E>(selectors);
+  Element? selectElementNonTyped(String? selectors) =>
+      querySelectorNonTyped(selectors);
+
+  /// Alias to [content.querySelector].
+  E? selectElementTyped<E extends UIElement>(
+          String? selectors, Web<E> webType) =>
+      querySelectorTyped<E>(selectors, webType);
 
   /// Alias to [content.querySelectorAll].
-  List<T> querySelectorAll<T extends UIElement>(String? selectors) {
-    if (selectors == null || selectors.isEmpty) return <T>[];
-    return content?.querySelectorAll(selectors).whereType<T>().toList() ??
-        <T>[];
+  List<Element> querySelectorAllNonTyped(String? selectors) {
+    if (selectors == null || selectors.isEmpty) return [];
+    return content?.querySelectorAll(selectors).toElements() ?? [];
   }
 
   /// Alias to [content.querySelectorAll].
-  List<T> selectElements<T extends UIElement>(String? selectors) =>
-      querySelectorAll(selectors);
+  List<T> querySelectorAllTyped<T extends UIElement>(
+      String? selectors, Web<T> webType) {
+    if (selectors == null || selectors.isEmpty) return <T>[];
+    return content?.querySelectorAllTyped<T>(selectors, webType) ?? <T>[];
+  }
 
   /// Alias to [content.querySelectorAll].
-  Map<String, String?> selectElementsValues<T extends UIElement>(
-      String? selectors) {
-    var entries = selectElements<T>(selectors).map((e) {
+  List<Element> selectElementsNonTyped(String? selectors) =>
+      querySelectorAllNonTyped(selectors);
+
+  /// Alias to [content.querySelectorAll].
+  List<T> selectElementsTyped<T extends UIElement>(
+          String? selectors, Web<T> webType) =>
+      querySelectorAllTyped(selectors, webType);
+
+  /// Alias to [content.querySelectorAll].
+  Map<String, String?> selectElementsNonTypedValues(String? selectors) {
+    var entries = selectElementsNonTyped(selectors).map((e) {
+      var k = e.getAttribute('name')?.trim();
+      if (k == null || k.isEmpty) {
+        k = e.id.trim();
+      }
+      return MapEntry(k, e.elementValue);
+    });
+    return Map.fromEntries(entries);
+  }
+
+  /// Alias to [content.querySelectorAll].
+  Map<String, String?> selectElementsTypedValues<T extends UIElement>(
+      String? selectors, Web<T> webType) {
+    var entries = selectElementsTyped<T>(selectors, webType).map((e) {
       var k = e.getAttribute('name')?.trim();
       if (k == null || k.isEmpty) {
         k = e.id.trim();
@@ -2501,23 +2542,26 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   bool clearContent() {
-    content!.nodes.clear();
+    content!.clear();
     return true;
   }
 
   bool setContentNodes(List<UINode> nodes) {
-    content!.nodes.clear();
-    content!.nodes.addAll(nodes);
+    content!.clear();
+    content!.appendAll(nodes);
     return true;
   }
 
   bool appendToContent(List<UINode> nodes) {
-    content!.nodes.addAll(nodes);
+    content!.appendAll(nodes);
     return true;
   }
 
   List<UIElement> getFieldsElements() => _getContentChildrenImpl(
-      content!.children, [], true, (e) => getElementFieldName(e) != null);
+      content!.children.toList(),
+      [],
+      true,
+      (e) => getElementFieldName(e) != null);
 
   String? parseChildElementValue(UIElement? childElement,
           {UIComponent? childUiComponent, bool allowTextAsValue = true}) =>
@@ -2604,7 +2648,7 @@ abstract class UIComponent extends UIEventHandler {
       _renderedFieldsValues != null ? _renderedFieldsValues![fieldName!] : null;
 
   void setField(String fieldName, dynamic value) {
-    var fieldElem = getFieldElement(fieldName);
+    var fieldElem = getFieldElementNonTyped(fieldName);
     if (fieldElem == null) return;
 
     var valueStr = value != null ? '$value' : null;
@@ -2616,7 +2660,7 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   void updateRenderedFieldValue(String fieldName) {
-    var fieldElem = getFieldElement(fieldName);
+    var fieldElem = getFieldElementNonTyped(fieldName);
     if (fieldElem == null) return;
 
     var value = parseChildElementValue(fieldElem);
@@ -2656,8 +2700,8 @@ abstract class UIComponent extends UIEventHandler {
       var val = parseChildElementValue(fieldComponent.content,
           childUiComponent: fieldComponent);
       return val as V? ?? def;
-    } else if (fieldComponent is UIElement) {
-      var val = parseChildElementValue(fieldComponent);
+    } else if (fieldComponent.isElement) {
+      var val = parseChildElementValue(fieldComponent as Element);
       return val as V? ?? def;
     } else {
       return fieldComponent.toString() as V? ?? def;
@@ -2877,18 +2921,22 @@ abstract class UIComponent extends UIEventHandler {
 
     var component = getFieldComponent(fieldName);
 
-    if (component is UIElement) {
-      component.focus();
+    if (component.asJSAny.isA<HTMLElement>()) {
+      (component as HTMLElement).focus();
       return true;
     } else if (component is UIComponent) {
       var input = findInContentChildDeep((e) => e.isTextInput);
       if (input != null) {
-        input.focus();
-        return true;
+        return input.focus();
       }
 
-      component.content?.focus();
-      return true;
+      var content = component.content;
+      if (content != null) {
+        content.focus();
+        return true;
+      } else {
+        return false;
+      }
     }
 
     return false;
@@ -2921,7 +2969,7 @@ abstract class UIComponent extends UIEventHandler {
 
     var list = getEmptyFields();
     for (var fieldName in list) {
-      var elem = getFieldElement(fieldName);
+      var elem = getFieldElementNonTyped(fieldName);
       if (elem != null) {
         f(elem);
         count++;
@@ -2959,7 +3007,7 @@ abstract class UIComponent extends UIEventHandler {
     UIConsole.log('action: $action');
   }
 
-  void _parseUiLayout(UIElement elem) {
+  void _parseUiLayout(HTMLElement elem) {
     var uiLayout = getElementAttribute(elem, 'uiLayout');
 
     if (uiLayout != null) {

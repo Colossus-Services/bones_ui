@@ -1,4 +1,6 @@
-import 'dart:html';
+import 'dart:math';
+
+import 'package:web_utils/web_utils.dart';
 
 import 'package:swiss_knife/swiss_knife.dart';
 
@@ -62,7 +64,7 @@ class ImageClip {
 
 /// Component to clip an image.
 class UIClipImage extends UIComponent {
-  final ImageElement _img;
+  final HTMLImageElement _img;
 
   int imgWidth;
 
@@ -108,12 +110,12 @@ class UIClipImage extends UIComponent {
   }
 
   Point? parsePoint(Event e) {
-    if (e is TouchEvent) {
-      var p = e.changedTouches!.first.client;
-      return Point(p.x - _img.offset.left, p.y - _img.offset.top);
-    } else if (e is MouseEvent) {
-      var p = e.page;
-      return Point(p.x - _img.offset.left, p.y - _img.offset.top);
+    if (e.isA<TouchEvent>()) {
+      var p = (e as TouchEvent).changedTouches.item(0)!.clientPoint;
+      return Point(p.x - _img.offsetLeft, p.y - _img.offsetTop);
+    } else if (e.isA<MouseEvent>()) {
+      var p = (e as MouseEvent).pagePoint;
+      return Point(p.x - _img.offsetLeft, p.y - _img.offsetTop);
     }
     return null;
   }
@@ -137,7 +139,7 @@ class UIClipImage extends UIComponent {
     var rect = _createRect(_start, p)!;
     _divRectDrag = _createRectDiv(rect);
 
-    content!.children.add(_divRectDrag!);
+    content!.appendChild(_divRectDrag!);
   }
 
   void _clearRects() {
@@ -173,7 +175,7 @@ class UIClipImage extends UIComponent {
 
     _divRect = _createRectDiv(clipRect);
 
-    content!.children.add(_divRect!);
+    content!.appendChild(_divRect!);
 
     onChangeClip.add(_clipRect);
     onChange.add(this);
@@ -199,8 +201,9 @@ class UIClipImage extends UIComponent {
 
   ImageClip? get imageClip => _imageClip;
 
-  DivElement _createRectDiv(Rectangle rect) {
-    var div = DivElement();
+  HTMLDivElement _createRectDiv(Rectangle rect) {
+    var div = HTMLDivElement();
+
     div.style
       ..width = '${rect.width}px'
       ..height = '${rect.height}px'
@@ -240,8 +243,8 @@ class UIClipImage extends UIComponent {
     var w = (x2 - x1).toInt();
     var h = (y2 - y1).toInt();
 
-    var left = (_img.offset.left + x).toInt();
-    var top = (_img.offset.top + y).toInt();
+    var left = (_img.offsetLeft + x).toInt();
+    var top = (_img.offsetTop + y).toInt();
 
     return Rectangle(left, top, w, h);
   }

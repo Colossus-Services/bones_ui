@@ -1,9 +1,7 @@
-import 'dart:html';
-
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
-import 'package:enum_to_string/enum_to_string.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import '../bones_ui_base.dart';
 import '../bones_ui_component.dart';
@@ -410,7 +408,7 @@ String? _loadCSS(String loadingClass, String? color) {
 
 enum UILoadingType { ring, dualRing, roller, spinner, ripple, blocks, ellipsis }
 
-UILoadingType? getUILoadingType(dynamic type) {
+UILoadingType? getUILoadingType(Object? type) {
   if (type == null) return null;
 
   if (type is UILoadingType) return type;
@@ -491,15 +489,15 @@ abstract class UILoading {
     var loadingClass = getUILoadingTypeClass(type);
     if (loadingClass == null) return;
 
-    var sel = root!.querySelectorAll('.$loadingClass');
+    var sel = root!.querySelectorAll('.$loadingClass').toHTMLElements();
 
     for (var elem in sel) {
       var color = ensureNotEmptyString(elem.style.color, trim: true);
       var text = ensureNotEmptyString(elem.text, trim: true);
 
-      var loading = asDivElement(type, color: color, text: text);
+      var loading = asHTMLDivElement(type, color: color, text: text);
 
-      elem.nodes.clear();
+      elem.clear();
       elem.append(loading);
     }
   }
@@ -514,7 +512,7 @@ abstract class UILoading {
       bool? withProgress,
       UILoadingConfig? config}) {
     if (config != null) {
-      if (config.type != null) type = config.type;
+      type = config.type;
       if (isNotEmptyString(config.color, trim: true)) color = config.color;
       if (config.zoom != null) zoom = config.zoom;
       if (config.text != null) text = config.text;
@@ -581,7 +579,7 @@ abstract class UILoading {
     return div;
   }
 
-  static DivElement asDivElement(UILoadingType? type,
+  static HTMLDivElement asHTMLDivElement(UILoadingType? type,
       {bool inline = true,
       String? color,
       double? zoom,
@@ -599,12 +597,12 @@ abstract class UILoading {
         cssContext: cssContext,
         withProgress: withProgress,
         config: config);
-    return div.buildDOM(generator: UIComponent.domGenerator) as DivElement;
+    return div.buildDOM(generator: UIComponent.domGenerator) as HTMLDivElement;
   }
 }
 
 class UILoadingConfig implements AsDOMElement {
-  final UILoadingType? type;
+  final UILoadingType type;
   final bool? inline;
   final TextProvider? _color;
   final double? zoom;
@@ -674,7 +672,8 @@ class UILoadingConfig implements AsDOMElement {
 
   DIVElement asDIVElement() => UILoading.asDIVElement(type, config: this);
 
-  DivElement asDivElement() => UILoading.asDivElement(type, config: this);
+  HTMLDivElement asDivElement() =>
+      UILoading.asHTMLDivElement(type, config: this);
 
   @override
   DOMElement get asDOMElement => asDIVElement();
@@ -684,7 +683,7 @@ class UILoadingConfig implements AsDOMElement {
     var text = _text?.text;
 
     return [
-      'type: ${EnumToString.convertToString(type)}',
+      'type: ${type.name}',
       if (inline != null) 'inline: $inline',
       if (isNotEmptyString(color, trim: true)) 'color: $color',
       if (zoom != null) 'zoom: $zoom',

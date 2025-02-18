@@ -1,4 +1,4 @@
-import 'dart:html';
+import 'package:web_utils/web_utils.dart';
 
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dom_builder/dom_builder.dart';
@@ -16,9 +16,9 @@ class MasonryItem {
 
   MasonryItem(this.element, this._width, this._height);
 
-  factory MasonryItem.from(dynamic element) {
-    if (element is Element) {
-      return MasonryItem.fromElement(element);
+  factory MasonryItem.from(Object? element) {
+    if (element.isElement) {
+      return MasonryItem.fromElement(element as Element);
     } else if (element is DOMElement) {
       return MasonryItem.fromDOMElement(element);
     } else if (element is UIComponent) {
@@ -60,10 +60,10 @@ class MasonryItem {
   }
 }
 
-int? _getElementWidth(dynamic element) {
+int? _getElementWidth(Object? element) {
   if (element == null) return null;
-  if (element is Element) {
-    return getElementWidth(element);
+  if (element.isHTMLElement) {
+    return getElementWidth(element as HTMLElement);
   } else if (element is UIComponent) {
     return getElementWidth(element.content!);
   } else if (element is DOMElement) {
@@ -73,10 +73,10 @@ int? _getElementWidth(dynamic element) {
   return 0;
 }
 
-int? _getElementHeight(dynamic element) {
+int? _getElementHeight(Object? element) {
   if (element == null) return null;
-  if (element is Element) {
-    return getElementHeight(element);
+  if (element.isHTMLElement) {
+    return getElementHeight(element as HTMLElement);
   } else if (element is UIComponent) {
     return getElementHeight(element.content!);
   } else if (element is DOMElement) {
@@ -281,8 +281,8 @@ class UIMasonry extends UIComponent {
   dynamic render() {
     content!
       ..style.textAlign = 'center'
-      ..style.width = width
-      ..style.height = height
+      ..style.width = width ?? ''
+      ..style.height = height ?? ''
       ..style.overflowY = 'auto';
 
     if (isNotEmptyObject(scrollbarColors)) {
@@ -635,8 +635,8 @@ class _MasonryLine {
     var w = masonryWidth * masonryWidthSizeWithItemsMargin;
     var h = maxMasonryHeight * masonryHeightSizeWithItemsMargin;
 
-    var div = DivElement()
-      ..classes.add('ui-masonry-line')
+    var div = HTMLDivElement()
+      ..classList.add('ui-masonry-line')
       ..style.textAlign = 'center'
       ..style.margin = '0 auto'
       ..style.width = '${w}px'
@@ -902,8 +902,8 @@ class _MasonryRenderGroup extends _MasonryRenderable {
 
   @override
   Element render() {
-    var div = DivElement()
-      ..classes.add('ui-masonry-group')
+    var div = HTMLDivElement()
+      ..classList.add('ui-masonry-group')
       ..style.display = 'inline-block'
       ..style.overflow = 'hidden'
       ..style.verticalAlign = 'top';
@@ -913,7 +913,7 @@ class _MasonryRenderGroup extends _MasonryRenderable {
       var item = _items[i];
 
       if (lineWidth >= maxWidth) {
-        div.append(BRElement());
+        div.append(HTMLBRElement());
         lineWidth = 0;
       }
 
@@ -982,20 +982,20 @@ class _MasonryRenderItem extends _MasonryRenderable {
     var w = w2 - (itemsMargin! * 1);
     var h = h2 - (itemsMargin! * 1);
 
-    var div1 = DivElement()
-      ..classes.add('ui-masonry-block')
+    var div1 = HTMLDivElement()
+      ..classList.add('ui-masonry-block')
       ..style.cssText =
           'display: inline-block; vertical-align: top; text-align: center; overflow: hidden; width: ${w2}px; height: ${h2}px; margin: 0px;';
 
-    var div2 = DivElement()
+    var div2 = HTMLDivElement()
       ..style.cssText = 'display: table; width: 100%; height: 100%;';
 
-    var div3 = DivElement()
+    var div3 = HTMLDivElement()
       ..style.cssText =
           'display: table-cell; text-align: center; vertical-align: middle;';
 
-    var div4 = DivElement()
-      ..classes.add('ui-masonry-item')
+    var div4 = HTMLDivElement()
+      ..classList.add('ui-masonry-item')
       ..style.cssText =
           'display: inline-block; max-width: ${w}px; max-height: ${h}px';
 
@@ -1017,8 +1017,8 @@ class _MasonryRenderItem extends _MasonryRenderable {
           htmlRoot?.buildDOM(generator: UIComponent.domGenerator, parent: div4);
     }
 
-    if (element is Element) {
-      div4.append(element);
+    if (element.isElement) {
+      div4.appendChild(element as Element);
     }
 
     return div1;

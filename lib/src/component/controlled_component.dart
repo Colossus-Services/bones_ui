@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:html';
+import 'package:web_utils/web_utils.dart';
 
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
@@ -78,15 +78,15 @@ abstract class UIControlledComponent extends UIComponent {
 
     for (var entry in _controllers!.entries) {
       var key = entry.key;
-      var value = entry.value;
+      var value = entry.value as Object?;
 
       if (value is UIField) {
         value = value.getFieldValue();
       } else if (value is UIComponent) {
         dynamic fields = value.getFields();
         value = asMapOfString(fields);
-      } else if (value is Element) {
-        value = parseChildElementValue(value);
+      } else if (value.isElement) {
+        value = parseChildElementValue(value as Element);
       }
 
       mapProperties.put(key, value);
@@ -162,10 +162,12 @@ abstract class UIControlledComponent extends UIComponent {
     return false;
   }
 
-  Future<bool> listenControllers(Map<String, dynamic> controllers) async {
+  Future<bool> listenControllers(Map<String, Object?> controllers) async {
     for (var control in controllers.values) {
-      if (control is Element) {
-        control.onChange.listen((e) => callOnChangeControllers(control));
+      if (control.isElement) {
+        (control as Element)
+            .onChange
+            .listen((e) => callOnChangeControllers(control));
       } else if (control is UIComponent) {
         control.onChange.listen((e) => callOnChangeControllers(control));
       } else if (control is UIAsyncContent) {
@@ -243,10 +245,10 @@ abstract class UIControlledComponent extends UIComponent {
       if (entry.key.endsWith('_label')) continue;
 
       if (list.isNotEmpty) {
-        var separatorH = createSpan('&nbsp<wbr>');
-        var separatorV = DivElement()
-              ..classes.add('w-100')
-              ..classes.add('d-md-none')
+        var separatorH = createSpan(html: '&nbsp<wbr>');
+        var separatorV = HTMLDivElement()
+              ..classList.add('w-100')
+              ..classList.add('d-md-none')
             //..classes.add('d-lg-block')
             ;
         list.add(separatorH);
@@ -257,7 +259,7 @@ abstract class UIControlledComponent extends UIComponent {
       var controller = entry.value;
 
       if (label is String) {
-        var span = createLabel('$label: &nbsp ');
+        var span = createLabel(html: '$label: &nbsp ');
         list.add(span);
       } else {
         list.add(label);

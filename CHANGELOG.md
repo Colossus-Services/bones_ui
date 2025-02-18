@@ -4,11 +4,18 @@
 
 - sdk: '>=3.6.0 <4.0.0'
 
-- js_interop_utils: ^1.0.1
-- web_utils: ^1.0.1
+- js_interop_utils: ^1.0.5
+- web_utils: ^1.0.5
+- dom_tools: ^3.0.0-beta.3
+- dom_builder: ^3.0.0-beta.1
 - web: ^1.1.0
 - collection: ^1.19.0
+- test: ^1.25.15
+- stream_channel: ^2.1.4
+
 - lints: ^5.1.1
+- build_web_compilers: ^4.1.1
+- build_runner: ^2.4.15
 
 ## 2.5.13
 

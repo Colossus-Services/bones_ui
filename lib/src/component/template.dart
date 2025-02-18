@@ -1,4 +1,4 @@
-import 'dart:html';
+import 'package:web_utils/web_utils.dart';
 
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dynamic_call/dynamic_call.dart';
@@ -37,7 +37,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
     var domElement = domNode as DOMElement;
 
-    var element = DivElement();
+    var element = HTMLDivElement();
 
     setElementAttributes(element, attributes);
 
@@ -69,7 +69,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       DOMGenerator<UINode> domGenerator,
       DOMTreeMap<UINode> treeMap,
       DOMElement domElement,
-      DivElement element,
+      HTMLDivElement element,
       Map<String, DOMAttribute> attributes,
       DOMContext<UINode>? domContext) {
     try {
@@ -92,7 +92,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
           var loadingConfig = UILoadingConfig.fromMap(attributes, 'loading-');
 
-          DivElement? uiLoading;
+          HTMLDivElement? uiLoading;
           if (loadingConfig != null) {
             uiLoading = loadingConfig.asDivElement();
             element.append(uiLoading);
@@ -127,7 +127,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       DOMTemplateNode template,
       Map<String, dynamic> variables,
       DOMElement domElement,
-      DivElement element) {
+      HTMLDivElement element) {
     var templateBuiltHTML = template.buildAsString(variables,
         resolveDSX: false,
         elementProvider: (q) => treeMap.queryElement(q,
@@ -151,7 +151,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       DOMTreeMap<UINode> treeMap,
       String html,
       DOMElement domElement,
-      DivElement element) {
+      HTMLDivElement element) {
     _setElementAttributes(domElement, element);
 
     domElement.clearNodes();
@@ -164,7 +164,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
         setTreeMapRoot: false);
   }
 
-  void _setElementAttributes(DOMElement domElement, DivElement element) {
+  void _setElementAttributes(DOMElement domElement, HTMLDivElement element) {
     for (var attr in domElement.domAttributes.entries) {
       var attrValue = attr.value;
       if (attrValue.isBoolean && !attrValue.hasValue) {
@@ -293,23 +293,25 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
   @override
   bool isGeneratedElement(UINode element) {
-    return element is DivElement && element.classes.contains(tag);
+    return element.isA<HTMLDivElement>() &&
+        (element as HTMLDivElement).classList.contains(tag);
   }
 
   @override
   DOMElement? revert(DOMGenerator domGenerator, DOMTreeMap? treeMap,
       DOMElement? domParent, UINode? parent, UINode? node) {
-    if (node is DivElement) {
+    if (node.isA<HTMLDivElement>()) {
+      var div = node as HTMLDivElement;
       var domElement =
-          $tag(tag, classes: node.classes.join(' '), style: node.style.cssText);
+          $tag(tag, classes: div.classList.value, style: div.style.cssText);
 
       if (treeMap != null) {
-        var mappedDOMNode = treeMap.getMappedDOMNode(node);
+        var mappedDOMNode = treeMap.getMappedDOMNode(div);
         if (mappedDOMNode != null) {
           domElement.add(mappedDOMNode.content);
         }
       } else {
-        domElement.add(node.text);
+        domElement.add(div.text);
       }
 
       return domElement;

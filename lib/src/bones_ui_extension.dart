@@ -1,13 +1,12 @@
-import 'dart:html';
-
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_root.dart';
 import 'bones_ui_web.dart';
 
-extension ElementExtension on UIElement {
+extension UIElementExtension on UIElement {
   /// Resolves the [UIComponent] of this [UIElement].
   UIComponent? resolveUIComponent({UIComponent? parentUIComponent}) {
     if (parentUIComponent != null) {
@@ -24,9 +23,9 @@ extension ElementExtension on UIElement {
       bool allowTextAsValue = true}) {
     var self = this;
 
-    if (self is InputElementBase ||
-        self is TextAreaElement ||
-        self is SelectElement) {
+    if (self.isA<HTMLInputElement>() ||
+        self.isA<HTMLTextAreaElement>() ||
+        self.isA<HTMLSelectElement>()) {
       return resolveInputElementValue();
     }
 
@@ -46,7 +45,7 @@ extension ElementExtension on UIElement {
 
     var value = self.getAttribute('field_value');
     if (isEmptyObject(value) && allowTextAsValue) {
-      value = self.text;
+      value = self.textContent;
     }
     return value;
   }
@@ -54,20 +53,21 @@ extension ElementExtension on UIElement {
   String? resolveInputElementValue() {
     var self = this;
 
-    if (self is TextAreaElement) {
-      return self.value;
-    } else if (self is SelectElement) {
-      var selected = self.selectedOptionsSafe;
+    if (self.isA<HTMLTextAreaElement>()) {
+      return (self as HTMLTextAreaElement).value;
+    } else if (self.isA<HTMLSelectElement>()) {
+      var selected = (self as HTMLSelectElement).selectedOptionsSafe;
       if (selected.isEmpty) return '';
       return MapProperties.toStringValue(selected.map((opt) => opt.value));
-    } else if (self is InputElement) {
-      var type = self.type;
+    } else if (self.isA<HTMLInputElement>()) {
+      var type = (self as HTMLInputElement).type;
       switch (type) {
         case 'checkbox':
         case 'radio':
           return parseBool(self.checked, false)! ? self.value : null;
         case 'file':
-          return MapProperties.toStringValue(self.files!.map((f) => f.name));
+          return MapProperties.toStringValue(
+              self.files!.toList().map((f) => f.name));
         default:
           return self.value;
       }
@@ -93,34 +93,12 @@ extension ElementExtension on UIElement {
     var value = elementValue;
     return value == null || value.trim().isEmpty;
   }
-
-  bool dispatchChangeEvent() {
-    var event = Event.eventType('Event', 'change');
-    return dispatchEvent(event);
-  }
 }
 
-extension IterableElementExtension<E extends UIElement> on Iterable<E> {
+extension UIIterableElementExtension<E extends UIElement> on Iterable<E> {
   /// Returns a [List] of [UIComponent] of this [Iterable] of [UIElement]s.
   List<UIComponent?> get uiComponents => map((e) => e.uiComponent).toList();
 
   /// Returns a [List] of values of this [Iterable] of [UIElement]s.
   List<String?> get elementsValues => map((e) => e.elementValue).toList();
-}
-
-extension SelectElementExtension on SelectElement {
-  /// Selects an [index] and triggers the `change` event.
-  /// See [dispatchChangeEvent] and [selectedIndex].
-  bool selectIndex(int index) {
-    selectedIndex = index;
-    return dispatchChangeEvent();
-  }
-
-  List<OptionElement> get selectedOptionsSafe {
-    try {
-      return selectedOptions;
-    } catch (_) {
-      return [];
-    }
-  }
 }

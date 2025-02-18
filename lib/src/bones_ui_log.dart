@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:html';
 
 import 'package:dom_tools/dom_tools.dart';
 import 'package:logging/logging.dart' as logging;
+import 'package:web_utils/web_utils.dart';
 
 import 'bones_ui_web.dart';
 
@@ -314,7 +314,7 @@ class UIConsole {
   }
 
   bool _isShowing() {
-    return querySelector('#UIConsole') != null;
+    return document.querySelector('#UIConsole') != null;
   }
 
   static void hide() {
@@ -322,7 +322,7 @@ class UIConsole {
   }
 
   void _hide() {
-    var prevConsoleDiv = querySelector('#UIConsole');
+    var prevConsoleDiv = document.querySelector('#UIConsole');
 
     if (prevConsoleDiv != null) {
       prevConsoleDiv.remove();
@@ -333,14 +333,14 @@ class UIConsole {
     return get()!._show();
   }
 
-  DivElement? _contentClipboard;
+  HTMLDivElement? _contentClipboard;
 
   void _show() {
     _enable();
 
     _hide();
 
-    var consoleDiv = DivElement();
+    var consoleDiv = HTMLDivElement();
     consoleDiv.id = 'UIConsole';
 
     consoleDiv.style
@@ -361,40 +361,44 @@ class UIConsole {
       ..height = '0px'
       ..lineHeight = '0px';
 
-    consoleDiv.children.add(contentClipboard);
+    consoleDiv.appendChild(contentClipboard);
 
     var allLogs = _allLogs();
 
-    var consoleButtons = DivElement();
+    var consoleButtons = HTMLDivElement();
 
-    var buttonClose = UIElement.span()..text = '[X]';
+    var buttonClose = HTMLSpanElement()..text = '[X]';
     buttonClose.style.cursor = 'pointer';
     buttonClose.onClick.listen((m) => hide());
 
-    var buttonCopy = UIElement.span()..text = '[Copy All]';
+    var buttonCopy = HTMLSpanElement()..text = '[Copy All]';
     buttonCopy.style.cursor = 'pointer';
     buttonCopy.onClick.listen((m) => copy());
 
-    var buttonZoomIn = UIElement.span()..text = '[ + ]';
+    var buttonZoomIn = HTMLSpanElement()..text = '[ + ]';
     buttonZoomIn.style.cursor = 'zoom-in';
 
-    var buttonZoomOut = UIElement.span()..text = '[ - ]';
+    var buttonZoomOut = HTMLSpanElement()..text = '[ - ]';
     buttonZoomOut.style.cursor = 'zoom-out';
 
-    var buttonClear = UIElement.span()..text = '[Clear]';
+    var buttonClear = HTMLSpanElement()..text = '[Clear]';
     buttonClear.style.cursor = 'pointer';
 
-    consoleButtons.children.add(buttonClose);
-    consoleButtons.children.add(UIElement.span()..innerHtml = '&nbsp;&nbsp;');
-    consoleButtons.children.add(buttonCopy);
-    consoleButtons.children.add(UIElement.span()..innerHtml = '&nbsp;&nbsp;');
-    consoleButtons.children.add(buttonZoomIn);
-    consoleButtons.children.add(UIElement.span()..innerHtml = '&nbsp;&nbsp;');
-    consoleButtons.children.add(buttonZoomOut);
-    consoleButtons.children.add(UIElement.span()..innerHtml = '&nbsp;&nbsp;');
-    consoleButtons.children.add(buttonClear);
+    consoleButtons.appendChild(buttonClose);
+    consoleButtons.children
+        .add(HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS);
+    consoleButtons.appendChild(buttonCopy);
+    consoleButtons.children
+        .add(HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS);
+    consoleButtons.appendChild(buttonZoomIn);
+    consoleButtons.children
+        .add(HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS);
+    consoleButtons.appendChild(buttonZoomOut);
+    consoleButtons.children
+        .add(HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS);
+    consoleButtons.appendChild(buttonClear);
 
-    var consoleText = DivElement();
+    var consoleText = HTMLDivElement();
     consoleText.style.fontSize = '$_fontSize%';
     consoleText.style.overflow = 'scroll';
 
@@ -419,17 +423,17 @@ class UIConsole {
       _changeFontSize(consoleText, 0.95);
     });
 
-    consoleDiv.children.add(consoleButtons);
-    consoleDiv.children.add(consoleText);
+    consoleDiv.appendChild(consoleButtons);
+    consoleDiv.appendChild(consoleText);
 
     _contentClipboard = contentClipboard;
 
-    document.documentElement!.children.add(consoleDiv);
+    document.documentElement!.appendChild(consoleDiv);
   }
 
   double _fontSize = 100.0;
 
-  void _changeFontSize(DivElement consoleText, double change) {
+  void _changeFontSize(HTMLDivElement consoleText, double change) {
     var fontSizeProp = consoleText.style.fontSize;
 
     var fontSize = fontSizeProp.isEmpty
@@ -468,7 +472,7 @@ class UIConsole {
     var allLogs = _allLogs();
 
     if (_contentClipboard != null) {
-      _contentClipboard!.innerHtml = '<pre>$allLogs</pre>';
+      _contentClipboard!.innerHTML = '<pre>$allLogs</pre>'.toJS;
       _copyElementToClipboard(_contentClipboard!);
       _contentClipboard!.text = '';
     }
@@ -489,10 +493,10 @@ class UIConsole {
 
   static final String buttonId = 'UIConsole_button';
 
-  static DivElement button([double opacity = 0.20]) {
+  static HTMLDivElement button([double opacity = 0.20]) {
     enable();
 
-    var elem = createDivInline('[>_]');
+    var elem = createDivInline(html: '[>_]');
 
     elem.id = buttonId;
 
@@ -508,7 +512,7 @@ class UIConsole {
   }
 
   static void displayButton() {
-    var prevElem = querySelector('#$buttonId');
+    var prevElem = document.querySelector('#$buttonId');
     if (prevElem != null) return;
 
     var elem = button(1.0);
@@ -522,6 +526,6 @@ class UIConsole {
       ..transform = 'translateY(-15px)'
       ..zIndex = '999999';
 
-    document.body!.children.add(elem);
+    document.body!.appendChild(elem);
   }
 }

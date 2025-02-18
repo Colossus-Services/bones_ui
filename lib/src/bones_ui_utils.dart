@@ -1,6 +1,5 @@
 import 'package:dom_builder/dom_builder.dart';
-
-import 'bones_ui_web.dart';
+import 'package:web_utils/web_utils.dart';
 
 /// Returns a [StackTrace] ensuring that no error will be thrown.
 StackTrace stackTraceSafe() {
@@ -42,8 +41,8 @@ String? resolveToText(Object? o) {
   } else if (o is Iterable) {
     var l = o.nonNulls.map(resolveToText).nonNulls.toList();
     return l.isEmpty ? null : l.join();
-  } else if (o is UIElement) {
-    return o.text;
+  } else if (o.isElement) {
+    return (o as Element).textContent;
   } else if (o is DOMElement) {
     return o.text;
   } else {

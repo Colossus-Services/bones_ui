@@ -1,8 +1,7 @@
-import 'dart:html';
-
-import 'package:dom_builder/dom_builder_dart_html.dart';
+import 'package:dom_builder/dom_builder_web.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
+import 'package:web_utils/web_utils.dart' hide CSS;
 
 import 'bones_ui_async_content.dart';
 import 'bones_ui_component.dart';
@@ -86,18 +85,18 @@ class UIDeviceOrientation extends EventHandlerPrivate {
 
   /// Returns [true] if device is in landscape orientation.
   static bool isLandscape() {
-    var orientation = window.orientation;
-    if (orientation == null) return false;
-    return orientation == -90 || orientation == 90;
+    var orientation = window.screen.orientation;
+    var angle = orientation.angle;
+    return angle == -90 || angle == 90;
   }
 }
 
 /// Returns [true] if a `Bones_UI` component is in DOM.
-bool isComponentInDOM(dynamic element) {
+bool isComponentInDOM(Object? element) {
   if (element == null) return false;
 
-  if (element is UINode) {
-    return document.body!.contains(element);
+  if (element.isNode) {
+    return document.body!.contains(element as UINode);
   } else if (element is UIComponent) {
     return isComponentInDOM(element.renderedElements);
   } else if (element is UIAsyncContent) {
@@ -114,10 +113,10 @@ bool isComponentInDOM(dynamic element) {
 }
 
 /// Returns [true] if [element] type is able to be in DOM.
-bool canBeInDOM(dynamic element) {
+bool canBeInDOM(Object? element) {
   if (element == null) return false;
 
-  if (element is UINode) {
+  if (element.isNode) {
     return true;
   } else if (element is UIComponent) {
     return true;
@@ -130,7 +129,7 @@ bool canBeInDOM(dynamic element) {
   return false;
 }
 
-typedef FilterRendered = bool Function(dynamic elem);
+typedef FilterRendered = bool Function(Object? elem);
 typedef FilterElement = bool Function(UIElement elem);
 typedef ForEachElement = void Function(UIElement elem);
 typedef ForEachComponent = void Function(Object elem);
@@ -139,7 +138,9 @@ typedef ParametersProvider = Map<String, String> Function();
 /// For a [UIComponent] that is a field (has a value).
 abstract class UIField<V> {
   String get fieldName;
+
   V? getFieldValue();
+
   void setFieldValue(V? value);
 }
 
@@ -175,7 +176,7 @@ class TextProvider {
       : this.fromIntlKey(IntlKey(intlMessages, key,
             variables: variables, variablesProvider: variablesProvider));
 
-  static TextProvider? from(dynamic text) {
+  static TextProvider? from(Object? text) {
     if (text == null) return null;
     if (text is TextProvider) return text;
 
@@ -207,9 +208,9 @@ class TextProvider {
 
   bool singleCall = false;
 
-  String? get text {
+  String get text {
     if (_text != null) {
-      return _text;
+      return _text!;
     }
 
     dynamic value;
@@ -236,9 +237,7 @@ class TextProvider {
   }
 
   @override
-  String toString() {
-    return text!;
-  }
+  String toString() => text;
 }
 
 class ElementProvider {
@@ -258,21 +257,27 @@ class ElementProvider {
 
   ElementProvider.fromDOMNode(this._domNode);
 
-  static ElementProvider? from(dynamic element) {
+  static ElementProvider? from(Object? element) {
     if (element == null) return null;
+
     if (element is ElementProvider) return element;
     if (element is String) return ElementProvider.fromHTML(element);
-    if (element is UIElement) return ElementProvider.fromElement(element);
+
+    if (element.isElement) {
+      return ElementProvider.fromElement(element as UIElement);
+    }
+
     if (element is UIComponent) return ElementProvider.fromUIComponent(element);
     if (element is DOMNode) return ElementProvider.fromDOMNode(element);
+
     return null;
   }
 
-  static bool accepts(dynamic element) {
+  static bool accepts(Object? element) {
     if (element == null) return false;
     if (element is ElementProvider) return true;
     if (element is String) return true;
-    if (element is UIElement) return true;
+    if (element.isElement) return true;
     if (element is UIComponent) return true;
     if (element is DOMNode) return true;
     return false;
@@ -280,7 +285,7 @@ class ElementProvider {
 
   String? get elementAsHTML {
     var elem = element;
-    return elem != null ? element!.outerHtml : null;
+    return elem?.outerHTML.dartify()?.toString();
   }
 
   UIElement? get element {
@@ -289,7 +294,7 @@ class ElementProvider {
     }
 
     if (_html != null) {
-      _element = createHTML(_html);
+      _element = createHTML(html: _html);
       return _element;
     }
 
@@ -319,7 +324,7 @@ class ElementProvider {
 }
 
 class CSSProvider {
-  UIElement? _element;
+  Element? _element;
 
   String? _html;
 
@@ -335,21 +340,21 @@ class CSSProvider {
 
   CSSProvider.fromDOMNode(this._domNode);
 
-  static CSSProvider? from(dynamic provider) {
+  static CSSProvider? from(Object? provider) {
     if (provider == null) return null;
     if (provider is CSSProvider) return provider;
     if (provider is String) return CSSProvider.fromHTML(provider);
-    if (provider is UIElement) return CSSProvider.fromElement(provider);
+    if (provider.isElement) return CSSProvider.fromElement(provider as Element);
     if (provider is UIComponent) return CSSProvider.fromUIComponent(provider);
     if (provider is DOMNode) return CSSProvider.fromDOMNode(provider);
     return null;
   }
 
-  static bool accepts(dynamic element) {
+  static bool accepts(Object? element) {
     if (element == null) return false;
     if (element is CSSProvider) return true;
     if (element is String) return true;
-    if (element is UIElement) return true;
+    if (element.isElement) return true;
     if (element is UIComponent) return true;
     if (element is DOMNode) return true;
     return false;
@@ -363,7 +368,7 @@ class CSSProvider {
     }
 
     if (_html != null) {
-      _element = createHTML(_html);
+      _element = createHTML(html: _html);
       return cssFromElement(_element!);
     }
 
@@ -391,7 +396,7 @@ class CSSProvider {
     if (isNodeInDOM(element)) {
       return CSS(element.getComputedStyle().cssText);
     } else {
-      return CSS(element.style.cssText);
+      return CSS(element.style?.cssText);
     }
   }
 

@@ -1,16 +1,17 @@
 import 'dart:async';
-import 'dart:html';
 import 'dart:math' as math;
+import 'dart:math' show Point;
 
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
+import 'package:web_utils/web_utils.dart';
 
 import 'dialog.dart';
 
 /// An [UIDialog] that edits an [image].
 class UIDialogEditImage extends UIDialog {
   /// The original image.
-  final ImageElement image;
+  final HTMLImageElement image;
 
   final int marginHorizontal;
   final int marginVertical;
@@ -66,14 +67,14 @@ class UIDialogEditImage extends UIDialog {
 
   /// The edited image.
   /// See [editedImageDataURL].
-  ImageElement? get editedImage {
+  HTMLImageElement? get editedImage {
     var imageDataURL = editedImageDataURL;
     if (imageDataURL == null || !imageDataURL.startsWith('data:')) return null;
 
     //print(imageDataURL);
     //downloadDataURL(DataURLBase64.parse(imageDataURL)!, 'edited-image.jpeg');
 
-    return ImageElement(src: imageDataURL);
+    return HTMLImageElement()..src = imageDataURL;
   }
 }
 
@@ -100,8 +101,8 @@ class _CanvasEditImage extends ExternalElementNode {
     _elementResize.track(canvas, (_) => _onResize(false));
     window.onResize.listen((_) => _onResize(true));
 
-    canvas.onMouseDown.listen((evt) => _onMouseDown1(evt.offset));
-    canvas.onMouseMove.listen((evt) => _onMouseMove(evt.offset));
+    canvas.onMouseDown.listen((evt) => _onMouseDown1(evt.offsetPoint));
+    canvas.onMouseMove.listen((evt) => _onMouseMove(evt.offsetPoint));
     canvas.onMouseUp.listen((evt) => _onMouseUp());
     canvas.onMouseLeave.listen((evt) => _onMouseUp());
 
@@ -111,13 +112,13 @@ class _CanvasEditImage extends ExternalElementNode {
     canvas.onTouchLeave.listen((evt) => _onMouseUp());
   }
 
-  int innerWidth = math.max(1, window.innerWidth ?? 1);
+  int innerWidth = math.max(1, window.innerWidth);
 
-  int innerHeight = math.max(1, window.innerHeight ?? 1);
+  int innerHeight = math.max(1, window.innerHeight);
 
   void _onResize(bool windowResize) {
-    var innerWidth = window.innerWidth ?? 0;
-    var innerHeight = window.innerHeight ?? 0;
+    var innerWidth = window.innerWidth;
+    var innerHeight = window.innerHeight;
 
     if (innerWidth < 1 || innerHeight < 1) return;
 
@@ -140,23 +141,25 @@ class _CanvasEditImage extends ExternalElementNode {
 
   static void _pointHandler(
       TouchEvent event, void Function(Point<num> p1, [Point<num>? p2]) f) {
-    var canvasTouches =
-        event.touches?.where((t) => t.target is CanvasElement).toList() ?? [];
+    var canvasTouches = event.touches
+        .toIterable()
+        .where((t) => t.target.isA<HTMLCanvasElement>())
+        .toList();
 
     if (canvasTouches.isEmpty) {
       return;
     } else if (canvasTouches.length == 1) {
       event.preventDefault();
 
-      var point1 = canvasTouches[0].client;
+      var point1 = canvasTouches[0].clientPoint;
       //print('!!! touch> $event > $point1 >> ${event.touches} > ${event.touches?.map((e) => e.target)} ');
 
       f(point1);
     } else if (canvasTouches.length == 2) {
       event.preventDefault();
 
-      var point1 = canvasTouches[0].client;
-      var point2 = canvasTouches[1].client;
+      var point1 = canvasTouches[0].clientPoint;
+      var point2 = canvasTouches[1].clientPoint;
       //print('!!! touch> $event > $point1 & $point2 >> ${event.touches} > ${event.touches?.map((e) => e.target)} ');
 
       f(point1, point2);
@@ -226,14 +229,20 @@ class _CanvasEditImage extends ExternalElementNode {
     requestRender();
   }
 
-  static CanvasElement _buildCanvas(CanvasImageSource img, int imgNaturalWidth,
-      int imgNaturalHeight, int marginHorizontal, int marginVertical) {
+  static HTMLCanvasElement _buildCanvas(
+      CanvasImageSource img,
+      int imgNaturalWidth,
+      int imgNaturalHeight,
+      int marginHorizontal,
+      int marginVertical) {
     var d = _calcCanvasDimension(
         imgNaturalWidth, imgNaturalHeight, marginHorizontal, marginVertical);
     var w = d[0];
     var h = d[1];
 
-    return CanvasElement(width: w, height: h)
+    return HTMLCanvasElement()
+      ..width = w
+      ..height = h
       ..style.boxShadow = '0px 1px 18px 5px rgba(0, 0, 0, 0.65)'
       ..style.borderRadius = '12px';
   }
@@ -251,8 +260,8 @@ class _CanvasEditImage extends ExternalElementNode {
 
   static List<int> _calcCanvasDimension(int imgNaturalWidth,
       int imgNaturalHeight, int marginHorizontal, int marginVertical) {
-    var innerWidth = window.innerWidth! - (marginHorizontal * 2);
-    var innerHeight = window.innerHeight! - (marginVertical * 2);
+    var innerWidth = window.innerWidth - (marginHorizontal * 2);
+    var innerHeight = window.innerHeight - (marginVertical * 2);
 
     var zoom =
         _calcZoom(imgNaturalWidth, imgNaturalHeight, innerWidth, innerHeight);
@@ -359,7 +368,7 @@ class _CanvasEditImage extends ExternalElementNode {
     requestRender();
   }
 
-  CanvasElement get canvas => externalElement as CanvasElement;
+  HTMLCanvasElement get canvas => externalElement as HTMLCanvasElement;
 
   int get renderWidth => (imgNaturalWidth * _zoom).toInt();
 
@@ -377,9 +386,9 @@ class _CanvasEditImage extends ExternalElementNode {
     return t != null ? y + t.y.toInt() : y;
   }
 
-  int get canvasWidth => canvas.width!;
+  int get canvasWidth => canvas.width;
 
-  int get canvasHeight => canvas.height!;
+  int get canvasHeight => canvas.height;
 
   Future? _rendering;
 
@@ -395,13 +404,19 @@ class _CanvasEditImage extends ExternalElementNode {
     var context2d = canvas.context2D;
 
     context2d.clearRect(0, 0, canvasWidth, canvasHeight);
-    context2d.drawImageScaled(img, renderX, renderY, renderWidth, renderHeight);
+    context2d.drawImageScaled(
+      img,
+      renderX.toDouble(),
+      renderY.toDouble(),
+      renderWidth.toDouble(),
+      renderHeight.toDouble(),
+    );
 
     if (_showGrid) {
       var wDiv4 = canvasWidth ~/ 3;
       var hDiv4 = canvasHeight ~/ 3;
 
-      context2d.fillStyle = 'rgba(0,0,0, 0.20)';
+      context2d.fillStyle = 'rgba(0,0,0, 0.20)'.toJS;
 
       context2d.fillRect(wDiv4, 0, 2, canvasHeight);
       context2d.fillRect(canvasWidth - wDiv4, 0, 2, canvasHeight);
@@ -429,7 +444,9 @@ class _CanvasEditImage extends ExternalElementNode {
     var canvasWidth = imgNaturalWidth;
     var canvasHeight = imgNaturalHeight;
 
-    var canvas = CanvasElement(width: canvasWidth, height: canvasHeight);
+    var canvas = HTMLCanvasElement()
+      ..width = canvasWidth
+      ..height = canvasHeight;
 
     var imgW = (imgNaturalWidth * zoom).toInt();
     var imgH = (imgNaturalHeight * zoom).toInt();
@@ -446,7 +463,13 @@ class _CanvasEditImage extends ExternalElementNode {
     context2d.imageSmoothingEnabled = true;
     context2d.imageSmoothingQuality = 'high';
 
-    context2d.drawImageScaled(img, x, y, imgW, imgH);
+    context2d.drawImageScaled(
+      img,
+      x.toDouble(),
+      y.toDouble(),
+      imgW.toDouble(),
+      imgH.toDouble(),
+    );
 
     return canvas.toDataUrl('image/jpeg', 0.98);
   }

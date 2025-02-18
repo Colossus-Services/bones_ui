@@ -1,6 +1,5 @@
-import 'dart:html';
-
 import 'package:expressions/expressions.dart';
+import 'package:web_utils/web_utils.dart';
 
 import 'bones_ui_component.dart';
 import 'bones_ui_web.dart';
@@ -111,8 +110,8 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     return elem;
   }
 
-  dynamic _requestElementProperty(dynamic element, String propery) {
-    var resolved = elementPropertyResolver(element, propery);
+  dynamic _requestElementProperty(dynamic element, String property) {
+    var resolved = elementPropertyResolver(element, property);
     if (resolved == null) return null;
     _providedElements.add(resolved);
     return resolved;
@@ -504,7 +503,7 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 class UILayout {
   final UIComponent parent;
 
-  final UIElement element;
+  final HTMLElement element;
 
   final String layout;
 
@@ -529,12 +528,13 @@ class UILayout {
     }
   }
 
-  dynamic _getElementProperty(dynamic elem, String? property) {
+  dynamic _getElementProperty(Object? elem, String? property) {
     if (property == null) return null;
 
-    if (elem is UIElement) {
-      property = property.toLowerCase();
+    if (elem.asJSAny.isHTMLElement) {
+      elem = elem as HTMLElement;
 
+      property = property.toLowerCase();
       if (property == 'x') {
         return elem.offsetLeft;
       } else if (property == 'y') {
@@ -543,8 +543,7 @@ class UILayout {
         return elem.offsetWidth;
       } else if (property == 'height') {
         return elem.offsetHeight;
-      }
-      if (property == 'center') {
+      } else if (property == 'center') {
         return _getElementCenter(elem);
       } else if (property == 'index') {
         return _getElementIndex(elem);
@@ -557,19 +556,20 @@ class UILayout {
   }
 
   int _getElementIndex(UIElement elem) {
-    var idx = elem.parent!.children.indexOf(elem);
+    var idx = elem.parentElement!.children.indexOf(elem);
     return idx;
   }
 
   int _getElementIndexByID(UIElement elem) {
     var elemID = elem.id;
-    List<UIElement> elemsSameID = elem.parent!.querySelectorAll('#$elemID');
+    List<UIElement> elemsSameID =
+        elem.parentElement!.querySelectorAll('#$elemID').toElements();
     if (elemsSameID.isEmpty) return -1;
     var idx = elemsSameID.indexOf(elem);
     return idx;
   }
 
-  Map<String, int> _getElementCenter(UIElement elem) {
+  Map<String, int> _getElementCenter(HTMLElement elem) {
     var x = elem.offsetLeft;
     var y = elem.offsetTop;
     var w = elem.offsetWidth;
@@ -731,7 +731,7 @@ class UILayout {
     return _valueXY(
         value,
         (pw, ph, w, h) => '${((pw / 2) - (w / 2)).toStringAsFixed(0)}px',
-        (e) => e.style.left);
+        (e) => e.style?.left ?? '');
   }
 
   void _commandFunctionY(String value) {
@@ -743,7 +743,7 @@ class UILayout {
     return _valueXY(
         value,
         (pw, ph, w, h) => '${((ph / 2) - (h / 2)).toStringAsFixed(0)}px',
-        (e) => e.style.top);
+        (e) => e.style?.top ?? '');
   }
 
   void _commandFunctionCenterX(String value) {
@@ -775,14 +775,14 @@ class UILayout {
   String _valueXY(String value, ElementCoordsValue valueCenter,
       ValueFromElement valueFromElement) {
     if (_patternElementID.hasMatch(value)) {
-      var sel = element.parent!.querySelector(value);
+      var sel = element.parentElement!.querySelector(value);
       if (sel == null) return '0px';
       return valueFromElement(sel);
     } else if (value == '*') {
       var w = element.offsetWidth;
       var h = element.offsetHeight;
 
-      var parent = element.offsetParent!;
+      var parent = element.offsetParent!.asHTMLElement;
       var pw = parent.offsetWidth;
       var ph = parent.offsetHeight;
 
@@ -802,7 +802,7 @@ class UILayout {
         value,
         (pw, ph, w, h) => '${pw}px',
         (pw, ph, p) => '${(pw * p).toStringAsFixed(0)}px',
-        (e) => e.style.width);
+        (e) => e.style?.width ?? '');
     element.style.width = width;
   }
 
@@ -811,7 +811,7 @@ class UILayout {
         value,
         (pw, ph, w, h) => '${ph}px',
         (pw, ph, p) => '${(ph * p).toStringAsFixed(0)}px',
-        (e) => e.style.height);
+        (e) => e.style?.height ?? '');
     element.style.height = height;
   }
 
@@ -825,12 +825,12 @@ class UILayout {
     var w = element.offsetWidth;
     var h = element.offsetHeight;
 
-    var parent = element.offsetParent!;
+    var parent = element.offsetParent!.asHTMLElement;
     var pw = parent.offsetWidth;
     var ph = parent.offsetHeight;
 
     if (_patternElementID.hasMatch(value)) {
-      var sel = element.parent!.querySelector(value);
+      var sel = element.parentElement!.querySelector(value);
       if (sel == null) return '0px';
       return valueFromElement(sel);
     } else if (value == '*') {
@@ -855,10 +855,10 @@ class UILayout {
 
   String _evaluateValue(String value, ValueFromElement valueFromElement) {
     var context = _buildEvaluationContext();
-    var evaluated =
+    Object? evaluated =
         _uiLayoutEvaluator.processLayout(value, context, 'px', '0px');
-    if (evaluated is Element) {
-      return valueFromElement(evaluated);
+    if (evaluated.isElement) {
+      return valueFromElement(evaluated as Element);
     }
     return '$evaluated';
   }
