@@ -1637,7 +1637,7 @@ abstract class UIComponent extends UIEventHandler {
   /// Renders the elements of this component.
   ///
   /// Accepted return types:
-  /// - `dart:html` [UINode] and [UIElement].
+  /// - `web` [UINode] and [UIElement].
   /// - [DIVElement], [DOMNode], [AsDOMElement] and [AsDOMNode].
   /// - [Future].
   /// - [UIAsyncContent].

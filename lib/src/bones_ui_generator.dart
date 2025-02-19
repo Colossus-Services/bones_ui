@@ -313,7 +313,7 @@ class UIComponentDOMContext extends DOMContext<UINode> {
 }
 
 /// A [DOMGenerator] (from package `dom_builder`)
-/// able to generate [UIElement] (from `dart:html`).
+/// able to generate [UIElement] (from `web`).
 class UIDOMGenerator extends DOMGeneratorWebImpl {
   UIDOMGenerator() {
     registerElementGenerator(BUIElementGenerator());
@@ -494,7 +494,7 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
     if (ok && child2 != null && child2.isNotEmpty) {
       var uiRoot = UIRoot.getInstance();
 
-      for (var element in child2.whereType<UIElement>()) {
+      for (var element in child2.whereElement()) {
         var uiComponent = uiRoot!
             .getUIComponentByContent(element, includePurgedEntries: true);
         if (uiComponent != null) {

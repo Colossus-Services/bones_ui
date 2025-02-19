@@ -1,3 +1,9 @@
+## 3.0.0-beta.2
+
+- web_utils: ^1.0.6
+- dom_tools: ^3.0.0-beta.4
+- dom_builder: ^3.0.0-beta.2
+
 ## 3.0.0-beta.1
 
 - CI: test with `dart2js` and `dart2wasm` (on Chrome).
