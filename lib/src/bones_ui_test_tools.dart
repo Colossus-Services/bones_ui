@@ -10,7 +10,7 @@ import 'package:test/test.dart' as pkg_test;
 import 'package:test/test.dart';
 // ignore: implementation_imports
 import 'package:test_api/src/backend/invoker.dart' as pkg_test_invoker;
-import 'package:web_utils/web_utils.dart' as dart_html;
+import 'package:web_utils/web_utils.dart' as web;
 
 import 'bones_ui_web.dart';
 
@@ -695,7 +695,7 @@ abstract class UITestChain<
   bool get isNotNull => element != null;
 
   UITestChainNode<U, Element, T> get document => UITestChainNode(
-      testChainRoot, dart_html.document.documentElement!, this as T);
+      testChainRoot, web.document.documentElement!, this as T);
 
   T exists() =>
       expect(element, pkg_test.isNotNull, reason: "Null element ($E)");

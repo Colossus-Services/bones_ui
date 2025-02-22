@@ -1,3 +1,8 @@
+##  3.0.0-beta.3
+
+- web_utils: ^1.0.7
+- mercury_client: ^2.2.5
+
 ## 3.0.0-beta.2
 
 - web_utils: ^1.0.6
