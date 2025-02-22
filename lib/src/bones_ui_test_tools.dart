@@ -694,8 +694,8 @@ abstract class UITestChain<
 
   bool get isNotNull => element != null;
 
-  UITestChainNode<U, Element, T> get document => UITestChainNode(
-      testChainRoot, web.document.documentElement!, this as T);
+  UITestChainNode<U, Element, T> get document =>
+      UITestChainNode(testChainRoot, web.document.documentElement!, this as T);
 
   T exists() =>
       expect(element, pkg_test.isNotNull, reason: "Null element ($E)");
