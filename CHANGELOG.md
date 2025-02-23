@@ -1,3 +1,7 @@
+## 3.0.0-beta.4
+
+- js_interop_utils: ^1.0.6
+
 ##  3.0.0-beta.3
 
 - web_utils: ^1.0.7

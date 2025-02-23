@@ -1,6 +1,6 @@
 name: bones_ui
 description: Bones_UI - An intuitive and user-friendly Web User Interface framework for Dart.
-version: 3.0.0-beta.3
+version: 3.0.0-beta.4
 homepage: https://github.com/Colossus-Services/bones_ui
 
 environment:
@@ -11,7 +11,7 @@ executables:
   bones_ui_test:
 
 dependencies:
-  js_interop_utils: ^1.0.5
+  js_interop_utils: ^1.0.6
   web_utils: ^1.0.7
   web: ^1.1.0
   intl_messages: ^2.3.4
