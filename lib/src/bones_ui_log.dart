@@ -45,7 +45,7 @@ class _Logger {
   }
 
   void _printError(Object? msg) {
-    if (msg == null) return ;
+    if (msg == null) return;
     window.console.error(msg.jsify());
   }
 
