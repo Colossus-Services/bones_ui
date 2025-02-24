@@ -1,3 +1,13 @@
+## 3.0.0-beta.5
+
+- web_utils: ^1.0.9
+- intl_messages: ^3.0.0-beta.1
+- dom_tools: ^3.0.0-beta.5
+- swiss_knife: ^3.3.0
+- statistics: ^1.2.0
+- resource_portable: ^3.1.2
+- intl: ^0.20.2
+
 ## 3.0.0-beta.4
 
 - js_interop_utils: ^1.0.6
