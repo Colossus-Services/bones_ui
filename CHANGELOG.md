@@ -1,5 +1,8 @@
 ## 2.5.14
 
+- `bones_ui_test_tools.dart`:
+  - `_testUISleepUntilImpl`: default timeout change from 1000 ms to 3000 ms.
+
 - sdk: '>=3.6.0 <4.0.0'
 
 - intl_messages: ^2.3.5
