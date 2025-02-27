@@ -179,7 +179,7 @@ Future<bool> _testUISleepUntilImpl(FutureOr<bool> Function() ready,
   var isReady = await ready();
   if (isReady) return true;
 
-  timeoutMs = _sleepMs(timeoutMs ?? 1000, null, 90000);
+  timeoutMs = _sleepMs(timeoutMs ?? 3000, null, 90000);
 
   intervalMs = intervalMs != null
       ? _sleepMs(intervalMs, null, 9999999)

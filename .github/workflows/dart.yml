@@ -1,5 +1,8 @@
 name: Dart CI
 
+env:
+  DART_VERSION: "3.6.2"
+
 on:
   push:
     branches: [ master ]
@@ -13,6 +16,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_VERSION }}
       - name: Dart version
         run: |
           dart --version
@@ -39,6 +44,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_VERSION }}
       - name: Dart version
         run: |
           dart --version
@@ -57,6 +64,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_VERSION }}
       - name: Dart version
         run: |
           dart --version
