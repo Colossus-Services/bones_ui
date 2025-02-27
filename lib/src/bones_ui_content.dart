@@ -1,7 +1,7 @@
+import 'package:dom_tools/dom_tools_kit.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import 'bones_ui_component.dart';
-import 'bones_ui_web.dart';
 
 /// Base class for content components.
 abstract class UIContent extends UIComponent {
@@ -21,7 +21,7 @@ abstract class UIContent extends UIComponent {
     List allRendered = [];
 
     if (topMargin > 0) {
-      var divTopMargin = UIElement.div();
+      var divTopMargin = HTMLDivElement();
       divTopMargin.style.width = '100%';
       divTopMargin.style.height = '${topMargin}px';
 

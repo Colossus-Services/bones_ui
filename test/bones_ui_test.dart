@@ -3,7 +3,7 @@ library;
 
 import 'package:bones_ui/bones_ui_test.dart';
 import 'package:test/test.dart';
-import 'dart:html' as web;
+import 'package:web_utils/web_utils.dart' as web;
 
 void main() {
   group('UIRoot', () {
@@ -18,27 +18,38 @@ void main() {
       await uiRoot.callRenderAndWait();
       await testUISleep(ms: 100);
 
-      expect(uiRoot.querySelector('#my-contact'), isNull);
+      expect(uiRoot.querySelectorNonTyped('#my-contact'), isNull);
 
-      var myHome = uiRoot.querySelector('#my-home');
-      expect(myHome, isA<web.DivElement>());
+      var myHome = uiRoot.querySelectorNonTyped('#my-home');
+      expect(myHome.isA<web.HTMLDivElement>(), isTrue);
 
       expect(myHome?.text, contains('Hello world'));
 
       expect(myHome?.text, contains('- uiRoot: MyRoot'));
       expect(myHome?.text, contains('- uiRootComponent: MyRoot'));
 
-      var btn1 = uiRoot.selectExpected<web.ButtonElement>('*');
-      expect(btn1, isA<web.ButtonElement>());
+      var tmp = uiRoot
+          .selectAllNonTyped('*')
+          .map((e) => e as Object?)
+          .map((e) => e.asJSAny)
+          .where((e) => e.isA<web.HTMLButtonElement>())
+          .firstOrNull;
+
+      print('!!! HTMLButtonElement: $tmp');
+
+      var btn1 = uiRoot.selectExpectedTyped<web.HTMLButtonElement>(
+          '*', Web.HTMLButtonElement);
+      expect(btn1.isA<web.HTMLButtonElement>(), isTrue, reason: "btn1: $btn1");
       expect(btn1.text, equals('Go to: contact'));
 
       btn1.click();
       await testUISleep(ms: 200);
 
-      expect(uiRoot.querySelector('#my-home'), isNull);
-      expect(uiRoot.querySelector('#my-contact'), isNotNull);
+      expect(uiRoot.querySelectorNonTyped('#my-home'), isNull);
+      expect(uiRoot.querySelectorNonTyped('#my-contact'), isNotNull);
 
-      var myContact1 = uiRoot.querySelector<web.DivElement>('#my-contact');
+      var myContact1 = uiRoot.querySelectorTyped<web.HTMLDivElement>(
+          '#my-contact', Web.HTMLDivElement);
 
       expect(myContact1!.text, contains('Loading...'));
       expect(myContact1.text, isNot(contains('foo@mail.com')));
@@ -52,8 +63,9 @@ void main() {
 
       await testUISleep(ms: 1200);
 
-      var myContact2 = uiRoot.querySelector<web.DivElement>('#my-contact');
-      expect(myContact2, isA<web.DivElement>());
+      var myContact2 = uiRoot.querySelectorTyped<web.HTMLDivElement>(
+          '#my-contact', Web.HTMLDivElement);
+      expect(myContact2.isA<web.HTMLDivElement>(), isTrue);
 
       expect(myContact2?.text, contains('foo@mail.com'));
       expect(isComponentInDOM(myContact1), isTrue);
@@ -68,19 +80,20 @@ void main() {
 
       expect(identical(uiContact1, uiContact2), isTrue);
 
-      var btn2 = uiRoot.selectExpected<web.ButtonElement>('*');
-      expect(btn2, isA<web.ButtonElement>());
+      var btn2 = uiRoot.selectExpectedTyped<web.HTMLButtonElement>(
+          '*', Web.HTMLButtonElement);
+      expect(btn2.isA<web.HTMLButtonElement>(), isTrue);
       expect(btn2.text, equals('Go to: home'));
 
       btn2.click();
       await testUISleep(ms: 200);
 
-      expect(uiRoot.querySelector('#my-contact'), isNull);
+      expect(uiRoot.querySelectorNonTyped('#my-contact'), isNull);
       expect(isComponentInDOM(myContact1), isFalse);
       expect(canBeInDOM(myContact1), isTrue);
 
-      var myHome2 = uiRoot.querySelector('#my-home');
-      expect(myHome2, isA<web.DivElement>());
+      var myHome2 = uiRoot.querySelectorNonTyped('#my-home');
+      expect(myHome2.isA<web.HTMLDivElement>(), isTrue);
     });
   });
 }

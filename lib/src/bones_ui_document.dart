@@ -1,11 +1,11 @@
 import 'package:dom_tools/dom_tools.dart';
-import 'package:json_render/json_render.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import 'bones_ui_component.dart';
 import 'bones_ui_generator.dart';
-import 'component/component_async.dart';
 import 'bones_ui_web.dart';
+import 'component/component_async.dart';
+import 'component/json_render.dart';
 
 /// Represents an [url] link, with an optional [target].
 class URLLink {
@@ -99,7 +99,7 @@ class UIDocument extends UIComponentAsync {
     } else {
       var type = attributes['type']?.toString() ?? '.md';
       resourceContent =
-          ResourceContent.fromURI('file.$type', contentHolder?.text);
+          ResourceContent.fromURI('file.$type', contentHolder?.textContent);
     }
 
     return UIDocument(parent, resourceContent);
@@ -175,11 +175,7 @@ class UIDocument extends UIComponentAsync {
         div.style.overflowWrap = 'break-word';
         return div;
       } else if (language == 'json') {
-        var jsonRender = JSONRender.fromJSONAsString(docContent);
-        jsonRender.addAllKnownTypeRenders();
-        var div = jsonRender.render();
-        div.style.overflowWrap = 'break-word';
-        return div;
+        return UIJsonRender(null, json: docContent);
       }
     }
 

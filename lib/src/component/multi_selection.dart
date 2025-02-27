@@ -1,10 +1,11 @@
-import 'dart:html';
+import 'dart:math';
 
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import '../bones_ui_base.dart';
 import '../bones_ui_component.dart';
@@ -17,7 +18,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       UIComponentGenerator<UIMultiSelection>('ui-multi-selection', 'div',
           'ui-multi-selection', 'display: inline-block',
           (parent, attributes, contentHolder, contentNodes) {
-    var jsonConfig = parseJSON(contentHolder?.text, {});
+    var jsonConfig = parseJSON(contentHolder?.textContent, {});
     if (jsonConfig is! Map) jsonConfig = {};
     return UIMultiSelection(parent, jsonConfig['options']);
   }, [
@@ -171,10 +172,10 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     }
   }
 
-  InputElement? _input;
-  DivElement? _optionsPanel;
+  HTMLInputElement? _input;
+  HTMLDivElement? _optionsPanel;
 
-  List<InputElementBase> _checkElements = [];
+  List<HTMLInputElement> _checkElements = [];
 
   bool? isCheckedByID(dynamic id) {
     if (id == null) return null;
@@ -310,15 +311,15 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     }
   }
 
-  List<InputElementBase> _getSelectedElements() {
+  List<HTMLInputElement> _getSelectedElements() {
     return _checkElements.where((e) => _isChecked(e) ?? false).toList();
   }
 
-  List<InputElementBase> _getUnSelectedElements() {
+  List<HTMLInputElement> _getUnSelectedElements() {
     return _checkElements.where((e) => !(_isChecked(e) ?? false)).toList();
   }
 
-  InputElementBase? _getCheckElement(String id) {
+  HTMLInputElement? _getCheckElement(String id) {
     return _checkElements.firstWhereOrNull((e) => e.value == id);
   }
 
@@ -382,7 +383,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     }
   }
 
-  void _autoAdjustInputFont(InputElement input, String text) {
+  void _autoAdjustInputFont(HTMLInputElement input, String text) {
     if (!autoInputFontShrink) return;
 
     input.style.fontSize = '';
@@ -422,8 +423,8 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   @override
   dynamic render() {
     if (_input == null) {
-      var input = _input = InputElement()
-        ..classes.add('ui-multi-selection-input')
+      var input = _input = HTMLInputElement()
+        ..classList.add('ui-multi-selection-input')
         ..type = 'text';
 
       input
@@ -434,7 +435,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
       //style="cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%"
 
-      _optionsPanel = DivElement()
+      _optionsPanel = HTMLDivElement()
         ..style.display = 'none'
         ..style.backgroundColor = 'rgba(255,255,255, 0.90)'
         ..style.position = 'absolute'
@@ -443,9 +444,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
         ..style.textAlign = 'left'
         ..style.padding = '4px';
 
-      _optionsPanel!.classes.add('shadow');
-      _optionsPanel!.classes.add('p-2');
-      _optionsPanel!.classes.add('ui-multi-selection-options-menu');
+      _optionsPanel!.classList.add('shadow');
+      _optionsPanel!.classList.add('p-2');
+      _optionsPanel!.classList.add('ui-multi-selection-options-menu');
 
       window.onResize.listen((e) => _updateDivOptionsPosition());
 
@@ -484,8 +485,8 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       window.onTouchStart.listen((e) {
         if (_optionsPanel == null) return;
 
-        var overDivOptions = nodeTreeContainsAny(
-            _optionsPanel!, e.targetTouches!.map((t) => t.target as UINode));
+        var overDivOptions = nodeTreeContainsAny(_optionsPanel!,
+            e.targetTouches.toIterable().map((t) => t.target as UINode));
         if (!overDivOptions && _isShowing()) {
           _toggleDivOptions(true);
         }
@@ -554,7 +555,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   }
 
   void _updateDivOptionsPosition() {
-    var inputVPRect = _input!.getBoundingClientRect();
+    var inputVPRect = _input!.getBoundingClientRect().toRectangle();
     var inputRect = _appendScrollCoords(inputVPRect);
 
     var inputW = inputRect.width;
@@ -569,7 +570,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     var y = inputY + inputHeight;
 
     var freeViewportHeightUpward = inputVPY - 10;
-    var freeViewportHeightBelow = (window.innerHeight! - inputVPY) - 10;
+    var freeViewportHeightBelow = (window.innerHeight - inputVPY) - 10;
 
     _optionsPanel!
       ..style.position = 'absolute'
@@ -611,23 +612,33 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   bool _isShowing() =>
       _optionsPanel!.style.display == '' || _optionsPanel!.style.display == '';
 
-  bool? _setCheck(InputElementBase? elem, bool? check) {
-    if (elem is CheckboxInputElement) {
-      return elem.checked = check;
-    } else if (elem is RadioButtonInputElement) {
-      return elem.checked = check;
-    } else {
-      return null;
+  bool? _setCheck(HTMLInputElement? elem, bool? check) {
+    if (elem == null) return null;
+
+    switch (elem.type.toLowerCase()) {
+      case 'checkbox':
+      case 'radio':
+        {
+          return elem.checked = check ?? false;
+        }
+
+      default:
+        return null;
     }
   }
 
-  bool? _isChecked(InputElementBase? elem) {
-    if (elem is CheckboxInputElement) {
-      return elem.checked;
-    } else if (elem is RadioButtonInputElement) {
-      return elem.checked;
-    } else {
-      return null;
+  bool? _isChecked(HTMLInputElement? elem) {
+    if (elem == null) return null;
+
+    switch (elem.type.toLowerCase()) {
+      case 'checkbox':
+      case 'radio':
+        {
+          return elem.checked;
+        }
+
+      default:
+        return null;
     }
   }
 
@@ -660,7 +671,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
     var entriesFiltered = <MapEntry<dynamic, dynamic>>[];
 
-    var inputValue = _input!.value!;
+    var inputValue = _input!.value;
 
     if (inputValue.isNotEmpty) {
       entriesFiltered = getOptionsEntriesFiltered(inputValue);
@@ -680,7 +691,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
   String? _renderedPanelOptionsSignature;
 
-  List<InputElementBase> _renderPanelOptions() {
+  List<HTMLInputElement> _renderPanelOptions() {
     var entriesOrder = _optionsEntriesOrder();
 
     var entries = entriesOrder[0];
@@ -694,10 +705,10 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
     _renderedPanelOptionsSignature = optionsSignature;
 
-    _optionsPanel!.children.clear();
+    _optionsPanel!.clear();
 
     if (_options!.isEmpty) {
-      _optionsPanel!.append(createHTML('''
+      _optionsPanel!.appendChild(createHTML(html: '''
           <div style="text-align: center; width: 100%">
             <i>${IntlBasicDictionary.msg('no_options')}</i>
           </div>
@@ -705,12 +716,12 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       return [];
     }
 
-    var checksList = <InputElementBase>[];
+    var checksList = <HTMLInputElement>[];
 
-    var table = TableElement()..style.borderCollapse = 'collapse';
+    var table = HTMLTableElement()..style.borderCollapse = 'collapse';
     var tbody = table.createTBody();
 
-    _optionsPanel!.children.add(table);
+    _optionsPanel!.appendChild(table);
 
     if (entriesFiltered.isNotEmpty) {
       for (var optEntry in entriesFiltered) {
@@ -718,9 +729,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       }
 
       if (entries.isNotEmpty) {
-        var tr = tbody.addRow();
-        var td = tr.addCell()..colSpan = 2;
-        td.append(HRElement());
+        var tr = tbody.appendRow();
+        var td = tr.appendCell()..colSpan = 2;
+        td.append(HTMLHRElement());
       }
     }
 
@@ -743,11 +754,15 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   }
 
   void _scrollToElement(Element? parent, Element element) {
-    element.scrollIntoView(ScrollAlignment.CENTER);
+    element.scrollIntoView({
+      'behavior': 'smooth',
+      'block': 'center',
+      'inline': 'center',
+    }.toJSDeep);
   }
 
-  void _renderOptionsPanelEntry(TableSectionElement tbody,
-      List<InputElementBase> checksList, MapEntry optEntry, bool filtered) {
+  void _renderOptionsPanelEntry(HTMLTableSectionElement tbody,
+      List<HTMLInputElement> checksList, MapEntry optEntry, bool filtered) {
     var optKey = '${optEntry.key}';
     var optValue = '${optEntry.value}';
 
@@ -755,14 +770,16 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
         (_initialSelections.contains(optKey) ||
             _initialSelections.contains(optEntry.key));
 
-    InputElementBase checkElem;
+    HTMLInputElement checkElem;
 
     if (multiSelection!) {
-      var input = CheckboxInputElement();
+      var input = HTMLInputElement()..type = 'checkbox';
       input.checked = check;
       checkElem = input;
     } else {
-      var input = RadioButtonInputElement()..name = '__MultiSelection__';
+      var input = HTMLInputElement()
+        ..type = 'radio'
+        ..name = '__MultiSelection__';
       input.checked = check;
       checkElem = input;
     }
@@ -770,17 +787,17 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     checkElem.value = optKey;
     checkElem.setAttribute('opt_label', optValue);
 
-    var row = tbody.addRow();
+    var row = tbody.appendRow();
 
-    var cell1 = row.addCell()
+    var cell1 = row.appendCell()
       ..style.padding = '2px 6px 2px 2px'
       ..style.verticalAlign = 'top';
 
-    cell1.children.add(checkElem);
+    cell1.appendChild(checkElem);
 
     checksList.add(checkElem);
 
-    var label = LabelElement();
+    var label = HTMLLabelElement();
     setElementInnerHTML(label, optValue);
 
     checkElem.onClick.listen((e) {
@@ -794,10 +811,10 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       _checkByIDImpl(optKey, _isChecked(checkElem), true, true);
     });
 
-    var cell2 = row.addCell()..style.textAlign = 'left';
+    var cell2 = row.appendCell()..style.textAlign = 'left';
 
-    cell2.children.add(SpanElement()..innerHtml = '&nbsp;');
-    cell2.children.add(label);
+    cell2.appendChild(HTMLSpanElement()..innerHTML = '&nbsp;'.toJS);
+    cell2.appendChild(label);
   }
 
   void _onOptionsPanelMouseMove(MouseEvent e) {

@@ -1,13 +1,14 @@
-import 'dart:html' as web;
 import 'package:collection/collection.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web/web.dart' as web;
+import 'package:web_utils/web_utils.dart';
 
 typedef UIElement = web.Element;
 typedef UINode = web.Node;
 
 extension UIElementExtension on UIElement {
-  List<UIElement> get uiChildren => children;
+  List<UIElement> get uiChildren => children.toList();
 
   bool get hasUIChildren => children.isNotEmpty;
 
@@ -22,10 +23,10 @@ extension UIElementExtension on UIElement {
       }
     }
 
-    if (element is web.InputElement ||
-        element is web.TextAreaElement ||
-        element is web.ButtonElement ||
-        element is web.SelectElement) {
+    if (element.isA<web.HTMLInputElement>() ||
+        element.isA<web.HTMLTextAreaElement>() ||
+        element.isA<web.HTMLButtonElement>() ||
+        element.isA<web.HTMLSelectElement>()) {
       fieldName = getElementAttributeStr(element, 'name');
 
       if (fieldName != null) {
@@ -42,19 +43,21 @@ extension UIElementExtension on UIElement {
   void setValue(String? value) {
     final element = this;
 
-    if (element is web.InputElement) {
-      var type = element.type;
+    if (element.isA<web.HTMLInputElement>()) {
+      final inputElement = element as web.HTMLInputElement;
+      var type = inputElement.type;
       if (type == 'checkbox') {
         var checked = parseBool(value) ?? false;
-        element.checked = checked;
+        inputElement.checked = checked;
       } else {
-        element.value = value;
+        inputElement.value = value ?? '';
       }
-    } else if (element is web.SelectElement) {
+    } else if (element.isA<web.HTMLSelectElement>()) {
+      final selectElement = element as web.HTMLSelectElement;
       if (value == null) {
-        element.selectedIndex = -1;
+        selectElement.selectedIndex = -1;
       } else {
-        var options = element.options;
+        var options = selectElement.options.toList();
 
         var opt = options.firstWhereOrNull((op) => op.value == value);
 
@@ -63,23 +66,23 @@ extension UIElementExtension on UIElement {
 
         opt ??= options.firstWhereOrNull((op) {
           var label = op.label;
-          return label != null &&
-              equalsIgnoreAsciiCase(label.trim(), value.trim());
+          return equalsIgnoreAsciiCase(label.trim(), value.trim());
         });
 
-        element.selectedIndex = opt?.index ?? -1;
+        selectElement.selectedIndex = opt?.index ?? -1;
       }
     } else {
       element.text = value;
     }
   }
 
-  bool get isTextInput =>
-      this is web.InputElement || this is web.TextAreaElement;
+  bool get isTextInput {
+    return isA<web.HTMLInputElement>() || isA<web.HTMLTextAreaElement>();
+  }
 }
 
 void navigationHistoryPush(String routeTitle, String locationUrl) {
-  web.window.history.pushState({}, routeTitle, locationUrl);
+  web.window.history.pushState(JSObject(), routeTitle, locationUrl);
 }
 
 String navigationURL() => web.window.location.href;
@@ -87,20 +90,21 @@ String navigationURL() => web.window.location.href;
 void navigationOnChangeRoute(
     void Function(String? oldURL, String? newURL) listener) {
   web.window.onHashChange.listen((e) {
-    if (e is web.HashChangeEvent) {
-      listener(e.oldUrl, e.newUrl);
+    if (e.isA<web.HashChangeEvent>()) {
+      var hashEvent = e as web.HashChangeEvent;
+      listener(hashEvent.oldURL, hashEvent.newURL);
     } else {
       listener(null, null);
     }
   });
 }
 
-bool navigationIsOnline() => web.window.navigator.onLine ?? false;
+bool navigationIsOnline() => web.window.navigator.onLine;
 
-bool navigationIsSecureContext() => web.window.isSecureContext ?? false;
+bool navigationIsSecureContext() => web.window.isSecureContext;
 
 UIElement? documentQuerySelector(String selectors) =>
     web.document.querySelector(selectors);
 
 List<UIElement> documentQuerySelectorAll(String selectors) =>
-    web.document.querySelectorAll(selectors);
+    web.document.querySelectorAll(selectors).toElements();

@@ -20,3 +20,4 @@ define_platforms:
         linux: firefox-esr
 
 platforms: [chrome]
+compilers: [dart2js, dart2wasm]

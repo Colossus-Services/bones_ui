@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:html';
+import 'dart:math';
+import 'package:web_utils/web_utils.dart' hide CSS;
 
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
@@ -75,7 +76,7 @@ abstract class UIButtonBase extends UIComponent {
   void fireClickEvent(MouseEvent event, [List? params]) {
     if (disabled) return;
 
-    var p = event.page;
+    var p = event.pagePoint;
     var time = event.timeStamp;
 
     if (_prevClickEvent_time == time && _prevClickEvent_point == p) return;
@@ -112,12 +113,12 @@ abstract class UIButtonBase extends UIComponent {
   // ignore: non_constant_identifier_names
   bool _content_onClick_listening = false;
 
-  void _onClickListen(List renderedElements) {
+  void _onClickListen(List<Object?> renderedElements) {
     var clickSet = false;
 
     for (var elem in renderedElements) {
-      if (elem is Element) {
-        elem.onClick.listen((e) => fireClickEvent(e));
+      if (elem.isElement) {
+        (elem as Element).onClick.listen((e) => fireClickEvent(e));
         clickSet = true;
       }
     }
@@ -166,7 +167,7 @@ class UIButton extends UIButtonBase {
           'ui-button',
           '',
           (parent, attributes, contentHolder, contentNodes) =>
-              UIButton(parent, contentHolder?.text),
+              UIButton(parent, contentHolder?.textContent),
           [
             UIComponentAttributeHandler<UIButton, String>('text',
                 parser: parseString,
@@ -235,8 +236,8 @@ class UIButton extends UIButtonBase {
   }
 
   @override
-  Element createContentElement(bool inline) {
-    return ButtonElement();
+  HTMLElement createContentElement(bool inline) {
+    return HTMLButtonElement();
   }
 
   @override
@@ -259,7 +260,7 @@ class UIButton extends UIButtonBase {
   }
 
   void setNormalButton() {
-    content!.style.width = null;
+    content!.style.width = '';
   }
 }
 
@@ -417,9 +418,9 @@ class UIButtonLoader extends UIButtonBase {
 
   dynamic _button;
 
-  DivElement? _loadingDiv;
+  HTMLDivElement? _loadingDiv;
 
-  DivElement? _loadedMessage;
+  HTMLDivElement? _loadedMessage;
 
   @override
   dynamic renderButton() {
@@ -429,7 +430,7 @@ class UIButtonLoader extends UIButtonBase {
       content!.style.opacity = '';
     }
 
-    _loadingDiv ??= UILoading.asDivElement(UILoadingType.ring,
+    _loadingDiv ??= UILoading.asHTMLDivElement(UILoadingType.ring,
         zoom: 0.50,
         textZoom: 1.5,
         cssContext: content,
@@ -439,7 +440,7 @@ class UIButtonLoader extends UIButtonBase {
 
     _button ??= renderButtonElement();
 
-    _loadedMessage ??= DivElement()..style.display = 'none';
+    _loadedMessage ??= HTMLDivElement()..style.display = 'none';
 
     _setLoadedMessageStyle();
 
@@ -462,7 +463,7 @@ class UIButtonLoader extends UIButtonBase {
     }
 
     if (isNotEmptyString(style, trim: true)) {
-      loadedMessage.style.cssText = style;
+      loadedMessage.style.cssText = style ?? '';
     }
 
     var classesError = (_loadedTextErrorClass?.text ?? '')
@@ -474,11 +475,11 @@ class UIButtonLoader extends UIButtonBase {
       ..removeWhere((e) => e.isEmpty);
 
     if (error) {
-      loadedMessage.classes.removeAll(classesOk);
-      loadedMessage.classes.addAll(classesError);
+      loadedMessage.classList.removeAll(classesOk);
+      loadedMessage.classList.addAll(classesError);
     } else {
-      loadedMessage.classes.removeAll(classesError);
-      loadedMessage.classes.addAll(classesOk);
+      loadedMessage.classList.removeAll(classesError);
+      loadedMessage.classList.addAll(classesOk);
     }
   }
 
@@ -499,7 +500,7 @@ class UIButtonLoader extends UIButtonBase {
     var button = _button;
 
     var buttonElement =
-        (button is DOMElement ? button.runtimeNode : button) as Element;
+        (button is DOMElement ? button.runtimeNode : button) as HTMLElement;
     buttonElement.style.display = 'none';
 
     _loadedMessage!.style.display = 'none';
@@ -519,7 +520,7 @@ class UIButtonLoader extends UIButtonBase {
     var button = _button;
 
     var buttonElement =
-        (button is DOMElement ? button.runtimeNode : button) as Element?;
+        (button is DOMElement ? button.runtimeNode : button) as HTMLElement?;
 
     if (loadOK == null) {
       _setLoadedMessageStyle();
@@ -559,7 +560,7 @@ class UIButtonLoader extends UIButtonBase {
   void setProgress(double? ratio) {
     var progressDiv = _loadingDiv!.querySelector('.ui-loading-progress');
     if (progressDiv == null) {
-      progressDiv = DivElement()..classes.add('ui-loading-progress');
+      progressDiv = HTMLDivElement()..classList.add('ui-loading-progress');
       var loadingDiv = _loadingDiv!.querySelector('.ui-loading')!;
       loadingDiv.append(progressDiv);
       return;
