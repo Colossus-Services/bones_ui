@@ -1,3 +1,12 @@
+## 3.0.0-beta.6
+
+- Avoids using `identical` with `Element` (`JSObject`) to avoid inconsistencies in Wasm.
+
+- dom_tools: ^3.0.0-beta.7
+- dom_builder: ^3.0.0-beta.3
+- web: ^1.1.1
+- mercury_client: ^2.3.0
+
 ## 3.0.0-beta.5
 
 - web_utils: ^1.0.9
