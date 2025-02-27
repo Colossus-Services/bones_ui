@@ -183,7 +183,7 @@ abstract class UIComponent extends UIEventHandler {
 
   void _setContent(HTMLElement content) {
     var prev = _content;
-    if (prev != null && !identical(prev, content)) {
+    if (prev != null && prev != content) {
       _contentsUIComponents[prev] = null;
     }
 
@@ -227,13 +227,13 @@ abstract class UIComponent extends UIEventHandler {
     if (parent == null) throw StateError('Null parent');
 
     if (_content != null) {
-      if (identical(_parent, parent)) {
-        if (!identical(_content!.parentElement, _parent)) {
-          _parent!.append(_content!);
+      if (_parent == parent) {
+        if (_content!.parentElement != _parent) {
+          _parent!.appendChild(_content!);
         }
         _resolveParentUIComponent(parentUIComponent ?? parent);
         return _parent;
-      } else if (identical(_content!.parentElement, parent)) {
+      } else if (_content!.parentElement == parent) {
         _resolveParentUIComponent(parentUIComponent ?? parent);
         return _parent;
       } else {
@@ -273,7 +273,7 @@ abstract class UIComponent extends UIEventHandler {
 
         if (prevParent == null) {
           var content = _content;
-          if (identical(content?.parentElement, parentContent)) {
+          if (content?.parentElement == parentContent) {
             _parent = parentContent;
           }
         }
@@ -1133,7 +1133,7 @@ abstract class UIComponent extends UIEventHandler {
 
   UIComponent? findUIComponentByContent(UIElement? content) {
     if (content == null) return null;
-    if (identical(content, _content)) return this;
+    if (content == _content) return this;
 
     if (_renderedElements == null || _renderedElements!.isEmpty) return null;
 
@@ -1152,7 +1152,7 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     for (var elem in _content!.children.toIterable()) {
-      if (identical(content, elem)) {
+      if (content == elem) {
         return this;
       }
     }
@@ -1162,10 +1162,10 @@ abstract class UIComponent extends UIEventHandler {
 
   UIComponent? findUIComponentByChild(UIElement? child) {
     if (child == null) return null;
-    if (identical(child, _content)) return this;
+    if (child == _content) return this;
 
     for (var elem in _content!.children.toIterable()) {
-      if (identical(child, elem)) {
+      if (child == elem) {
         return this;
       }
     }
@@ -1186,7 +1186,7 @@ abstract class UIComponent extends UIEventHandler {
       if (uiComp != null) return uiComp;
     }
 
-    var deepChild = findInContentChildDeep((elem) => identical(child, elem));
+    var deepChild = findInContentChildDeep((elem) => child == elem);
     if (deepChild != null) return this;
 
     return null;
@@ -1307,7 +1307,7 @@ abstract class UIComponent extends UIEventHandler {
           (clearParent == UIComponentClearParent.onInitialRender &&
               _renderCount == 1)) {
         // content not added to parent:
-        if (!identical(content.parentNode, parent)) {
+        if (content.parentNode != parent) {
           parent.clear();
           parent.appendChild(content);
         }
@@ -1317,7 +1317,7 @@ abstract class UIComponent extends UIEventHandler {
 
           var containsContent = false;
           for (var node in nodes) {
-            if (identical(node, content)) {
+            if (node == content) {
               containsContent = true;
             } else {
               node.remove();
@@ -1330,7 +1330,7 @@ abstract class UIComponent extends UIEventHandler {
           }
         }
       } else {
-        var appended = identical(content.parentNode, parent);
+        var appended = content.parentNode == parent;
         if (!appended) {
           parent.append(content);
         }
