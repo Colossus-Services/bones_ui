@@ -1,3 +1,18 @@
+## 2.5.14
+
+- sdk: '>=3.6.0 <4.0.0'
+
+- intl_messages: ^2.3.5
+- mercury_client: ^2.2.5
+- resource_portable: ^3.1.2
+- collection: ^1.19.0
+- test: ^1.25.15
+- stream_channel: ^2.1.4
+
+- build_web_compilers: ^4.1.1
+- build_runner: ^2.4.15
+- lints: ^5.1.1
+
 ## 2.5.13
 
 - `UIComponent`:
