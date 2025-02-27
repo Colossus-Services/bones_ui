@@ -172,11 +172,11 @@ class UIConsole {
   void _enable() {
     _enabled = true;
 
-    window.sessionStorage[sessionKeyUIConsoleEnabled] = '1';
+    window.sessionStorage.setItem(sessionKeyUIConsoleEnabled, '1');
   }
 
   static void checkAutoEnable() {
-    if (window.sessionStorage[sessionKeyUIConsoleEnabled] == '1') {
+    if (window.sessionStorage.getItem(sessionKeyUIConsoleEnabled) == '1') {
       displayButton();
     }
   }
@@ -188,7 +188,7 @@ class UIConsole {
   void _disable() {
     _enabled = false;
 
-    window.sessionStorage[sessionKeyUIConsoleEnabled] = '0';
+    window.sessionStorage.setItem(sessionKeyUIConsoleEnabled, '0');
   }
 
   static List<String> logs() {
