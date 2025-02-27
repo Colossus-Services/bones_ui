@@ -454,7 +454,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
         var x = (imgW2 - imgW) ~/ 2;
         var y = (imgH2 - imgH) ~/ 2;
-        ctx.drawImageScaled(
+        ctx.drawImage(
           image,
           x.toDouble(),
           y.toDouble(),
@@ -471,7 +471,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     var maxW = captureMaxWidth ?? imgW;
     var maxH = captureMaxHeight ?? imgH;
 
-    if (imgW <= maxW && imgH <= maxH && identical(imgSrc, image)) {
+    if (imgW <= maxW && imgH <= maxH && imgSrc == image) {
       return capturedData;
     }
 
@@ -495,7 +495,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     ctx.imageSmoothingQuality = 'high';
 
     ctx.clearRect(0, 0, canvasW, canvasH);
-    ctx.drawImageScaled(
+    ctx.drawImage(
       imgSrc,
       0,
       0,

@@ -404,7 +404,7 @@ class _CanvasEditImage extends ExternalElementNode {
     var context2d = canvas.context2D;
 
     context2d.clearRect(0, 0, canvasWidth, canvasHeight);
-    context2d.drawImageScaled(
+    context2d.drawImage(
       img,
       renderX.toDouble(),
       renderY.toDouble(),
@@ -463,7 +463,7 @@ class _CanvasEditImage extends ExternalElementNode {
     context2d.imageSmoothingEnabled = true;
     context2d.imageSmoothingQuality = 'high';
 
-    context2d.drawImageScaled(
+    context2d.drawImage(
       img,
       x.toDouble(),
       y.toDouble(),
