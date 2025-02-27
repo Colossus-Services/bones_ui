@@ -13,15 +13,15 @@ import 'bones_ui_utils.dart';
 typedef AsyncContentProvider = Future<dynamic>? Function();
 
 class _Content {
-  final dynamic content;
+  final Object? content;
 
   int status;
 
   _Content(this.content, [this.status = 0]);
 
-  dynamic _contentForDOM;
+  Object? _contentForDOM;
 
-  dynamic get contentForDOM {
+  Object? get contentForDOM {
     _contentForDOM ??= _ensureElementForDOM(content);
     return _contentForDOM;
   }
@@ -31,11 +31,11 @@ class _Content {
 class UIAsyncContent {
   AsyncContentProvider? _asyncContentProvider;
 
-  Future<dynamic>? _asyncContentFuture;
+  Future<Object?>? _asyncContentFuture;
 
-  final dynamic _loadingContent;
+  final Object? _loadingContent;
 
-  final dynamic _errorContent;
+  final Object? _errorContent;
 
   final Duration? _refreshInterval;
 
@@ -140,7 +140,7 @@ class UIAsyncContent {
     if (_errorContent is Function) {
       final errorContent = _errorContent;
       Object? content;
-      if (errorContent is Function(dynamic e)) {
+      if (errorContent is Function(Object? e)) {
         content = errorContent(error);
       } else if (errorContent is Function()) {
         content = errorContent();
@@ -153,7 +153,7 @@ class UIAsyncContent {
     }
   }
 
-  static dynamic _normalizeContent(dynamic content) {
+  static dynamic _normalizeContent(Object? content) {
     if (content is Function) {
       return content;
     } else {
@@ -365,7 +365,7 @@ class UIAsyncContent {
   }
 }
 
-dynamic _ensureElementForDOM(Object? element) {
+Object? _ensureElementForDOM(Object? element) {
   if (_isElementForDOM(element)) {
     return element;
   }

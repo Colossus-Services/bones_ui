@@ -172,7 +172,7 @@ abstract class ConfigDocument {
 }
 
 class YAMLConfigDocument extends ConfigDocument {
-  dynamic _document;
+  Object? _document;
 
   YAMLConfigDocument(YamlDocument document) {
     _document = deepCopy(document.contents.value);
@@ -182,13 +182,16 @@ class YAMLConfigDocument extends ConfigDocument {
 
   @override
   dynamic get(String key, [dynamic def]) {
-    return findKeyValue<dynamic, dynamic>(_document, [key], true) ?? def;
+    var document = _document;
+    if (document is! Map) return def;
+    return findKeyValue<dynamic, dynamic>(document, [key], true) ?? def;
   }
 
   YamlNode asYamlNode() {
-    if (_document is Map) return YamlMap.wrap(_document);
-    if (_document is List) return YamlList.wrap(_document);
-    return YamlScalar.wrap(_document);
+    var document = _document;
+    if (document is Map) return YamlMap.wrap(document);
+    if (document is List) return YamlList.wrap(document);
+    return YamlScalar.wrap(document);
   }
 
   @override
@@ -198,7 +201,7 @@ class YAMLConfigDocument extends ConfigDocument {
 }
 
 class JSONConfigDocument extends ConfigDocument {
-  dynamic _document;
+  Object? _document;
 
   JSONConfigDocument(this._document);
 
@@ -209,7 +212,9 @@ class JSONConfigDocument extends ConfigDocument {
 
   @override
   dynamic get(String key, [dynamic def]) {
-    return findKeyValue<dynamic, dynamic>(_document, [key], true) ?? def;
+    var document = _document;
+    if (document is! Map) return def;
+    return findKeyValue<dynamic, dynamic>(document, [key], true) ?? def;
   }
 
   @override

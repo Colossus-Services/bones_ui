@@ -150,7 +150,7 @@ abstract class UIFieldMap<V> {
 }
 
 class TextProvider {
-  dynamic _object;
+  Object? _object;
 
   String? _text;
 
