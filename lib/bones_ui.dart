@@ -1,7 +1,7 @@
 /// Bone UI
 ///
 /// Easy and simple Web User Interface Framework for Dart.
-library bones_ui;
+library;
 
 export 'dart:async';
 

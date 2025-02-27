@@ -1,7 +1,7 @@
 /// Bone UI - Kit
 ///
 /// Exports `bones_ui` + extra useful packages.
-library bones_ui_kit;
+library;
 
 export 'package:dom_builder/dom_builder.dart';
 export 'package:dom_tools/dom_tools.dart';

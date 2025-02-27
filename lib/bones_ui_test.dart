@@ -1,5 +1,5 @@
 /// Bone UI - Test Tools
-library bones_ui_test;
+library;
 
 export 'dart:async';
 export 'dart:html';

@@ -2,7 +2,6 @@ import 'dart:html';
 
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
-import 'package:enum_to_string/enum_to_string.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 
 import '../bones_ui_base.dart';
@@ -684,7 +683,7 @@ class UILoadingConfig implements AsDOMElement {
     var text = _text?.text;
 
     return [
-      'type: ${EnumToString.convertToString(type)}',
+      'type: ${type?.name}',
       if (inline != null) 'inline: $inline',
       if (isNotEmptyString(color, trim: true)) 'color: $color',
       if (zoom != null) 'zoom: $zoom',

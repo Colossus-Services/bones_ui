@@ -1640,7 +1640,7 @@ abstract class UIComponent extends UIEventHandler {
   /// - [String], parsed as `HTML`.
   /// - [Map] (rendered as JSON).
   /// - [List] with previous types (recursively).
-  /// - [Function] that returns any previous type. Including [Function]<Future>, allowing `async` functions.
+  /// - [Function] that returns any previous type. Including [Function]`<Future>`, allowing `async` functions.
   dynamic render();
 
   /// Called after [render].
