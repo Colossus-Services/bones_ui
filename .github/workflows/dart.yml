@@ -1,7 +1,7 @@
 name: Dart CI
 
 env:
-  DART_VERSION: "3.6.2"
+  DART_VERSION: "latest"
 
 on:
   push:
