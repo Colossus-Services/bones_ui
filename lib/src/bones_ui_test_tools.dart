@@ -2107,12 +2107,16 @@ extension TestFutureElementExtension<E extends Element> on Future<E?> {
         return elem;
       });
 
-  Future<Element?> select(String? selectors) =>
-      thenChain((e) => e.querySelectorNonTyped(selectors));
+  Future<Element?> select(String? selectors) {
+    if (selectors == null) return Future.value(null);
+    return thenChain((e) => e.select(selectors));
+  }
 
   Future<W?> selectTyped<W extends Element>(
-          String? selectors, web.Web<W> webType) =>
-      thenChain((e) => e.querySelectorTyped(selectors, webType));
+      String? selectors, web.Web<W> webType) {
+    if (selectors == null) return Future.value(null);
+    return thenChain((e) => e.selectTyped(selectors, webType));
+  }
 
   Future<Element> selectExpected(String? selectors) =>
       thenChain((e) => e.selectExpected(selectors));
