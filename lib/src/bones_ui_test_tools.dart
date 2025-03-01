@@ -2121,12 +2121,16 @@ extension TestFutureElementExtension<E extends Element> on Future<E?> {
   Future<Element> selectExpected(String? selectors) =>
       thenChain((e) => e.selectExpected(selectors));
 
-  Future<List<Element>> selectAll(String? selectors) =>
-      then((e) => e.selectAll(selectors));
+  Future<List<Element>> selectAll(String? selectors) {
+    if (selectors == null) return Future.value([]);
+    return then((e) => e.selectAll(selectors));
+  }
 
   Future<List<T>> selectAllTyped<T extends Element>(
-          String? selectors, Web<T> webType) =>
-      then((e) => e.selectAllTyped<T>(selectors, webType));
+      String? selectors, Web<T> webType) {
+    if (selectors == null) return Future.value([]);
+    return then((e) => e.selectAllTyped<T>(selectors, webType));
+  }
 }
 
 extension TestUIComponentNullableExtension on UIComponent? {
