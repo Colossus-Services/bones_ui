@@ -796,7 +796,12 @@ abstract class UITestChain<
           .thenChain((_) => this as T);
 
   /// Alias to [Element.querySelector] or [UIComponent.querySelector].
-  UITestChainNode<U, Element?, T> querySelector(String? selectors,
+  UITestChainNode<U, Element?, T> select(String? selectors,
+          {bool expected = false}) =>
+      querySelectorNonTyped(selectors, expected: expected);
+
+  /// Alias to [Element.querySelector] or [UIComponent.querySelector].
+  UITestChainNode<U, Element?, T> querySelectorNonTyped(String? selectors,
       {bool expected = false}) {
     var e = element;
 
@@ -819,7 +824,43 @@ abstract class UITestChain<
     return UITestChainNode(testChainRoot, elem, this as T);
   }
 
-  /// Alias to [UIComponent.querySelectorAll].
+  /// Alias to [Element.querySelector] or [UIComponent.querySelector], filtered by [webType].
+  UITestChainNode<U, W?, T> selectTyped<W extends Element>(
+          String? selectors, web.Web<W> webType,
+          {bool expected = false}) =>
+      querySelectorTyped(selectors, webType, expected: expected);
+
+  /// Alias to [Element.querySelector] or [UIComponent.querySelector], filtered by [webType].
+  UITestChainNode<U, W?, T> querySelectorTyped<W extends Element>(
+      String? selectors, web.Web<W> webType,
+      {bool expected = false}) {
+    var e = element;
+
+    W? elem;
+    if (e is UIComponent) {
+      elem = e.querySelectorTyped<W>(selectors, webType);
+    } else if (e.isElement) {
+      elem = selectors != null
+          ? (e.asJSAny as Element).querySelectorTyped<W>(selectors, webType)
+          : null;
+    } else {
+      elem = uiRoot.querySelectorTyped<W>(selectors, webType);
+    }
+
+    if (expected) {
+      expect(elem, pkg_test.isNotNull,
+          reason: "Can't find selected element: $selectors");
+    }
+
+    return UITestChainNode(testChainRoot, elem, this as T);
+  }
+
+  /// Alias to [Element.querySelectorAll] or [UIComponent.querySelectorAll].
+  UITestChainNode<U, List<Element>, T> selectAll(String? selectors,
+          {bool expected = false}) =>
+      querySelectorAllNonTyped(selectors, expected: expected);
+
+  /// Alias to [Element.querySelectorAll] or [UIComponent.querySelectorAll].
   UITestChainNode<U, List<Element>, T> querySelectorAllNonTyped(
       String? selectors,
       {bool expected = false}) {
@@ -849,6 +890,12 @@ abstract class UITestChain<
 
     return UITestChainNode(testChainRoot, elems, this as T);
   }
+
+  /// Alias to [UIComponent.querySelectorAll].
+  UITestChainNode<U, List<O>, T> selectAllTyped<O extends Element>(
+          String? selectors, Web<O> webType,
+          {bool expected = false}) =>
+      querySelectorAllTyped(selectors, webType, expected: expected);
 
   /// Alias to [UIComponent.querySelectorAll].
   UITestChainNode<U, List<O>, T> querySelectorAllTyped<O extends Element>(
@@ -885,31 +932,22 @@ abstract class UITestChain<
     return UITestChainNode(testChainRoot, elems, this as T);
   }
 
-  /// Alias to [querySelector].
-  UITestChainNode<U, Element?, T> select(String? selectors,
-          {bool expected = false}) =>
-      querySelector(selectors, expected: expected);
+  /// Same as [selectTyped] with `expected: true`, but [W] is non-null.
+  UITestChainNode<U, W, T> selectTypedExpected<W extends Element>(
+      String? selectors, web.Web<W> webType) {
+    var o = querySelectorTyped(selectors, webType, expected: true);
+    return UITestChainNode<U, W, T>(o.testChainRoot, o.element!, o.parent);
+  }
 
-  /// Alias to [querySelector].
+  /// Alias to [select] with `expected: true`.
   UITestChainNode<U, Element, T> selectExpected(String? selectors) {
-    var o = querySelector(selectors, expected: true);
+    var o = select(selectors, expected: true);
     return UITestChainNode<U, Element, T>(
         o.testChainRoot, o.element!, o.parent);
   }
 
-  /// Alias to [querySelectorAll].
-  UITestChainNode<U, List<Element>, T> selectAllNonTyped(String? selectors,
-          {bool expected = false}) =>
-      querySelectorAllNonTyped(selectors, expected: expected);
-
-  /// Alias to [querySelectorAll].
-  UITestChainNode<U, List<O>, T> selectAllTyped<O extends Element>(
-          String? selectors, Web<O> webType,
-          {bool expected = false}) =>
-      querySelectorAllTyped<O>(selectors, webType, expected: expected);
-
   /// Alias to [querySelectorAll] + `where`.
-  UITestChainNode<U, List<Element>, T> selectWhereNonTyped(
+  UITestChainNode<U, List<Element>, T> selectWhere(
       String? selectors, bool Function(Element element) test,
       {bool expected = false}) {
     var sel = querySelectorAllNonTyped(selectors);
@@ -939,7 +977,7 @@ abstract class UITestChain<
   }
 
   /// Alias to [querySelectorAll] + `firstWhereOrNull`.
-  UITestChainNode<U, Element?, T> selectFirstWhereNonTyped(
+  UITestChainNode<U, Element?, T> selectFirstWhere(
       String? selectors, bool Function(Element element) test,
       {bool expected = false}) {
     var sel = querySelectorAllNonTyped(selectors);
@@ -969,7 +1007,7 @@ abstract class UITestChain<
   }
 
   /// Alias to [sleepUntilElement] + [querySelectorAll] + `where`.
-  Future<UITestChainNode<U, List<Element>, T>> selectWhereUntilNonTyped(
+  Future<UITestChainNode<U, List<Element>, T>> selectWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
@@ -982,13 +1020,11 @@ abstract class UITestChain<
               minMs: minMs,
               mapper: mapper,
               validator: (elems) => elems.any(test))
-          .selectWhereNonTyped(selectors, test)
+          .selectWhere(selectors, test)
           .thenChain((o) {
         if (expected) {
-          var sel = selectAllNonTyped(selectors)
-              .element
-              .map((e) => e.simplify())
-              .toList();
+          var sel =
+              selectAll(selectors).element.map((e) => e.simplify()).toList();
 
           expect(o.element, pkg_test.isNotEmpty,
               reason: "Can't find any selected element: $selectors -> $sel");
@@ -1027,7 +1063,7 @@ abstract class UITestChain<
           });
 
   /// Alias to [sleepUntilElement] + [querySelectorAll] + `firstWhereOrNull`.
-  Future<UITestChainNode<U, Element, T>> selectFirstWhereUntilNonTyped(
+  Future<UITestChainNode<U, Element, T>> selectFirstWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
@@ -1039,14 +1075,12 @@ abstract class UITestChain<
               minMs: minMs,
               mapper: mapper,
               validator: (elems) => elems.any(test))
-          .selectFirstWhereNonTyped(selectors, test)
+          .selectFirstWhere(selectors, test)
           .thenChain((o) {
         var elem = o.element;
         if (elem == null) {
-          var sel = selectAllNonTyped(selectors)
-              .element
-              .map((e) => e.simplify())
-              .toList();
+          var sel =
+              selectAll(selectors).element.map((e) => e.simplify()).toList();
 
           expect(elem, pkg_test.isNotNull,
               reason: "Can't find selected element: $selectors -> $sel");
@@ -1086,7 +1120,7 @@ abstract class UITestChain<
           });
 
   /// Alias to [sleepUntilElement] + [querySelectorAll]
-  Future<UITestChainNode<U, Element, T>> selectUntilNonTyped(String? selectors,
+  Future<UITestChainNode<U, Element, T>> selectUntil(String? selectors,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
@@ -1569,9 +1603,15 @@ extension FutureUITestChainExtension<
   Future<T> sleep({int? frames, int? ms}) =>
       then((o) => o.sleep(frames: frames, ms: ms));
 
-  Future<UITestChainNode<U, Element?, T>> querySelector(String? selectors,
+  Future<UITestChainNode<U, Element?, T>> querySelectorNonTyped(
+          String? selectors,
           {bool expected = false}) =>
-      thenChain((o) => o.querySelector(selectors, expected: expected));
+      thenChain((o) => o.querySelectorNonTyped(selectors, expected: expected));
+
+  Future<UITestChainNode<U, W?, T>> querySelectorTyped<W extends Element>(
+          String? selectors, web.Web<W> webType, {bool expected = false}) =>
+      thenChain(
+          (o) => o.querySelectorTyped(selectors, webType, expected: expected));
 
   Future<UITestChainNode<U, List<Element>, T>> querySelectorAllNonTyped(
           String? selectors,
@@ -1589,25 +1629,31 @@ extension FutureUITestChainExtension<
           {bool expected = false}) =>
       thenChain((o) => o.select(selectors, expected: expected));
 
+  Future<UITestChainNode<U, W?, T>> selectTyped<W extends Element>(
+          String? selectors, web.Web<W> webType, {bool expected = false}) =>
+      thenChain(
+          (o) => o.selectTyped<W>(selectors, webType, expected: expected));
+
   Future<UITestChainNode<U, Element, T>> selectExpected(String? selectors) =>
       thenChain((o) => o.selectExpected(selectors));
 
-  Future<UITestChainNode<U, List<Element>, T>> selectAllNonTyped(
-          String? selectors,
+  Future<UITestChainNode<U, W, T>> selectTypedExpected<W extends Element>(
+          String? selectors, web.Web<W> webType) =>
+      thenChain((o) => o.selectTypedExpected<W>(selectors, webType));
+
+  Future<UITestChainNode<U, List<Element>, T>> selectAll(String? selectors,
           {bool expected = false}) =>
-      thenChain((o) => o.selectAllNonTyped(selectors, expected: expected));
+      thenChain((o) => o.selectAll(selectors, expected: expected));
 
   Future<UITestChainNode<U, List<Q>, T>> selectAllTyped<Q extends Element>(
           String? selectors, Web<Q> webType, {bool expected = false}) =>
       thenChain(
           (o) => o.selectAllTyped<Q>(selectors, webType, expected: expected));
 
-  Future<UITestChainNode<U, List<Element>, T>>
-      selectWhereNonTyped<Q extends Element>(
-              String? selectors, bool Function(Element element) test,
-              {bool expected = false}) =>
-          thenChain((o) =>
-              o.selectWhereNonTyped(selectors, test, expected: expected));
+  Future<UITestChainNode<U, List<Element>, T>> selectWhere<Q extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {bool expected = false}) =>
+      thenChain((o) => o.selectWhere(selectors, test, expected: expected));
 
   Future<UITestChainNode<U, List<Q>, T>> selectWhereTyped<Q extends Element>(
           String? selectors,
@@ -1617,11 +1663,10 @@ extension FutureUITestChainExtension<
       thenChain((o) =>
           o.selectWhereTyped<Q>(selectors, webType, test, expected: expected));
 
-  Future<UITestChainNode<U, Element?, T>> selectFirstWhereNonTyped(
+  Future<UITestChainNode<U, Element?, T>> selectFirstWhere(
           String? selectors, bool Function(Element element) test,
           {bool expected = false}) =>
-      thenChain((o) =>
-          o.selectFirstWhereNonTyped(selectors, test, expected: expected));
+      thenChain((o) => o.selectFirstWhere(selectors, test, expected: expected));
 
   Future<UITestChainNode<U, Q?, T>> selectFirstWhereTyped<Q extends Element>(
           String? selectors,
@@ -1631,14 +1676,14 @@ extension FutureUITestChainExtension<
       thenChain((o) => o.selectFirstWhereTyped<Q>(selectors, webType, test,
           expected: expected));
 
-  Future<UITestChainNode<U, List<Element>, T>> selectWhereUntilNonTyped(
+  Future<UITestChainNode<U, List<Element>, T>> selectWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           Iterable<Element> Function(List<Element> elems)? mapper,
           bool expected = false}) =>
-      thenChain((o) => o.selectWhereUntilNonTyped(selectors, test,
+      thenChain((o) => o.selectWhereUntil(selectors, test,
           timeoutMs: timeoutMs,
           intervalMs: intervalMs,
           minMs: minMs,
@@ -1660,13 +1705,13 @@ extension FutureUITestChainExtension<
               mapper: mapper,
               expected: expected));
 
-  Future<UITestChainNode<U, Element, T>> selectFirstWhereUntilNonTyped(
+  Future<UITestChainNode<U, Element, T>> selectFirstWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           Iterable<Element> Function(List<Element> elems)? mapper}) =>
-      thenChain((o) => o.selectFirstWhereUntilNonTyped(selectors, test,
+      thenChain((o) => o.selectFirstWhereUntil(selectors, test,
           timeoutMs: timeoutMs,
           intervalMs: intervalMs,
           minMs: minMs,
@@ -1763,10 +1808,16 @@ extension FutureUITestChainNodeExtension<
   Future<UITestChainNode<U, O, P>> elementAs<O>() =>
       thenChain((o) => o.elementAs<O>());
 
-  Future<UITestChainNode<U, Element?, T>> querySelector(String? selectors,
+  Future<UITestChainNode<U, Element?, T>> querySelectorNonTyped(
+          String? selectors,
           {bool expected = false}) =>
-      thenChain((o) => o.querySelector(selectors, expected: expected)
+      thenChain((o) => o.querySelectorNonTyped(selectors, expected: expected)
           as UITestChainNode<U, Element?, T>);
+
+  Future<UITestChainNode<U, W?, T>> querySelectorTyped<W extends Element>(
+          String? selectors, web.Web<W> webType, {bool expected = false}) =>
+      thenChain((o) => o.querySelectorTyped<W>(selectors, webType,
+          expected: expected) as UITestChainNode<U, W?, T>);
 
   Future<UITestChainNode<U, List<Element>, T>> querySelectorAllNonTyped(
           String? selectors,
@@ -1785,14 +1836,23 @@ extension FutureUITestChainNodeExtension<
       thenChain((o) => o.select(selectors, expected: expected)
           as UITestChainNode<U, Element?, T>);
 
+  Future<UITestChainNode<U, W?, T>> selectTyped<W extends Element>(
+          String? selectors, web.Web<W> webType, {bool expected = false}) =>
+      thenChain((o) => o.selectTyped(selectors, webType, expected: expected)
+          as UITestChainNode<U, W?, T>);
+
   Future<UITestChainNode<U, Element, T>> selectExpected(String? selectors) =>
       thenChain(
           (o) => o.selectExpected(selectors) as UITestChainNode<U, Element, T>);
 
-  Future<UITestChainNode<U, List<Element>, T>> selectAllNonTyped(
-          String? selectors,
+  Future<UITestChainNode<U, W, T>> selectTypedExpected<W extends Element>(
+          String? selectors, web.Web<W> webType) =>
+      thenChain((o) => o.selectTypedExpected(selectors, webType)
+          as UITestChainNode<U, W, T>);
+
+  Future<UITestChainNode<U, List<Element>, T>> selectAll(String? selectors,
           {bool expected = false}) =>
-      thenChain((o) => o.selectAllNonTyped(selectors, expected: expected)
+      thenChain((o) => o.selectAll(selectors, expected: expected)
           as UITestChainNode<U, List<Element>, T>);
 
   Future<UITestChainNode<U, List<O>, T>> selectAllTyped<O extends Element>(
@@ -1800,11 +1860,11 @@ extension FutureUITestChainNodeExtension<
       thenChain((o) => o.selectAllTyped<O>(selectors, webType,
           expected: expected) as UITestChainNode<U, List<O>, T>);
 
-  Future<UITestChainNode<U, List<Element>, T>> selectWhereNonTyped(
+  Future<UITestChainNode<U, List<Element>, T>> selectWhere(
           String? selectors, bool Function(Element element) test,
           {bool expected = false}) =>
-      thenChain((o) => o.selectWhereNonTyped(selectors, test,
-          expected: expected) as UITestChainNode<U, List<Element>, T>);
+      thenChain((o) => o.selectWhere(selectors, test, expected: expected)
+          as UITestChainNode<U, List<Element>, T>);
 
   Future<UITestChainNode<U, List<O>, T>> selectWhereTyped<O extends Element>(
           String? selectors,
@@ -1814,11 +1874,11 @@ extension FutureUITestChainNodeExtension<
       thenChain((o) => o.selectWhereTyped<O>(selectors, webType, test,
           expected: expected) as UITestChainNode<U, List<O>, T>);
 
-  Future<UITestChainNode<U, Element?, T>> selectFirstWhereNonTyped(
+  Future<UITestChainNode<U, Element?, T>> selectFirstWhere(
           String? selectors, bool Function(Element element) test,
           {bool expected = false}) =>
-      thenChain((o) => o.selectFirstWhereNonTyped(selectors, test,
-          expected: expected) as UITestChainNode<U, Element?, T>);
+      thenChain((o) => o.selectFirstWhere(selectors, test, expected: expected)
+          as UITestChainNode<U, Element?, T>);
 
   Future<UITestChainNode<U, O?, T>> selectFirstWhereTyped<O extends Element>(
           String? selectors,
@@ -1828,14 +1888,14 @@ extension FutureUITestChainNodeExtension<
       thenChain((o) => o.selectFirstWhereTyped<O>(selectors, webType, test,
           expected: expected) as UITestChainNode<U, O?, T>);
 
-  Future<UITestChainNode<U, List<Element>, T>> selectWhereUntilNonTyped(
+  Future<UITestChainNode<U, List<Element>, T>> selectWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           Iterable<Element> Function(List<Element> elems)? mapper,
           bool expected = false}) =>
-      thenChain((o) => o.selectWhereUntilNonTyped(selectors, test,
+      thenChain((o) => o.selectWhereUntil(selectors, test,
           timeoutMs: timeoutMs,
           intervalMs: intervalMs,
           minMs: minMs,
@@ -1857,14 +1917,14 @@ extension FutureUITestChainNodeExtension<
               mapper: mapper,
               expected: expected) as UITestChainNode<U, List<O>, T>);
 
-  Future<UITestChainNode<U, Element, T>> selectFirstWhereUntilNonTyped(
+  Future<UITestChainNode<U, Element, T>> selectFirstWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           Iterable<Element> Function(List<Element> elems)? mapper}) =>
       thenChain((o) => o
-          .selectFirstWhereUntilNonTyped(selectors, test,
+          .selectFirstWhereUntil(selectors, test,
               timeoutMs: timeoutMs,
               intervalMs: intervalMs,
               minMs: minMs,
@@ -1886,13 +1946,13 @@ extension FutureUITestChainNodeExtension<
                   mapper: mapper)
               .then((o) => o as UITestChainNode<U, O, T>));
 
-  Future<UITestChainNode<U, Element, T>> selectUntilNonTyped(String? selectors,
+  Future<UITestChainNode<U, Element, T>> selectUntil(String? selectors,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           Iterable<Element> Function(List<Element> elems)? mapper}) =>
       thenChain((o) => o
-          .selectUntilNonTyped(selectors,
+          .selectUntil(selectors,
               timeoutMs: timeoutMs,
               intervalMs: intervalMs,
               minMs: minMs,
@@ -1987,11 +2047,23 @@ extension TestFutureExtension<T> on Future<T> {
 }
 
 extension TestElementExtension on Element? {
-  Element? select(String? selectors) {
+  Element? querySelectorNonTyped(String? selectors) {
     var self = this;
     if (self == null || selectors == null || selectors.isEmpty) return null;
     return self.querySelector(selectors);
   }
+
+  W? querySelectorTyped<W extends Element>(
+      String? selectors, web.Web<W> webType) {
+    var self = this;
+    if (self == null || selectors == null || selectors.isEmpty) return null;
+    return self.querySelectorTyped(selectors, webType);
+  }
+
+  Element? select(String? selectors) => querySelectorNonTyped(selectors);
+
+  W? selectTyped<W extends Element>(String? selectors, web.Web<W> webType) =>
+      querySelectorTyped<W>(selectors, webType);
 
   Element selectExpected(String? selectors) {
     var self = this;
@@ -2004,7 +2076,19 @@ extension TestElementExtension on Element? {
     return e;
   }
 
-  List<Element> selectAllNonTyped(String? selectors) {
+  W selectTypedExpected<W extends Element>(
+      String? selectors, web.Web<W> webType) {
+    var self = this;
+    var e = selectors != null && selectors.isNotEmpty
+        ? self?.querySelectorTyped<W>(selectors, webType)
+        : null;
+    if (e == null) {
+      throw TestFailure("Can't find element: `$selectors` ($webType)");
+    }
+    return e;
+  }
+
+  List<Element> selectAll(String? selectors) {
     var self = this;
     if (self == null || selectors == null || selectors.isEmpty) return [];
     return self.querySelectorAll(selectors).toElements();
@@ -2024,13 +2108,17 @@ extension TestFutureElementExtension<E extends Element> on Future<E?> {
       });
 
   Future<Element?> select(String? selectors) =>
-      thenChain((e) => e.selectExpected(selectors));
+      thenChain((e) => e.select(selectors));
+
+  Future<W?> selectTyped<W extends Element>(
+          String? selectors, web.Web<W> webType) =>
+      thenChain((e) => e.selectTyped(selectors, webType));
 
   Future<Element> selectExpected(String? selectors) =>
       thenChain((e) => e.selectExpected(selectors));
 
-  Future<List<Element>> selectAllNonTyped(String? selectors) =>
-      then((e) => e.selectAllNonTyped(selectors));
+  Future<List<Element>> selectAll(String? selectors) =>
+      then((e) => e.selectAll(selectors));
 
   Future<List<T>> selectAllTyped<T extends Element>(
           String? selectors, Web<T> webType) =>
@@ -2038,7 +2126,7 @@ extension TestFutureElementExtension<E extends Element> on Future<E?> {
 }
 
 extension TestUIComponentNullableExtension on UIComponent? {
-  Element? selectNonTyped(String? selectors) {
+  Element? select(String? selectors) {
     var self = this;
     if (self == null || selectors == null || selectors.isEmpty) return null;
     return self.querySelectorNonTyped(selectors);
@@ -2050,7 +2138,7 @@ extension TestUIComponentNullableExtension on UIComponent? {
     return self.querySelectorTyped<E>(selectors, webType);
   }
 
-  Element selectExpectedNonTyped(String? selectors) {
+  Element selectExpected(String? selectors) {
     var self = this;
     var e = selectors != null && selectors.isNotEmpty
         ? self?.querySelectorNonTyped(selectors)
@@ -2073,7 +2161,7 @@ extension TestUIComponentNullableExtension on UIComponent? {
     return e;
   }
 
-  List<Element> selectAllNonTyped(String? selectors) {
+  List<Element> selectAll(String? selectors) {
     var self = this;
     if (self == null || selectors == null || selectors.isEmpty) return [];
     return self.querySelectorAllNonTyped(selectors);
@@ -2114,22 +2202,22 @@ extension TestFutureUIComponentExtension<E extends UIComponent> on Future<E?> {
         return elem;
       });
 
-  Future<Element?> selectNonTyped(String? selectors) =>
-      then((e) => e.selectNonTyped(selectors));
+  Future<Element?> select(String? selectors) =>
+      then((e) => e.select(selectors));
 
   Future<T?> selectTyped<T extends Element>(
           String? selectors, Web<T> webType) =>
       then((e) => e.selectTyped(selectors, webType));
 
-  Future<Element> selectExpectedNonTyped(String? selectors) =>
-      thenChain((e) => e.selectExpectedNonTyped(selectors));
+  Future<Element> selectExpected(String? selectors) =>
+      thenChain((e) => e.selectExpected(selectors));
 
   Future<T> selectExpectedTyped<T extends Element>(
           String? selectors, Web<T> webType) =>
       thenChain((e) => e.selectExpectedTyped(selectors, webType));
 
-  Future<List<Element>> selectAllNonTyped(String? selectors) =>
-      then((e) => e.selectAllNonTyped(selectors));
+  Future<List<Element>> selectAll(String? selectors) =>
+      then((e) => e.selectAll(selectors));
 
   Future<List<T>> selectAllTyped<T extends Element>(
           String? selectors, Web<T> webType) =>
@@ -2456,10 +2544,10 @@ void _checkbox(Object root, Object? o, bool checked,
 }
 
 Element? _querySelect(Object? elem, String selectors) {
-  if (elem.isElement) {
-    return (elem as Element).querySelector(selectors);
-  } else if (elem is UIComponent) {
+  if (elem is UIComponent) {
     return elem.querySelectorNonTyped(selectors);
+  } else if (elem.isElement) {
+    return (elem as Element).querySelector(selectors);
   } else {
     return null;
   }

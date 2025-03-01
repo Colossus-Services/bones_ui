@@ -29,7 +29,7 @@ void main() {
       expect(myHome?.text, contains('- uiRootComponent: MyRoot'));
 
       var tmp = uiRoot
-          .selectAllNonTyped('*')
+          .selectAll('*')
           .map((e) => e as Object?)
           .map((e) => e.asJSAny)
           .where((e) => e.isA<web.HTMLButtonElement>())

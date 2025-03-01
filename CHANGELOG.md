@@ -1,3 +1,12 @@
+## 3.0.0-beta.7
+
+✨♻️ refactor(bones_ui_test_tools):
+  - Standardize `selectNonTyped` and rename it to `select`.
+  - Standardize `selectNonTypedAll` / `selectAllNonTyped` and rename it to `selectAll`.
+  - Ensure that `selectTyped` exists where `querySelectorTyped` exists.
+
+- web_utils: ^1.0.11
+
 ## 3.0.0-beta.6
 
 - Avoids using `identical` with `Element` (`JSObject`) to avoid inconsistencies in Wasm.
