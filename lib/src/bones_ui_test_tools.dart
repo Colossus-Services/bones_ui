@@ -1233,11 +1233,9 @@ abstract class UITestChain<
       var gZipEncoder = GZipEncoder();
       var compressed = gZipEncoder.encode(bytes);
 
-      if (compressed != null) {
-        var base64 = dart_convert.base64.encode(compressed);
-        msg =
-            '[$id]<<<<<<(GZIP: ${compressed.length}/${bytes.length})\n$base64\n>>>>>>$timeMs';
-      }
+      var base64 = dart_convert.base64.encode(compressed);
+      msg =
+          '[$id]<<<<<<(GZIP: ${compressed.length}/${bytes.length})\n$base64\n>>>>>>$timeMs';
     }
 
     msg ??= '[$id]<<<<<<\n$outerHtml\n>>>>>>$timeMs';

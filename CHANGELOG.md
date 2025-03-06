@@ -1,3 +1,12 @@
+## 3.0.0-beta.8
+
+- web_utils: ^1.0.12
+- dom_tools: ^3.0.0-beta.8
+- project_template: ^1.1.1
+- archive: ^4.0.4
+
+- dependency_validator: ^5.0.2
+
 ## 3.0.0-beta.7
 
 ✨♻️ refactor(bones_ui_test_tools):
