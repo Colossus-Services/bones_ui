@@ -69,6 +69,18 @@
 - build_web_compilers: ^4.1.1
 - build_runner: ^2.4.15
 
+## 2.5.15
+
+- `UIComponent`:
+  - Added `renderedElementsAsync`.
+
+- `UIDialogBase`:
+  - Added `configureButtons` to configure the buttons `onClick`.
+  - `posRender` and `posAsyncRender` calls `configureButtons`.
+
+- args: ^2.7.0
+- dependency_validator: ^4.1.3
+
 ## 2.5.14
 
 - `bones_ui_test_tools.dart`:
