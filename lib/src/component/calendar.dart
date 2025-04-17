@@ -1,4 +1,4 @@
-import 'dart:html';
+import 'package:web_utils/web_utils.dart';
 import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
@@ -359,9 +359,9 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
                         ]
                     ])
               ])
-            ..onGenerate.listen((element) {
-              if (element is Element) {
-                blockVerticalScrollTraverse(element);
+            ..onGenerate.listen((Object? element) {
+              if (element.isHTMLElement) {
+                blockVerticalScrollTraverse(element as HTMLElement);
               }
             })
         ]);

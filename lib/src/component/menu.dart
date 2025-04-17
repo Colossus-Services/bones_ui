@@ -1,8 +1,9 @@
-import 'dart:html';
+import 'dart:math';
 
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import '../bones_ui_base.dart';
 import '../bones_ui_component.dart';
@@ -50,28 +51,26 @@ class MenuEntry<P> extends MenuItem {
 
   TextProvider? get name => _name;
 
-  set name(dynamic name) {
-    _name = TextProvider.from(name);
-    if (_name == null || _name!.text == null) {
-      throw ArgumentError.notNull('name');
-    }
-  }
+  set name(Object? name) =>
+      _name = TextProvider.from(name) ?? (throw ArgumentError.notNull('name'));
 
-  String? get nameText => _name != null ? _name!.text : '';
+  String? get nameText {
+    final name = _name;
+    return name != null ? name.text : '';
+  }
 
   TextProvider? get title => _title;
 
-  set title(dynamic title) {
-    _title = TextProvider.from(title);
-  }
+  set title(Object? title) => _title = TextProvider.from(title);
 
-  String? get titleText => _title != null ? _title!.text : '';
+  String get titleText {
+    final title = _title;
+    return title != null ? title.text : '';
+  }
 
   ElementProvider? get icon => _icon;
 
-  set icon(dynamic icon) {
-    _icon = ElementProvider.from(icon);
-  }
+  set icon(dynamic icon) => _icon = ElementProvider.from(icon);
 
   Element? get iconElement => _icon?.element;
 
@@ -95,9 +94,8 @@ class MenuEntry<P> extends MenuItem {
   bool get hasAction => action != null;
 
   @override
-  String toString() {
-    return 'MenuEntry{_name: $_name, _subMenu: $_subMenu, payload: $payload}';
-  }
+  String toString() =>
+      'MenuEntry{_name: $_name, _subMenu: $_subMenu, payload: $payload}';
 }
 
 class UIMenu extends UIComponent {
@@ -150,16 +148,15 @@ class UIMenu extends UIComponent {
       setElementBackgroundBlur(content!, backgroundBlur);
     }
 
-    if (isNotEmptyObject(zIndex)) {
+    final zIndex = this.zIndex;
+    if (zIndex != null && zIndex.isNotEmpty) {
       content!.style.zIndex = zIndex;
     }
   }
 
   bool? get vertical => _vertical;
 
-  set vertical(bool? value) {
-    _vertical = value ?? false;
-  }
+  set vertical(bool? value) => _vertical = value ?? false;
 
   @override
   dynamic render() {
@@ -200,7 +197,7 @@ class UIMenu extends UIComponent {
         dynamic nameText = menuEntry.nameText;
         var titleText = menuEntry.titleText;
 
-        var iconElement = menuEntry.iconElement;
+        var iconElement = menuEntry.iconElement.asHTMLElementChecked;
         var iconSeparator = iconElement != null ? ' ' : null;
 
         UISVG? dropDownIcon;
@@ -214,8 +211,7 @@ class UIMenu extends UIComponent {
             iconElement.title = titleText;
           }
 
-          nameText =
-              $span(attributes: {'title': titleText!}, content: nameText);
+          nameText = $span(attributes: {'title': titleText}, content: nameText);
         }
 
         var menuEntryDiv = $divInline(

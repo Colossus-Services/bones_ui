@@ -1,11 +1,10 @@
 import 'dart:async';
-import 'dart:html';
-import 'dart:svg' as dart_svg;
 
 import 'package:collection/collection.dart';
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import '../bones_ui_component.dart';
 import '../bones_ui_generator.dart';
@@ -55,7 +54,7 @@ class UISVG extends UIComponent {
           (parent, attributes, contentHolder, contentNodes) => UISVG(
                 parent,
                 src: attributes['src']?.value,
-                svgContent: contentHolder?.text,
+                svgContent: contentHolder?.textContent,
                 width: attributes['width']?.value ?? '20px',
                 height: attributes['height']?.value ?? '20px',
                 color: attributes['color']?.value,
@@ -152,11 +151,11 @@ class UISVG extends UIComponent {
   /// Returns the [Element] rendered.
   Element? get renderedElement => _renderedElement;
 
-  /// Returns [true] if it was rendered as an [ImageElement].
-  bool get isRenderedAsImage => _renderedElement is ImageElement;
+  /// Returns [true] if it was rendered as an [HTMLImageElement].
+  bool get isRenderedAsImage => _renderedElement.isA<HTMLImageElement>();
 
   /// Returns [true] if it was rendered as an [SvgElement].
-  bool get isRenderedAsSVG => _renderedElement is dart_svg.SvgElement;
+  bool get isRenderedAsSVG => _renderedElement.isA<SVGElement>();
 
   @override
   dynamic render() {
@@ -193,22 +192,19 @@ class UISVG extends UIComponent {
     return element;
   }
 
-  static final NodeValidatorBuilder _svgNodeValidator =
-      createStandardNodeValidator(svg: true, allowSvgForeignObject: true);
-
-  dart_svg.SvgElement? buildSVGElement([String? content]) {
+  SVGElement? buildSVGElement([String? content]) {
     content ??= svgContent;
 
     if (content == null || content.isEmpty) {
       return null;
     }
 
-    var svg = createHTML(content, _svgNodeValidator) as dart_svg.SvgElement;
+    var svg = createHTML(html: content) as SVGElement;
 
     _applyDimension(svg);
 
     if (color != null && color!.isNotEmpty) {
-      svg.style.cssText = '${svg.style.cssText ?? ''}fill: $color';
+      svg.style.cssText = '${svg.style.cssText}fill: $color';
     }
 
     if (title != null && title!.isNotEmpty) {
@@ -219,19 +215,20 @@ class UISVG extends UIComponent {
     return svg;
   }
 
-  ImageElement buildSVGImg() {
-    ImageElement img;
+  HTMLImageElement buildSVGImg() {
+    HTMLImageElement img;
     if (isEmptyObject(src) && isNotEmptyObject(svgContent)) {
       var svgDataURL =
           'data:image/svg+xml;base64,${Base64.encode(svgContent!)}';
-      img = ImageElement(src: svgDataURL);
+      img = HTMLImageElement()..src = svgDataURL;
     } else {
-      img = ImageElement(src: src);
+      img = HTMLImageElement()..src = src ?? '';
     }
 
     _applyDimension(img);
 
-    if (title != null && title!.isNotEmpty) img.title = title;
+    final title = this.title;
+    if (title != null && title.isNotEmpty) img.title = title;
 
     return img;
   }
@@ -242,18 +239,18 @@ class UISVG extends UIComponent {
 
     if (width.isNotEmpty) {
       var w = widthAsCSSValue;
-      elem.style.width = w;
+      elem.style?.width = w;
     }
     if (height.isNotEmpty) {
       var h = heightAsCSSValue;
-      elem.style.height = h;
+      elem.style?.height = h;
     }
   }
 
-  Future<ImageElement> buildRenderedImage() {
+  Future<HTMLImageElement> buildRenderedImage() {
     var svgIMG = buildSVGImg();
 
-    var completer = Completer<ImageElement>();
+    var completer = Completer<HTMLImageElement>();
 
     svgIMG.onLoad.listen((event) {
       var img = _drawImageToCanvas(svgIMG);
@@ -263,11 +260,13 @@ class UISVG extends UIComponent {
     return completer.future;
   }
 
-  ImageElement _drawImageToCanvas(ImageElement img) {
+  HTMLImageElement _drawImageToCanvas(HTMLImageElement img) {
     var w = widthAsCSSLength!.value.toInt();
     var h = heightAsCSSLength!.value.toInt();
 
-    var canvas = CanvasElement(width: w, height: h);
+    var canvas = HTMLCanvasElement()
+      ..width = w
+      ..height = h;
 
     var ctx = canvas.context2D;
     ctx.clearRect(0, 0, w, h);
@@ -275,7 +274,7 @@ class UISVG extends UIComponent {
 
     var imgDataURL = canvas.toDataUrl('image/png', 1.0);
 
-    var imgRendered = ImageElement(src: imgDataURL);
+    var imgRendered = HTMLImageElement()..src = imgDataURL;
     _applyDimension(imgRendered);
 
     return imgRendered;

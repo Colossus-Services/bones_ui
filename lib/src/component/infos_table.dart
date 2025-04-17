@@ -1,13 +1,11 @@
-import 'dart:html';
-
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import '../bones_ui_component.dart';
-import '../bones_ui_web.dart';
 
 /// Component that renders a table with information.
 class UIInfosTable extends UIComponent {
-  final Map _infos;
+  final Map<Object, Object?> _infos;
   final List<String>? headerColumnsNames;
 
   final String? headerColor;
@@ -33,7 +31,7 @@ class UIInfosTable extends UIComponent {
       rowsColors.add('');
     }
 
-    var table = TableElement();
+    var table = HTMLTableElement();
     table.setAttribute('border', '0');
     table.setAttribute('align', 'center');
 
@@ -45,9 +43,10 @@ class UIInfosTable extends UIComponent {
       }
 
       var tHead = table.createTHead();
-      var headRow = tHead.addRow();
+      var headRow = tHead.appendRow();
 
-      if (isNotEmptyObject(rowsStyles)) {
+      final rowsStyles = this.rowsStyles;
+      if (rowsStyles != null && rowsStyles.isNotEmpty) {
         headRow.style.cssText = rowsStyles;
       }
 
@@ -56,8 +55,9 @@ class UIInfosTable extends UIComponent {
       }
 
       for (var columnName in headerColumnsNames!) {
-        var cel = headRow.addCell();
-        if (isNotEmptyObject(cellsStyles)) {
+        var cel = headRow.appendCell();
+        final cellsStyles = this.cellsStyles;
+        if (cellsStyles != null && cellsStyles.isNotEmpty) {
           cel.style.cssText = cellsStyles;
         }
 
@@ -72,9 +72,10 @@ class UIInfosTable extends UIComponent {
 
       var color = rowsColors[i++ % rowsColors.length];
 
-      var row = table.addRow();
+      var row = table.appendRow();
 
-      if (isNotEmptyObject(rowsStyles)) {
+      final rowsStyles = this.rowsStyles;
+      if (rowsStyles != null && rowsStyles.isNotEmpty) {
         row.style.cssText = rowsStyles;
       }
 
@@ -82,25 +83,26 @@ class UIInfosTable extends UIComponent {
         row.style.backgroundColor = color;
       }
 
-      var cell1 = row.addCell();
-      if (isNotEmptyObject(cellsStyles)) {
+      var cell1 = row.appendCell();
+      final cellsStyles = this.cellsStyles;
+      if (cellsStyles != null && cellsStyles.isNotEmpty) {
         cell1.style.cssText = cellsStyles;
       }
 
       cell1.setAttribute('align', 'right');
-      cell1.innerHtml = '<b>$k:&nbsp;</b>';
+      cell1.innerHTML = '<b>$k:&nbsp;</b>'.toJS;
 
-      var cell2 = row.addCell();
-      if (isNotEmptyObject(cellsStyles)) {
+      var cell2 = row.appendCell();
+      if (cellsStyles != null && cellsStyles.isNotEmpty) {
         cell2.style.cssText = cellsStyles;
       }
 
       cell2.setAttribute('align', 'center');
 
-      if (v is UIElement) {
-        cell2.children.add(v);
+      if (v.isElement) {
+        cell2.appendChild(v as Element);
       } else {
-        cell2.innerHtml = v.toString();
+        cell2.innerHTML = v.toString().toJS;
       }
     }
 

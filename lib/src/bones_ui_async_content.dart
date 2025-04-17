@@ -1,28 +1,27 @@
 import 'dart:async';
-import 'dart:html';
 
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import 'bones_ui_base.dart';
 import 'bones_ui_component.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_utils.dart';
-import 'bones_ui_web.dart';
 
 typedef AsyncContentProvider = Future<dynamic>? Function();
 
 class _Content {
-  final dynamic content;
+  final Object? content;
 
   int status;
 
   _Content(this.content, [this.status = 0]);
 
-  dynamic _contentForDOM;
+  Object? _contentForDOM;
 
-  dynamic get contentForDOM {
+  Object? get contentForDOM {
     _contentForDOM ??= _ensureElementForDOM(content);
     return _contentForDOM;
   }
@@ -32,11 +31,11 @@ class _Content {
 class UIAsyncContent {
   AsyncContentProvider? _asyncContentProvider;
 
-  Future<dynamic>? _asyncContentFuture;
+  Future<Object?>? _asyncContentFuture;
 
-  final dynamic _loadingContent;
+  final Object? _loadingContent;
 
-  final dynamic _errorContent;
+  final Object? _errorContent;
 
   final Duration? _refreshInterval;
 
@@ -141,7 +140,7 @@ class UIAsyncContent {
     if (_errorContent is Function) {
       final errorContent = _errorContent;
       Object? content;
-      if (errorContent is Function(dynamic e)) {
+      if (errorContent is Function(Object? e)) {
         content = errorContent(error);
       } else if (errorContent is Function()) {
         content = errorContent();
@@ -154,7 +153,7 @@ class UIAsyncContent {
     }
   }
 
-  static dynamic _normalizeContent(dynamic content) {
+  static dynamic _normalizeContent(Object? content) {
     if (content is Function) {
       return content;
     } else {
@@ -366,23 +365,24 @@ class UIAsyncContent {
   }
 }
 
-dynamic _ensureElementForDOM(dynamic element) {
+Object? _ensureElementForDOM(Object? element) {
   if (_isElementForDOM(element)) {
     return element;
   }
 
   if (element is String) {
     if (element.contains('<') && element.contains('>')) {
-      var div = createDivInline(element);
-      if (div.childNodes.isEmpty) return div;
+      var div = createDivInline(html: element);
+      var childNodes = div.childNodes;
+      if (childNodes.isEmpty) return div;
 
-      if (div.childNodes.length == 1) {
-        return div.childNodes.first;
+      if (childNodes.length == 1) {
+        return childNodes.toIterable().first;
       } else {
         div;
       }
     } else {
-      var span = SpanElement();
+      var span = HTMLSpanElement();
       setElementInnerHTML(span, element);
       return span;
     }
@@ -391,10 +391,8 @@ dynamic _ensureElementForDOM(dynamic element) {
   return element;
 }
 
-bool _isElementForDOM(dynamic element) {
-  if (element is UIElement) {
-    return true;
-  } else if (element is UINode) {
+bool _isElementForDOM(Object? element) {
+  if (element.isNode) {
     return true;
   } else if (element is UIComponent) {
     return true;
