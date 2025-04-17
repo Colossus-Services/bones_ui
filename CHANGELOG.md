@@ -1,3 +1,18 @@
+## 3.0.0-beta.9
+
+- Merge v2.5.15
+  - `UIComponent`:
+    - Added `renderedElementsAsync`.
+  - `UIDialogBase`:
+    - Added `configureButtons` to configure the buttons `onClick`.
+    - `posRender` and `posAsyncRender` calls `configureButtons`.
+
+- js_interop_utils: ^1.0.7
+- web_utils: ^1.0.14
+- dom_tools: ^3.0.0-beta.9
+- dom_builder: ^3.0.0-beta.4
+- archive: ^4.0.5 
+
 ## 3.0.0-beta.8
 
 - web_utils: ^1.0.12
