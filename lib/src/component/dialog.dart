@@ -94,15 +94,33 @@ abstract class UIDialogBase extends UIRootComponent {
   bool onClickListenOnlyForDialogButtonClass;
 
   @override
+  void preRender() {
+    _configuredButtons = {};
+  }
+
+  @override
   void posRender() {
+    configureButtons();
+  }
+
+  @override
+  void posAsyncRender() {
+    configureButtons();
+  }
+
+  Set<Element> _configuredButtons = {};
+
+  void configureButtons() {
     var buttons = selectDialogButtons();
 
     for (var button in buttons) {
-      button.onClick.listen((event) {
-        // Call it asynchronously to allow custom listeners to be called 1st.
-        Future.delayed(
-            Duration(milliseconds: 50), () => _callOnDialogButtonClick(event));
-      });
+      if (_configuredButtons.add(button)) {
+        button.onClick.listen((event) {
+          // Call it asynchronously to allow custom listeners to be called 1st.
+          Future.delayed(Duration(milliseconds: 40),
+              () => _callOnDialogButtonClick(event));
+        });
+      }
     }
   }
 
