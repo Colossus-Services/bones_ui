@@ -767,6 +767,10 @@ abstract class UIComponent extends UIEventHandler {
 
   String? _renderedElementsLocale;
 
+  bool? _renderedElementsAsync;
+
+  bool get renderedElementsAsync => _renderedElementsAsync ?? false;
+
   List? _renderedElements;
 
   List? get renderedElements =>
@@ -1445,8 +1449,8 @@ abstract class UIComponent extends UIEventHandler {
       var renderedElements = toContentElements(rendered);
 
       _renderedElements = renderedElements;
-
       _renderedElementsLocale = _renderLocale;
+      _renderedElementsAsync = rendered is Future;
 
       _ensureAllRendered(renderedElements);
     } catch (e, s) {
