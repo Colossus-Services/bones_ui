@@ -199,7 +199,7 @@ class UISVG extends UIComponent {
       return null;
     }
 
-    var svg = createHTML(html: content) as SVGElement;
+    var svg = createElement(html: content) as SVGElement;
 
     _applyDimension(svg);
 
