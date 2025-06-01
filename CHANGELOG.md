@@ -1,3 +1,21 @@
+## 3.0.0-beta.10
+
+- `UISVG`:
+  - replace `createHTML` with `createElement` for SVG element creation.
+
+- `UIComponent`:
+  - replace `append` with `appendChild` for DOM consistency.
+
+- js_interop_utils: ^1.0.8
+- web_utils: ^1.0.15
+- dom_tools: ^3.0.0-beta.10
+- archive: ^4.0.7
+- test: ^1.26.2
+- test_api: ^0.7.6
+- test_core: ^0.6.11
+
+- build_web_compilers: ^4.1.5
+
 ## 3.0.0-beta.9
 
 - Merge v2.5.15
