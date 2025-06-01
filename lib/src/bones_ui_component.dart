@@ -2054,11 +2054,11 @@ abstract class UIComponent extends UIEventHandler {
     var idx = content.childNodes.indexOf(element);
 
     if (idx < 0) {
-      content.append(element);
+      content.appendChild(element);
       idx = content.childNodes.indexOf(element);
     } else if (idx < prevElemIndex) {
       element.remove();
-      content.append(element);
+      content.appendChild(element);
       idx = content.childNodes.indexOf(element);
     }
 
