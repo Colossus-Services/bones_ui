@@ -260,8 +260,18 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   /// Returns a [List] of sub [UIComponent] deeply in the tree.
-  List<UIComponent> get subUIComponentsDeeply =>
-      subUIComponents.expand((e) => [e, ...e.subUIComponents]).toList();
+  Iterable<UIComponent> get subUIComponentsDeeply sync* {
+    var subUIComponents = this.subUIComponents;
+    if (subUIComponents.isEmpty) {
+      return;
+    }
+
+    yield* subUIComponents;
+
+    for (var e in subUIComponents) {
+      yield* e.subUIComponentsDeeply;
+    }
+  }
 
   void _setParentUIComponent(UIComponent? uiParent) {
     if (uiParent != null) {
@@ -405,8 +415,23 @@ abstract class UIComponent extends UIEventHandler {
 
   UIRootComponent? _resolveUIRootComponent() {
     var parent = parentUIComponent;
-    if (parent == null) return null;
-    return _uiRootComponent = parent.uiRootComponent;
+    if (parent == null) {
+      var self = this;
+      if (self is UIRootComponent) {
+        return self;
+      }
+      return null;
+    }
+
+    var root = parent.uiRootComponent;
+    if (root == null) {
+      var self = this;
+      if (self is UIRootComponent) {
+        return self;
+      }
+    }
+
+    return root;
   }
 
   bool _showing = true;
@@ -884,7 +909,7 @@ abstract class UIComponent extends UIEventHandler {
   List<T> getRenderedUIComponentByType<T>([bool? deep]) =>
       getRenderedUIComponents(deep).whereType<T>().toList();
 
-  List<UIComponent> getRenderedUIComponents([bool? deep]) =>
+  Iterable<UIComponent> getRenderedUIComponents([bool? deep]) =>
       (deep ?? false) ? subUIComponentsDeeply : subUIComponents;
 
   bool _rendered = false;
@@ -1330,13 +1355,19 @@ abstract class UIComponent extends UIEventHandler {
 
           // Improbable to happen, unless it's an odd browser:
           if (!containsContent) {
-            parent.append(content);
+            // If not already in the `parent`'s hierarchy:
+            if (!parent.contains(content)) {
+              parent.append(content);
+            }
           }
         }
       } else {
         var appended = content.parentNode == parent;
         if (!appended) {
-          parent.append(content);
+          // If not already in the `parent`'s hierarchy:
+          if (!parent.contains(content)) {
+            parent.append(content);
+          }
         }
       }
     }
