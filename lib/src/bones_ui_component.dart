@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:bones_ui/src/bones_ui_utils.dart';
-import 'package:collection/collection.dart'
-    show IterableExtension, CombinedIterableView;
+import 'package:collection/collection.dart' show IterableExtension;
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
@@ -260,11 +259,18 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   /// Returns a [List] of sub [UIComponent] deeply in the tree.
-  Iterable<UIComponent> get subUIComponentsDeeply =>
-      subUIComponents.expand((e) => CombinedIterableView([
-            [e],
-            e.subUIComponents
-          ]));
+  Iterable<UIComponent> get subUIComponentsDeeply sync* {
+    var subUIComponents = this.subUIComponents;
+    if (subUIComponents.isEmpty) {
+      return;
+    }
+
+    yield* subUIComponents;
+
+    for (var e in subUIComponents) {
+      yield* e.subUIComponentsDeeply;
+    }
+  }
 
   void _setParentUIComponent(UIComponent? uiParent) {
     if (uiParent != null) {
@@ -1345,6 +1351,7 @@ abstract class UIComponent extends UIEventHandler {
 
           // Improbable to happen, unless it's an odd browser:
           if (!containsContent) {
+            // If not already in the `parent`'s hierarchy:
             if (!parent.contains(content)) {
               parent.append(content);
             }
@@ -1353,6 +1360,7 @@ abstract class UIComponent extends UIEventHandler {
       } else {
         var appended = identical(content.parentNode, parent);
         if (!appended) {
+          // If not already in the `parent`'s hierarchy:
           if (!parent.contains(content)) {
             parent.append(content);
           }

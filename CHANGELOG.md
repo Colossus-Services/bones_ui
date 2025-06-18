@@ -1,7 +1,9 @@
 ## 2.5.16
 
 - `UIComponent`:
-  - Optimize `subUIComponentsDeeply` and `getRenderedUIComponents` returning `Iterable<UIComponent>`.
+  - Optimized `subUIComponentsDeeply` and `getRenderedUIComponents`
+    - Both now return `Iterable<UIComponent>`.
+    - `subUIComponentsDeeply` is optimized as a lazy `sync*` generator and recursively calls `subElem.subUIComponentsDeeply`.
   - Improve `_resolveUIRootComponent`.
   - `_callRenderImpl`: fix issue when `parent` is passed on constructor but it's already appended in a sub-element.
 
