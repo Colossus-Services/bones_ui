@@ -11,7 +11,6 @@ import 'package:stack_trace/stack_trace.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart' as pkg_test;
 import 'package:test/test.dart';
-
 // ignore: implementation_imports
 import 'package:test_api/src/backend/invoker.dart' as pkg_test_invoker;
 
@@ -1045,9 +1044,11 @@ abstract class UITestChain<
       var gZipEncoder = GZipEncoder();
       var compressed = gZipEncoder.encode(bytes);
 
-      var base64 = dart_convert.base64.encode(compressed);
-      msg =
-          '[$id]<<<<<<(GZIP: ${compressed.length}/${bytes.length})\n$base64\n>>>>>>$timeMs';
+      if (compressed != null) {
+        var base64 = dart_convert.base64.encode(compressed);
+        msg =
+            '[$id]<<<<<<(GZIP: ${compressed.length}/${bytes.length})\n$base64\n>>>>>>$timeMs';
+      }
     }
 
     msg ??= '[$id]<<<<<<\n$outerHtml\n>>>>>>$timeMs';

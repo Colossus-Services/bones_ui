@@ -5,8 +5,6 @@
   - Improve `_resolveUIRootComponent`.
   - `_callRenderImpl`: fix issue when `parent` is passed on constructor but it's already appended in a sub-element.
 
-- project_template: ^1.1.1
-- archive: ^4.0.7
 - test: ^1.26.2
 - test_api: ^0.7.6
 - test_core: ^0.6.11
