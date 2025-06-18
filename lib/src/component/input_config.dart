@@ -1,11 +1,10 @@
-import 'dart:html';
-
 import 'package:collection/collection.dart';
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:extended_type/extended_type.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import '../bones_ui_component.dart';
 import '../bones_ui_utils.dart';
@@ -241,18 +240,17 @@ class InputConfig {
     Element? element;
 
     if (_inputRender != null) {
-      var obj = _inputRender(this);
+      var obj = _inputRender(this) as Object?;
+      if (obj == null) return null;
 
-      if (obj == null) {
-        return null;
-      } else if (obj is UIComponent) {
+      if (obj is UIComponent) {
         inputComponent = obj;
-      } else if (obj is InputElement) {
-        inputElement = obj;
+      } else if (obj.asJSAny.isA<HTMLInputElement>()) {
+        inputElement = obj as HTMLInputElement;
       } else if (obj is DOMElement) {
         domeElement = obj;
-      } else if (obj is Element) {
-        element = obj;
+      } else if (obj.isElement) {
+        element = obj as Element;
       } else {
         throw StateError(
             "Can't handle input rendered object type: ${obj.runtimeType} > $obj");
@@ -275,7 +273,7 @@ class InputConfig {
     } else if (inputType == 'path') {
       element = _renderInputPath(inputID, inputValue);
     } else if (inputType == 'html') {
-      inputElement = createHTML(inputValue);
+      inputElement = createHTML(html: inputValue);
       inputElement.onClick.listen((event) {
         var value = inputElement!.getAttribute('element_value');
         if (isNotEmptyObject(value)) {
@@ -325,7 +323,7 @@ class InputConfig {
     if (containsIntlMessage(valText)) {
       var domSpan = $span(content: valText);
       var dom = domSpan.buildDOM(generator: UIComponent.domGenerator);
-      var text = dom?.text;
+      var text = dom?.textContent;
       return text;
     }
 
@@ -334,13 +332,14 @@ class InputConfig {
 
   void _configureElementStyle(Element inputElement) {
     if (isNotEmptyObject(classes)) {
-      inputElement.classes.addAll(classes);
+      inputElement.classList.addAll(classes);
     }
 
-    if (isNotEmptyObject(style)) {
-      var cssText = inputElement.style.cssText;
-      inputElement.style.cssText =
-          isNotEmptyObject(cssText) ? '$cssText ; $style' : style;
+    final style = this.style;
+    if (style != null && style.isNotEmpty) {
+      var cssText = inputElement.style?.cssText;
+      inputElement.style?.cssText =
+          cssText != null && cssText.isNotEmpty ? '$cssText ; $style' : style;
     }
   }
 
@@ -365,7 +364,7 @@ class InputConfig {
     }
   }
 
-  DivElement? _renderInputPath(String fieldName, String? inputValue) {
+  HTMLDivElement? _renderInputPath(String fieldName, String? inputValue) {
     var input = $input(style: 'width: auto', value: inputValue);
     DOMElement? button;
 
@@ -386,29 +385,29 @@ class InputConfig {
           }
           value ??= '';
 
-          var element = input.runtime.node as InputElement;
+          var element = input.runtime.node as HTMLInputElement;
           element.value = '$value';
-          element.dispatchEvent(Event('change'));
+          element.dispatchChangeEvent();
         });
     }
 
     var div = $div(content: [input, button])
         .buildDOM(generator: UIComponent.domGenerator);
 
-    return div as DivElement?;
+    return div as HTMLDivElement?;
   }
 
-  TextAreaElement _renderTextArea(Object? inputValue) {
+  HTMLTextAreaElement _renderTextArea(Object? inputValue) {
     var valText = _resolveValueText(inputValue);
-    var textArea = TextAreaElement()..style.width = '100%';
-    textArea.value = valText;
+    var textArea = HTMLTextAreaElement()..style.width = '100%';
+    textArea.value = valText ?? '';
     return textArea;
   }
 
   Element _renderGenericInput(String? inputType, Object? inputValue) {
     var valText = _resolveValueText(inputValue);
 
-    var input = InputElement()
+    var input = HTMLInputElement()
       ..type = inputType ?? 'text'
       ..value = valText ?? ''
       ..style.width = '100%';
@@ -424,8 +423,8 @@ class InputConfig {
     return input;
   }
 
-  SelectElement _renderSelect(Object? inputValue) {
-    var select = SelectElement()..style.maxWidth = '100%';
+  HTMLSelectElement _renderSelect(Object? inputValue) {
+    var select = HTMLSelectElement()..style.maxWidth = '100%';
 
     if (options != null && options!.isNotEmpty) {
       var inputValueStr = inputValue?.toString();
@@ -447,7 +446,9 @@ class InputConfig {
           optVal = optKey;
         }
 
-        var optionElement = OptionElement(data: optVal, value: optKey);
+        var optionElement = HTMLOptionElement()
+          ..text = optVal
+          ..value = optKey;
 
         if (selected) {
           optionElement.selected = selected;
@@ -458,7 +459,7 @@ class InputConfig {
     } else if (inputValue != null) {
       var s = _resolveValueText(inputValue);
       if (s != null && s.isNotEmpty) {
-        select.innerHtml = s;
+        select.innerHTML = s.toJS;
       }
     }
 
@@ -525,7 +526,7 @@ class UIInputTable extends UIComponent {
     var highlightClass = this.highlightClass;
 
     return forEachEmptyFieldElement(
-        (fieldElement) => fieldElement.classes.add(highlightClass));
+        (fieldElement) => fieldElement.classList.add(highlightClass));
   }
 
   int unhighlightErrorInputs() {
@@ -534,7 +535,7 @@ class UIInputTable extends UIComponent {
     var highlightClass = this.highlightClass;
 
     return forEachFieldElement((fieldElement) {
-      fieldElement.classes.remove(highlightClass);
+      fieldElement.classList.remove(highlightClass);
       var fieldName = getElementFieldName(fieldElement);
       _hideInvalidMessage(fieldName);
     });
@@ -543,10 +544,10 @@ class UIInputTable extends UIComponent {
   bool highlightField(String? fieldName, {String? invalidValueMessage}) {
     if (canHighlightInputs()) return false;
 
-    var fieldElement = getFieldElement(fieldName);
+    var fieldElement = getFieldElementNonTyped(fieldName);
     if (fieldElement == null) return false;
 
-    fieldElement.classes.add(highlightClass);
+    fieldElement.classList.add(highlightClass);
 
     if (showInvalidMessages && !isEmptyValue(invalidValueMessage)) {
       var msg = content!.querySelector('#__invalid_msg__$fieldName');
@@ -562,10 +563,10 @@ class UIInputTable extends UIComponent {
   bool unhighlightField(String fieldName) {
     if (canHighlightInputs()) return false;
 
-    var fieldElement = getFieldElement(fieldName);
+    var fieldElement = getFieldElementNonTyped(fieldName);
     if (fieldElement == null) return false;
 
-    fieldElement.classes.remove(highlightClass);
+    fieldElement.classList.remove(highlightClass);
 
     _hideInvalidMessage(fieldName);
 
@@ -601,9 +602,11 @@ class UIInputTable extends UIComponent {
         highlightField(fieldName, invalidValueMessage: invalidValueMessage);
 
         if (ok) {
-          var element = getFieldElement(fieldName);
-          if (element != null && scrollToInvalidElement) {
-            scrollToElement(element);
+          var element = getFieldElementNonTyped(fieldName);
+          if (element != null &&
+              element.isHTMLElement &&
+              scrollToInvalidElement) {
+            scrollToElement(element as HTMLElement);
           }
         }
 
@@ -633,15 +636,15 @@ class UIInputTable extends UIComponent {
 
   @override
   dynamic render() {
-    var form = FormElement();
+    var form = HTMLFormElement();
     form.style.width = '100%';
     form.autocomplete = 'off';
 
-    var table = TableElement();
+    var table = HTMLTableElement();
     table.style.width = '100%';
 
     if (_tableClasses.isNotEmpty) {
-      table.classes.addAll(_tableClasses);
+      table.classList.addAll(_tableClasses);
     }
 
     if (_tableStyle?.isNotEmpty ?? false) {
@@ -651,7 +654,7 @@ class UIInputTable extends UIComponent {
     var tBody = table.createTBody();
 
     for (var input in _inputs) {
-      var row = tBody.addRow();
+      var row = tBody.appendRow();
 
       if (showLabels) {
         var label = input.label ?? '';
@@ -661,7 +664,7 @@ class UIInputTable extends UIComponent {
           verticalAlign = 'top';
         }
 
-        var cell = row.addCell()
+        var cell = row.appendCell()
           ..style.verticalAlign = verticalAlign
           ..style.textAlign = 'right';
 
@@ -680,32 +683,35 @@ class UIInputTable extends UIComponent {
                 style: 'font-weight: bold',
                 content: [label, ':', '&nbsp;']);
             var dom = domLabel.buildDOM(generator: UIComponent.domGenerator)
-                as LabelElement;
-            cell.children.add(dom);
+                as HTMLLabelElement;
+            cell.appendChild(dom);
           } else {
-            cell.appendHtml(
+            cell.appendHTML(
                 '<label class="form-check-label" for="${input.id}"><b>$label:&nbsp;</b></label>');
           }
         }
       }
 
-      var celInput = row.addCell()..style.textAlign = 'left';
+      var celInput = row.appendCell()..style.textAlign = 'left';
 
-      var inputRendered = input.renderInput(getPreviousRenderedFieldValue);
+      var inputRendered =
+          input.renderInput(getPreviousRenderedFieldValue) as Object?;
 
-      if (inputRendered is Element) {
+      if (inputRendered.isElement) {
+        var inputRenderedElement = inputRendered as Element;
+
         if (_inputsClasses.isNotEmpty) {
-          inputRendered.classes.addAll(_inputsClasses);
+          (inputRenderedElement).classList.addAll(_inputsClasses);
         }
 
-        celInput.children.add(inputRendered);
+        celInput.appendChild(inputRenderedElement);
       } else if (inputRendered is UIComponent) {
         if (_inputsClasses.isNotEmpty) {
-          inputRendered.content?.classes.addAll(_inputsClasses);
+          inputRendered.content?.classList.addAll(_inputsClasses);
         }
 
         var div = createDiv();
-        celInput.children.add(div);
+        celInput.appendChild(div);
 
         inputRendered.setParent(div, parentUIComponent: this);
         inputRendered.ensureRendered();
@@ -721,16 +727,16 @@ class UIInputTable extends UIComponent {
       }
 
       if (showInvalidMessages) {
-        var msg = DivElement()
+        var msg = HTMLDivElement()
           ..id = '__invalid_msg__${input.fieldName}'
-          ..hidden = true;
+          ..hidden = true.toJS;
 
         var invalidValueClass = this.invalidValueClass;
         if (invalidValueClass != null) {
-          msg.classes.add(invalidValueClass);
+          msg.classList.add(invalidValueClass);
         }
 
-        celInput.children.add(msg);
+        celInput.appendChild(msg);
       }
     }
 
@@ -738,24 +744,24 @@ class UIInputTable extends UIComponent {
       var row = _resolveRow(r);
       if (row == null) continue;
 
-      if (row is TableRowElement) {
-        _addTableRow(table, row);
-      } else if (row is List<TableRowElement>) {
+      if (row.asJSAny.isA<HTMLTableRowElement>()) {
+        _addTableRow(table, row as HTMLTableRowElement);
+      } else if (row is List<HTMLTableRowElement>) {
         for (var r in row) {
           _addTableRow(table, r);
         }
-      } else if (row is List<TableCellElement>) {
-        var tr = table.addRow();
+      } else if (row is List<HTMLTableCellElement>) {
+        var tr = table.appendRow();
 
         for (var cell in row) {
           _addTableRowCell(tr, cell);
         }
       } else if (row is List<Element>) {
-        var tr = table.addRow();
+        var tr = table.appendRow();
 
         for (var cell in row) {
-          var td = tr.addCell();
-          td.children.add(cell);
+          var td = tr.appendCell();
+          td.appendChild(cell);
         }
       }
     }
@@ -765,24 +771,26 @@ class UIInputTable extends UIComponent {
     return form;
   }
 
-  void _addTableRow(TableElement table, TableRowElement row) {
-    var tr = table.addRow();
+  void _addTableRow(HTMLTableElement table, HTMLTableRowElement row) {
+    var tr = table.appendRow();
 
-    tr.attributes.addAll(row.attributes);
+    tr.setAttributes(row.attributes.toMap());
 
-    for (var cell in row.cells) {
-      _addTableRowCell(tr, cell);
+    for (var cell in row.cells.toList()) {
+      if (cell.isA<HTMLTableCellElement>()) {
+        _addTableRowCell(tr, cell as HTMLTableCellElement);
+      }
     }
   }
 
-  void _addTableRowCell(TableRowElement tr, TableCellElement cell) {
-    var td = tr.addCell();
-    td.attributes.addAll(cell.attributes);
+  void _addTableRowCell(HTMLTableRowElement tr, HTMLTableCellElement cell) {
+    var td = tr.appendCell();
+    td.setAttributes(cell.attributes.toMap());
 
     var children = cell.children.toList();
-    cell.children.clear();
+    cell.clear();
 
-    td.children.addAll(children);
+    td.appendNodes(children);
 
     for (var element in children) {
       UIComponent.resolveParentUIComponent(
@@ -832,15 +840,16 @@ class UIInputTable extends UIComponent {
     }
 
     if (table != null) {
-      var dom =
-          table.buildDOM(generator: UIComponent.domGenerator) as TableElement;
+      var dom = table.buildDOM(generator: UIComponent.domGenerator)
+          as HTMLTableElement;
       var trs = dom.rows.toList();
       if (trs.isEmpty) return null;
       return trs.length == 1 ? trs.first : trs;
     }
 
     var div = $div(content: nodes);
-    var dom = div.buildDOM(generator: UIComponent.domGenerator) as DivElement;
+    var dom =
+        div.buildDOM(generator: UIComponent.domGenerator) as HTMLDivElement;
     return dom.children.toList();
   }
 
@@ -892,7 +901,7 @@ class UIInputTable extends UIComponent {
 
         elem.onFocus.listen((event) {
           var element = event.target;
-          if (element is Element) {
+          if (element.isElement) {
             onInputFocus.add(element);
           }
         });
@@ -935,10 +944,10 @@ class UIInputTable extends UIComponent {
     var onActionListener = inputConfig?.onActionListener;
 
     if (onActionListener != null) {
-      if (elem is ButtonElement) {
+      if (elem.isA<HTMLButtonElement>()) {
         elem.onClick.listen(onActionListener);
-      } else if (elem is InputElement) {
-        var type = elem.type;
+      } else if (elem.isA<HTMLInputElement>()) {
+        var type = (elem as HTMLInputElement).type;
 
         if (type == 'submit' || type == 'reset' || type == 'checkbox') {
           elem.onClick.listen(onActionListener);
@@ -953,7 +962,7 @@ class UIInputTable extends UIComponent {
             interactionCompleter.onComplete.listen(onActionListener);
           }
         }
-      } else if (elem is TextAreaElement) {
+      } else if (elem.isA<HTMLTextAreaElement>()) {
         interactionCompleter.onComplete.listen(onActionListener);
       } else {
         elem.onClick.listen(onActionListener);

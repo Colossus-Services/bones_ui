@@ -1,11 +1,12 @@
 import 'dart:convert' as dart_convert;
 
+import 'package:bones_ui/src/component/json_render.dart';
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
-import 'package:json_render/json_render.dart';
 import 'package:mercury_client/mercury_client.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 import 'package:yaml/yaml.dart';
 
 import 'bones_ui_component.dart';
@@ -171,7 +172,7 @@ abstract class ConfigDocument {
 }
 
 class YAMLConfigDocument extends ConfigDocument {
-  dynamic _document;
+  Object? _document;
 
   YAMLConfigDocument(YamlDocument document) {
     _document = deepCopy(document.contents.value);
@@ -181,13 +182,16 @@ class YAMLConfigDocument extends ConfigDocument {
 
   @override
   dynamic get(String key, [dynamic def]) {
-    return findKeyValue<dynamic, dynamic>(_document, [key], true) ?? def;
+    var document = _document;
+    if (document is! Map) return def;
+    return findKeyValue<dynamic, dynamic>(document, [key], true) ?? def;
   }
 
   YamlNode asYamlNode() {
-    if (_document is Map) return YamlMap.wrap(_document);
-    if (_document is List) return YamlList.wrap(_document);
-    return YamlScalar.wrap(_document);
+    var document = _document;
+    if (document is Map) return YamlMap.wrap(document);
+    if (document is List) return YamlList.wrap(document);
+    return YamlScalar.wrap(document);
   }
 
   @override
@@ -197,7 +201,7 @@ class YAMLConfigDocument extends ConfigDocument {
 }
 
 class JSONConfigDocument extends ConfigDocument {
-  dynamic _document;
+  Object? _document;
 
   JSONConfigDocument(this._document);
 
@@ -208,7 +212,9 @@ class JSONConfigDocument extends ConfigDocument {
 
   @override
   dynamic get(String key, [dynamic def]) {
-    return findKeyValue<dynamic, dynamic>(_document, [key], true) ?? def;
+    var document = _document;
+    if (document is! Map) return def;
+    return findKeyValue<dynamic, dynamic>(document, [key], true) ?? def;
   }
 
   @override
@@ -346,7 +352,7 @@ class UIExplorer extends UIComponentAsync {
     var modelType = model.modelType;
     if (modelType.isEmpty) return null;
 
-    content!.classes.add('$componentClass-$modelType');
+    content!.classList.add('$componentClass-$modelType');
 
     if (modelType == 'document') {
       return await renderDocument();
@@ -411,11 +417,7 @@ class UIExplorer extends UIComponentAsync {
       div.style.overflowWrap = 'break-word';
       return div;
     } else if (language == 'json') {
-      var jsonRender = JSONRender.fromJSONAsString(urlContent);
-      jsonRender.addAllKnownTypeRenders();
-      var div = jsonRender.render();
-      div.style.overflowWrap = 'break-word';
-      return div;
+      return UIJsonRender(null, json: urlContent);
     }
 
     return urlContent;
@@ -545,7 +547,7 @@ class _UIExplorerCatalog extends UIComponent {
     var response = await httpRequester.doRequest();
 
     if (response == null) {
-      var elementError = getFieldElement('send-error')!;
+      var elementError = getFieldElementNonTyped('send-error')!;
       elementError.hidden = false;
     } else {
       refresh();
@@ -658,16 +660,16 @@ class _ViewerRender {
   _ViewerRender(this.config);
 
   Future<dynamic> render(
-      UIElement? output, String? contentType, dynamic content) async {
+      UIElement? output, String? contentType, Object? content) async {
     var type = config.getPropertyAsStringTrimLC('type', 'html');
 
     if (type == 'html') {
-      if (content is UINode) {
+      if (content.isNode) {
         return content;
       } else if (content is DOMElement) {
         return content;
       } else {
-        return createHTML('$content');
+        return createHTML(html: '$content');
       }
     } else if (type == 'json') {
       return renderJson(output, contentType, content);
@@ -677,27 +679,6 @@ class _ViewerRender {
   }
 
   dynamic renderJson(UIElement? output, String? contentType, dynamic content) {
-    var jsonRender = content is String
-        ? JSONRender.fromJSONAsString(content)
-        : JSONRender.fromJSON(content);
-
-    var mode = config.getPropertyAsStringTrimLC('mode');
-
-    if (mode == 'input') {
-      jsonRender.renderMode = JSONRenderMode.input;
-    } else if (mode == 'view') {
-      jsonRender.renderMode = JSONRenderMode.view;
-    }
-
-    jsonRender.addAllKnownTypeRenders();
-
-    var showNodeArrow = config.getPropertyAsBool('show_node_arrow', true)!;
-    var showNodeOpenerAndCloser =
-        config.getPropertyAsBool('show_node_opener_and_closer', true)!;
-
-    jsonRender.showNodeArrow = showNodeArrow;
-    jsonRender.showNodeOpenerAndCloser = showNodeOpenerAndCloser;
-
-    return jsonRender.render();
+    return UIJsonRender(null, json: content);
   }
 }

@@ -1,7 +1,7 @@
 name: Dart CI
 
 env:
-  DART_VERSION: "3.6.2"
+  DART_VERSION: "latest"
 
 on:
   push:
@@ -74,8 +74,10 @@ jobs:
         run: dart pub get
       - name: Upgrade dependencies
         run: dart pub upgrade
-      - name: Run tests (Chrome)
-        run: dart test --platform chrome --coverage=./coverage
+      - name: Run tests (Chrome Wasm)
+        run: dart test --platform chrome --compiler dart2wasm
+      - name: Run tests (Chrome JS)
+        run: dart test --platform chrome --compiler dart2js --coverage=./coverage
       - name: Generate coverage report
         run: |
           dart pub global activate coverage

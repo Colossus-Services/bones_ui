@@ -1,11 +1,8 @@
-import 'dart:async';
 import 'dart:convert' as dart_convert;
-import 'dart:html' as dart_html;
-import 'dart:html';
-import 'dart:js' as js;
 import 'dart:math';
 
 import 'package:archive/archive.dart';
+import 'package:bones_ui/bones_ui_kit.dart';
 import 'package:collection/collection.dart';
 import 'package:stack_trace/stack_trace.dart';
 import 'package:stream_channel/stream_channel.dart';
@@ -13,13 +10,8 @@ import 'package:test/test.dart' as pkg_test;
 import 'package:test/test.dart';
 // ignore: implementation_imports
 import 'package:test_api/src/backend/invoker.dart' as pkg_test_invoker;
+import 'package:web_utils/web_utils.dart' as web;
 
-import 'bones_ui.dart';
-import 'bones_ui_base.dart';
-import 'bones_ui_component.dart';
-import 'bones_ui_extension.dart';
-import 'bones_ui_navigator.dart';
-import 'bones_ui_root.dart';
 import 'bones_ui_web.dart';
 
 const bonesUiTestToolTitle = 'Bones_UI/${BonesUI.version} - Test';
@@ -74,10 +66,13 @@ Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
 
   clearTestUIOutputDiv(outputDivID);
 
-  document.body!.appendHtml('<div id="$outputDivID"></div>');
+  document.body!.appendHTML('<div id="$outputDivID"></div>');
 
-  var output = querySelector('#$outputDivID');
-  output!.children.clear();
+  var output = document.querySelector('#$outputDivID') ??
+      (throw StateError(
+          "Can't select #$outputDivID: the appended output DIV added to body is missing!"));
+
+  output.clear();
 
   // Reset the URL route/fragment.
   // Usually the browser test plugin adds some parameters in the URL fragment.
@@ -91,7 +86,8 @@ Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
           ? locationUrl.removeFragment().toString()
           : locationHref;
 
-      window.history.pushState({}, 'Test UIRoot: init', locationUrlReset);
+      window.history
+          .pushState(JSObject(), 'Test UIRoot: init', locationUrlReset);
 
       print('-- Removed URL fragment> ${Uri.decodeFull(fragment)}');
     }
@@ -100,7 +96,7 @@ Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
   var uiRoot = uiRootInstantiator(output);
   print('-- Instantiated: $uiRoot');
 
-  uiRoot.content!.classes.add('__bones_ui_test__');
+  uiRoot.content!.classList.add('__bones_ui_test__');
 
   uiRoot.initialize();
 
@@ -124,8 +120,8 @@ Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
 /// Used by [initializeTestUIRoot].
 /// See [testUI].
 void clearTestUIOutputDiv(String outputDivID) {
-  var prevOutputs = querySelectorAll('#$outputDivID');
-  for (var e in prevOutputs) {
+  var prevOutputs = document.querySelectorAll('#$outputDivID');
+  for (var e in prevOutputs.toList()) {
     e.remove();
   }
 }
@@ -324,8 +320,10 @@ Future<bool> testUISleepUntilElement(Object? root, String selectors,
     bool expected = false}) {
   root ??= document.documentElement;
 
-  if (root is! UIElement && root is! UIComponent) {
-    throw ArgumentError("`root` is not an `UIElement` or `UIComponent`");
+  var rootJSAny = root.asJSAny;
+
+  if (!rootJSAny.isA<Element>() && root is! UIComponent) {
+    throw ArgumentError("`root` is not an `web.Element` or `UIComponent`");
   }
 
   var stackTrace = StackTrace.current;
@@ -384,7 +382,7 @@ class SpawnHybrid {
 
   @override
   String toString() {
-    return 'SpawnHibrid{uri: $uri, message: $message}';
+    return 'SpawnHybrid{uri: $uri, message: $message}';
   }
 }
 
@@ -420,7 +418,7 @@ Future<void> testMultipleUI(Map<String, FutureOr<void> Function()> testsMain,
     var random = Random(shuffleSeed);
     entries.shuffle(random);
 
-    print('testMultipleUI> shuflle(shuffleSeed: $shuffleSeed)');
+    print('testMultipleUI> shuffle(shuffleSeed: $shuffleSeed)');
   }
 
   print('testMultipleUI:');
@@ -440,15 +438,15 @@ Future<void> testMultipleUI(Map<String, FutureOr<void> Function()> testsMain,
   }
 }
 
-/// Executes a group of tests using an instnatiated [UIRoot].
+/// Executes a group of tests using an instantiated [UIRoot].
 ///
 /// - [testUIName] is the name of the test group.
-/// - [uiRootInstantiator] is the function that isntantiates the [UIRoot].
+/// - [uiRootInstantiator] is the function that instantiates the [UIRoot].
 /// - [body] is the function that will declare the [test]s for the [UIRoot].
 /// - [outputDivID] defines the ID of the `div` that will render the [UIRoot].
 /// - [initialRenderTimeout] is the timeout for the initial render. See [initializeTestUIRoot].
 /// - If [spawnHybrid] is provided it will spawn a VM isolate for the given [uri]. See function [spawnHybridUri].
-/// - [preSetup] and [posSetup] are optinal and are called before and after the group [setUpAll].
+/// - [preSetup] and [posSetup] are optional and are called before and after the group [setUpAll].
 /// - [teardown] is called after the group [tearDownAll].
 /// - See [UITestContext].
 ///
@@ -656,11 +654,9 @@ class UITestContext<U extends UIRoot> {
     var title = parts.where((e) => e.isNotEmpty).join(' ');
 
     try {
-      js.context.callMethod("eval", [
-        '''
+      evalJS('''
         window.top.document.title = "$title";
-      '''
-      ]);
+      ''');
     } catch (_) {}
   }
 
@@ -698,8 +694,8 @@ abstract class UITestChain<
 
   bool get isNotNull => element != null;
 
-  UITestChainNode<U, Element, T> get document => UITestChainNode(
-      testChainRoot, dart_html.document.documentElement!, this as T);
+  UITestChainNode<U, Element, T> get document =>
+      UITestChainNode(testChainRoot, web.document.documentElement!, this as T);
 
   T exists() =>
       expect(element, pkg_test.isNotNull, reason: "Null element ($E)");
@@ -800,17 +796,24 @@ abstract class UITestChain<
           .thenChain((_) => this as T);
 
   /// Alias to [Element.querySelector] or [UIComponent.querySelector].
-  UITestChainNode<U, Element?, T> querySelector(String? selectors,
+  UITestChainNode<U, Element?, T> select(String? selectors,
+          {bool expected = false}) =>
+      querySelectorNonTyped(selectors, expected: expected);
+
+  /// Alias to [Element.querySelector] or [UIComponent.querySelector].
+  UITestChainNode<U, Element?, T> querySelectorNonTyped(String? selectors,
       {bool expected = false}) {
     var e = element;
 
     Element? elem;
     if (e is UIComponent) {
-      elem = e.querySelector(selectors);
-    } else if (e is Element) {
-      elem = selectors != null ? e.querySelector(selectors) : null;
+      elem = e.querySelectorNonTyped(selectors);
+    } else if (e.isElement) {
+      elem = selectors != null
+          ? (e.asJSAny as Element).querySelector(selectors)
+          : null;
     } else {
-      elem = uiRoot.querySelector(selectors);
+      elem = uiRoot.querySelectorNonTyped(selectors);
     }
 
     if (expected) {
@@ -821,23 +824,63 @@ abstract class UITestChain<
     return UITestChainNode(testChainRoot, elem, this as T);
   }
 
-  /// Alias to [UIComponent.querySelectorAll].
-  UITestChainNode<U, List<O>, T> querySelectorAll<O extends Element>(
+  /// Alias to [Element.querySelector] or [UIComponent.querySelector], filtered by [webType].
+  UITestChainNode<U, W?, T> selectTyped<W extends Element>(
+          String? selectors, web.Web<W> webType,
+          {bool expected = false}) =>
+      querySelectorTyped(selectors, webType, expected: expected);
+
+  /// Alias to [Element.querySelector] or [UIComponent.querySelector], filtered by [webType].
+  UITestChainNode<U, W?, T> querySelectorTyped<W extends Element>(
+      String? selectors, web.Web<W> webType,
+      {bool expected = false}) {
+    var e = element;
+
+    W? elem;
+    if (e is UIComponent) {
+      elem = e.querySelectorTyped<W>(selectors, webType);
+    } else if (e.isElement) {
+      elem = selectors != null
+          ? (e.asJSAny as Element).querySelectorTyped<W>(selectors, webType)
+          : null;
+    } else {
+      elem = uiRoot.querySelectorTyped<W>(selectors, webType);
+    }
+
+    if (expected) {
+      expect(elem, pkg_test.isNotNull,
+          reason: "Can't find selected element: $selectors");
+    }
+
+    return UITestChainNode(testChainRoot, elem, this as T);
+  }
+
+  /// Alias to [Element.querySelectorAll] or [UIComponent.querySelectorAll].
+  UITestChainNode<U, List<Element>, T> selectAll(String? selectors,
+          {bool expected = false}) =>
+      querySelectorAllNonTyped(selectors, expected: expected);
+
+  /// Alias to [Element.querySelectorAll] or [UIComponent.querySelectorAll].
+  UITestChainNode<U, List<Element>, T> querySelectorAllNonTyped(
       String? selectors,
       {bool expected = false}) {
     var e = element;
 
-    List<O> elems;
+    List<Element> elems;
     if (e is UIComponent) {
-      elems = e.querySelectorAll<O>(selectors);
-    } else if (e is Element) {
-      elems = selectors != null ? e.querySelectorAll<O>(selectors) : <O>[];
+      elems = e.querySelectorAllNonTyped(selectors);
+    } else if (e.isElement) {
+      elems = selectors != null
+          ? (e.asJSAny as Element).querySelectorAll(selectors).toElements()
+          : <Element>[];
     } else if (e is Iterable<Element>) {
       elems = selectors != null
-          ? e.expand((e) => e.querySelectorAll<O>(selectors)).toList()
-          : <O>[];
+          ? e
+              .expand((e) => e.querySelectorAll(selectors).toIterable())
+              .toElements()
+          : <Element>[];
     } else {
-      elems = uiRoot.querySelectorAll<O>(selectors);
+      elems = uiRoot.querySelectorAllNonTyped(selectors);
     }
 
     if (expected) {
@@ -848,29 +891,82 @@ abstract class UITestChain<
     return UITestChainNode(testChainRoot, elems, this as T);
   }
 
-  /// Alias to [querySelector].
-  UITestChainNode<U, Element?, T> select(String? selectors,
+  /// Alias to [UIComponent.querySelectorAll].
+  UITestChainNode<U, List<O>, T> selectAllTyped<O extends Element>(
+          String? selectors, Web<O> webType,
           {bool expected = false}) =>
-      querySelector(selectors, expected: expected);
+      querySelectorAllTyped(selectors, webType, expected: expected);
 
-  /// Alias to [querySelector].
+  /// Alias to [UIComponent.querySelectorAll].
+  UITestChainNode<U, List<O>, T> querySelectorAllTyped<O extends Element>(
+      String? selectors, Web<O> webType,
+      {bool expected = false}) {
+    var e = element;
+
+    List<O> elems;
+    if (e is UIComponent) {
+      elems = e.querySelectorAllTyped<O>(selectors, webType);
+    } else if (e.isElement) {
+      elems = selectors != null
+          ? (e.asJSAny as Element)
+              .querySelectorAll(selectors)
+              .whereElementType<O>(webType)
+              .toList()
+          : <O>[];
+    } else if (e is Iterable<Element>) {
+      elems = selectors != null
+          ? e
+              .expand((e) => e.querySelectorAll(selectors).toIterable())
+              .whereElementType<O>(webType)
+              .toList()
+          : <O>[];
+    } else {
+      elems = uiRoot.querySelectorAllTyped<O>(selectors, webType);
+    }
+
+    if (expected) {
+      expect(elems.isNotEmpty, isTrue,
+          reason: "Can't find selected elements: $selectors");
+    }
+
+    return UITestChainNode(testChainRoot, elems, this as T);
+  }
+
+  /// Same as [selectTyped] with `expected: true`, but [W] is non-null.
+  UITestChainNode<U, W, T> selectTypedExpected<W extends Element>(
+      String? selectors, web.Web<W> webType) {
+    var o = querySelectorTyped(selectors, webType, expected: true);
+    return UITestChainNode<U, W, T>(o.testChainRoot, o.element!, o.parent);
+  }
+
+  /// Alias to [select] with `expected: true`.
   UITestChainNode<U, Element, T> selectExpected(String? selectors) {
-    var o = querySelector(selectors, expected: true);
+    var o = select(selectors, expected: true);
     return UITestChainNode<U, Element, T>(
         o.testChainRoot, o.element!, o.parent);
   }
 
-  /// Alias to [querySelectorAll].
-  UITestChainNode<U, List<O>, T> selectAll<O extends Element>(String? selectors,
-          {bool expected = false}) =>
-      querySelectorAll<O>(selectors, expected: expected);
-
   /// Alias to [querySelectorAll] + `where`.
-  UITestChainNode<U, List<O>, T> selectWhere<O extends Element>(
+  UITestChainNode<U, List<Element>, T> selectWhere(
       String? selectors, bool Function(Element element) test,
       {bool expected = false}) {
-    var sel = querySelectorAll(selectors);
-    var elems = sel.element.whereType<O>().where(test).toList();
+    var sel = querySelectorAllNonTyped(selectors);
+    var elems = sel.element.where(test).toList();
+
+    if (expected) {
+      expect(elems.isNotEmpty, isTrue,
+          reason: "Can't find selected elements: $selectors");
+    }
+
+    return UITestChainNode(testChainRoot, elems, this as T);
+  }
+
+  /// Alias to [querySelectorAll] + `where`.
+  UITestChainNode<U, List<O>, T> selectWhereTyped<O extends Element>(
+      String? selectors, Web<O> webType, bool Function(Element element) test,
+      {bool expected = false}) {
+    var sel = querySelectorAllTyped(selectors, webType);
+    var elems = sel.element.where(test).toList();
 
     if (expected) {
       expect(elems.isNotEmpty, isTrue,
@@ -881,10 +977,25 @@ abstract class UITestChain<
   }
 
   /// Alias to [querySelectorAll] + `firstWhereOrNull`.
-  UITestChainNode<U, O?, T> selectFirstWhere<O extends Element>(
+  UITestChainNode<U, Element?, T> selectFirstWhere(
       String? selectors, bool Function(Element element) test,
       {bool expected = false}) {
-    var sel = querySelectorAll<O>(selectors);
+    var sel = querySelectorAllNonTyped(selectors);
+    var elem = sel.element.firstWhereOrNull(test);
+
+    if (expected) {
+      expect(elem, pkg_test.isNotNull,
+          reason: "Can't find selected element: $selectors");
+    }
+
+    return UITestChainNode(testChainRoot, elem, this as T);
+  }
+
+  /// Alias to [querySelectorAll] + `firstWhereOrNull`.
+  UITestChainNode<U, O?, T> selectFirstWhereTyped<O extends Element>(
+      String? selectors, Web<O> webType, bool Function(Element element) test,
+      {bool expected = false}) {
+    var sel = querySelectorAllTyped<O>(selectors, webType);
     var elem = sel.element.whereType<O>().firstWhereOrNull(test);
 
     if (expected) {
@@ -896,7 +1007,7 @@ abstract class UITestChain<
   }
 
   /// Alias to [sleepUntilElement] + [querySelectorAll] + `where`.
-  Future<UITestChainNode<U, List<O>, T>> selectWhereUntil<O extends Element>(
+  Future<UITestChainNode<U, List<Element>, T>> selectWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
@@ -909,7 +1020,7 @@ abstract class UITestChain<
               minMs: minMs,
               mapper: mapper,
               validator: (elems) => elems.any(test))
-          .selectWhere<O>(selectors, test)
+          .selectWhere(selectors, test)
           .thenChain((o) {
         if (expected) {
           var sel =
@@ -918,11 +1029,41 @@ abstract class UITestChain<
           expect(o.element, pkg_test.isNotEmpty,
               reason: "Can't find any selected element: $selectors -> $sel");
         }
-        return o as UITestChainNode<U, List<O>, T>;
+        return o as UITestChainNode<U, List<Element>, T>;
       });
 
+  /// Alias to [sleepUntilElement] + [querySelectorAll] + `where`.
+  Future<UITestChainNode<U, List<O>, T>>
+      selectWhereUntilTyped<O extends Element>(String? selectors,
+              Web<O> webType, bool Function(Element element) test,
+              {int? timeoutMs,
+              int? intervalMs,
+              int? minMs,
+              Iterable<Element> Function(List<Element> elems)? mapper,
+              bool expected = false}) =>
+          sleepUntilElement(selectors ?? '*',
+                  timeoutMs: timeoutMs,
+                  intervalMs: intervalMs,
+                  minMs: minMs,
+                  mapper: mapper,
+                  validator: (elems) => elems.any(test))
+              .selectWhereTyped<O>(selectors, webType, test)
+              .thenChain((o) {
+            if (expected) {
+              var sel = selectAllTyped(selectors, webType)
+                  .element
+                  .map((e) => e.simplify())
+                  .toList();
+
+              expect(o.element, pkg_test.isNotEmpty,
+                  reason:
+                      "Can't find any selected element: $selectors -> $sel");
+            }
+            return o as UITestChainNode<U, List<O>, T>;
+          });
+
   /// Alias to [sleepUntilElement] + [querySelectorAll] + `firstWhereOrNull`.
-  Future<UITestChainNode<U, O, T>> selectFirstWhereUntil<O extends Element>(
+  Future<UITestChainNode<U, Element, T>> selectFirstWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
@@ -934,7 +1075,7 @@ abstract class UITestChain<
               minMs: minMs,
               mapper: mapper,
               validator: (elems) => elems.any(test))
-          .selectFirstWhere<O>(selectors, test)
+          .selectFirstWhere(selectors, test)
           .thenChain((o) {
         var elem = o.element;
         if (elem == null) {
@@ -944,13 +1085,42 @@ abstract class UITestChain<
           expect(elem, pkg_test.isNotNull,
               reason: "Can't find selected element: $selectors -> $sel");
         }
-        return UITestChainNode<U, O, T>(
+        return UITestChainNode<U, Element, T>(
             o.testChainRoot as UITestChainRoot<U>, elem!, this as T);
       });
 
+  /// Alias to [sleepUntilElement] + [querySelectorAll] + `firstWhereOrNull`.
+  Future<UITestChainNode<U, O, T>>
+      selectFirstWhereUntilTyped<O extends Element>(String? selectors,
+              Web<O> webType, bool Function(Element element) test,
+              {int? timeoutMs,
+              int? intervalMs,
+              int? minMs,
+              Iterable<Element> Function(List<Element> elems)? mapper}) =>
+          sleepUntilElement(selectors ?? '*',
+                  timeoutMs: timeoutMs,
+                  intervalMs: intervalMs,
+                  minMs: minMs,
+                  mapper: mapper,
+                  validator: (elems) => elems.any(test))
+              .selectFirstWhereTyped<O>(selectors, webType, test)
+              .thenChain((o) {
+            var elem = o.element;
+            if (elem == null) {
+              var sel = selectAllTyped(selectors, webType)
+                  .element
+                  .map((e) => e.simplify())
+                  .toList();
+
+              expect(elem, pkg_test.isNotNull,
+                  reason: "Can't find selected element: $selectors -> $sel");
+            }
+            return UITestChainNode<U, O, T>(
+                o.testChainRoot as UITestChainRoot<U>, elem!, this as T);
+          });
+
   /// Alias to [sleepUntilElement] + [querySelectorAll]
-  Future<UITestChainNode<U, O, T>> selectUntil<O extends Element>(
-          String? selectors,
+  Future<UITestChainNode<U, Element, T>> selectUntil(String? selectors,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
@@ -963,9 +1133,28 @@ abstract class UITestChain<
           .selectExpected(selectors)
           .then((o) {
         var elem = o.element;
-        if (elem is! O) {
+        return UITestChainNode<U, Element, T>(
+            o.testChainRoot as UITestChainRoot<U>, elem, this as T);
+      });
+
+  /// Alias to [sleepUntilElement] + [querySelectorAll]
+  Future<UITestChainNode<U, O, T>> selectUntilTyped<O extends Element>(
+          String? selectors, Web<O> webType,
+          {int? timeoutMs,
+          int? intervalMs,
+          int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper}) =>
+      sleepUntilElement(selectors ?? '*',
+              timeoutMs: timeoutMs,
+              intervalMs: intervalMs,
+              minMs: minMs,
+              mapper: mapper)
+          .selectExpected(selectors)
+          .then((o) {
+        var elem = o.element;
+        if (!elem.isElementOf<O>(webType)) {
           expect(elem, pkg_test.isA<O>(),
-              reason: "Selected element not of type `$O`: $elem");
+              reason: "Selected element not of type `$webType`: $elem");
         }
 
         return UITestChainNode<U, O, T>(
@@ -1033,7 +1222,7 @@ abstract class UITestChain<
         .trim()
         .replaceAll(RegExp(r'\s'), '_');
 
-    var outerHtml = context.document.element.outerHtml ?? '';
+    var outerHtml = context.document.element.outerHTML.asString;
     var timeMs = DateTime.now().millisecondsSinceEpoch;
 
     String? msg;
@@ -1044,11 +1233,9 @@ abstract class UITestChain<
       var gZipEncoder = GZipEncoder();
       var compressed = gZipEncoder.encode(bytes);
 
-      if (compressed != null) {
-        var base64 = dart_convert.base64.encode(compressed);
-        msg =
-            '[$id]<<<<<<(GZIP: ${compressed.length}/${bytes.length})\n$base64\n>>>>>>$timeMs';
-      }
+      var base64 = dart_convert.base64.encode(compressed);
+      msg =
+          '[$id]<<<<<<(GZIP: ${compressed.length}/${bytes.length})\n$base64\n>>>>>>$timeMs';
     }
 
     msg ??= '[$id]<<<<<<\n$outerHtml\n>>>>>>$timeMs';
@@ -1197,14 +1384,14 @@ extension UITestChainElementExtension<
     T extends UITestChain<U, E, P, T>> on T {
   String? get text => element?.text;
 
-  String? get innerHtml => element?.innerHtml;
+  String? get innerHtml => element?.innerHTML.asString;
 
-  String? get outerHtml => element?.outerHtml;
+  String? get outerHtml => element?.outerHTML.asString;
 }
 
 extension UITestChainSelectElementExtension<
     U extends UIRoot,
-    E extends SelectElement?,
+    E extends HTMLSelectElement?,
     O,
     P extends UITestChain<U, O, dynamic, dynamic>,
     T extends UITestChain<U, E, P, T>> on T {
@@ -1414,63 +1601,133 @@ extension FutureUITestChainExtension<
   Future<T> sleep({int? frames, int? ms}) =>
       then((o) => o.sleep(frames: frames, ms: ms));
 
-  Future<UITestChainNode<U, Element?, T>> querySelector(String? selectors,
-          {bool expected = false}) =>
-      thenChain((o) => o.querySelector(selectors, expected: expected));
-
-  Future<UITestChainNode<U, List<Q>, T>> querySelectorAll<Q extends Element>(
+  Future<UITestChainNode<U, Element?, T>> querySelectorNonTyped(
           String? selectors,
           {bool expected = false}) =>
-      thenChain((o) => o.querySelectorAll<Q>(selectors, expected: expected));
+      thenChain((o) => o.querySelectorNonTyped(selectors, expected: expected));
+
+  Future<UITestChainNode<U, W?, T>> querySelectorTyped<W extends Element>(
+          String? selectors, web.Web<W> webType, {bool expected = false}) =>
+      thenChain(
+          (o) => o.querySelectorTyped(selectors, webType, expected: expected));
+
+  Future<UITestChainNode<U, List<Element>, T>> querySelectorAllNonTyped(
+          String? selectors,
+          {bool expected = false}) =>
+      thenChain(
+          (o) => o.querySelectorAllNonTyped(selectors, expected: expected));
+
+  Future<UITestChainNode<U, List<Q>, T>>
+      querySelectorAllTyped<Q extends Element>(
+              String? selectors, Web<Q> webType, {bool expected = false}) =>
+          thenChain((o) => o.querySelectorAllTyped<Q>(selectors, webType,
+              expected: expected));
 
   Future<UITestChainNode<U, Element?, T>> select(String? selectors,
           {bool expected = false}) =>
       thenChain((o) => o.select(selectors, expected: expected));
 
+  Future<UITestChainNode<U, W?, T>> selectTyped<W extends Element>(
+          String? selectors, web.Web<W> webType, {bool expected = false}) =>
+      thenChain(
+          (o) => o.selectTyped<W>(selectors, webType, expected: expected));
+
   Future<UITestChainNode<U, Element, T>> selectExpected(String? selectors) =>
       thenChain((o) => o.selectExpected(selectors));
 
-  Future<UITestChainNode<U, List<Q>, T>> selectAll<Q extends Element>(
-          String? selectors,
-          {bool expected = false}) =>
-      thenChain((o) => o.selectAll<Q>(selectors, expected: expected));
+  Future<UITestChainNode<U, W, T>> selectTypedExpected<W extends Element>(
+          String? selectors, web.Web<W> webType) =>
+      thenChain((o) => o.selectTypedExpected<W>(selectors, webType));
 
-  Future<UITestChainNode<U, List<Q>, T>> selectWhere<Q extends Element>(
-          String? selectors, bool Function(Element element) test,
+  Future<UITestChainNode<U, List<Element>, T>> selectAll(String? selectors,
           {bool expected = false}) =>
-      thenChain((o) => o.selectWhere<Q>(selectors, test, expected: expected));
+      thenChain((o) => o.selectAll(selectors, expected: expected));
 
-  Future<UITestChainNode<U, Q?, T>> selectFirstWhere<Q extends Element>(
-          String? selectors, bool Function(Element element) test,
-          {bool expected = false}) =>
+  Future<UITestChainNode<U, List<Q>, T>> selectAllTyped<Q extends Element>(
+          String? selectors, Web<Q> webType, {bool expected = false}) =>
       thenChain(
-          (o) => o.selectFirstWhere<Q>(selectors, test, expected: expected));
+          (o) => o.selectAllTyped<Q>(selectors, webType, expected: expected));
 
-  Future<UITestChainNode<U, List<Q>, T>> selectWhereUntil<Q extends Element>(
+  Future<UITestChainNode<U, List<Element>, T>> selectWhere<Q extends Element>(
+          String? selectors, bool Function(Element element) test,
+          {bool expected = false}) =>
+      thenChain((o) => o.selectWhere(selectors, test, expected: expected));
+
+  Future<UITestChainNode<U, List<Q>, T>> selectWhereTyped<Q extends Element>(
+          String? selectors,
+          Web<Q> webType,
+          bool Function(Element element) test,
+          {bool expected = false}) =>
+      thenChain((o) =>
+          o.selectWhereTyped<Q>(selectors, webType, test, expected: expected));
+
+  Future<UITestChainNode<U, Element?, T>> selectFirstWhere(
+          String? selectors, bool Function(Element element) test,
+          {bool expected = false}) =>
+      thenChain((o) => o.selectFirstWhere(selectors, test, expected: expected));
+
+  Future<UITestChainNode<U, Q?, T>> selectFirstWhereTyped<Q extends Element>(
+          String? selectors,
+          Web<Q> webType,
+          bool Function(Element element) test,
+          {bool expected = false}) =>
+      thenChain((o) => o.selectFirstWhereTyped<Q>(selectors, webType, test,
+          expected: expected));
+
+  Future<UITestChainNode<U, List<Element>, T>> selectWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           Iterable<Element> Function(List<Element> elems)? mapper,
           bool expected = false}) =>
-      thenChain((o) => o.selectWhereUntil<Q>(selectors, test,
+      thenChain((o) => o.selectWhereUntil(selectors, test,
           timeoutMs: timeoutMs,
           intervalMs: intervalMs,
           minMs: minMs,
           mapper: mapper,
           expected: expected));
 
-  Future<UITestChainNode<U, Q, T>> selectFirstWhereUntil<Q extends Element>(
+  Future<UITestChainNode<U, List<Q>, T>>
+      selectWhereUntilTyped<Q extends Element>(String? selectors,
+              Web<Q> webType, bool Function(Element element) test,
+              {int? timeoutMs,
+              int? intervalMs,
+              int? minMs,
+              Iterable<Element> Function(List<Element> elems)? mapper,
+              bool expected = false}) =>
+          thenChain((o) => o.selectWhereUntilTyped<Q>(selectors, webType, test,
+              timeoutMs: timeoutMs,
+              intervalMs: intervalMs,
+              minMs: minMs,
+              mapper: mapper,
+              expected: expected));
+
+  Future<UITestChainNode<U, Element, T>> selectFirstWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           Iterable<Element> Function(List<Element> elems)? mapper}) =>
-      thenChain((o) => o.selectFirstWhereUntil<Q>(selectors, test,
+      thenChain((o) => o.selectFirstWhereUntil(selectors, test,
           timeoutMs: timeoutMs,
           intervalMs: intervalMs,
           minMs: minMs,
           mapper: mapper));
+
+  Future<UITestChainNode<U, Q, T>>
+      selectFirstWhereUntilTyped<Q extends Element>(String? selectors,
+              Web<Q> webType, bool Function(Element element) test,
+              {int? timeoutMs,
+              int? intervalMs,
+              int? minMs,
+              Iterable<Element> Function(List<Element> elems)? mapper}) =>
+          thenChain((o) => o.selectFirstWhereUntilTyped<Q>(
+              selectors, webType, test,
+              timeoutMs: timeoutMs,
+              intervalMs: intervalMs,
+              minMs: minMs,
+              mapper: mapper));
 
   Future<UITestChainNode<U, R, T>> map<R>(R Function(E e) mapper) =>
       then((o) => o.map<R>(mapper));
@@ -1549,80 +1806,165 @@ extension FutureUITestChainNodeExtension<
   Future<UITestChainNode<U, O, P>> elementAs<O>() =>
       thenChain((o) => o.elementAs<O>());
 
-  Future<UITestChainNode<U, Element?, T>> querySelector(String? selectors,
-          {bool expected = false}) =>
-      thenChain((o) => o.querySelector(selectors, expected: expected)
-          as UITestChainNode<U, Element?, T>);
-
-  Future<UITestChainNode<U, List<O>, T>> querySelectorAll<O extends Element>(
+  Future<UITestChainNode<U, Element?, T>> querySelectorNonTyped(
           String? selectors,
           {bool expected = false}) =>
-      thenChain((o) => o.querySelectorAll<O>(selectors, expected: expected)
-          as UITestChainNode<U, List<O>, T>);
+      thenChain((o) => o.querySelectorNonTyped(selectors, expected: expected)
+          as UITestChainNode<U, Element?, T>);
+
+  Future<UITestChainNode<U, W?, T>> querySelectorTyped<W extends Element>(
+          String? selectors, web.Web<W> webType, {bool expected = false}) =>
+      thenChain((o) => o.querySelectorTyped<W>(selectors, webType,
+          expected: expected) as UITestChainNode<U, W?, T>);
+
+  Future<UITestChainNode<U, List<Element>, T>> querySelectorAllNonTyped(
+          String? selectors,
+          {bool expected = false}) =>
+      thenChain((o) => o.querySelectorAllNonTyped(selectors, expected: expected)
+          as UITestChainNode<U, List<Element>, T>);
+
+  Future<UITestChainNode<U, List<O>, T>>
+      querySelectorAllTyped<O extends Element>(
+              String? selectors, Web<O> webType, {bool expected = false}) =>
+          thenChain((o) => o.querySelectorAllTyped<O>(selectors, webType,
+              expected: expected) as UITestChainNode<U, List<O>, T>);
 
   Future<UITestChainNode<U, Element?, T>> select(String? selectors,
           {bool expected = false}) =>
       thenChain((o) => o.select(selectors, expected: expected)
           as UITestChainNode<U, Element?, T>);
 
+  Future<UITestChainNode<U, W?, T>> selectTyped<W extends Element>(
+          String? selectors, web.Web<W> webType, {bool expected = false}) =>
+      thenChain((o) => o.selectTyped(selectors, webType, expected: expected)
+          as UITestChainNode<U, W?, T>);
+
   Future<UITestChainNode<U, Element, T>> selectExpected(String? selectors) =>
       thenChain(
           (o) => o.selectExpected(selectors) as UITestChainNode<U, Element, T>);
 
-  Future<UITestChainNode<U, List<O>, T>> selectAll<O extends Element>(
+  Future<UITestChainNode<U, W, T>> selectTypedExpected<W extends Element>(
+          String? selectors, web.Web<W> webType) =>
+      thenChain((o) => o.selectTypedExpected(selectors, webType)
+          as UITestChainNode<U, W, T>);
+
+  Future<UITestChainNode<U, List<Element>, T>> selectAll(String? selectors,
+          {bool expected = false}) =>
+      thenChain((o) => o.selectAll(selectors, expected: expected)
+          as UITestChainNode<U, List<Element>, T>);
+
+  Future<UITestChainNode<U, List<O>, T>> selectAllTyped<O extends Element>(
+          String? selectors, Web<O> webType, {bool expected = false}) =>
+      thenChain((o) => o.selectAllTyped<O>(selectors, webType,
+          expected: expected) as UITestChainNode<U, List<O>, T>);
+
+  Future<UITestChainNode<U, List<Element>, T>> selectWhere(
+          String? selectors, bool Function(Element element) test,
+          {bool expected = false}) =>
+      thenChain((o) => o.selectWhere(selectors, test, expected: expected)
+          as UITestChainNode<U, List<Element>, T>);
+
+  Future<UITestChainNode<U, List<O>, T>> selectWhereTyped<O extends Element>(
           String? selectors,
+          Web<O> webType,
+          bool Function(Element element) test,
           {bool expected = false}) =>
-      thenChain((o) => o.selectAll<O>(selectors, expected: expected)
-          as UITestChainNode<U, List<O>, T>);
+      thenChain((o) => o.selectWhereTyped<O>(selectors, webType, test,
+          expected: expected) as UITestChainNode<U, List<O>, T>);
 
-  Future<UITestChainNode<U, List<O>, T>> selectWhere<O extends Element>(
+  Future<UITestChainNode<U, Element?, T>> selectFirstWhere(
           String? selectors, bool Function(Element element) test,
           {bool expected = false}) =>
-      thenChain((o) => o.selectWhere<O>(selectors, test, expected: expected)
-          as UITestChainNode<U, List<O>, T>);
+      thenChain((o) => o.selectFirstWhere(selectors, test, expected: expected)
+          as UITestChainNode<U, Element?, T>);
 
-  Future<UITestChainNode<U, O?, T>> selectFirstWhere<O extends Element>(
-          String? selectors, bool Function(Element element) test,
+  Future<UITestChainNode<U, O?, T>> selectFirstWhereTyped<O extends Element>(
+          String? selectors,
+          Web<O> webType,
+          bool Function(Element element) test,
           {bool expected = false}) =>
-      thenChain((o) => o.selectFirstWhere<O>(selectors, test,
+      thenChain((o) => o.selectFirstWhereTyped<O>(selectors, webType, test,
           expected: expected) as UITestChainNode<U, O?, T>);
 
-  Future<UITestChainNode<U, List<O>, T>> selectWhereUntil<O extends Element>(
+  Future<UITestChainNode<U, List<Element>, T>> selectWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           Iterable<Element> Function(List<Element> elems)? mapper,
           bool expected = false}) =>
-      thenChain((o) => o.selectWhereUntil<O>(selectors, test,
+      thenChain((o) => o.selectWhereUntil(selectors, test,
           timeoutMs: timeoutMs,
           intervalMs: intervalMs,
           minMs: minMs,
           mapper: mapper,
-          expected: expected) as UITestChainNode<U, List<O>, T>);
+          expected: expected) as UITestChainNode<U, List<Element>, T>);
 
-  Future<UITestChainNode<U, O, T>> selectFirstWhereUntil<O extends Element>(
+  Future<UITestChainNode<U, List<O>, T>>
+      selectWhereUntilTyped<O extends Element>(String? selectors,
+              Web<O> webType, bool Function(Element element) test,
+              {int? timeoutMs,
+              int? intervalMs,
+              int? minMs,
+              Iterable<Element> Function(List<Element> elems)? mapper,
+              bool expected = false}) =>
+          thenChain((o) => o.selectWhereUntilTyped<O>(selectors, webType, test,
+              timeoutMs: timeoutMs,
+              intervalMs: intervalMs,
+              minMs: minMs,
+              mapper: mapper,
+              expected: expected) as UITestChainNode<U, List<O>, T>);
+
+  Future<UITestChainNode<U, Element, T>> selectFirstWhereUntil(
           String? selectors, bool Function(Element element) test,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           Iterable<Element> Function(List<Element> elems)? mapper}) =>
       thenChain((o) => o
-          .selectFirstWhereUntil<O>(selectors, test,
+          .selectFirstWhereUntil(selectors, test,
               timeoutMs: timeoutMs,
               intervalMs: intervalMs,
               minMs: minMs,
               mapper: mapper)
-          .then((o) => o as UITestChainNode<U, O, T>));
+          .then((o) => o as UITestChainNode<U, Element, T>));
 
-  Future<UITestChainNode<U, O, T>> selectUntil<O extends Element>(
-          String? selectors,
+  Future<UITestChainNode<U, O, T>>
+      selectFirstWhereUntilTyped<O extends Element>(String? selectors,
+              Web<O> webType, bool Function(Element element) test,
+              {int? timeoutMs,
+              int? intervalMs,
+              int? minMs,
+              Iterable<Element> Function(List<Element> elems)? mapper}) =>
+          thenChain((o) => o
+              .selectFirstWhereUntilTyped<O>(selectors, webType, test,
+                  timeoutMs: timeoutMs,
+                  intervalMs: intervalMs,
+                  minMs: minMs,
+                  mapper: mapper)
+              .then((o) => o as UITestChainNode<U, O, T>));
+
+  Future<UITestChainNode<U, Element, T>> selectUntil(String? selectors,
           {int? timeoutMs,
           int? intervalMs,
           int? minMs,
           Iterable<Element> Function(List<Element> elems)? mapper}) =>
       thenChain((o) => o
-          .selectUntil<O>(selectors,
+          .selectUntil(selectors,
+              timeoutMs: timeoutMs,
+              intervalMs: intervalMs,
+              minMs: minMs,
+              mapper: mapper)
+          .then((o) => o as UITestChainNode<U, Element, T>));
+
+  Future<UITestChainNode<U, O, T>> selectUntilTyped<O extends Element>(
+          String? selectors, Web<O> webType,
+          {int? timeoutMs,
+          int? intervalMs,
+          int? minMs,
+          Iterable<Element> Function(List<Element> elems)? mapper}) =>
+      thenChain((o) => o
+          .selectUntilTyped<O>(selectors, webType,
               timeoutMs: timeoutMs,
               intervalMs: intervalMs,
               minMs: minMs,
@@ -1659,14 +2001,14 @@ extension FutureUITestChainNodeElementExtension<
     T extends UITestChainNode<U, E, P>> on Future<UITestChainNode<U, E, P>> {
   Future<String?> get text => then((o) => o.element?.text);
 
-  Future<String?> get outerHtml => then((o) => o.element?.outerHtml);
+  Future<String?> get outerHtml => then((o) => o.element?.outerHTML.asString);
 
-  Future<String?> get innerHtml => then((o) => o.element?.innerHtml);
+  Future<String?> get innerHtml => then((o) => o.element?.innerHTML.asString);
 }
 
 extension FutureUITestChainNodeSelectElementExtension<
     U extends UIRoot,
-    E extends SelectElement?,
+    E extends HTMLSelectElement?,
     P extends UITestChain<U, dynamic, dynamic, dynamic>,
     T extends UITestChainNode<U, E, P>> on Future<UITestChainNode<U, E, P>> {
   Future<T> selectIndex(int index) => thenChain((o) {
@@ -1703,11 +2045,23 @@ extension TestFutureExtension<T> on Future<T> {
 }
 
 extension TestElementExtension on Element? {
-  Element? select(String? selectors) {
+  Element? querySelectorNonTyped(String? selectors) {
     var self = this;
     if (self == null || selectors == null || selectors.isEmpty) return null;
     return self.querySelector(selectors);
   }
+
+  W? querySelectorTyped<W extends Element>(
+      String? selectors, web.Web<W> webType) {
+    var self = this;
+    if (self == null || selectors == null || selectors.isEmpty) return null;
+    return self.querySelectorTyped(selectors, webType);
+  }
+
+  Element? select(String? selectors) => querySelectorNonTyped(selectors);
+
+  W? selectTyped<W extends Element>(String? selectors, web.Web<W> webType) =>
+      querySelectorTyped<W>(selectors, webType);
 
   Element selectExpected(String? selectors) {
     var self = this;
@@ -1720,10 +2074,28 @@ extension TestElementExtension on Element? {
     return e;
   }
 
-  List<Element> selectAll<E extends Element>(String? selectors) {
+  W selectTypedExpected<W extends Element>(
+      String? selectors, web.Web<W> webType) {
+    var self = this;
+    var e = selectors != null && selectors.isNotEmpty
+        ? self?.querySelectorTyped<W>(selectors, webType)
+        : null;
+    if (e == null) {
+      throw TestFailure("Can't find element: `$selectors` ($webType)");
+    }
+    return e;
+  }
+
+  List<Element> selectAll(String? selectors) {
+    var self = this;
+    if (self == null || selectors == null || selectors.isEmpty) return [];
+    return self.querySelectorAll(selectors).toElements();
+  }
+
+  List<E> selectAllTyped<E extends Element>(String? selectors, Web<E> webType) {
     var self = this;
     if (self == null || selectors == null || selectors.isEmpty) return <E>[];
-    return self.querySelectorAll<E>(selectors);
+    return self.querySelectorAllTyped<E>(selectors, webType);
   }
 }
 
@@ -1733,27 +2105,49 @@ extension TestFutureElementExtension<E extends Element> on Future<E?> {
         return elem;
       });
 
-  Future<Element?> select(String? selectors) =>
-      thenChain((e) => e.selectExpected(selectors));
+  Future<Element?> select(String? selectors) {
+    if (selectors == null) return Future.value(null);
+    return thenChain((e) => e.select(selectors));
+  }
+
+  Future<W?> selectTyped<W extends Element>(
+      String? selectors, web.Web<W> webType) {
+    if (selectors == null) return Future.value(null);
+    return thenChain((e) => e.selectTyped(selectors, webType));
+  }
 
   Future<Element> selectExpected(String? selectors) =>
       thenChain((e) => e.selectExpected(selectors));
 
-  Future<List<Element>> selectAll<T extends Element>(String? selectors) =>
-      then((e) => e.selectAll<T>(selectors));
+  Future<List<Element>> selectAll(String? selectors) {
+    if (selectors == null) return Future.value([]);
+    return then((e) => e.selectAll(selectors));
+  }
+
+  Future<List<T>> selectAllTyped<T extends Element>(
+      String? selectors, Web<T> webType) {
+    if (selectors == null) return Future.value([]);
+    return then((e) => e.selectAllTyped<T>(selectors, webType));
+  }
 }
 
 extension TestUIComponentNullableExtension on UIComponent? {
-  E? select<E extends UIElement>(String? selectors) {
+  Element? select(String? selectors) {
     var self = this;
     if (self == null || selectors == null || selectors.isEmpty) return null;
-    return self.querySelector<E>(selectors);
+    return self.querySelectorNonTyped(selectors);
   }
 
-  E selectExpected<E extends UIElement>(String? selectors) {
+  E? selectTyped<E extends UIElement>(String? selectors, Web<E> webType) {
+    var self = this;
+    if (self == null || selectors == null || selectors.isEmpty) return null;
+    return self.querySelectorTyped<E>(selectors, webType);
+  }
+
+  Element selectExpected(String? selectors) {
     var self = this;
     var e = selectors != null && selectors.isNotEmpty
-        ? self?.querySelector<E>(selectors)
+        ? self?.querySelectorNonTyped(selectors)
         : null;
     if (e == null) {
       throw TestFailure("Can't find element: `$selectors`");
@@ -1761,20 +2155,38 @@ extension TestUIComponentNullableExtension on UIComponent? {
     return e;
   }
 
-  List<E> selectAll<E extends Element>(String? selectors) {
+  E selectExpectedTyped<E extends UIElement>(
+      String? selectors, Web<E> webType) {
+    var self = this;
+    var e = selectors != null && selectors.isNotEmpty
+        ? self?.querySelectorTyped<E>(selectors, webType)
+        : null;
+    if (e == null) {
+      throw TestFailure("Can't find element: `$selectors`");
+    }
+    return e;
+  }
+
+  List<Element> selectAll(String? selectors) {
+    var self = this;
+    if (self == null || selectors == null || selectors.isEmpty) return [];
+    return self.querySelectorAllNonTyped(selectors);
+  }
+
+  List<E> selectAllTyped<E extends Element>(String? selectors, Web<E> webType) {
     var self = this;
     if (self == null || selectors == null || selectors.isEmpty) return <E>[];
-    return self.querySelectorAll<E>(selectors);
+    return self.querySelectorAllTyped<E>(selectors, webType);
   }
 
   String simplify(
           {bool trim = true,
-          bool collapseSapces = true,
+          bool collapseSpaces = true,
           bool lowerCase = true,
           String nullValue = ''}) =>
       this?.content.simplify(
           trim: trim,
-          collapseSapces: collapseSapces,
+          collapseSpaces: collapseSpaces,
           lowerCase: lowerCase,
           nullValue: nullValue) ??
       '';
@@ -1799,22 +2211,34 @@ extension TestFutureUIComponentExtension<E extends UIComponent> on Future<E?> {
   Future<Element?> select(String? selectors) =>
       then((e) => e.select(selectors));
 
+  Future<T?> selectTyped<T extends Element>(
+          String? selectors, Web<T> webType) =>
+      then((e) => e.selectTyped(selectors, webType));
+
   Future<Element> selectExpected(String? selectors) =>
       thenChain((e) => e.selectExpected(selectors));
 
-  Future<List<Element>> selectAll<T extends Element>(String? selectors) =>
-      then((e) => e.selectAll<T>(selectors));
+  Future<T> selectExpectedTyped<T extends Element>(
+          String? selectors, Web<T> webType) =>
+      thenChain((e) => e.selectExpectedTyped(selectors, webType));
+
+  Future<List<Element>> selectAll(String? selectors) =>
+      then((e) => e.selectAll(selectors));
+
+  Future<List<T>> selectAllTyped<T extends Element>(
+          String? selectors, Web<T> webType) =>
+      then((e) => e.selectAllTyped<T>(selectors, webType));
 }
 
 extension TestNodeExtension on UINode? {
   String simplify(
           {bool trim = true,
-          bool collapseSapces = true,
+          bool collapseSpaces = true,
           bool lowerCase = true,
           String nullValue = ''}) =>
-      this?.text.simplify(
+      this?.textContent.simplify(
           trim: trim,
-          collapseSapces: collapseSapces,
+          collapseSpaces: collapseSpaces,
           lowerCase: lowerCase,
           nullValue: nullValue) ??
       '';
@@ -1823,13 +2247,13 @@ extension TestNodeExtension on UINode? {
 extension TestIterableNodeExtension on Iterable<UINode>? {
   List<String> simplify(
           {bool trim = true,
-          bool collapseSapces = true,
+          bool collapseSpaces = true,
           bool lowerCase = true,
           String nullValue = ''}) =>
       this
           ?.map((e) => e.simplify(
               trim: trim,
-              collapseSapces: collapseSapces,
+              collapseSpaces: collapseSpaces,
               lowerCase: lowerCase,
               nullValue: nullValue))
           .toList() ??
@@ -1837,14 +2261,14 @@ extension TestIterableNodeExtension on Iterable<UINode>? {
 
   String simplifyAll(
           {bool trim = true,
-          bool collapseSapces = true,
+          bool collapseSpaces = true,
           bool lowerCase = true,
           String nullValue = '',
           String separator = ' , '}) =>
       this
           ?.map((e) => e.simplify(
               trim: trim,
-              collapseSapces: collapseSapces,
+              collapseSpaces: collapseSpaces,
               lowerCase: lowerCase,
               nullValue: nullValue))
           .join(separator) ??
@@ -1852,14 +2276,14 @@ extension TestIterableNodeExtension on Iterable<UINode>? {
 
   String simplifyAt(int index,
       {bool trim = true,
-      bool collapseSapces = true,
+      bool collapseSpaces = true,
       bool lowerCase = true,
       String nullValue = ''}) {
     var self = this;
     return self != null && index < self.length
         ? self.elementAt(index).simplify(
             trim: trim,
-            collapseSapces: collapseSapces,
+            collapseSpaces: collapseSpaces,
             lowerCase: lowerCase,
             nullValue: nullValue)
         : '';
@@ -1867,24 +2291,24 @@ extension TestIterableNodeExtension on Iterable<UINode>? {
 
   String simplifyFirst(
           {bool trim = true,
-          bool collapseSapces = true,
+          bool collapseSpaces = true,
           bool lowerCase = true,
           String nullValue = ''}) =>
       this?.firstOrNull.simplify(
           trim: trim,
-          collapseSapces: collapseSapces,
+          collapseSpaces: collapseSpaces,
           lowerCase: lowerCase,
           nullValue: nullValue) ??
       '';
 
   String simplifyLast(
           {bool trim = true,
-          bool collapseSapces = true,
+          bool collapseSpaces = true,
           bool lowerCase = true,
           String nullValue = ''}) =>
       this?.lastOrNull.simplify(
           trim: trim,
-          collapseSapces: collapseSapces,
+          collapseSpaces: collapseSpaces,
           lowerCase: lowerCase,
           nullValue: nullValue) ??
       '';
@@ -1894,7 +2318,9 @@ extension TestIterableElementExtension on Iterable<Element>? {
   List<Element> selectAll(String? selectors) {
     var self = this;
     return selectors != null && self != null
-        ? self.expand((e) => e.querySelectorAll(selectors)).toList()
+        ? self
+            .expand((e) => e.querySelectorAll(selectors).toElements())
+            .toList()
         : <Element>[];
   }
 }
@@ -1902,13 +2328,13 @@ extension TestIterableElementExtension on Iterable<Element>? {
 extension TestStringExtension on String? {
   String simplify(
       {bool trim = true,
-      bool collapseSapces = true,
+      bool collapseSpaces = true,
       bool lowerCase = true,
       String nullValue = ''}) {
     var self = this;
     if (self == null) return nullValue;
 
-    if (collapseSapces) {
+    if (collapseSpaces) {
       self = self.replaceAll(RegExp(r'\s+'), ' ');
     }
 
@@ -1927,13 +2353,13 @@ extension TestStringExtension on String? {
 extension TestIterableStringExtension on Iterable<String>? {
   List<String> simplify(
           {bool trim = true,
-          bool collapseSapces = true,
+          bool collapseSpaces = true,
           bool lowerCase = true,
           String nullValue = ''}) =>
       this
           ?.map((e) => e.simplify(
               trim: trim,
-              collapseSapces: collapseSapces,
+              collapseSpaces: collapseSpaces,
               lowerCase: lowerCase,
               nullValue: nullValue))
           .toList() ??
@@ -1941,14 +2367,14 @@ extension TestIterableStringExtension on Iterable<String>? {
 
   String simplifyAll(
           {bool trim = true,
-          bool collapseSapces = true,
+          bool collapseSpaces = true,
           bool lowerCase = true,
           String nullValue = '',
           String separator = ' , '}) =>
       this
           ?.map((e) => e.simplify(
               trim: trim,
-              collapseSapces: collapseSapces,
+              collapseSpaces: collapseSpaces,
               lowerCase: lowerCase,
               nullValue: nullValue))
           .join(separator) ??
@@ -1956,14 +2382,14 @@ extension TestIterableStringExtension on Iterable<String>? {
 
   String simplifyAt(int index,
       {bool trim = true,
-      bool collapseSapces = true,
+      bool collapseSpaces = true,
       bool lowerCase = true,
       String nullValue = ''}) {
     var self = this;
     return self != null && index < self.length
         ? self.elementAt(index).simplify(
             trim: trim,
-            collapseSapces: collapseSapces,
+            collapseSpaces: collapseSpaces,
             lowerCase: lowerCase,
             nullValue: nullValue)
         : '';
@@ -1971,24 +2397,24 @@ extension TestIterableStringExtension on Iterable<String>? {
 
   String simplifyFirst(
           {bool trim = true,
-          bool collapseSapces = true,
+          bool collapseSpaces = true,
           bool lowerCase = true,
           String nullValue = ''}) =>
       this?.firstOrNull.simplify(
           trim: trim,
-          collapseSapces: collapseSapces,
+          collapseSpaces: collapseSpaces,
           lowerCase: lowerCase,
           nullValue: nullValue) ??
       '';
 
   String simplifyLast(
           {bool trim = true,
-          bool collapseSapces = true,
+          bool collapseSpaces = true,
           bool lowerCase = true,
           String nullValue = ''}) =>
       this?.lastOrNull.simplify(
           trim: trim,
-          collapseSapces: collapseSapces,
+          collapseSpaces: collapseSpaces,
           lowerCase: lowerCase,
           nullValue: nullValue) ??
       '';
@@ -2010,23 +2436,23 @@ bool _existsElement(
     String selectors,
     Iterable<Element> Function(List<Element> elems)? mapper,
     bool Function(List<Element> elems)? validator) {
-  List<Element> elem;
-  if (root is Element) {
-    elem = root.querySelectorAll(selectors);
+  List<Element> elements;
+  if (root.isElement) {
+    elements = (root as Element).querySelectorAll(selectors).toElements();
   } else if (root is UIComponent) {
-    elem = root.querySelectorAll(selectors);
+    elements = root.querySelectorAllNonTyped(selectors);
   } else {
     throw StateError("`root` is not an `Element` or `UIComponent`");
   }
 
   if (mapper != null) {
-    elem = mapper(elem).toList();
+    elements = mapper(elements).toList();
   }
 
   if (validator != null) {
-    return validator(elem);
+    return validator(elements);
   } else {
-    return elem.isNotEmpty;
+    return elements.isNotEmpty;
   }
 }
 
@@ -2039,8 +2465,8 @@ void _click(Object root, Object? o, {String? selectors, bool expected = true}) {
     reason = "$root";
   }
 
-  if (o is Element) {
-    o.click();
+  if (o.isElement) {
+    (o as Element).click();
   } else if (o is UIComponent) {
     o.click();
   } else if (expected) {
@@ -2058,16 +2484,27 @@ void _setValue(Object root, Object? elem, String? value,
     reason = "$root";
   }
 
-  if (elem is InputElement) {
-    elem.value = value;
-  } else if (elem is TextAreaElement) {
-    elem.value = value;
-  } else if (elem is Element) {
-    elem.text = value;
+  var elemJSAny = elem.asJSAny;
+
+  if (elemJSAny != null) {
+    if (elemJSAny.isA<HTMLInputElement>()) {
+      (elemJSAny as HTMLInputElement).value = value ?? '';
+      return;
+    } else if (elemJSAny.isA<HTMLTextAreaElement>()) {
+      (elemJSAny as HTMLTextAreaElement).value = value ?? '';
+      return;
+    } else if (elemJSAny.isA<Element>()) {
+      (elemJSAny as Element).textContent = value;
+      return;
+    }
   } else if (elem is UIField) {
     elem.setFieldValue(value);
-  } else if (expected) {
-    throw TestFailure("Can't set value on `null` element. Reason: $reason");
+    return;
+  }
+
+  if (expected) {
+    throw TestFailure(
+        "Can't set value on `null` element ($elem). Reason: $reason");
   }
 }
 
@@ -2081,8 +2518,8 @@ void _selectIndex(Object root, Object? o, int index,
     reason = "$root";
   }
 
-  if (o is SelectElement) {
-    o.selectIndex(index);
+  if (o.asJSAny.isA<HTMLSelectElement>()) {
+    (o as HTMLSelectElement).selectIndex(index);
   } else if (expected) {
     throw TestFailure(
         "Can't call selectIndex(i) on `null` element. Reason: $reason");
@@ -2099,18 +2536,24 @@ void _checkbox(Object root, Object? o, bool checked,
     reason = "$root";
   }
 
-  if (o is CheckboxInputElement) {
-    o.checked = checked;
-  } else if (expected) {
+  if (o.asJSAny.isA<HTMLInputElement>()) {
+    var input = o as HTMLInputElement;
+    if (input.type == 'checkbox') {
+      input.checked = checked;
+      return;
+    }
+  }
+
+  if (expected) {
     throw TestFailure("Can't set `checked` on `null` element. Reason: $reason");
   }
 }
 
 Element? _querySelect(Object? elem, String selectors) {
-  if (elem is Element) {
-    return elem.querySelector(selectors);
-  } else if (elem is UIComponent) {
-    return elem.querySelector(selectors);
+  if (elem is UIComponent) {
+    return elem.querySelectorNonTyped(selectors);
+  } else if (elem.isElement) {
+    return (elem as Element).querySelector(selectors);
   } else {
     return null;
   }

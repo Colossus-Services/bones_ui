@@ -1,3 +1,123 @@
+## 3.0.0-beta.11
+
+- Merge 2.5.16:
+  - `UIComponent`:
+    - Optimized `subUIComponentsDeeply` and `getRenderedUIComponents`
+      - Both now return `Iterable<UIComponent>`.
+      - `subUIComponentsDeeply` is optimized as a lazy `sync*` generator and recursively calls `subElem.subUIComponentsDeeply`.
+    - Improve `_resolveUIRootComponent`.
+    - `_callRenderImpl`: fix issue when `parent` is passed on constructor but it's already appended in a sub-element.
+
+    - test: ^1.26.2
+    - test_api: ^0.7.6
+    - test_core: ^0.6.11
+
+    - dependency_validator: ^5.0.2
+
+## 3.0.0-beta.10
+
+- `UISVG`:
+  - replace `createHTML` with `createElement` for SVG element creation.
+
+- `UIComponent`:
+  - replace `append` with `appendChild` for DOM consistency.
+
+- js_interop_utils: ^1.0.8
+- web_utils: ^1.0.15
+- dom_tools: ^3.0.0-beta.10
+- archive: ^4.0.7
+- test: ^1.26.2
+- test_api: ^0.7.6
+- test_core: ^0.6.11
+
+- build_web_compilers: ^4.1.5
+
+## 3.0.0-beta.9
+
+- Merge v2.5.15
+  - `UIComponent`:
+    - Added `renderedElementsAsync`.
+  - `UIDialogBase`:
+    - Added `configureButtons` to configure the buttons `onClick`.
+    - `posRender` and `posAsyncRender` calls `configureButtons`.
+
+- js_interop_utils: ^1.0.7
+- web_utils: ^1.0.14
+- dom_tools: ^3.0.0-beta.9
+- dom_builder: ^3.0.0-beta.4
+- archive: ^4.0.5 
+
+## 3.0.0-beta.8
+
+- web_utils: ^1.0.12
+- dom_tools: ^3.0.0-beta.8
+- project_template: ^1.1.1
+- archive: ^4.0.4
+
+- dependency_validator: ^5.0.2
+
+## 3.0.0-beta.7
+
+✨♻️ refactor(bones_ui_test_tools):
+  - Standardize `selectNonTyped` and rename it to `select`.
+  - Standardize `selectNonTypedAll` / `selectAllNonTyped` and rename it to `selectAll`.
+  - Ensure that `selectTyped` exists where `querySelectorTyped` exists.
+
+- web_utils: ^1.0.11
+
+## 3.0.0-beta.6
+
+- Avoids using `identical` with `Element` (`JSObject`) to avoid inconsistencies in Wasm.
+
+- dom_tools: ^3.0.0-beta.7
+- dom_builder: ^3.0.0-beta.3
+- web: ^1.1.1
+- mercury_client: ^2.3.0
+
+## 3.0.0-beta.5
+
+- web_utils: ^1.0.9
+- intl_messages: ^3.0.0-beta.1
+- dom_tools: ^3.0.0-beta.5
+- swiss_knife: ^3.3.0
+- statistics: ^1.2.0
+- resource_portable: ^3.1.2
+- intl: ^0.20.2
+
+## 3.0.0-beta.4
+
+- js_interop_utils: ^1.0.6
+
+##  3.0.0-beta.3
+
+- web_utils: ^1.0.7
+- mercury_client: ^2.2.5
+
+## 3.0.0-beta.2
+
+- web_utils: ^1.0.6
+- dom_tools: ^3.0.0-beta.4
+- dom_builder: ^3.0.0-beta.2
+
+## 3.0.0-beta.1
+
+- CI: test with `dart2js` and `dart2wasm` (on Chrome).
+
+- sdk: '>=3.6.0 <4.0.0'
+
+- js_interop_utils: ^1.0.5
+- web_utils: ^1.0.5
+- dom_tools: ^3.0.0-beta.3
+- dom_builder: ^3.0.0-beta.1
+- web: ^1.1.0
+- collection: ^1.19.0
+- test: ^1.25.15
+- stream_channel: ^2.1.4
+
+- lints: ^5.1.1
+- build_web_compilers: ^4.1.1
+- build_runner: ^2.4.15
+
 ## 2.5.16
 
 - `UIComponent`:

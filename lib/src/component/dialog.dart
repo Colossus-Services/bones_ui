@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:html';
+import 'package:web_utils/web_utils.dart';
 
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
@@ -130,7 +130,7 @@ abstract class UIDialogBase extends UIRootComponent {
         : '.$dialogButtonClass, button';
 
     var sel = content!.querySelectorAll(selectors);
-    var buttons = sel.where(isDialogButton).toList();
+    var buttons = sel.whereElement().where(isDialogButton).toList();
     return buttons;
   }
 
@@ -182,13 +182,13 @@ abstract class UIDialogBase extends UIRootComponent {
   }
 
   bool _isElementOfClass(Element element, String className) {
-    if (element.classes.contains(className)) {
+    if (element.classList.contains(className)) {
       return true;
     }
 
     var elementsWithClass = content!.querySelectorAll('.$className');
 
-    for (var elem in elementsWithClass) {
+    for (var elem in elementsWithClass.toIterable()) {
       if (elem == element || elem.contains(element)) {
         return true;
       }
@@ -228,10 +228,14 @@ abstract class UIDialogBase extends UIRootComponent {
 
   @override
   bool get isShowing {
-    return rootParent!.contains(content) &&
-        !content!.hidden &&
-        content!.style.display != 'none' &&
-        content!.style.visibility != 'hidden';
+    final rootParent = UIDialogBase.rootParent;
+    final content = this.content;
+    return rootParent != null &&
+        content != null &&
+        rootParent.contains(content) &&
+        !content.isHidden &&
+        content.style.display != 'none' &&
+        content.style.visibility != 'hidden';
   }
 
   String? _styleDisplayPrevValue;
@@ -247,20 +251,21 @@ abstract class UIDialogBase extends UIRootComponent {
         rootParent!.append(parent);
       }
 
+      final content = this.content;
       if (!parent.contains(content)) {
         parent.append(content!);
       }
 
-      if (content!.hidden) {
-        content!.hidden = false;
+      if (content!.isHidden) {
+        content.hidden = null;
       }
 
-      if (content!.style.display == 'none') {
-        content!.style.display = _styleDisplayPrevValue ?? '';
+      if (content.style.display == 'none') {
+        content.style.display = _styleDisplayPrevValue ?? '';
       }
 
-      if (content!.style.visibility == 'hidden') {
-        content!.style.visibility = _styleVisibilityPrevValue ?? '';
+      if (content.style.visibility == 'hidden') {
+        content.style.visibility = _styleVisibilityPrevValue ?? '';
       }
 
       ensureRendered();
@@ -272,7 +277,7 @@ abstract class UIDialogBase extends UIRootComponent {
   void hide() {
     var showing = isShowing;
 
-    content!.hidden = true;
+    content!.hidden = true.toJS;
 
     if (content!.style.display != 'none') {
       _styleDisplayPrevValue = content!.style.display;
@@ -354,6 +359,7 @@ class UIDialog extends UIDialogBase {
     var dialogs = window.document.querySelectorAll('.ui-dialog');
 
     return dialogs
+        .whereElement()
         .map(UIComponent.getContentUIComponent)
         .whereType<UIDialogBase>()
         .toList();
@@ -363,7 +369,7 @@ class UIDialog extends UIDialogBase {
   static void removeAllDialogs() {
     var dialogs = window.document.querySelectorAll('.ui-dialog');
 
-    for (var d in dialogs) {
+    for (var d in dialogs.whereElement()) {
       var component = UIComponent.getContentUIComponent(d);
       if (component is UIDialogBase) {
         component.hide();
