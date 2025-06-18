@@ -2,7 +2,8 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:bones_ui/src/bones_ui_utils.dart';
-import 'package:collection/collection.dart' show IterableExtension;
+import 'package:collection/collection.dart'
+    show IterableExtension, CombinedIterableView;
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
@@ -259,8 +260,11 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   /// Returns a [List] of sub [UIComponent] deeply in the tree.
-  List<UIComponent> get subUIComponentsDeeply =>
-      subUIComponents.expand((e) => [e, ...e.subUIComponents]).toList();
+  Iterable<UIComponent> get subUIComponentsDeeply =>
+      subUIComponents.expand((e) => CombinedIterableView([
+            [e],
+            e.subUIComponents
+          ]));
 
   void _setParentUIComponent(UIComponent? uiParent) {
     if (uiParent != null) {
@@ -402,8 +406,23 @@ abstract class UIComponent extends UIEventHandler {
 
   UIRootComponent? _resolveUIRootComponent() {
     var parent = parentUIComponent;
-    if (parent == null) return null;
-    return _uiRootComponent = parent.uiRootComponent;
+    if (parent == null) {
+      var self = this;
+      if (self is UIRootComponent) {
+        return self;
+      }
+      return null;
+    }
+
+    var root = parent.uiRootComponent;
+    if (root == null) {
+      var self = this;
+      if (self is UIRootComponent) {
+        return self;
+      }
+    }
+
+    return root;
   }
 
   bool _showing = true;
@@ -880,7 +899,7 @@ abstract class UIComponent extends UIEventHandler {
   List<T> getRenderedUIComponentByType<T>([bool? deep]) =>
       getRenderedUIComponents(deep).whereType<T>().toList();
 
-  List<UIComponent> getRenderedUIComponents([bool? deep]) =>
+  Iterable<UIComponent> getRenderedUIComponents([bool? deep]) =>
       (deep ?? false) ? subUIComponentsDeeply : subUIComponents;
 
   bool _rendered = false;
@@ -1326,13 +1345,17 @@ abstract class UIComponent extends UIEventHandler {
 
           // Improbable to happen, unless it's an odd browser:
           if (!containsContent) {
-            parent.append(content);
+            if (!parent.contains(content)) {
+              parent.append(content);
+            }
           }
         }
       } else {
         var appended = identical(content.parentNode, parent);
         if (!appended) {
-          parent.append(content);
+          if (!parent.contains(content)) {
+            parent.append(content);
+          }
         }
       }
     }
