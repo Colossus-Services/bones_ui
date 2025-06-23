@@ -1,3 +1,10 @@
+## 2.5.17
+
+- Migrate to `archive: ^4.0.7`.
+
+- project_template: ^1.1.1
+- archive: ^4.0.7
+
 ## 2.5.16
 
 - `UIComponent`:
