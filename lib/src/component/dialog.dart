@@ -397,6 +397,9 @@ class UIDialog extends UIDialogBase {
     UIComponent.registerGenerator(generator);
   }
 
+  final bool autoScrollY;
+  final bool autoScrollX;
+
   final bool blockScrollTraversing;
 
   dynamic dialogContent;
@@ -416,6 +419,8 @@ class UIDialog extends UIDialogBase {
       super.backgroundGrey,
       super.backgroundAlpha,
       super.backgroundBlur,
+      this.autoScrollY = true,
+      this.autoScrollX = true,
       this.blockScrollTraversing = false})
       : super() {
     if (show) {
@@ -445,14 +450,18 @@ class UIDialog extends UIDialogBase {
   dynamic render() {
     var closeButton = showCloseButton ? renderCloseButton() : null;
 
+    var cssAutoScrollY = autoScrollY ? ' overflow-y: auto;' : '';
+    var cssAutoScrollX = autoScrollX ? ' overflow-x: auto;' : '';
+    var cssAutoScroll = '$cssAutoScrollY$cssAutoScrollX';
+
     if (fullScreen) {
       return $div(
           style:
-              'text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);',
+              'text-align: center; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-height: calc(100vh - 8px); max-width: calc(100vw - 8px);$cssAutoScroll',
           content: [closeButton, renderContent()]);
     } else {
       return $div(
-          style: 'text-align: center;',
+          style: 'text-align: center;$cssAutoScroll',
           content: [closeButton, renderContent()]);
     }
   }

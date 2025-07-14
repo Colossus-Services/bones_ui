@@ -1,3 +1,8 @@
+## 2.5.18
+
+- `UIDialog`:
+  - Added properties `autoScrollY` and `autoScrollX`.
+
 ## 2.5.17
 
 - Migrate to `archive: ^4.0.7`.
