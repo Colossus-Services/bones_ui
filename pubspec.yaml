@@ -15,9 +15,9 @@ dependencies:
   web_utils: ^1.0.15
   web: ^1.1.1
   intl_messages: ^3.0.0-beta.1
-  dom_tools: ^3.0.0-beta.10
+  dom_tools: ^3.0.0-beta.11
   dom_builder: ^3.0.0-beta.4
-  swiss_knife: ^3.3.0
+  swiss_knife: ^3.3.1
   statistics: ^1.2.0
   mercury_client: ^2.3.0
   dynamic_call: ^2.0.1
@@ -41,8 +41,8 @@ dependencies:
 
 
 dev_dependencies:
-  build_web_compilers: ^4.1.5
-  build_runner: ^2.4.15
+  build_web_compilers: ^4.2.0
+  build_runner: ^2.5.4
   lints: ^5.1.1
   dependency_validator: ^5.0.2
 

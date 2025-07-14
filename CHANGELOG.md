@@ -1,7 +1,14 @@
 ## 3.0.0-beta.12
 
-- `UIDialog`:
-    - Added properties `autoScrollY` and `autoScrollX`.
+- Merge 2.5.17:
+  - `UIDialog`:
+      - Added properties `autoScrollY` and `autoScrollX`.
+
+- dom_tools: ^3.0.0-beta.11
+- swiss_knife: ^3.3.1
+
+- build_web_compilers: ^4.2.0
+- build_runner: ^2.5.4
 
 ## 3.0.0-beta.11
 
