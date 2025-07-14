@@ -1,12 +1,13 @@
 import 'bones_ui_component.dart';
 import 'bones_ui_web.dart';
+import 'package:web/web.dart';
 
 class UIComponentInternals {
   final UIComponent component;
 
-  final void Function(List list) _parseAttributes;
+  final void Function(List<Object?> list) _parseAttributes;
 
-  final void Function(List elements) _ensureAllRendered;
+  final void Function(List<Object?> elements) _ensureAllRendered;
 
   final void Function() _refreshInternal;
 
@@ -22,9 +23,9 @@ class UIComponentInternals {
     bool renderOnConstruction,
   ) _construct;
 
-  final UIElement? Function() _getContent;
+  final HTMLElement? Function() _getContent;
 
-  final void Function(UIElement content) _setContent;
+  final void Function(HTMLElement content) _setContent;
 
   UIComponentInternals(
     this.component,
@@ -36,9 +37,10 @@ class UIComponentInternals {
     this._refreshInternal,
   );
 
-  void parseAttributes(List list) => _parseAttributes(list);
+  void parseAttributes(List<Object?> list) => _parseAttributes(list);
 
-  void ensureAllRendered(List elements) => _ensureAllRendered(elements);
+  void ensureAllRendered(List<Object?> elements) =>
+      _ensureAllRendered(elements);
 
   void refreshInternal() => _refreshInternal();
 
@@ -58,5 +60,5 @@ class UIComponentInternals {
 
   UIElement? getContent() => _getContent();
 
-  void setContent(UIElement content) => _setContent(content);
+  void setContent(HTMLElement content) => _setContent(content);
 }

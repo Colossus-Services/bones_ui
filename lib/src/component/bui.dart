@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:html';
 import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
@@ -8,6 +7,7 @@ import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
 import 'package:intl_messages/intl_messages.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart' hide MimeType;
 import 'package:yaml/yaml.dart';
 
 import '../bones_ui_base.dart';
@@ -24,7 +24,7 @@ class BUIElementGenerator extends ElementGeneratorBase {
   final String tag = 'bui';
 
   @override
-  DivElement generate(
+  HTMLDivElement generate(
       DOMGenerator<UINode> domGenerator,
       DOMTreeMap<UINode> treeMap,
       String? tag,
@@ -35,34 +35,36 @@ class BUIElementGenerator extends ElementGeneratorBase {
       UINode? contentHolder,
       List<DOMNode>? contentNodes,
       DOMContext<UINode>? context) {
-    var buiElement = DivElement();
+    var buiElement = HTMLDivElement();
 
     setElementAttributes(buiElement, attributes);
 
-    buiElement.nodes.addAll(contentHolder!.nodes);
+    buiElement.appendAll(contentHolder!.childNodes.toList());
 
     return buiElement;
   }
 
   @override
   bool isGeneratedElement(UINode element) {
-    return element is DivElement && element.classes.contains(tag);
+    return element.isA<HTMLDivElement>() &&
+        (element as HTMLDivElement).classList.contains(tag);
   }
 
   @override
   DOMElement? revert(DOMGenerator domGenerator, DOMTreeMap? treeMap,
       DOMElement? domParent, UINode? parent, UINode? node) {
-    if (node is DivElement) {
+    if (node.isA<HTMLDivElement>()) {
+      var div = node as HTMLDivElement;
       var bui =
-          $tag(tag, classes: node.classes.join(' '), style: node.style.cssText);
+          $tag(tag, classes: div.classList.value, style: div.style.cssText);
 
       if (treeMap != null) {
-        var mappedDOMNode = treeMap.getMappedDOMNode(node);
+        var mappedDOMNode = treeMap.getMappedDOMNode(div);
         if (mappedDOMNode != null) {
           bui.add(mappedDOMNode.content);
         }
       } else {
-        bui.add(node.text);
+        bui.add(div.text);
       }
 
       return bui;
@@ -291,7 +293,7 @@ class BUIRender extends UINavigableComponent {
 
   Element? renderContainer;
 
-  DivElement? get renderViewportElement => content as DivElement?;
+  HTMLDivElement? get renderViewportElement => content as HTMLDivElement?;
 
   @override
   void preRenderClear() {}
@@ -321,13 +323,15 @@ class BUIRender extends UINavigableComponent {
   dynamic _render() {
     updateSourcesFromViewProvider();
 
+    var renderContainer = this.renderContainer;
+
     if (renderContainer == null) {
-      renderContainer = createDivInlineBlock();
-      renderContainer!.style.cssText = '';
-      renderContainer!.style.width = '100%';
-      renderContainer!.style.height = '100%';
+      this.renderContainer = renderContainer = createDivInlineBlock();
+      renderContainer.style?.cssText = '';
+      renderContainer.style?.width = '100%';
+      renderContainer.style?.height = '100%';
     } else {
-      var nodes = List<UINode>.from(renderContainer!.nodes);
+      var nodes = renderContainer.childNodes.toList();
 
       for (var node in nodes) {
         if (node != _navbarElement) {
@@ -336,8 +340,9 @@ class BUIRender extends UINavigableComponent {
       }
     }
 
-    if (!content!.contains(renderContainer)) {
-      content!.append(renderContainer!);
+    final content = this.content!;
+    if (!content.contains(renderContainer)) {
+      content.append(renderContainer);
     }
 
     _renderNavbar();
@@ -365,7 +370,7 @@ class BUIRender extends UINavigableComponent {
     _renderedTreeMap = treeMap;
     _renderedRoot = treeMap.rootElement as Element?;
 
-    _renderedRoot!.classes.add('bui-root');
+    _renderedRoot!.classList.add('bui-root');
 
     return renderContainer;
   }
@@ -385,15 +390,15 @@ class BUIRender extends UINavigableComponent {
       context.namedElementProvider = _namedElementProvider;
 
       context.onPreElementCreated = (treeMap, domElement, element, context) {
-        if (element is Element && treeMap.rootDOMNode == domElement) {
-          element.classes.add('ui-render-navbar');
+        if (element.isElement && treeMap.rootDOMNode == domElement) {
+          element.asElement.classList.add('ui-render-navbar');
         }
       };
 
       context.preFinalizeGeneratedTree = (treeMap) {
         var navbarRoot = treeMap.rootElement;
-        if (navbarRoot is Element) {
-          navbarRoot.classes.add('ui-render-navbar');
+        if (navbarRoot.isElement) {
+          navbarRoot!.asElement.classList.add('ui-render-navbar');
         }
       };
 
@@ -429,10 +434,10 @@ class BUIRender extends UINavigableComponent {
 
   UINode? _namedElementProvider(
       String name,
-      DOMGenerator<dynamic>? domGenerator,
-      DOMTreeMap<dynamic> treeMap,
+      DOMGenerator<Node>? domGenerator,
+      DOMTreeMap<Node> treeMap,
       DOMElement? domParent,
-      dynamic parent,
+      Object? parent,
       String? tag,
       Map<String, DOMAttribute> attributes) {
     if (viewProvider == null) return null;
@@ -446,8 +451,7 @@ class BUIRender extends UINavigableComponent {
 
     if (view == null) return null;
 
-    var domContext = DOMContext<UINode?>(
-        parent: domGenerator!.domContext as DOMContext<UINode?>?);
+    var domContext = DOMContext<Node>(parent: domGenerator!.domContext);
 
     var buiCode = view.buiCode;
 
@@ -462,10 +466,10 @@ class BUIRender extends UINavigableComponent {
     }
 
     return domGenerator.generateFromHTML(buiCode!,
-        parent: parent, context: domContext, finalizeTree: false);
+        parent: parent as Node?, context: domContext, finalizeTree: false);
   }
 
-  Future<ImageElement?> renderThumbnail(
+  Future<HTMLImageElement?> renderThumbnail(
       {String? renderedHTML,
       bool includeDocumentStyles = true,
       String? styles,
@@ -478,7 +482,7 @@ class BUIRender extends UINavigableComponent {
     if (includeDocumentStyles) {
       var rules = getAllCssStyleSheet()
           .map((e) => e.rules)
-          .whereType<List<CssRule>>()
+          .whereType<List<CSSRule>>()
           .expand((e) => e)
           .toList();
 
@@ -929,7 +933,7 @@ class BUIRenderSource {
   BUIRenderSource(this.domGenerator, this.renderContainer,
       this.notifySourceChange, this.refresh);
 
-  dynamic _source;
+  Object? _source;
 
   bool get isNull => _source == null;
 
@@ -965,11 +969,12 @@ class BUIRenderSource {
   }
 
   String? get intlPath {
-    if (_source is BUIView) {
-      BUIView view = _source;
+    final source = _source;
+    if (source is BUIView) {
+      BUIView view = source;
       return view.intl;
-    } else if (_source is String) {
-      return parseBUIAttribute(_source, 'intl');
+    } else if (source is String) {
+      return parseBUIAttribute(source, 'intl');
     } else {
       return null;
     }
@@ -1026,8 +1031,9 @@ class BUIRenderSource {
 
       IntlMessagesLoader? messagesLoader;
 
-      if (_source is BUIView) {
-        BUIView view = _source;
+      final source = _source;
+      if (source is BUIView) {
+        BUIView view = source;
         messagesLoader = view.intlMessagesLoader;
       } else {
         messagesLoader = IntlMessagesLoader('/bui/', intlPath);
@@ -1060,46 +1066,49 @@ class BUIRenderSource {
     } else if (_source is DOMElement) {
       var dom = _source as DOMElement;
       return dom.buildHTML(withIndent: true);
-    } else if (_source is Element) {
+    } else if (_source.isElement) {
       var elem = _source as Element;
-      return elem.outerHtml!;
+      return elem.outerHTML.asString;
     } else {
       throw StateError("Can't convert source to HTML: $_source");
     }
   }
 
   Element? get sourceAsElement {
-    if (_source == null) {
+    final source = _source;
+
+    if (source == null) {
       return null;
-    } else if (_source is String || _source is BUIView) {
-      return createHTML(_resolveBUICode(_source));
-    } else if (_source is num || _source is bool) {
-      return createHTML('$_source');
-    } else if (_source is DOMElement) {
-      var dom = _source as DOMElement;
+    } else if (source is String || source is BUIView) {
+      return createHTML(html: _resolveBUICode(source));
+    } else if (source is num || source is bool) {
+      return createHTML(html: '$source');
+    } else if (source is DOMElement) {
+      var dom = source;
       return domGenerator.generate(dom) as Element?;
-    } else if (_source is Element) {
-      var elem = _source as Element?;
+    } else if (source.isElement) {
+      var elem = source as Element?;
       return elem;
     } else {
-      throw StateError("Can't convert source to Element: $_source");
+      throw StateError("Can't convert source to Element: $source");
     }
   }
 
   DOMElement? get sourceAsDOMElement {
-    if (_source == null) {
+    final source = _source;
+    if (source == null) {
       return null;
-    } else if (_source is String || _source is BUIView) {
-      return $htmlRoot(_resolveBUICode(_source));
-    } else if (_source is num || _source is bool) {
-      return $htmlRoot('$_source');
-    } else if (_source is DOMElement) {
-      return _source as DOMElement?;
-    } else if (_source is Element) {
-      var elem = _source as Element;
-      return $htmlRoot(elem.outerHtml);
+    } else if (source is String || source is BUIView) {
+      return $htmlRoot(_resolveBUICode(source));
+    } else if (source is num || source is bool) {
+      return $htmlRoot('$source');
+    } else if (source is DOMElement) {
+      return source as DOMElement?;
+    } else if (source.isElement) {
+      var elem = source as Element;
+      return $htmlRoot(elem.outerHTML);
     } else {
-      throw StateError("Can't convert source to Element: $_source");
+      throw StateError("Can't convert source to Element: $source");
     }
   }
 
