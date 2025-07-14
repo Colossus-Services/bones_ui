@@ -1,3 +1,8 @@
+## 3.0.0-beta.12
+
+- `UIDialog`:
+    - Added properties `autoScrollY` and `autoScrollX`.
+
 ## 3.0.0-beta.11
 
 - Merge 2.5.16:
@@ -117,6 +122,18 @@
 - lints: ^5.1.1
 - build_web_compilers: ^4.1.1
 - build_runner: ^2.4.15
+
+## 2.5.18
+
+- `UIDialog`:
+  - Added properties `autoScrollY` and `autoScrollX`.
+
+## 2.5.17
+
+- Migrate to `archive: ^4.0.7`.
+
+- project_template: ^1.1.1
+- archive: ^4.0.7
 
 ## 2.5.16
 
