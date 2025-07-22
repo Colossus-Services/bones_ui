@@ -676,23 +676,40 @@ abstract class UIComponent extends UIEventHandler {
 
   List<UIElement> _getContentChildrenImpl(List<UIElement> list,
       List<UIElement> dst, bool deep, FilterElement? filter) {
-    if (list.isEmpty) return dst;
+    if (deep) {
+      _getContentChildrenImplDeep(list, dst, filter);
+    } else {
+      _getContentChildrenImplShallow(list, dst, filter);
+    }
+    return dst;
+  }
 
-    filter ??= (_) => true;
-
+  void _getContentChildrenImplShallow(
+      List<UIElement> list, List<UIElement> dst, FilterElement? filter) {
     for (var elem in list) {
-      if (filter(elem)) {
+      if (filter == null || filter(elem)) {
         dst.add(elem);
       }
     }
+  }
 
-    if (deep) {
-      for (var elem in list) {
-        _getContentChildrenImpl(elem.children, dst, true, filter);
+  void _getContentChildrenImplDeep(
+      List<UIElement> list, List<UIElement> dst, FilterElement? filter) {
+    if (list.isEmpty) return;
+
+    final queue = Queue<UIElement>.from(list);
+
+    while (queue.isNotEmpty) {
+      final elem = queue.removeFirst();
+      if (filter == null || filter(elem)) {
+        dst.add(elem);
+      }
+
+      var children = elem.children;
+      if (children.isNotEmpty) {
+        queue.addAll(children);
       }
     }
-
-    return dst;
   }
 
   UIElement? findInContentChildDeep(FilterElement filter) =>
@@ -700,26 +717,18 @@ abstract class UIComponent extends UIEventHandler {
 
   UIElement? _findInContentChildDeepImpl(
       List<UIElement> list, FilterElement filter) {
-    List<UIElement> current = list;
+    if (list.isEmpty) return null;
 
-    while (current.isNotEmpty) {
-      // First check all elements at the current level
-      final currentLng = current.length;
-      for (var i = 0; i < currentLng; i++) {
-        final elem = current[i];
-        if (filter(elem)) return elem;
+    final queue = ListQueue<UIElement>.from(list);
+
+    while (queue.isNotEmpty) {
+      final elem = queue.removeFirst();
+      if (filter(elem)) return elem;
+
+      var children = elem.children;
+      if (children.isNotEmpty) {
+        queue.addAll(children);
       }
-
-      // Then prepare the next level, reusing list if possible
-      final next = <UIElement>[];
-      for (var i = 0; i < currentLng; i++) {
-        final children = current[i].children;
-        if (children.isNotEmpty) {
-          next.addAll(children);
-        }
-      }
-
-      current = next;
     }
 
     return null;
@@ -746,21 +755,27 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  MapEntry<String, Object>? findChildrenDeep(String fieldName) =>
-      _findChildrenDeepImpl(_content!.children, fieldName);
+  MapEntry<String, Object>? findChildrenDeep(String fieldName,
+          {bool resolveUIComponents = true}) =>
+      _findChildrenDeepImpl(_content!.children, fieldName, resolveUIComponents);
 
   MapEntry<String, Object>? _findChildrenDeepImpl(
-      List<UIElement> list, String fieldName) {
+      List<UIElement> list, String fieldName, bool resolveUIComponents) {
     if (list.isEmpty) return null;
 
-    for (var elem in list) {
-      var ret = _resolveElementField(elem);
-      if (ret != null && ret.key == fieldName) return ret;
-    }
+    var queue = Queue<UIElement>.from(list);
 
-    for (var elem in list) {
-      var found = _findChildrenDeepImpl(elem.children, fieldName);
-      if (found != null) return found;
+    while (queue.isNotEmpty) {
+      final elem = queue.removeFirst();
+
+      final ret =
+          _resolveElementField(elem, resolveUIComponents: resolveUIComponents);
+      if (ret != null && ret.key == fieldName) return ret;
+
+      final children = elem.children;
+      if (children.isNotEmpty) {
+        queue.addAll(children);
+      }
     }
 
     return null;
@@ -787,18 +802,25 @@ abstract class UIComponent extends UIEventHandler {
 
   List<MapEntry<String, Object>> _listFieldsEntriesInContentDeepImpl(
       List<UIElement> list) {
-    if (list.isEmpty) return <MapEntry<String, Object>>[];
+    final result = <MapEntry<String, Object>>[];
+    if (list.isEmpty) return result;
 
-    var fieldsEntries = list
-        .expand((e) {
-          var ret = _resolveElementField(e);
-          if (ret != null) return [ret];
-          return _listFieldsEntriesInContentDeepImpl([e]);
-        })
-        .nonNulls
-        .toList();
+    final queue = ListQueue<UIElement>.from(list);
 
-    return fieldsEntries;
+    while (queue.isNotEmpty) {
+      final elem = queue.removeFirst();
+      final entry = _resolveElementField(elem);
+      if (entry != null) {
+        result.add(entry);
+      } else {
+        final children = elem.children;
+        if (children.isNotEmpty) {
+          queue.addAll(children);
+        }
+      }
+    }
+
+    return result;
   }
 
   String? _renderedElementsLocale;
@@ -2429,9 +2451,11 @@ abstract class UIComponent extends UIEventHandler {
     return elem is E ? elem : null;
   }
 
-  Object? getFieldComponent(String? fieldName) {
+  Object? getFieldComponent(String? fieldName,
+      {bool resolveUIComponents = true}) {
     if (fieldName == null) return null;
-    return findChildrenDeep(fieldName)?.value;
+    return findChildrenDeep(fieldName, resolveUIComponents: resolveUIComponents)
+        ?.value;
   }
 
   List<UIElement> getFieldElements(String? fieldName) =>
