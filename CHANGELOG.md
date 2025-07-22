@@ -1,3 +1,12 @@
+## 2.5.19
+
+- `UIComponent`:
+  - `_findInContentChildDeepImpl`: Switched to iterative breadth-first search for up to 10× faster element lookup in deep UI trees.
+
+- test: ^1.26.3
+- test_api: ^0.7.7
+- test_core: ^0.6.12
+
 ## 2.5.18
 
 - `UIDialog`:

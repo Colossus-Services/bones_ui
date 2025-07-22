@@ -700,15 +700,26 @@ abstract class UIComponent extends UIEventHandler {
 
   UIElement? _findInContentChildDeepImpl(
       List<UIElement> list, FilterElement filter) {
-    if (list.isEmpty) return null;
+    List<UIElement> current = list;
 
-    for (var elem in list) {
-      if (filter(elem)) return elem;
-    }
+    while (current.isNotEmpty) {
+      // First check all elements at the current level
+      final currentLng = current.length;
+      for (var i = 0; i < currentLng; i++) {
+        final elem = current[i];
+        if (filter(elem)) return elem;
+      }
 
-    for (var elem in list) {
-      var found = _findInContentChildDeepImpl(elem.children, filter);
-      if (found != null) return found;
+      // Then prepare the next level, reusing list if possible
+      final next = <UIElement>[];
+      for (var i = 0; i < currentLng; i++) {
+        final children = current[i].children;
+        if (children.isNotEmpty) {
+          next.addAll(children);
+        }
+      }
+
+      current = next;
     }
 
     return null;
