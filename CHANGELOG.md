@@ -2,6 +2,8 @@
 
 - `UIComponent`:
   - `_findInContentChildDeepImpl`: Switched to iterative breadth-first search for up to 10× faster element lookup in deep UI trees.
+  - `getFields`, `getFieldElementByValue`, `getElementFieldName`, `getFieldsElementsMap`, `parseChildElementValue`:
+    - added parameter `resolveUIComponents = true`.
 
 - test: ^1.26.3
 - test_api: ^0.7.7
