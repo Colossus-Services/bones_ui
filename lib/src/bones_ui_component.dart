@@ -2437,9 +2437,11 @@ abstract class UIComponent extends UIEventHandler {
   List<UIElement> getFieldElements(String? fieldName) =>
       findChildDeep((e) => getElementFieldName(e) == fieldName);
 
-  UIElement? getFieldElementByValue(String? fieldName, String value) =>
-      getFieldElements(fieldName)
-          .firstWhereOrNull((e) => e.resolveElementValue() == value);
+  UIElement? getFieldElementByValue(String? fieldName, String value,
+          {bool resolveUIComponents = true}) =>
+      getFieldElements(fieldName).firstWhereOrNull((e) =>
+          e.resolveElementValue(resolveUIComponents: resolveUIComponents) ==
+          value);
 
   String? getComponentFieldName(Object obj) {
     if (obj is UIField) {
@@ -2451,21 +2453,26 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  String? getElementFieldName(UIElement element) {
-    var ret = _resolveElementField(element);
+  String? getElementFieldName(UIElement element,
+      {bool resolveUIComponents = true}) {
+    var ret =
+        _resolveElementField(element, resolveUIComponents: resolveUIComponents);
     return ret?.key;
   }
 
-  MapEntry<String, Object>? _resolveElementField<V>(UIElement element) {
+  MapEntry<String, Object>? _resolveElementField<V>(UIElement element,
+      {bool resolveUIComponents = true}) {
     var fieldName = element.resolveFieldName();
     if (fieldName != null) return fieldName;
 
-    var component = _getUIComponentByContent(element);
-    if (component != null) {
-      if (component is UIField) {
-        var field = component as UIField;
-        var fieldName = field.fieldName;
-        return MapEntry<String, Object>(fieldName, component);
+    if (resolveUIComponents) {
+      var component = _getUIComponentByContent(element);
+      if (component != null) {
+        if (component is UIField) {
+          var field = component as UIField;
+          var fieldName = field.fieldName;
+          return MapEntry<String, Object>(fieldName, component);
+        }
       }
     }
 
@@ -2473,27 +2480,34 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   Map<String, UIElement> getFieldsElementsMap(
-      {List<String>? fields, List<String>? ignoreFields}) {
+      {List<String>? fields,
+      List<String>? ignoreFields,
+      bool resolveUIComponents = true}) {
+    fields ??= [];
     ignoreFields ??= [];
 
-    var specificFields = isNotEmptyObject(fields);
+    final specificFields = fields.isNotEmpty;
 
-    var fieldsElements = getFieldsElements();
+    final fieldsElements = getFieldsElements();
 
-    var map = <String, UIElement>{};
+    final map = <String, UIElement>{};
 
     for (var elem in fieldsElements) {
-      var fieldName = getElementFieldName(elem)!;
+      var fieldName =
+          getElementFieldName(elem, resolveUIComponents: resolveUIComponents)!;
 
-      var include = specificFields ? fields!.contains(fieldName) : true;
+      var include = specificFields ? fields.contains(fieldName) : true;
 
       if (include && !ignoreFields.contains(fieldName)) {
         if (map.containsKey(fieldName)) {
-          var elemValue =
-              parseChildElementValue(map[fieldName], allowTextAsValue: false);
+          var elemValue = parseChildElementValue(map[fieldName],
+              allowTextAsValue: false,
+              resolveUIComponents: resolveUIComponents);
 
           if (isEmptyObject(elemValue)) {
-            var value = parseChildElementValue(elem, allowTextAsValue: false);
+            var value = parseChildElementValue(elem,
+                allowTextAsValue: false,
+                resolveUIComponents: resolveUIComponents);
             if (isNotEmptyObject(value)) {
               map[fieldName] = elem;
             }
@@ -2566,21 +2580,30 @@ abstract class UIComponent extends UIEventHandler {
       content!.children, [], true, (e) => getElementFieldName(e) != null);
 
   String? parseChildElementValue(UIElement? childElement,
-          {UIComponent? childUiComponent, bool allowTextAsValue = true}) =>
+          {UIComponent? childUiComponent,
+          bool allowTextAsValue = true,
+          bool resolveUIComponents = true}) =>
       childElement?.resolveElementValue(
           parentUIComponent: this,
           uiComponent: childUiComponent,
-          allowTextAsValue: allowTextAsValue);
+          allowTextAsValue: allowTextAsValue,
+          resolveUIComponents: resolveUIComponents);
 
   Map<String, String?> getFields(
-      {List<String>? fields, List<String>? ignoreFields}) {
-    var fieldsElementsMap =
-        getFieldsElementsMap(fields: fields, ignoreFields: ignoreFields);
+      {List<String>? fields,
+      List<String>? ignoreFields,
+      bool resolveUIComponents = true}) {
+    var fieldsElementsMap = getFieldsElementsMap(
+        fields: fields,
+        ignoreFields: ignoreFields,
+        resolveUIComponents: resolveUIComponents);
 
     var entries = fieldsElementsMap.entries.toList();
 
-    var entriesUIComponents = Map.fromEntries(
-        entries.map((e) => MapEntry(e.value, findUIComponentByChild(e.value))));
+    var entriesUIComponents = resolveUIComponents
+        ? Map.fromEntries(entries
+            .map((e) => MapEntry(e.value, findUIComponentByChild(e.value))))
+        : {};
 
     entries.sort((a, b) {
       var aUiComponent = entriesUIComponents[a.value];
@@ -2605,8 +2628,9 @@ abstract class UIComponent extends UIEventHandler {
 
       var uiComponent = entriesUIComponents[entry.value];
 
-      var value =
-          parseChildElementValue(entry.value, childUiComponent: uiComponent);
+      var value = parseChildElementValue(entry.value,
+          childUiComponent: uiComponent,
+          resolveUIComponents: resolveUIComponents);
 
       fieldsValues[key] = value;
     }
