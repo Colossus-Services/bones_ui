@@ -708,9 +708,9 @@ abstract class UIComponent extends UIEventHandler {
         dst.add(elem);
       }
 
-      var children = elem.children.toList();
+      var children = elem.children;
       if (children.isNotEmpty) {
-        queue.addAll(children);
+        queue.addAll(children.toIterable());
       }
     }
   }
@@ -729,9 +729,9 @@ abstract class UIComponent extends UIEventHandler {
       final elem = queue.removeFirst();
       if (filter(elem)) return elem;
 
-      var children = elem.children.toList();
+      var children = elem.children;
       if (children.isNotEmpty) {
-        queue.addAll(children);
+        queue.addAll(children.toIterable());
       }
     }
 
@@ -761,7 +761,8 @@ abstract class UIComponent extends UIEventHandler {
 
   MapEntry<String, Object>? findChildrenDeep(String fieldName,
           {bool resolveUIComponents = true}) =>
-      _findChildrenDeepImpl(_content!.children.toList(), fieldName, resolveUIComponents);
+      _findChildrenDeepImpl(
+          _content!.children.toList(), fieldName, resolveUIComponents);
 
   MapEntry<String, Object>? _findChildrenDeepImpl(
       List<UIElement> list, String fieldName, bool resolveUIComponents) {
@@ -776,9 +777,9 @@ abstract class UIComponent extends UIEventHandler {
           _resolveElementField(elem, resolveUIComponents: resolveUIComponents);
       if (ret != null && ret.key == fieldName) return ret;
 
-      final children = elem.children.toList();
+      final children = elem.children;
       if (children.isNotEmpty) {
-        queue.addAll(children);
+        queue.addAll(children.toIterable());
       }
     }
 
@@ -817,9 +818,9 @@ abstract class UIComponent extends UIEventHandler {
       if (entry != null) {
         result.add(entry);
       } else {
-        final children = elem.children.toList();
+        final children = elem.children;
         if (children.isNotEmpty) {
-          queue.addAll(children);
+          queue.addAll(children.toIterable());
         }
       }
     }
