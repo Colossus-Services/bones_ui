@@ -1,3 +1,15 @@
+## 3.0.0-beta.13
+
+- Merge 2.5.19:
+  - `UIComponent`:
+      - `_getContentChildrenImpl`, `_findInContentChildDeepImpl`, `_findChildrenDeepImpl`, `_listFieldsEntriesInContentDeepImpl`: Switched to iterative breadth-first search for up to 10× faster element lookup in deep UI trees.
+      - `getFields`, `getFieldElementByValue`, `getElementFieldName`, `getFieldsElementsMap`, `parseChildElementValue`:
+          - added parameter `resolveUIComponents = true`.
+
+- test: ^1.26.3
+- test_api: ^0.7.7
+- test_core: ^0.6.12
+
 ## 3.0.0-beta.12
 
 - Merge 2.5.17:
@@ -129,6 +141,17 @@
 - lints: ^5.1.1
 - build_web_compilers: ^4.1.1
 - build_runner: ^2.4.15
+
+## 2.5.19
+
+- `UIComponent`:
+  - `_getContentChildrenImpl`, `_findInContentChildDeepImpl`, `_findChildrenDeepImpl`, `_listFieldsEntriesInContentDeepImpl`: Switched to iterative breadth-first search for up to 10× faster element lookup in deep UI trees.
+  - `getFields`, `getFieldElementByValue`, `getElementFieldName`, `getFieldsElementsMap`, `parseChildElementValue`:
+    - added parameter `resolveUIComponents = true`.
+
+- test: ^1.26.3
+- test_api: ^0.7.7
+- test_core: ^0.6.12
 
 ## 2.5.18
 

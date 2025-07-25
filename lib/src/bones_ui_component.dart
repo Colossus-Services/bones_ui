@@ -679,23 +679,40 @@ abstract class UIComponent extends UIEventHandler {
 
   List<UIElement> _getContentChildrenImpl(List<UIElement> list,
       List<UIElement> dst, bool deep, FilterElement? filter) {
-    if (list.isEmpty) return dst;
+    if (deep) {
+      _getContentChildrenImplDeep(list, dst, filter);
+    } else {
+      _getContentChildrenImplShallow(list, dst, filter);
+    }
+    return dst;
+  }
 
-    filter ??= (_) => true;
-
+  void _getContentChildrenImplShallow(
+      List<UIElement> list, List<UIElement> dst, FilterElement? filter) {
     for (var elem in list) {
-      if (filter(elem)) {
+      if (filter == null || filter(elem)) {
         dst.add(elem);
       }
     }
+  }
 
-    if (deep) {
-      for (var elem in list) {
-        _getContentChildrenImpl(elem.children.toList(), dst, true, filter);
+  void _getContentChildrenImplDeep(
+      List<UIElement> list, List<UIElement> dst, FilterElement? filter) {
+    if (list.isEmpty) return;
+
+    final queue = Queue<UIElement>.from(list);
+
+    while (queue.isNotEmpty) {
+      final elem = queue.removeFirst();
+      if (filter == null || filter(elem)) {
+        dst.add(elem);
+      }
+
+      var children = elem.children.toList();
+      if (children.isNotEmpty) {
+        queue.addAll(children);
       }
     }
-
-    return dst;
   }
 
   UIElement? findInContentChildDeep(FilterElement filter) =>
@@ -706,13 +723,16 @@ abstract class UIComponent extends UIEventHandler {
       List<UIElement> list, FilterElement filter) {
     if (list.isEmpty) return null;
 
-    for (var elem in list) {
-      if (filter(elem)) return elem;
-    }
+    final queue = ListQueue<UIElement>.from(list);
 
-    for (var elem in list) {
-      var found = _findInContentChildDeepImpl(elem.children.toList(), filter);
-      if (found != null) return found;
+    while (queue.isNotEmpty) {
+      final elem = queue.removeFirst();
+      if (filter(elem)) return elem;
+
+      var children = elem.children.toList();
+      if (children.isNotEmpty) {
+        queue.addAll(children);
+      }
     }
 
     return null;
@@ -739,21 +759,27 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  MapEntry<String, Object>? findChildrenDeep(String fieldName) =>
-      _findChildrenDeepImpl(_content!.children.toList(), fieldName);
+  MapEntry<String, Object>? findChildrenDeep(String fieldName,
+          {bool resolveUIComponents = true}) =>
+      _findChildrenDeepImpl(_content!.children.toList(), fieldName, resolveUIComponents);
 
   MapEntry<String, Object>? _findChildrenDeepImpl(
-      List<UIElement> list, String fieldName) {
+      List<UIElement> list, String fieldName, bool resolveUIComponents) {
     if (list.isEmpty) return null;
 
-    for (var elem in list) {
-      var ret = _resolveElementField(elem);
-      if (ret != null && ret.key == fieldName) return ret;
-    }
+    var queue = Queue<UIElement>.from(list);
 
-    for (var elem in list) {
-      var found = _findChildrenDeepImpl(elem.children.toList(), fieldName);
-      if (found != null) return found;
+    while (queue.isNotEmpty) {
+      final elem = queue.removeFirst();
+
+      final ret =
+          _resolveElementField(elem, resolveUIComponents: resolveUIComponents);
+      if (ret != null && ret.key == fieldName) return ret;
+
+      final children = elem.children.toList();
+      if (children.isNotEmpty) {
+        queue.addAll(children);
+      }
     }
 
     return null;
@@ -780,18 +806,25 @@ abstract class UIComponent extends UIEventHandler {
 
   List<MapEntry<String, Object>> _listFieldsEntriesInContentDeepImpl(
       List<UIElement> list) {
-    if (list.isEmpty) return <MapEntry<String, Object>>[];
+    final result = <MapEntry<String, Object>>[];
+    if (list.isEmpty) return result;
 
-    var fieldsEntries = list
-        .expand((e) {
-          var ret = _resolveElementField(e);
-          if (ret != null) return [ret];
-          return _listFieldsEntriesInContentDeepImpl([e]);
-        })
-        .nonNulls
-        .toList();
+    final queue = ListQueue<UIElement>.from(list);
 
-    return fieldsEntries;
+    while (queue.isNotEmpty) {
+      final elem = queue.removeFirst();
+      final entry = _resolveElementField(elem);
+      if (entry != null) {
+        result.add(entry);
+      } else {
+        final children = elem.children.toList();
+        if (children.isNotEmpty) {
+          queue.addAll(children);
+        }
+      }
+    }
+
+    return result;
   }
 
   String? _renderedElementsLocale;
@@ -2425,17 +2458,21 @@ abstract class UIComponent extends UIEventHandler {
     return elem.asElementOf<E>(webType);
   }
 
-  Object? getFieldComponent(String? fieldName) {
+  Object? getFieldComponent(String? fieldName,
+      {bool resolveUIComponents = true}) {
     if (fieldName == null) return null;
-    return findChildrenDeep(fieldName)?.value;
+    return findChildrenDeep(fieldName, resolveUIComponents: resolveUIComponents)
+        ?.value;
   }
 
   List<UIElement> getFieldElements(String? fieldName) =>
       findChildDeep((e) => getElementFieldName(e) == fieldName);
 
-  UIElement? getFieldElementByValue(String? fieldName, String value) =>
-      getFieldElements(fieldName)
-          .firstWhereOrNull((e) => e.resolveElementValue() == value);
+  UIElement? getFieldElementByValue(String? fieldName, String value,
+          {bool resolveUIComponents = true}) =>
+      getFieldElements(fieldName).firstWhereOrNull((e) =>
+          e.resolveElementValue(resolveUIComponents: resolveUIComponents) ==
+          value);
 
   String? getComponentFieldName(Object obj) {
     if (obj is UIField) {
@@ -2447,21 +2484,26 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  String? getElementFieldName(UIElement element) {
-    var ret = _resolveElementField(element);
+  String? getElementFieldName(UIElement element,
+      {bool resolveUIComponents = true}) {
+    var ret =
+        _resolveElementField(element, resolveUIComponents: resolveUIComponents);
     return ret?.key;
   }
 
-  MapEntry<String, Object>? _resolveElementField<V>(UIElement element) {
+  MapEntry<String, Object>? _resolveElementField<V>(UIElement element,
+      {bool resolveUIComponents = true}) {
     var fieldName = element.resolveFieldName();
     if (fieldName != null) return fieldName;
 
-    var component = _getUIComponentByContent(element);
-    if (component != null) {
-      if (component is UIField) {
-        var field = component as UIField;
-        var fieldName = field.fieldName;
-        return MapEntry<String, Object>(fieldName, component);
+    if (resolveUIComponents) {
+      var component = _getUIComponentByContent(element);
+      if (component != null) {
+        if (component is UIField) {
+          var field = component as UIField;
+          var fieldName = field.fieldName;
+          return MapEntry<String, Object>(fieldName, component);
+        }
       }
     }
 
@@ -2469,27 +2511,34 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   Map<String, UIElement> getFieldsElementsMap(
-      {List<String>? fields, List<String>? ignoreFields}) {
+      {List<String>? fields,
+      List<String>? ignoreFields,
+      bool resolveUIComponents = true}) {
+    fields ??= [];
     ignoreFields ??= [];
 
-    var specificFields = isNotEmptyObject(fields);
+    final specificFields = fields.isNotEmpty;
 
-    var fieldsElements = getFieldsElements();
+    final fieldsElements = getFieldsElements();
 
-    var map = <String, UIElement>{};
+    final map = <String, UIElement>{};
 
     for (var elem in fieldsElements) {
-      var fieldName = getElementFieldName(elem)!;
+      var fieldName =
+          getElementFieldName(elem, resolveUIComponents: resolveUIComponents)!;
 
-      var include = specificFields ? fields!.contains(fieldName) : true;
+      var include = specificFields ? fields.contains(fieldName) : true;
 
       if (include && !ignoreFields.contains(fieldName)) {
         if (map.containsKey(fieldName)) {
-          var elemValue =
-              parseChildElementValue(map[fieldName], allowTextAsValue: false);
+          var elemValue = parseChildElementValue(map[fieldName],
+              allowTextAsValue: false,
+              resolveUIComponents: resolveUIComponents);
 
           if (isEmptyObject(elemValue)) {
-            var value = parseChildElementValue(elem, allowTextAsValue: false);
+            var value = parseChildElementValue(elem,
+                allowTextAsValue: false,
+                resolveUIComponents: resolveUIComponents);
             if (isNotEmptyObject(value)) {
               map[fieldName] = elem;
             }
@@ -2599,21 +2648,30 @@ abstract class UIComponent extends UIEventHandler {
       (e) => getElementFieldName(e) != null);
 
   String? parseChildElementValue(UIElement? childElement,
-          {UIComponent? childUiComponent, bool allowTextAsValue = true}) =>
+          {UIComponent? childUiComponent,
+          bool allowTextAsValue = true,
+          bool resolveUIComponents = true}) =>
       childElement?.resolveElementValue(
           parentUIComponent: this,
           uiComponent: childUiComponent,
-          allowTextAsValue: allowTextAsValue);
+          allowTextAsValue: allowTextAsValue,
+          resolveUIComponents: resolveUIComponents);
 
   Map<String, String?> getFields(
-      {List<String>? fields, List<String>? ignoreFields}) {
-    var fieldsElementsMap =
-        getFieldsElementsMap(fields: fields, ignoreFields: ignoreFields);
+      {List<String>? fields,
+      List<String>? ignoreFields,
+      bool resolveUIComponents = true}) {
+    var fieldsElementsMap = getFieldsElementsMap(
+        fields: fields,
+        ignoreFields: ignoreFields,
+        resolveUIComponents: resolveUIComponents);
 
     var entries = fieldsElementsMap.entries.toList();
 
-    var entriesUIComponents = Map.fromEntries(
-        entries.map((e) => MapEntry(e.value, findUIComponentByChild(e.value))));
+    var entriesUIComponents = resolveUIComponents
+        ? Map.fromEntries(entries
+            .map((e) => MapEntry(e.value, findUIComponentByChild(e.value))))
+        : {};
 
     entries.sort((a, b) {
       var aUiComponent = entriesUIComponents[a.value];
@@ -2638,8 +2696,9 @@ abstract class UIComponent extends UIEventHandler {
 
       var uiComponent = entriesUIComponents[entry.value];
 
-      var value =
-          parseChildElementValue(entry.value, childUiComponent: uiComponent);
+      var value = parseChildElementValue(entry.value,
+          childUiComponent: uiComponent,
+          resolveUIComponents: resolveUIComponents);
 
       fieldsValues[key] = value;
     }

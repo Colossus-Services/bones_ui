@@ -20,7 +20,8 @@ extension UIElementExtension on UIElement {
   String? resolveElementValue(
       {UIComponent? parentUIComponent,
       UIComponent? uiComponent,
-      bool allowTextAsValue = true}) {
+      bool allowTextAsValue = true,
+      bool resolveUIComponents = true}) {
     var self = this;
 
     if (self.isA<HTMLInputElement>() ||
@@ -29,7 +30,9 @@ extension UIElementExtension on UIElement {
       return resolveInputElementValue();
     }
 
-    uiComponent ??= resolveUIComponent(parentUIComponent: parentUIComponent);
+    if (uiComponent == null && resolveUIComponents) {
+      uiComponent = resolveUIComponent(parentUIComponent: parentUIComponent);
+    }
 
     if (uiComponent != null) {
       if (uiComponent is UIField) {
