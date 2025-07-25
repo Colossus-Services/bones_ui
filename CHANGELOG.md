@@ -1,3 +1,9 @@
+## 3.0.0-beta.14
+
+- Merge 2.5.20:
+  - `UIComponent`:
+      - Optimize `findChildDeep` with a BFS queue.
+
 ## 3.0.0-beta.13
 
 - Merge 2.5.19:
@@ -141,6 +147,11 @@
 - lints: ^5.1.1
 - build_web_compilers: ^4.1.1
 - build_runner: ^2.4.15
+
+## 2.5.20
+
+- `UIComponent`:
+  - Optimize `findChildDeep` with a BFS queue.
 
 ## 2.5.19
 
