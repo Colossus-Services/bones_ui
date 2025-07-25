@@ -744,14 +744,19 @@ abstract class UIComponent extends UIEventHandler {
       List<UIElement> list, FilterElement filter, List<UIElement> dst) {
     if (list.isEmpty) return;
 
-    for (var elem in list) {
+    final queue = Queue<UIElement>.from(list);
+
+    while (queue.isNotEmpty) {
+      final elem = queue.removeFirst();
+
       if (filter(elem)) {
         dst.add(elem);
       }
-    }
 
-    for (var elem in list) {
-      _findChildDeepImpl(elem.children, filter, dst);
+      var children = elem.children;
+      if (children.isNotEmpty) {
+        queue.addAll(children);
+      }
     }
   }
 

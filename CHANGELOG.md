@@ -1,3 +1,8 @@
+## 2.5.20
+
+- `UIComponent`:
+  - Optimize `findChildDeep` with a BFS queue.
+
 ## 2.5.19
 
 - `UIComponent`:
