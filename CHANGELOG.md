@@ -1,3 +1,9 @@
+## 2.5.21
+
+- `InputConfig`:
+  - Added field `precision`.
+  - Added support for type `decimal`.
+
 ## 2.5.20
 
 - `UIComponent`:
