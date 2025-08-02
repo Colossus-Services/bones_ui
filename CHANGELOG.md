@@ -1,3 +1,10 @@
+## 3.0.0-beta.15
+
+- Merge 2.5.21
+  - `InputConfig`:
+      - Added field `precision`.
+      - Added support for type `decimal`.
+
 ## 3.0.0-beta.14
 
 - Merge 2.5.20:
@@ -147,6 +154,12 @@
 - lints: ^5.1.1
 - build_web_compilers: ^4.1.1
 - build_runner: ^2.4.15
+
+## 2.5.21
+
+- `InputConfig`:
+  - Added field `precision`.
+  - Added support for type `decimal`.
 
 ## 2.5.20
 
