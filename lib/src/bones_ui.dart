@@ -1,3 +1,3 @@
 class BonesUI {
-  static const String version = '2.5.20';
+  static const String version = '2.5.21';
 }

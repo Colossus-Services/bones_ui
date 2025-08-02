@@ -36,6 +36,7 @@ class InputConfig {
   final String _type;
   String? value;
   final bool? checked;
+  final int? precision;
   final String? _placeholder;
   final Map<String, String>? _attributes;
   final Map<String, String>? _options;
@@ -75,6 +76,7 @@ class InputConfig {
       var type = parseString(findKeyValue(config, ['type'], true), 'text');
       var value = parseString(findKeyValue(config, ['value'], true), '');
       var checked = parseBool(findKeyValue(config, ['checked'], true));
+      var precision = parseInt(findKeyValue(config, ['precision'], true));
       var attributes = findKeyValue(config, ['attributes'], true);
       var classes = findKeyValue(config, ['class', 'classes'], true);
       var labelStyle = findKeyValue(config, ['labelStyle'], true);
@@ -96,6 +98,7 @@ class InputConfig {
           type: type,
           value: value,
           checked: checked,
+          precision: precision,
           attributes: attributes,
           options: options,
           optional: optional,
@@ -114,6 +117,7 @@ class InputConfig {
     String? type = 'text',
     String? value = '',
     this.checked,
+    this.precision,
     String? placeholder = '',
     Map<String, String>? attributes,
     Map<String, String>? options,
@@ -259,6 +263,8 @@ class InputConfig {
       }
     } else if (inputType == 'textarea') {
       inputElement = _renderTextArea(inputValue);
+    } else if (inputType == 'decimal') {
+      inputElement = _renderDecimal(inputValue);
     } else if (inputType == 'select') {
       inputElement = _renderSelect(inputValue);
     } else if (inputType == 'image') {
@@ -403,6 +409,34 @@ class InputConfig {
     var textArea = TextAreaElement()..style.width = '100%';
     textArea.value = valText;
     return textArea;
+  }
+
+  InputElement _renderDecimal(Object? inputValue) {
+    var valText = _resolveValueText(inputValue);
+
+    var input = InputElement()
+      ..type = 'number'
+      ..value = valText ?? ''
+      ..style.width = '100%';
+
+    var precision = this.precision;
+    if (precision != null) {
+      String step;
+
+      if (precision == 0) {
+        step = '1';
+      } else if (precision == 1) {
+        step = '0.1';
+      } else if (precision >= 2) {
+        step = '0.${'0' * (precision - 1)}1';
+      } else {
+        step = 'any';
+      }
+
+      input.step = step;
+    }
+
+    return input;
   }
 
   Element _renderGenericInput(String? inputType, Object? inputValue) {
