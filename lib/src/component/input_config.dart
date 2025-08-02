@@ -410,10 +410,10 @@ class InputConfig {
     return textArea;
   }
 
-  InputElement _renderDecimal(Object? inputValue) {
+  Element _renderDecimal(Object? inputValue) {
     var valText = _resolveValueText(inputValue);
 
-    var input = InputElement()
+    var input = HTMLInputElement()
       ..type = 'number'
       ..value = valText ?? ''
       ..style.width = '100%';
