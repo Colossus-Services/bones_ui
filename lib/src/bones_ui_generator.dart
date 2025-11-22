@@ -394,13 +394,23 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
   }
 
   @override
-  List<UINode>? addExternalElementToElement(UINode element, externalElement) {
+  List<UINode>? addExternalElementToElement(
+      UINode element, Object? externalElement) {
+    if (externalElement == null) return null;
+
     if (externalElement is List) {
       if (externalElement.isEmpty) return null;
+
+      if (externalElement.length == 1) {
+        return addExternalElementToElement(element, externalElement.first);
+      }
+
       var children = <UINode>[];
       for (var elem in externalElement) {
-        var child = addExternalElementToElement(element, elem)!;
-        children.addAll(child);
+        var child = addExternalElementToElement(element, elem);
+        if (child != null) {
+          children.addAll(child);
+        }
       }
       return children;
     } else if (externalElement is UIComponent) {
@@ -447,6 +457,9 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
       Object? futureElementResolved,
       DOMTreeMap<UINode> treeMap,
       DOMContext<UINode>? context) {
+    futureElementResolved = resolveElements(futureElementResolved);
+    if (futureElementResolved == null) return;
+
     super.attachFutureElement(domParent, parent, domElement, templateElement,
         futureElementResolved, treeMap, context);
 
