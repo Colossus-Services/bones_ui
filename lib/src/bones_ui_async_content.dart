@@ -21,10 +21,7 @@ class _Content {
 
   Object? _contentForDOM;
 
-  Object? get contentForDOM {
-    _contentForDOM ??= _ensureElementForDOM(content);
-    return _contentForDOM;
-  }
+  Object? get contentForDOM => _contentForDOM ??= _ensureElementForDOM(content);
 }
 
 /// An asynchronous content.
@@ -335,10 +332,11 @@ class UIAsyncContent {
 
   /// Returns the already loaded content.
   dynamic get content {
-    if (_loadedContent == null) {
+    var loadedContent = _loadedContent;
+    if (loadedContent == null) {
       return loadingContent;
-    } else if (_loadedContent!.status == 200) {
-      return _loadedContent!.contentForDOM;
+    } else if (loadedContent.status == 200) {
+      return loadedContent.contentForDOM;
     } else {
       return errorContent ?? loadingContent;
     }
