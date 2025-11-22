@@ -105,3 +105,13 @@ extension UIIterableElementExtension<E extends UIElement> on Iterable<E> {
   /// Returns a [List] of values of this [Iterable] of [UIElement]s.
   List<String?> get elementsValues => map((e) => e.elementValue).toList();
 }
+
+extension KeyboardEventExtension on KeyboardEvent {
+  int? get keyCodeSafe {
+    try {
+      return keyCode;
+    } catch (_) {
+      return null;
+    }
+  }
+}
