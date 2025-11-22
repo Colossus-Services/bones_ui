@@ -3134,7 +3134,7 @@ abstract class UIComponent extends UIEventHandler {
         });
       } else {
         elem.onKeyPress.listen((e) {
-          if (e.key == key || e.keyCode.toString() == key) {
+          if (e.key == key || e.keyCodeSafe.toString() == key) {
             action(actionType);
           }
         });
