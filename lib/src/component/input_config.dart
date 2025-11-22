@@ -8,6 +8,7 @@ import 'package:web_utils/web_utils.dart';
 
 import '../bones_ui_component.dart';
 import '../bones_ui_utils.dart';
+import '../bones_ui_extension.dart';
 import 'capture.dart';
 import 'color_picker.dart';
 
@@ -988,9 +989,10 @@ class UIInputTable extends UIComponent {
         } else if (type == 'date') {
           interactionCompleter.onComplete.listen(onActionListener);
         } else {
-          elem.onKeyUp
-              .where((evt) => evt.keyCode == 9 || evt.keyCode == 13)
-              .listen(onActionListener);
+          elem.onKeyUp.where((evt) {
+            var keyCode = evt.keyCodeSafe;
+            return keyCode == 9 || keyCode == 13;
+          }).listen(onActionListener);
 
           if (type != 'password') {
             interactionCompleter.onComplete.listen(onActionListener);
