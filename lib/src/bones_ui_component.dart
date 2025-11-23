@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:collection/collection.dart' show IterableExtension;
+import 'package:collection/collection.dart'
+    show IterableExtension, equalsIgnoreAsciiCase;
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:dynamic_call/dynamic_call.dart';
@@ -3134,7 +3135,8 @@ abstract class UIComponent extends UIEventHandler {
         });
       } else {
         elem.onKeyPress.listen((e) {
-          if (e.key == key || e.keyCodeSafe.toString() == key) {
+          if (equalsIgnoreAsciiCase(e.key, key) ||
+              equalsIgnoreAsciiCase(e.keyCodeSafe.toString(), key)) {
             action(actionType);
           }
         });
