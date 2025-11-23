@@ -1,14 +1,11 @@
 ## 3.0.0-beta.16
 
-- New `KeyboardEventExtension`:
-  - getter `keyCodeSafe`.
-
 - `UIDOMGenerator`:
   - `addExternalElementToElement`: improve external element resolution.
   - `attachFutureElement`: improve element resolution.
 
 - js_interop_utils: ^1.0.9
-- web_utils: ^1.0.16
+- web_utils: ^1.0.17
 - dom_tools: ^3.0.0-beta.12
 - dom_builder: ^3.0.0-beta.5
 - expressions: ^0.2.5+3
