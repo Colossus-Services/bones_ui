@@ -10,13 +10,14 @@
 - js_interop_utils: ^1.0.9
 - web_utils: ^1.0.16
 - dom_tools: ^3.0.0-beta.12
+- dom_builder: ^3.0.0-beta.5
 - expressions: ^0.2.5+3
 - collection: ^1.19.1
-- test: ^1.27.0
+- test: ^1.28.0
 - test_api: ^0.7.8
-- test_core: ^0.6.13
+- test_core: ^0.6.14
 
-- build_web_compilers: ^4.4.2
+- build_web_compilers: ^4.4.3
 - build_runner: ^2.10.4
 - dependency_validator: ^5.0.3
 
