@@ -487,8 +487,9 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
   }
 
   @override
-  List<UINode>? toElements(elements) {
+  List<UINode>? toElements(Object? elements) {
     if (elements is UIComponent) {
+      elements.ensureRendered();
       var content = elements.content;
       return content != null ? [content] : null;
     } else if (elements is UIAsyncContent) {

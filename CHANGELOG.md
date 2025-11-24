@@ -1,3 +1,11 @@
+## 3.0.0-beta.18
+
+- `UIDOMGenerator`:
+  - `toElements`:
+    - Fix resolution of `UIComponent`, calling `UIComponent.ensureRendered` before return `UIComponent.content`.
+
+- dom_builder: ^3.0.0-beta.6
+
 ## 3.0.0-beta.17
 
 - `UIComponent`:
