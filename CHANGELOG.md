@@ -1,3 +1,10 @@
+## 3.0.0-beta.17
+
+- `UIComponent`:
+  - `getFieldElementTyped`: use `asElementOfNullable`.
+
+- web_utils: ^1.0.18
+
 ## 3.0.0-beta.16
 
 - `UIDOMGenerator`:

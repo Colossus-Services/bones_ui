@@ -2462,7 +2462,7 @@ abstract class UIComponent extends UIEventHandler {
   E? getFieldElementTyped<E extends HTMLElement>(
       String? fieldName, Web<E> webType) {
     var elem = getFieldElementNonTyped(fieldName);
-    return elem.asElementOf<E>(webType);
+    return elem.asElementOfNullable<E>(webType);
   }
 
   Object? getFieldComponent(String? fieldName,
