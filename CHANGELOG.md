@@ -1,6 +1,8 @@
 ## 3.0.0-beta.19
 
 - dom_tools: ^3.0.0-beta.13
+- dom_builder: ^3.0.0-beta.7
+- web_utils: ^1.0.19
 
 ## 3.0.0-beta.18
 
