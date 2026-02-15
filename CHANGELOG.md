@@ -9,6 +9,22 @@
 - `ElementProvider` and `CSSProvider`:
   - Updated calls to `buildDOM` to include `treeMap` and `setTreeMapRoot` parameters.
 
+- `UIComponent`:
+  - Replaced `Expando` with `DualWeakMap` for static field `_asyncRenderingZoneComponent`.
+  - Added `_domTreeMap` field and `domTreeMap` getter for lazy DOM tree mapping.
+  - Added `domTreeMapIfInitialized` getter and static `domTreeMapDummy`.
+  - Replaced `Expando` with `DualWeakMap` for `_contentsUIComponents`.
+  - Updated parent setting methods to use named parameter `addToParent`.
+  - Added `_resolveParentFromParentUIComponent` to better resolve `_parent`.
+  - Updated many list conversions from `.toList()` to `.asListViewFixed` for performance.
+  - Added `_onRender` and `_onChange` lazy event streams.
+  - Added `_renderedUIRoots` and `_renderedUIComponents` sets to track rendering.
+  - Improved `_markRenderTime` and rendering finish notification logic.
+  - Added `dispose` and `_recycle` methods for lifecycle management.
+  - Added static `purgeGlobals` to clear global UI state.
+  - Updated rendering and async content handling to use nullable collections.
+  - Updated event listener attachment to use `addEventListenerTyped`.
+
 - `bones_ui_extension.dart`:
   - Added `ElementStreamExtension` and `StreamSubscriptionExtension` to track subscriptions in `DOMTreeMap`.
 
