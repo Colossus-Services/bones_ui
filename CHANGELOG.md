@@ -1,3 +1,4 @@
+## 3.0.0-beta.20
 
 - `UIEventHandler`:
   - Added `unregisterEventListener` and `clearEventListeners` methods.
@@ -77,6 +78,20 @@
 - `UITemplateElementGenerator`:
   - Updated DOM generation calls to pass `treeMap`, `context`, and `setTreeMapRoot`.
   - Updated template building to use `dsxResolution` enum instead of boolean flags.
+
+- `pubspec.yaml`:
+  - Updated dependencies:
+    - `web_utils`: ^1.0.21
+    - `dom_tools`: ^3.0.0-beta.19
+    - `dom_builder`: ^3.0.0-beta.11
+    - `swiss_knife`: ^3.3.5
+    - `statistics`: ^1.2.1
+    - `test`: ^1.29.0
+    - `test_api`: ^0.7.9
+    - `test_core`: ^0.6.15
+    - `build_web_compilers`: ^4.4.11
+    - `build_runner`: ^2.11.1
+    - `dependency_validator`: ^5.0.4
 
 ## 3.0.0-beta.19
 
