@@ -327,8 +327,10 @@ class ElementProvider {
       if (runtime.exists) {
         return runtime.node as UIElement?;
       } else {
-        return _domNode!.buildDOM(generator: UIComponent.domGenerator)
-            as UIElement?;
+        return _domNode!.buildDOM(
+            generator: UIComponent.domGenerator,
+            treeMap: UIComponent.domTreeMapDummy,
+            setTreeMapRoot: false) as UIElement?;
       }
     }
 

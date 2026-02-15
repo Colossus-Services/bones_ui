@@ -6,6 +6,9 @@
   - Changed `_eventListeners` to nullable and lazily initialized.
   - Added `_unregisterEventListener` and `_clearEventListeners` implementations.
 
+- `ElementProvider` and `CSSProvider`:
+  - Updated calls to `buildDOM` to include `treeMap` and `setTreeMapRoot` parameters.
+
 - `bones_ui_extension.dart`:
   - Added `ElementStreamExtension` and `StreamSubscriptionExtension` to track subscriptions in `DOMTreeMap`.
 
