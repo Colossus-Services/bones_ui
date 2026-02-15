@@ -32,6 +32,14 @@
   - Updated `addExternalElementToElement` and `toElements` to accept `treeMap` and `context` parameters.
   - Updated calls to `buildDOM` to pass `treeMap` and `setTreeMapRoot`.
 
+- `UIRootComponent`:
+  - Changed `_uiComponentsTree` to nullable and lazily initialized.
+  - Added `_onPurgedUIComponents` callback to dispose purged components.
+  - Updated methods to safely handle nullable `_uiComponentsTree`.
+  - Added `purgeRoot` method to purge tree and global UI state.
+
+- Added `_UIDOMTreeReferenceMap` subclass to prevent premature purging of components not fully initialized or disposed.
+
 - `UIButtonBase` and `UIButtonLoader`:
   - Updated event listener attachment to use `addEventListenerTyped`.
   - Fixed null safety and type checks for button elements.

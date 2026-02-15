@@ -69,13 +69,22 @@ abstract class UIRootComponent extends UIComponent {
     _rootComponentInstances.add(WeakReference(this));
   }
 
-  late DOMTreeReferenceMap<UIComponent> _uiComponentsTree;
+  DOMTreeReferenceMap<UIComponent>? _uiComponentsTree;
 
-  void initializeUIComponentsTree() {
-    _uiComponentsTree = DOMTreeReferenceMap(content!,
-        keepPurgedKeys: true,
-        maxPurgedEntries: 1000,
-        purgedEntriesTimeout: Duration(minutes: 1));
+  void initializeUIComponentsTree() => _getUIComponentsTree();
+
+  DOMTreeReferenceMap<UIComponent> _getUIComponentsTree() {
+    return _uiComponentsTree ??= _UIDOMTreeReferenceMap(
+      this,
+      onPurgedEntries: _onPurgedUIComponents,
+    );
+  }
+
+  void _onPurgedUIComponents(Map<Node, UIComponent> purgedEntries) {
+    for (var e in purgedEntries.entries) {
+      final component = e.value;
+      component.dispose();
+    }
   }
 
   @override
@@ -84,51 +93,61 @@ abstract class UIRootComponent extends UIComponent {
   @override
   UIRootComponent get uiRootComponent;
 
-  bool get isAnyComponentRendering => _uiComponentsTree.validEntries
-      .where((e) => e.value.isRendering)
-      .isNotEmpty;
+  bool get isAnyComponentRendering =>
+      _uiComponentsTree?.validEntries.any((e) => e.value.isRendering) ?? false;
 
   UIComponent? getUIComponentByContent(UIElement? uiComponentContent,
       {bool includePurgedEntries = false}) {
     if (uiComponentContent == null) return null;
+
     if (includePurgedEntries) {
-      return _uiComponentsTree.getAlsoFromPurgedEntries(uiComponentContent);
+      return _uiComponentsTree?.getAlsoFromPurgedEntries(uiComponentContent);
     } else {
-      return _uiComponentsTree.get(uiComponentContent);
+      return _uiComponentsTree?.get(uiComponentContent);
     }
   }
 
   UIComponent? getUIComponentByChild(UIElement? child,
       {bool includePurgedEntries = false}) {
-    return _uiComponentsTree.getParentValue(child,
+    return _uiComponentsTree?.getParentValue(child,
         includePurgedEntries: includePurgedEntries);
   }
 
   List<UIComponent>? getSubUIComponentsByElement(UIElement? element,
       {bool includePurgedEntries = false}) {
     if (element == null ||
-        (!_uiComponentsTree.isInTree(element) && !(includePurgedEntries))) {
+        (!includePurgedEntries &&
+            !(_uiComponentsTree?.isInTree(element) ?? false))) {
       return null;
     }
-    return _uiComponentsTree.getSubValues(element,
+    return _uiComponentsTree?.getSubValues(element,
         includePurgedEntries: includePurgedEntries);
   }
 
   void registerUIComponentInTree(UIComponent uiComponent) {
-    _uiComponentsTree.put(uiComponent.content!, uiComponent);
+    _getUIComponentsTree().put(uiComponent.content!, uiComponent);
     //print('_uiComponentsTree> $_uiComponentsTree');
   }
 
-  void purgeUIComponentsTree() => _uiComponentsTree.purge();
+  void purgeUIComponentsTree() => _uiComponentsTree?.purge();
 
   /// [EventStream] for when this [UIRoot] finishes to render UI.
   final EventStream<UIRootComponent> onFinishRender = EventStream();
 
   void notifyFinishRender() {
+    purgeRoot();
+
     onFinishRender.add(this);
 
-    _uiComponentsTree.purge();
     //print('FINISH RENDER> _uiComponentsTree: $_uiComponentsTree');
+  }
+
+  void purgeRoot() {
+    _uiComponentsTree?.purge();
+
+    domTreeMapIfInitialized?.purge();
+
+    UIComponent.purgeGlobals();
   }
 }
 
@@ -471,4 +490,34 @@ void _registerAllComponents() {
   UIDocument.register();
   UIDialog.register();
   UISVG.register();
+}
+
+class _UIDOMTreeReferenceMap extends DOMTreeReferenceMap<UIComponent> {
+  final UIRootComponent rootComponent;
+
+  _UIDOMTreeReferenceMap(this.rootComponent, {super.onPurgedEntries})
+      : super(
+          rootComponent.content!,
+          autoPurge: false,
+          keepPurgedKeys: true,
+          purgedEntriesTimeout: Duration(minutes: 1),
+        );
+
+  @override
+  bool isValidEntry(Node key, UIComponent value) {
+    var valid = super.isValidEntry(key, value);
+
+    if (!valid && !value.isDisposed) {
+      var content = value.content;
+      var parent = value.parent;
+
+      // Component still in the initial rendering:
+      if (content == null || parent == null) {
+        //print('!!! Prevent purge> $value >> $content ; $parent');
+        return true;
+      }
+    }
+
+    return valid;
+  }
 }
