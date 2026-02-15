@@ -20,6 +20,14 @@
   - Updated event listener attachment to use `addEventListenerTyped`.
   - Fixed null safety and type checks for button elements.
 
+- `UICapture`:
+  - Added new `CaptureDataFormat.urlOrBlobUrl` format.
+  - Added `selectedFileDataAsURLOrDataURLBase64` getter.
+  - Updated `_readFile` and `_filterCapturedData` to support new format and improved async flow with `_yeld` helper.
+  - Updated `_CapturedData` class to store optional MIME type and support new format.
+  - Improved data format conversions to preserve MIME type.
+  - Added helper `_yeld` function for async yielding.
+
 - `UIDialogBase`:
   - Fixed background color style to use `rgb` when alpha is 1.0.
 

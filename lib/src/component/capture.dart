@@ -60,6 +60,9 @@ enum CaptureDataFormat {
 
   /// The data is stored as a URL [String] (including `DataURL`).
   url,
+
+  /// The data is stored as a URL [String] or [Blob] URL.
+  urlOrBlobUrl,
 }
 
 typedef CapturePhotoEditor = FutureOr<HTMLImageElement?> Function(
@@ -225,7 +228,11 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   final EventStream<UICapture> onCapture = EventStream();
 
   void _callOnCapture(HTMLInputElement input, Event event) async {
+    await _yeld();
+
     await _readFile(input);
+
+    await _yeld();
 
     onCaptureFile(input, event);
     onCapture.add(this);
@@ -243,7 +250,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
   @override
   String? getFieldValue() {
-    return selectedFileDataAsDataURLBase64;
+    return selectedFileDataAsURLOrDataURLBase64;
   }
 
   @override
@@ -317,6 +324,20 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     }
   }
 
+  String? get selectedFileDataAsURLOrDataURLBase64 {
+    var selectedFileData = _selectedFileData;
+    if (selectedFileData == null) return null;
+
+    if (selectedFileData.dataFormat == CaptureDataFormat.url ||
+        selectedFileData.dataFormat == CaptureDataFormat.dataUrlBase64) {
+      return selectedFileData.dataAsURLOrDataURL();
+    } else {
+      return selectedFileData
+          .dataAsDataUrlBase64(dataEncoding: _dataEncoding)
+          .asDataURLString();
+    }
+  }
+
   /// The maximum width of the captured photo.
   /// See [captureType].
   int? captureMaxWidth;
@@ -341,26 +362,37 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   bool removeExifFromImage = true;
 
   Future<void> _readFile(HTMLInputElement input) async {
-    if (input.files!.isNotEmpty) {
-      var file = input.files!.item(0);
+    var files = input.files;
+    if (files == null || files.isEmpty) return;
 
-      _selectedFile = file;
+    var file = files.item(0);
+    if (file == null) return;
 
-      var data = await _readFileInput(input);
+    _selectedFile = file;
 
-      if (data == null) {
-        throw StateError("Can't capture data as format: $captureDataFormat");
-      }
+    await _yeld();
 
-      var capturedData = _CapturedData.from(captureDataFormat, data);
+    var data = await _readFileInput(input);
 
-      capturedData = await _filterCapturedData(capturedData);
-
-      _selectedFileData = capturedData;
-
-      onCaptureData.add(this);
-      onChange.add(this);
+    if (data == null) {
+      throw StateError("Can't capture data as format: $captureDataFormat");
     }
+
+    await _yeld();
+
+    var mimeType = getFileMimeType(file);
+
+    var capturedData = _CapturedData.from(captureDataFormat, data,
+        mimeType: mimeType?.toString());
+
+    await _yeld();
+
+    capturedData = await _filterCapturedData(capturedData);
+
+    _selectedFileData = capturedData;
+
+    onCaptureData.add(this);
+    onChange.add(this);
   }
 
   Future<_CapturedData> _filterCapturedData(_CapturedData capturedData) async {
@@ -372,7 +404,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     }
 
     if (captureType.isPhoto) {
-      var fileURL = capturedData.dataAsURL();
+      var fileURL = capturedData.dataAsURLOrDataURL();
 
       var imageElement = HTMLImageElement()..src = fileURL;
 
@@ -403,6 +435,8 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   Future<_CapturedData> _filterCapturedPhoto(
       _CapturedData capturedData, HTMLImageElement image) async {
     if (editCapture) {
+      await _yeld();
+
       var photoEditor = this.photoEditor;
       if (photoEditor != null) {
         var imageEdited = await photoEditor(image);
@@ -411,6 +445,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
         }
       } else {
         var dialogEdit = UIDialogEditImage(image);
+        await _yeld();
         var edited = await dialogEdit.showAndWait();
         if (edited) {
           image = dialogEdit.editedImage ?? image;
@@ -515,7 +550,8 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     photoScaleMimeType ??= "image/jpeg";
 
     var canvasDataURL = canvas.toDataUrl(photoScaleMimeType, photoScaleQuality);
-    var capturedData2 = _CapturedData.fromURL(canvasDataURL);
+    var capturedData2 =
+        _CapturedData.fromURL(canvasDataURL, photoScaleMimeType);
 
     capturedData2 = capturedData2.withDataFormat(capturedData.dataFormat);
     return capturedData2;
@@ -540,6 +576,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       case CaptureDataFormat.url:
         return await readFileInputElementAsDataURLBase64(
             input, removeExifFromImage);
+
+      case CaptureDataFormat.urlOrBlobUrl:
+        return await readFileInputElementAsBlobUrl(input, removeExifFromImage);
     }
   }
 
@@ -600,61 +639,68 @@ class _CapturedData {
 
   final Object data;
 
-  _CapturedData._(this.dataFormat, this.data);
+  String? _mimeTypeStr;
 
-  factory _CapturedData.fromArrayBuffer(List<int> data) {
+  _CapturedData._(this.dataFormat, this.data, this._mimeTypeStr);
+
+  factory _CapturedData.fromArrayBuffer(List<int> data, String? mimeType) {
     var bs = data is Uint8List ? data : Uint8List.fromList(data);
-    return _CapturedData._(CaptureDataFormat.arrayBuffer, bs);
+    return _CapturedData._(CaptureDataFormat.arrayBuffer, bs, mimeType);
   }
 
-  factory _CapturedData.fromBase64(String base64) {
-    return _CapturedData._(CaptureDataFormat.base64, base64.trim());
+  factory _CapturedData.fromBase64(String base64, String? mimeType) {
+    return _CapturedData._(CaptureDataFormat.base64, base64.trim(), mimeType);
   }
 
   factory _CapturedData.fromDataUrlBase64(DataURLBase64 dataUrlBase64) {
-    return _CapturedData._(CaptureDataFormat.dataUrlBase64, dataUrlBase64);
+    return _CapturedData._(CaptureDataFormat.dataUrlBase64, dataUrlBase64,
+        dataUrlBase64.mimeTypeAsString);
   }
 
-  factory _CapturedData.fromString(String string) {
-    return _CapturedData._(CaptureDataFormat.string, string);
+  factory _CapturedData.fromString(String string, String? mimeType) {
+    return _CapturedData._(CaptureDataFormat.string, string, mimeType);
   }
 
-  factory _CapturedData.fromURL(String url) {
-    return _CapturedData._(CaptureDataFormat.url, url);
+  factory _CapturedData.fromURL(String url, String? mimeType) {
+    return _CapturedData._(CaptureDataFormat.url, url, mimeType);
   }
 
   factory _CapturedData.from(CaptureDataFormat dataFormat, Object data,
-      {data_convert.Encoding? dataEncoding}) {
+      {String? mimeType, data_convert.Encoding? dataEncoding}) {
     switch (dataFormat) {
       case CaptureDataFormat.arrayBuffer:
         {
           if (data is List<int>) {
-            return _CapturedData.fromArrayBuffer(data);
+            return _CapturedData.fromArrayBuffer(data, mimeType);
           } else if (data is DataURLBase64) {
-            return _CapturedData.fromArrayBuffer(data.payloadArrayBuffer);
+            return _CapturedData.fromArrayBuffer(
+                data.payloadArrayBuffer, mimeType);
           } else {
             var s = data.toString();
             var dataUrl = DataURLBase64.parse(s);
 
             if (dataUrl != null) {
-              return _CapturedData.fromArrayBuffer(dataUrl.payloadArrayBuffer);
+              return _CapturedData.fromArrayBuffer(
+                  dataUrl.payloadArrayBuffer, dataUrl.mimeTypeAsString);
             } else {
               var bs = _decodeBase64(s);
               if (bs != null) {
-                return _CapturedData.fromArrayBuffer(bs);
+                return _CapturedData.fromArrayBuffer(bs, mimeType);
               }
 
               dataEncoding ??= data_convert.utf8;
 
-              return _CapturedData.fromArrayBuffer(dataEncoding.encode(s));
+              return _CapturedData.fromArrayBuffer(
+                  dataEncoding.encode(s), mimeType);
             }
           }
         }
       case CaptureDataFormat.dataUrlBase64:
         {
           if (data is List<int>) {
-            return _CapturedData.fromDataUrlBase64(
-                DataURLBase64(data_convert.base64.encode(data)));
+            var dataURLBase64 =
+                DataURLBase64(data_convert.base64.encode(data), mimeType);
+            return _CapturedData.fromDataUrlBase64(dataURLBase64);
           } else if (data is DataURLBase64) {
             return _CapturedData.fromDataUrlBase64(data);
           } else {
@@ -666,39 +712,44 @@ class _CapturedData {
             } else {
               List<int>? bs = _decodeBase64(s);
               if (bs != null) {
-                return _CapturedData.fromDataUrlBase64(DataURLBase64(s));
+                var dataURLBase64 = DataURLBase64(s, mimeType);
+                return _CapturedData.fromDataUrlBase64(dataURLBase64);
               }
 
               dataEncoding ??= data_convert.utf8;
-
               bs = dataEncoding.encode(s);
-              return _CapturedData.fromDataUrlBase64(
-                  DataURLBase64(data_convert.base64.encode(bs), 'text/plain'));
+
+              var dataURLBase64 = DataURLBase64(
+                  data_convert.base64.encode(bs), mimeType ?? 'text/plain');
+              return _CapturedData.fromDataUrlBase64(dataURLBase64);
             }
           }
         }
       case CaptureDataFormat.base64:
         {
           if (data is List<int>) {
-            return _CapturedData.fromBase64(data_convert.base64.encode(data));
+            return _CapturedData.fromBase64(
+                data_convert.base64.encode(data), mimeType);
           } else if (data is DataURLBase64) {
-            return _CapturedData.fromBase64(data.payload);
+            return _CapturedData.fromBase64(
+                data.payload, data.mimeTypeAsString);
           } else {
             var s = data.toString();
             var dataUrl = DataURLBase64.parse(s);
 
             if (dataUrl != null) {
-              return _CapturedData.fromBase64(dataUrl.payloadBase64);
+              return _CapturedData.fromBase64(dataUrl.payloadBase64, mimeType);
             } else {
               List<int>? bs = _decodeBase64(s);
               if (bs != null) {
-                return _CapturedData.fromBase64(s);
+                return _CapturedData.fromBase64(s, mimeType);
               }
 
               dataEncoding ??= data_convert.utf8;
 
               bs = dataEncoding.encode(s);
-              return _CapturedData.fromBase64(data_convert.base64.encode(bs));
+              return _CapturedData.fromBase64(
+                  data_convert.base64.encode(bs), mimeType);
             }
           }
         }
@@ -706,48 +757,94 @@ class _CapturedData {
         {
           if (data is List<int>) {
             var s = _decodeAsString(data, dataEncoding);
-            return _CapturedData.fromString(s);
+            return _CapturedData.fromString(s, mimeType);
           } else if (data is DataURLBase64) {
-            return _CapturedData.fromString(data.payload);
+            return _CapturedData.fromString(data.payload, mimeType);
           } else {
             var s = data.toString();
             var dataUrl = DataURLBase64.parse(s);
 
             if (dataUrl != null) {
-              return _CapturedData.fromString(dataUrl.payload);
+              return _CapturedData.fromString(dataUrl.payload, mimeType);
             } else {
-              List<int>? bs = _decodeBase64(s);
+              var bs = _decodeBase64(s);
               if (bs != null) {
                 return _CapturedData.fromString(
-                    _decodeAsString(bs, dataEncoding));
+                    _decodeAsString(bs, dataEncoding), mimeType);
               }
-
-              return _CapturedData.fromString(s);
+              return _CapturedData.fromString(s, mimeType);
             }
           }
         }
       case CaptureDataFormat.url:
         {
           if (data is List<int>) {
-            return _CapturedData.fromURL(
-                DataURLBase64(data_convert.base64.encode(data))
-                    .asDataURLString());
+            var dataUrl = DataURLBase64.from(
+                data, mimeType ?? MimeType.applicationOctetStream);
+            return _CapturedData.fromDataUrlBase64(dataUrl);
           } else if (data is DataURLBase64) {
-            return _CapturedData.fromURL(data.asDataURLString());
+            return _CapturedData.fromDataUrlBase64(data);
           } else {
             var s = data.toString().trim();
+
+            // Identify URL and avoid extra parsing:
+            if (s.startsWith("http://") ||
+                s.startsWith("https://") ||
+                s.startsWith("blob:http")) {
+              return _CapturedData.fromURL(s, mimeType);
+            }
+
             var dataUrl = DataURLBase64.parse(s);
 
             if (dataUrl != null) {
-              return _CapturedData.fromURL(dataUrl.asDataURLString());
+              return _CapturedData.fromDataUrlBase64(dataUrl);
             } else {
-              List<int>? bs = _decodeBase64(s);
+              var bs = _decodeBase64(s);
               if (bs != null) {
-                return _CapturedData.fromURL(
-                    DataURLBase64(s).asDataURLString());
+                var dataUrl = DataURLBase64(s, mimeType);
+                return _CapturedData.fromDataUrlBase64(dataUrl);
               }
 
-              return _CapturedData.fromURL(s);
+              return _CapturedData.fromURL(s, mimeType);
+            }
+          }
+        }
+      case CaptureDataFormat.urlOrBlobUrl:
+        {
+          if (data is List<int>) {
+            var bs = data is Uint8List ? data : Uint8List.fromList(data);
+            var url =
+                createBlobURL(bs, mimeType ?? MimeType.applicationOctetStream);
+            return _CapturedData.fromURL(url, mimeType);
+          } else if (data is DataURLBase64) {
+            var url =
+                createBlobURL(data.payloadArrayBuffer, data.mimeTypeAsString);
+            return _CapturedData.fromURL(url, data.mimeTypeAsString);
+          } else {
+            var s = data.toString().trim();
+
+            // Identify URL and avoid extra parsing:
+            if (s.startsWith("http://") ||
+                s.startsWith("https://") ||
+                s.startsWith("blob:http")) {
+              return _CapturedData.fromURL(s, mimeType);
+            }
+
+            var dataUrl = DataURLBase64.parse(s);
+
+            if (dataUrl != null) {
+              var url = createBlobURL(
+                  dataUrl.payloadArrayBuffer, dataUrl.mimeTypeAsString);
+              return _CapturedData.fromURL(url, mimeType);
+            } else {
+              var bs = _decodeBase64(s);
+              if (bs != null) {
+                var url = createBlobURL(
+                    bs, mimeType ?? MimeType.applicationOctetStream);
+                return _CapturedData.fromURL(url, mimeType);
+              }
+
+              return _CapturedData.fromURL(s, mimeType);
             }
           }
         }
@@ -759,7 +856,7 @@ class _CapturedData {
       return data as Uint8List;
     } else {
       return _CapturedData.from(CaptureDataFormat.arrayBuffer, data,
-              dataEncoding: dataEncoding)
+              mimeType: _mimeTypeStr, dataEncoding: dataEncoding)
           .data as Uint8List;
     }
   }
@@ -769,7 +866,7 @@ class _CapturedData {
       return data as String;
     } else {
       return _CapturedData.from(CaptureDataFormat.base64, data,
-              dataEncoding: dataEncoding)
+              mimeType: _mimeTypeStr, dataEncoding: dataEncoding)
           .data as String;
     }
   }
@@ -779,7 +876,7 @@ class _CapturedData {
       return data as DataURLBase64;
     } else {
       return _CapturedData.from(CaptureDataFormat.dataUrlBase64, data,
-              dataEncoding: dataEncoding)
+              mimeType: _mimeTypeStr, dataEncoding: dataEncoding)
           .data as DataURLBase64;
     }
   }
@@ -789,7 +886,7 @@ class _CapturedData {
       return data as String;
     } else {
       return _CapturedData.from(CaptureDataFormat.string, data,
-              dataEncoding: dataEncoding)
+              mimeType: _mimeTypeStr, dataEncoding: dataEncoding)
           .data as String;
     }
   }
@@ -799,35 +896,58 @@ class _CapturedData {
       return data as String;
     } else {
       return _CapturedData.from(CaptureDataFormat.url, data,
-              dataEncoding: dataEncoding)
+              mimeType: _mimeTypeStr, dataEncoding: dataEncoding)
+          .data as String;
+    }
+  }
+
+  String dataAsURLOrDataURL({data_convert.Encoding? dataEncoding}) {
+    if (dataFormat == CaptureDataFormat.url) {
+      return data as String;
+    } else if (dataFormat == CaptureDataFormat.dataUrlBase64) {
+      return (data as DataURLBase64).toString();
+    } else {
+      return _CapturedData.from(CaptureDataFormat.url, data,
+              mimeType: _mimeTypeStr, dataEncoding: dataEncoding)
           .data as String;
     }
   }
 
   MimeType? get mimeType {
-    DataURLBase64? dataUrl;
+    var mimeTypeStr = _mimeTypeStr;
+    if (mimeTypeStr != null && mimeTypeStr.isNotEmpty) {
+      return MimeType.parse(mimeTypeStr);
+    }
 
     if (dataFormat == CaptureDataFormat.dataUrlBase64) {
-      dataUrl = dataAsDataUrlBase64();
-    } else if (dataFormat == CaptureDataFormat.url &&
-        dataAsURL().startsWith('data:')) {
-      dataUrl = dataAsDataUrlBase64();
-    } else {
-      try {
-        dataUrl = dataAsDataUrlBase64();
-      } catch (_) {}
+      var dataUrl = data as DataURLBase64;
+      var mimeType = dataUrl.mimeType;
+      _mimeTypeStr = mimeType?.toString();
+      return mimeType;
+    } else if (dataFormat == CaptureDataFormat.url) {
+      var dataUrl = dataAsURL();
+      if (dataUrl.startsWith('data:')) {
+        var mimeType = DataURLBase64.parseMimeType(dataUrl);
+        _mimeTypeStr = mimeType?.toString();
+        return mimeType;
+      } else {
+        return null;
+      }
     }
 
-    if (dataUrl != null) {
-      return dataUrl.mimeType;
-    }
+    try {
+      var dataUrl = dataAsDataUrlBase64();
+      var mimeType = dataUrl.mimeType;
+      _mimeTypeStr = mimeType?.toString();
+      return mimeType;
+    } catch (_) {}
 
     return null;
   }
 
   _CapturedData withDataFormat(CaptureDataFormat targetDataFormat) {
     if (dataFormat != targetDataFormat) {
-      return _CapturedData.from(targetDataFormat, data);
+      return _CapturedData.from(targetDataFormat, data, mimeType: _mimeTypeStr);
     } else {
       return this;
     }
@@ -1049,7 +1169,7 @@ class UIButtonCapturePhoto extends UICapture {
   final List<Element> _selectedImageElements = [];
 
   void showSelectedImage() {
-    var dataURL = selectedFileDataAsDataURLBase64;
+    var dataURL = selectedFileDataAsURLOrDataURLBase64;
     if (dataURL == null) return;
 
     var content = this.content!;
@@ -1174,7 +1294,7 @@ class UIButtonCapture extends UICapture {
   }
 
   void showSelectedFile() {
-    var dataURL = selectedFileDataAsDataURLBase64;
+    var dataURL = selectedFileDataAsURLOrDataURLBase64;
     if (dataURL == null) return;
 
     final content = this.content;
@@ -1198,3 +1318,5 @@ class UIButtonCapture extends UICapture {
     content!.style.width = '';
   }
 }
+
+Future<void> _yeld({int ms = 1}) => Future.delayed(Duration(milliseconds: ms));
