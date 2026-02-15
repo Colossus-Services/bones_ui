@@ -1,3 +1,11 @@
+
+- `UIEventHandler`:
+  - Added `unregisterEventListener` and `clearEventListeners` methods.
+
+- `EventHandlerPrivate`:
+  - Changed `_eventListeners` to nullable and lazily initialized.
+  - Added `_unregisterEventListener` and `_clearEventListeners` implementations.
+
 - `bones_ui_extension.dart`:
   - Added `ElementStreamExtension` and `StreamSubscriptionExtension` to track subscriptions in `DOMTreeMap`.
 

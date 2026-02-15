@@ -15,22 +15,40 @@ abstract class UIEventHandler extends EventHandlerPrivate {
     _registerEventListener(type, listener);
   }
 
+  void unregisterEventListener(String type) {
+    _unregisterEventListener(type);
+  }
+
+  void clearEventListeners() {
+    _clearEventListeners();
+  }
+
   void fireEvent(String type, dynamic event, [List? params]) {
     _fireEvent(type, event, params);
   }
 }
 
 abstract class EventHandlerPrivate {
-  final Map<String, List<UIEventListener>> _eventListeners = {};
+  Map<String, List<UIEventListener>>? _eventListeners;
 
   void _registerEventListener(String type, UIEventListener listener) {
-    var events = _eventListeners[type];
-    if (events == null) _eventListeners[type] = events = [];
+    var eventListeners = _eventListeners ??= {};
+    var events = eventListeners[type] ??= [];
     events.add(listener);
   }
 
+  void _unregisterEventListener(String type) {
+    var events = _eventListeners?.remove(type);
+    events?.clear();
+  }
+
+  void _clearEventListeners() {
+    _eventListeners?.clear();
+    _eventListeners = null;
+  }
+
   void _fireEvent(String type, dynamic event, [List? params]) {
-    var eventListeners = _eventListeners[type];
+    var eventListeners = _eventListeners?[type];
 
     if (eventListeners != null) {
       try {
