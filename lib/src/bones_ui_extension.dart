@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:dom_builder/dom_builder.dart';
 import 'package:swiss_knife/swiss_knife.dart';
 import 'package:web_utils/web_utils.dart';
 
@@ -104,4 +107,38 @@ extension UIIterableElementExtension<E extends UIElement> on Iterable<E> {
 
   /// Returns a [List] of values of this [Iterable] of [UIElement]s.
   List<String?> get elementsValues => map((e) => e.elementValue).toList();
+}
+
+extension ElementStreamExtension<E extends Event> on ElementStream<E> {
+  StreamSubscription<E> listenAndTrackSubscription(
+    void Function(E event)? onData, {
+    UIComponent? component,
+    DOMTreeMap? treeMap,
+    Element? element,
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    var subscription = listen(onData,
+        onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+
+    if (element != null) {
+      treeMap ??= component?.domTreeMap;
+
+      if (treeMap != null) {
+        treeMap.mapSubscriptions(element, [subscription]);
+      }
+    }
+
+    return subscription;
+  }
+}
+
+extension StreamSubscriptionExtension<T> on StreamSubscription<T> {
+  StreamSubscription<T> trackSubscription(
+      UIComponent component, Element element) {
+    var domTreeMap = component.domTreeMap;
+    domTreeMap.mapSubscriptions(element, [this]);
+    return this;
+  }
 }

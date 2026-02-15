@@ -1,3 +1,6 @@
+- `bones_ui_extension.dart`:
+  - Added `ElementStreamExtension` and `StreamSubscriptionExtension` to track subscriptions in `DOMTreeMap`.
+
 - `UIButtonBase` and `UIButtonLoader`:
   - Updated event listener attachment to use `addEventListenerTyped`.
   - Fixed null safety and type checks for button elements.
