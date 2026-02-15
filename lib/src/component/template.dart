@@ -1,8 +1,7 @@
-import 'package:web_utils/web_utils.dart';
-
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dynamic_call/dynamic_call.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import '../bones_ui_generator.dart';
 import '../bones_ui_navigator.dart';
@@ -51,7 +50,8 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       _generateFromTemplateHTML(htmlUnresolved, domGenerator, treeMap,
           domElement, element, attributes, context);
     } else {
-      domGenerator.generateWithRoot(domElement, element, contentNodes);
+      domGenerator.generateWithRoot(domElement, element, contentNodes,
+          treeMap: treeMap, context: context, setTreeMapRoot: false);
     }
 
     return element;
@@ -60,7 +60,9 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   String _nodesToHTMLUnresolved(List<DOMNode> contentNodes) {
     return contentNodes
         .map((e) => e.buildHTML(
-            withIndent: true, buildTemplates: false, resolveDSX: false))
+            withIndent: true,
+            buildTemplates: false,
+            dsxResolution: DSXResolution.skipDSX))
         .join('');
   }
 
@@ -129,9 +131,11 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       DOMElement domElement,
       HTMLDivElement element) {
     var templateBuiltHTML = template.buildAsString(variables,
-        resolveDSX: false,
-        elementProvider: (q) => treeMap.queryElement(q,
-            domContext: domContext, buildTemplates: true),
+        dsxResolution: DSXResolution.skipDSX,
+        elementProvider: (q) => treeMap.queryElementAsHTML(q,
+            domContext: domContext,
+            buildTemplates: true,
+            dsxResolution: DSXResolution.skipDSX),
         intlMessageResolver: domContext?.intlMessageResolver);
 
     var nodes = DOMNode.parseNodes(templateBuiltHTML);
@@ -267,7 +271,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     }, (c, k, v) {
       var template = DOMTemplate.parse(v as String);
       var v2 = template.build(variables,
-          resolveDSX: false,
+          dsxResolution: DSXResolution.skipDSX,
           intlMessageResolver: domContext?.intlMessageResolver);
       return v2;
     });

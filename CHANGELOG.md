@@ -41,6 +41,11 @@
 
 - `MasonryItem` and `_MasonryRenderItem`:
   - Updated DOM generation calls to pass `treeMap` and `setTreeMapRoot`.
+
+- `UITemplateElementGenerator`:
+  - Updated DOM generation calls to pass `treeMap`, `context`, and `setTreeMapRoot`.
+  - Updated template building to use `dsxResolution` enum instead of boolean flags.
+
 ## 3.0.0-beta.19
 
 - dom_tools: ^3.0.0-beta.13
