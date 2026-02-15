@@ -523,7 +523,7 @@ class UINavigator {
           !routes.contains(navigateRoute)) {
         routes.add(navigateRoute);
       }
-      _findElementNavigableRoutes(elem.children.toList(), routes);
+      _findElementNavigableRoutes(elem.children.asListViewFixed, routes);
     }
   }
 
