@@ -16,6 +16,11 @@
 - `UIDialogBase`:
   - Fixed background color style to use `rgb` when alpha is 1.0.
 
+- `_CanvasEditImage`:
+  - Added delayed `_configure` call after construction.
+  - Updated `_updateCanvasDimension` to return bool indicating if dimension changed.
+  - Improved zoom and translate setters to avoid unnecessary renders.
+
 ## 3.0.0-beta.19
 
 - dom_tools: ^3.0.0-beta.13

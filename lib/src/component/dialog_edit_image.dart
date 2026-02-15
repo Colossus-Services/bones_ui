@@ -93,9 +93,13 @@ class _CanvasEditImage extends ExternalElementNode {
             marginHorizontal, marginVertical)) {
     _elementResize = TrackElementResize();
 
-    _resetZoom();
+    _resetZoom(requestRender: false);
     render();
 
+    Future.delayed(Duration(milliseconds: 100), _configure);
+  }
+
+  void _configure() {
     var canvas = this.canvas;
 
     _elementResize.track(canvas, (_) => _onResize(false));
@@ -132,9 +136,9 @@ class _CanvasEditImage extends ExternalElementNode {
 
     //print('!!! _onResize[$window]> $wR x $hR');
 
-    _updateCanvasDimension();
+    var updated = _updateCanvasDimension();
 
-    if (r > 0.15) {
+    if (updated && r > 0.15) {
       _resetZoom();
     }
   }
@@ -275,11 +279,18 @@ class _CanvasEditImage extends ExternalElementNode {
     return [w, h];
   }
 
-  void _updateCanvasDimension() {
+  bool _updateCanvasDimension() {
     var d = _calcCanvasDimension(
         imgNaturalWidth, imgNaturalHeight, marginHorizontal, marginVertical);
     var w = d[0];
     var h = d[1];
+
+    var w0 = canvas.width;
+    var h0 = canvas.height;
+
+    if (w0 == w && h0 == h) {
+      return false;
+    }
 
     canvas
       ..width = w
@@ -288,22 +299,29 @@ class _CanvasEditImage extends ExternalElementNode {
     //print('!!! canvas dimension> $w x $h');
 
     requestRender();
+
+    return true;
   }
 
   double _fitZoom = 1.0;
 
   double _zoom = 1.0;
 
-  void _resetZoom() {
+  void _resetZoom({bool requestRender = true}) {
     _fitZoom = _zoom =
         _calcZoom(imgNaturalWidth, imgNaturalHeight, canvasWidth, canvasHeight);
 
     var t = _translate;
     if (t != null) {
-      translate = Point(t.x + 1, t.y);
+      _translateImpl(
+        Point(t.x + 1, t.y),
+        requestRender: false,
+      );
     }
 
-    requestRender();
+    if (requestRender) {
+      this.requestRender();
+    }
   }
 
   double get zoom => _zoom;
@@ -341,7 +359,9 @@ class _CanvasEditImage extends ExternalElementNode {
 
   Point<num>? get translate => _translate;
 
-  set translate(Point<num>? translate) {
+  set translate(Point<num>? translate) => _translateImpl(translate);
+
+  void _translateImpl(Point<num>? translate, {bool requestRender = true}) {
     if (_translate == translate) return;
 
     if (translate == null) {
@@ -365,7 +385,10 @@ class _CanvasEditImage extends ExternalElementNode {
     }
 
     _translate = translate;
-    requestRender();
+
+    if (requestRender) {
+      this.requestRender();
+    }
   }
 
   HTMLCanvasElement get canvas => externalElement as HTMLCanvasElement;
