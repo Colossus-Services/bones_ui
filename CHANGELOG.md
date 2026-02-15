@@ -36,6 +36,14 @@
   - Updated `_updateCanvasDimension` to return bool indicating if dimension changed.
   - Improved zoom and translate setters to avoid unnecessary renders.
 
+- `InputConfig`:
+  - Added optional `parent` parameter to rendering methods.
+  - Updated DOM building calls to pass `treeMap` and `setTreeMapRoot`.
+  - Updated `_resolveValueText` to use `parent` for intl message resolution.
+
+- `UIInputTable`:
+  - Updated rendering of inputs and labels to pass `domTreeMap` and `setTreeMapRoot`.
+
 - `UILoading`:
   - Updated `asDIVElement` buildDOM calls to pass `treeMap` and `setTreeMapRoot`.
 

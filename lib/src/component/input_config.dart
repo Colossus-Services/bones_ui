@@ -229,7 +229,8 @@ class InputConfig {
     }
   }
 
-  dynamic renderInput([FieldValueProvider? fieldValueProvider]) {
+  dynamic renderInput(
+      {UIComponent? parent, FieldValueProvider? fieldValueProvider}) {
     var inputID = id;
     var inputType = type;
     var inputValue = fieldValueProvider != null
@@ -260,11 +261,11 @@ class InputConfig {
             "Can't handle input rendered object type: ${obj.runtimeType} > $obj");
       }
     } else if (inputType == 'textarea') {
-      inputElement = _renderTextArea(inputValue);
+      inputElement = _renderTextArea(parent, inputValue);
     } else if (inputType == 'decimal') {
-      inputElement = _renderDecimal(inputValue);
+      inputElement = _renderDecimal(parent, inputValue);
     } else if (inputType == 'select') {
-      inputElement = _renderSelect(inputValue);
+      inputElement = _renderSelect(parent, inputValue);
     } else if (inputType == 'image') {
       var capture = UIButtonCapturePhoto(null, text: label, fieldName: inputID);
       inputComponent = capture;
@@ -277,7 +278,7 @@ class InputConfig {
           pickerHeight: 100);
       inputComponent = picker;
     } else if (inputType == 'path') {
-      element = _renderInputPath(inputID, inputValue);
+      element = _renderInputPath(parent, inputID, inputValue);
     } else if (inputType == 'html') {
       inputElement = createHTML(html: inputValue);
       inputElement.onClick.listen((event) {
@@ -287,7 +288,7 @@ class InputConfig {
         }
       });
     } else {
-      inputElement = _renderGenericInput(inputType, inputValue);
+      inputElement = _renderGenericInput(parent, inputType, inputValue);
     }
 
     if (inputElement != null) {
@@ -320,7 +321,7 @@ class InputConfig {
     return inputValue;
   }
 
-  String? _resolveValueText(Object? inputValue) {
+  String? _resolveValueText(UIComponent? parent, Object? inputValue) {
     var val = _resolveValue(inputValue);
     if (val == null) return null;
 
@@ -328,8 +329,12 @@ class InputConfig {
 
     if (containsIntlMessage(valText)) {
       var domSpan = $span(content: valText);
-      var dom = domSpan.buildDOM(generator: UIComponent.domGenerator);
+      var dom = domSpan.buildDOM(
+          generator: UIComponent.domGenerator,
+          treeMap: parent?.domTreeMap ?? UIComponent.domTreeMapDummy,
+          setTreeMapRoot: false);
       var text = dom?.textContent;
+
       return text;
     }
 
@@ -370,7 +375,8 @@ class InputConfig {
     }
   }
 
-  HTMLDivElement? _renderInputPath(String fieldName, String? inputValue) {
+  HTMLDivElement? _renderInputPath(
+      UIComponent? parent, String fieldName, String? inputValue) {
     var input = $input(style: 'width: auto', value: inputValue);
     DOMElement? button;
 
@@ -397,21 +403,23 @@ class InputConfig {
         });
     }
 
-    var div = $div(content: [input, button])
-        .buildDOM(generator: UIComponent.domGenerator);
+    var div = $div(content: [input, button]).buildDOM(
+        generator: UIComponent.domGenerator,
+        treeMap: parent?.domTreeMap ?? UIComponent.domTreeMapDummy,
+        setTreeMapRoot: false);
 
     return div as HTMLDivElement?;
   }
 
-  HTMLTextAreaElement _renderTextArea(Object? inputValue) {
-    var valText = _resolveValueText(inputValue);
+  HTMLTextAreaElement _renderTextArea(UIComponent? parent, Object? inputValue) {
+    var valText = _resolveValueText(parent, inputValue);
     var textArea = HTMLTextAreaElement()..style.width = '100%';
     textArea.value = valText ?? '';
     return textArea;
   }
 
-  Element _renderDecimal(Object? inputValue) {
-    var valText = _resolveValueText(inputValue);
+  Element _renderDecimal(UIComponent? parent, Object? inputValue) {
+    var valText = _resolveValueText(parent, inputValue);
 
     var input = HTMLInputElement()
       ..type = 'number'
@@ -438,8 +446,9 @@ class InputConfig {
     return input;
   }
 
-  Element _renderGenericInput(String? inputType, Object? inputValue) {
-    var valText = _resolveValueText(inputValue);
+  Element _renderGenericInput(
+      UIComponent? parent, String? inputType, Object? inputValue) {
+    var valText = _resolveValueText(parent, inputValue);
 
     var input = HTMLInputElement()
       ..type = inputType ?? 'text'
@@ -457,7 +466,7 @@ class InputConfig {
     return input;
   }
 
-  HTMLSelectElement _renderSelect(Object? inputValue) {
+  HTMLSelectElement _renderSelect(UIComponent? parent, Object? inputValue) {
     var select = HTMLSelectElement()..style.maxWidth = '100%';
 
     if (options != null && options!.isNotEmpty) {
@@ -474,7 +483,7 @@ class InputConfig {
           selected = true;
         }
 
-        optVal = _resolveValueText(optVal);
+        optVal = _resolveValueText(parent, optVal);
 
         if (optVal == null || optVal.isEmpty) {
           optVal = optKey;
@@ -491,7 +500,7 @@ class InputConfig {
         select.add(optionElement, null);
       }
     } else if (inputValue != null) {
-      var s = _resolveValueText(inputValue);
+      var s = _resolveValueText(parent, inputValue);
       if (s != null && s.isNotEmpty) {
         select.innerHTML = s.toJS;
       }
@@ -716,8 +725,10 @@ class UIInputTable extends UIComponent {
                 forID: input.id,
                 style: 'font-weight: bold',
                 content: [label, ':', '&nbsp;']);
-            var dom = domLabel.buildDOM(generator: UIComponent.domGenerator)
-                as HTMLLabelElement;
+            var dom = domLabel.buildDOM(
+                generator: UIComponent.domGenerator,
+                treeMap: domTreeMap,
+                setTreeMapRoot: false) as HTMLLabelElement;
             cell.appendChild(dom);
           } else {
             cell.appendHTML(
@@ -728,8 +739,9 @@ class UIInputTable extends UIComponent {
 
       var celInput = row.appendCell()..style.textAlign = 'left';
 
-      var inputRendered =
-          input.renderInput(getPreviousRenderedFieldValue) as Object?;
+      var inputRendered = input.renderInput(
+          parent: this,
+          fieldValueProvider: getPreviousRenderedFieldValue) as Object?;
 
       if (inputRendered.isElement) {
         var inputRenderedElement = inputRendered as Element;
@@ -757,7 +769,10 @@ class UIInputTable extends UIComponent {
         }
       } else if (inputRendered is DOMElement) {
         inputRendered.buildDOM(
-            generator: UIComponent.domGenerator, parent: celInput);
+            generator: UIComponent.domGenerator,
+            treeMap: domTreeMap,
+            parent: celInput,
+            setTreeMapRoot: false);
       }
 
       if (showInvalidMessages) {
@@ -874,16 +889,21 @@ class UIInputTable extends UIComponent {
     }
 
     if (table != null) {
-      var dom = table.buildDOM(generator: UIComponent.domGenerator)
-          as HTMLTableElement;
+      var dom = table.buildDOM(
+          generator: UIComponent.domGenerator,
+          treeMap: domTreeMap,
+          setTreeMapRoot: false) as HTMLTableElement;
       var trs = dom.rows.toList();
       if (trs.isEmpty) return null;
       return trs.length == 1 ? trs.first : trs;
     }
 
     var div = $div(content: nodes);
-    var dom =
-        div.buildDOM(generator: UIComponent.domGenerator) as HTMLDivElement;
+    var dom = div.buildDOM(
+        generator: UIComponent.domGenerator,
+        treeMap: domTreeMap,
+        setTreeMapRoot: false) as HTMLDivElement;
+
     return dom.children.toList();
   }
 
@@ -916,7 +936,9 @@ class UIInputTable extends UIComponent {
     _onChangeTriggerDelay = value;
   }
 
-  EventStream<dynamic> onInputFocus = EventStream();
+  EventStream<dynamic>? _onInputFocus;
+
+  EventStream<dynamic> get onInputFocus => _onInputFocus ??= EventStream();
 
   @override
   void posRender() {
