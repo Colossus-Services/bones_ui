@@ -2,6 +2,9 @@
   - Updated event listener attachment to use `addEventListenerTyped`.
   - Fixed null safety and type checks for button elements.
 
+- `UIDialogBase`:
+  - Fixed background color style to use `rgb` when alpha is 1.0.
+
 ## 3.0.0-beta.19
 
 - dom_tools: ^3.0.0-beta.13

@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:web_utils/web_utils.dart';
 
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart';
 
 import '../bones_ui_component.dart';
 import '../bones_ui_generator.dart';
@@ -45,8 +45,6 @@ abstract class UIDialogBase extends UIRootComponent {
           componentClass: 'ui-dialog',
         ) {
     _myConfigure(style);
-
-    initializeUIComponentsTree();
   }
 
   @override
@@ -62,8 +60,9 @@ abstract class UIDialogBase extends UIRootComponent {
       ..clear = 'both'
       ..padding = padding
       ..color = '#ffffff'
-      ..backgroundColor =
-          'rgba($backgroundGrey,$backgroundGrey,$backgroundGrey, $backgroundAlpha)'
+      ..backgroundColor = backgroundAlpha == 1.0
+          ? 'rgb($backgroundGrey,$backgroundGrey,$backgroundGrey)'
+          : 'rgba($backgroundGrey,$backgroundGrey,$backgroundGrey, $backgroundAlpha)'
       ..zIndex = '999999999';
 
     if (fullScreen) {
