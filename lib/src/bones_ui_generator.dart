@@ -395,19 +395,22 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
 
   @override
   List<UINode>? addExternalElementToElement(
-      UINode element, Object? externalElement) {
+      UINode element, Object? externalElement,
+      {DOMTreeMap<Node>? treeMap, DOMContext<Node>? context}) {
     if (externalElement == null) return null;
 
     if (externalElement is List) {
       if (externalElement.isEmpty) return null;
 
       if (externalElement.length == 1) {
-        return addExternalElementToElement(element, externalElement.first);
+        return addExternalElementToElement(element, externalElement.first,
+            treeMap: treeMap, context: context);
       }
 
       var children = <UINode>[];
       for (var elem in externalElement) {
-        var child = addExternalElementToElement(element, elem);
+        var child = addExternalElementToElement(element, elem,
+            treeMap: treeMap, context: context);
         if (child != null) {
           children.addAll(child);
         }
@@ -417,18 +420,20 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
       var component = externalElement;
       var componentContent = component.content;
 
-      final element2 = element.asElementChecked;
-      if (element2 != null) {
-        element2.appendChild(componentContent!);
-        component.setParent(element2);
-        _resolveParentUIComponent(element2, component.content,
-            childUIComponent: component);
-        component.ensureRendered();
-        return [componentContent];
-      } else {
-        _resolveParentUIComponent(element2, component.content,
-            childUIComponent: component);
-        return null;
+      if (componentContent != null) {
+        final element2 = element.asElementChecked;
+        if (element2 != null) {
+          element2.appendChild(componentContent);
+          component.setParent(element2);
+          _resolveParentUIComponent(element2, component.content,
+              childUIComponent: component);
+          component.ensureRendered();
+          return [componentContent];
+        } else {
+          _resolveParentUIComponent(element2, component.content,
+              childUIComponent: component);
+          return null;
+        }
       }
     } else if (externalElement is MessageBuilder) {
       var text = externalElement.build();
@@ -438,7 +443,8 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
       return [span];
     }
 
-    return super.addExternalElementToElement(element, externalElement);
+    return super.addExternalElementToElement(element, externalElement,
+        treeMap: treeMap, context: context);
   }
 
   @override
@@ -487,7 +493,10 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
   }
 
   @override
-  List<UINode>? toElements(Object? elements) {
+  List<UINode>? toElements(Object? elements,
+      {DOMTreeMap<UINode>? treeMap,
+      DOMContext<UINode>? context,
+      bool setTreeMapRoot = true}) {
     if (elements is UIComponent) {
       elements.ensureRendered();
       var content = elements.content;
@@ -496,7 +505,8 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
       var content = elements.content;
       return content != null ? [content] : null;
     } else {
-      return super.toElements(elements);
+      return super.toElements(elements,
+          treeMap: treeMap, context: context, setTreeMapRoot: setTreeMapRoot);
     }
   }
 

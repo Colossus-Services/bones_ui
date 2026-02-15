@@ -12,6 +12,10 @@
 - `bones_ui_extension.dart`:
   - Added `ElementStreamExtension` and `StreamSubscriptionExtension` to track subscriptions in `DOMTreeMap`.
 
+- `UIDOMGenerator`:
+  - Updated `addExternalElementToElement` and `toElements` to accept `treeMap` and `context` parameters.
+  - Updated calls to `buildDOM` to pass `treeMap` and `setTreeMapRoot`.
+
 - `UIButtonBase` and `UIButtonLoader`:
   - Updated event listener attachment to use `addEventListenerTyped`.
   - Fixed null safety and type checks for button elements.
