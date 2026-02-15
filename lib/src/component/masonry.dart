@@ -31,7 +31,8 @@ class MasonryItem {
   }
 
   factory MasonryItem.fromDOMElement(DOMElement element) {
-    var domElement = UIComponent.domGenerator.generate(element);
+    var domElement = UIComponent.domGenerator.generate(element,
+        treeMap: UIComponent.domTreeMapDummy, setTreeMapRoot: false);
     return MasonryItem.fromElement(domElement as Element?);
   }
 
@@ -1009,12 +1010,18 @@ class _MasonryRenderItem extends _MasonryRenderable {
       element.ensureRendered(true);
       element = element.content;
     } else if (element is DOMElement) {
-      element =
-          element.buildDOM(generator: UIComponent.domGenerator, parent: div4);
+      element = element.buildDOM(
+          generator: UIComponent.domGenerator,
+          treeMap: masonry.domTreeMap,
+          parent: div4,
+          setTreeMapRoot: false);
     } else {
       var htmlRoot = $htmlRoot(element);
-      element =
-          htmlRoot?.buildDOM(generator: UIComponent.domGenerator, parent: div4);
+      element = htmlRoot?.buildDOM(
+          generator: UIComponent.domGenerator,
+          treeMap: masonry.domTreeMap,
+          parent: div4,
+          setTreeMapRoot: false);
     }
 
     if (element.isElement) {
