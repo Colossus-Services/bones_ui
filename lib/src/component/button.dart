@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:math';
-import 'package:web_utils/web_utils.dart' hide CSS;
 
 import 'package:dom_builder/dom_builder.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:swiss_knife/swiss_knife.dart';
+import 'package:web_utils/web_utils.dart' hide CSS;
 
 import '../bones_ui_base.dart';
 import '../bones_ui_component.dart';
@@ -118,13 +118,14 @@ abstract class UIButtonBase extends UIComponent {
 
     for (var elem in renderedElements) {
       if (elem.isElement) {
-        (elem as Element).onClick.listen((e) => fireClickEvent(e));
+        (elem as Element)
+            .addEventListenerTyped(EventType.click, (e) => fireClickEvent(e));
         clickSet = true;
       }
     }
 
     if (!clickSet && !_content_onClick_listening) {
-      content!.onClick.listen((e) => fireClickEvent(e));
+      content!.addEventListenerTyped(EventType.click, (e) => fireClickEvent(e));
       _content_onClick_listening = true;
     }
   }
@@ -416,7 +417,7 @@ class UIButtonLoader extends UIButtonBase {
     }
   }
 
-  dynamic _button;
+  Object? _button;
 
   HTMLDivElement? _loadingDiv;
 
@@ -493,21 +494,25 @@ class UIButtonLoader extends UIButtonBase {
   }
 
   void startLoading() {
-    if (_loadingDiv == null) return;
+    final loadingDiv = _loadingDiv;
+    if (loadingDiv == null) return;
 
-    _loadingDiv!.style.display = 'inline-block';
+    loadingDiv.style.display = 'inline-block';
 
     var button = _button;
 
-    var buttonElement =
-        (button is DOMElement ? button.runtimeNode : button) as HTMLElement;
-    buttonElement.style.display = 'none';
+    var buttonElement = (button is DOMElement
+        ? button.runtimeNode
+        : (button.isHTMLElement ? button : null)) as HTMLElement?;
 
-    _loadedMessage!.style.display = 'none';
+    buttonElement?.style.display = 'none';
+
+    _loadedMessage?.style.display = 'none';
   }
 
   void stopLoading(bool? loadOK, {String? okMessage, String? errorMessage}) {
-    if (_loadingDiv == null) return;
+    final loadingDiv = _loadingDiv;
+    if (loadingDiv == null) return;
 
     if (okMessage != null) {
       okMessage = resolveTextIntl(okMessage);
@@ -519,51 +524,62 @@ class UIButtonLoader extends UIButtonBase {
 
     var button = _button;
 
-    var buttonElement =
-        (button is DOMElement ? button.runtimeNode : button) as HTMLElement?;
+    var buttonElement = (button is DOMElement
+        ? button.runtimeNode
+        : (button.isElement ? button : null)) as HTMLElement?;
+
+    var loadedMessage = _loadedMessage;
 
     if (loadOK == null) {
       _setLoadedMessageStyle();
 
-      _loadingDiv!.style.display = 'none';
-      buttonElement!.style.display = '';
-      _loadedMessage!.style.display = 'none';
+      loadingDiv.style.display = 'none';
+      buttonElement?.style.display = '';
+      loadedMessage?.style.display = 'none';
     } else if (loadOK) {
       _setLoadedMessageStyle();
 
-      _loadingDiv!.style.display = 'none';
-      buttonElement!.style.display = 'none';
+      loadingDiv.style.display = 'none';
+      buttonElement?.style.display = 'none';
 
       var okMsg = okMessage ?? _loadedTextOK?.text ?? 'OK';
-      setElementInnerHTML(_loadedMessage!, okMsg);
-      _loadedMessage!.style.display = '';
+
+      if (loadedMessage != null) {
+        setElementInnerHTML(loadedMessage, okMsg);
+        loadedMessage.style.display = '';
+      }
 
       _disabled = true;
     } else {
       _setLoadedMessageStyle(error: true);
 
-      _loadingDiv!.style.display = 'none';
-      buttonElement!.style.display = '';
+      loadingDiv.style.display = 'none';
+      buttonElement?.style.display = '';
 
       var errorMsg = errorMessage ?? _loadedTextError?.text;
 
       if (isNotEmptyString(errorMsg)) {
-        setElementInnerHTML(_loadedMessage!, errorMsg!);
-        _loadedMessage!.style.display = '';
+        if (loadedMessage != null) {
+          setElementInnerHTML(loadedMessage, errorMsg!);
+          loadedMessage.style.display = '';
+        }
       } else {
-        _loadedMessage!.style.display = 'none';
+        loadedMessage?.style.display = 'none';
       }
     }
   }
 
   /// Sets the progress of loading.
   void setProgress(double? ratio) {
-    var progressDiv = _loadingDiv!.querySelector('.ui-loading-progress');
+    final loadingDiv = _loadingDiv;
+    if (loadingDiv == null) return;
+
+    var progressDiv = loadingDiv.querySelector('.ui-loading-progress');
+
     if (progressDiv == null) {
       progressDiv = HTMLDivElement()..classList.add('ui-loading-progress');
-      var loadingDiv = _loadingDiv!.querySelector('.ui-loading')!;
-      loadingDiv.append(progressDiv);
-      return;
+      var loadingDiv2 = loadingDiv.querySelector('.ui-loading');
+      loadingDiv2?.append(progressDiv);
     }
 
     if (ratio == null) {

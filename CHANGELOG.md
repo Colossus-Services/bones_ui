@@ -1,3 +1,7 @@
+- `UIButtonBase` and `UIButtonLoader`:
+  - Updated event listener attachment to use `addEventListenerTyped`.
+  - Fixed null safety and type checks for button elements.
+
 ## 3.0.0-beta.19
 
 - dom_tools: ^3.0.0-beta.13
