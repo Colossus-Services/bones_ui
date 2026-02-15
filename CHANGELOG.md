@@ -36,6 +36,9 @@
   - Updated `_updateCanvasDimension` to return bool indicating if dimension changed.
   - Improved zoom and translate setters to avoid unnecessary renders.
 
+- `UILoading`:
+  - Updated `asDIVElement` buildDOM calls to pass `treeMap` and `setTreeMapRoot`.
+
 ## 3.0.0-beta.19
 
 - dom_tools: ^3.0.0-beta.13

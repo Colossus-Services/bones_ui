@@ -597,7 +597,10 @@ abstract class UILoading {
         cssContext: cssContext,
         withProgress: withProgress,
         config: config);
-    return div.buildDOM(generator: UIComponent.domGenerator) as HTMLDivElement;
+    return div.buildDOM(
+        generator: UIComponent.domGenerator,
+        treeMap: UIComponent.domTreeMapDummy,
+        setTreeMapRoot: false) as HTMLDivElement;
   }
 }
 
