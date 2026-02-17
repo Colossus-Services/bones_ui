@@ -1,3 +1,11 @@
+## 3.0.0
+
+- Release v3.0.0
+
+- Dependencies:
+  - Updated `dom_tools` from `^3.0.0-beta.19` to `^3.0.0`.
+  - Updated `dom_builder` from `^3.0.0-beta.11` to `^3.0.0`.
+
 ## 3.0.0-beta.20
 
 - `UIEventHandler`:
