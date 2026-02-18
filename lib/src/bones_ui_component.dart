@@ -1756,17 +1756,31 @@ abstract class UIComponent extends UIEventHandler {
     _renderedUIComponents.clear();
     _renderedUIRoots.clear();
 
-    for (var uiComponent in uiComponents) {
-      uiComponent._onFinishRender();
-    }
-
     for (var uiRoot in uiRoots) {
       uiRoot.notifyFinishRender();
     }
+
+    Future.delayed(
+        Duration(milliseconds: 300), () => _purgeUI(uiComponents, uiRoots));
   }
 
-  void _onFinishRender() {
-    _domTreeMap?.purge();
+  static Future<void> _purgeUI(
+      List<UIComponent> uiComponents, Set<UIRoot> uiRoots) async {
+    for (var uiComponent in uiComponents) {
+      await uiComponent._onPurge();
+    }
+
+    for (var uiRoot in uiRoots) {
+      await uiRoot.purgeRoot();
+    }
+  }
+
+  Future<void> _onPurge() async {
+    final domTreeMap = _domTreeMap;
+    if (domTreeMap == null) return;
+
+    domTreeMap.purge();
+    await yeld();
   }
 
   /// If [true] will preserve last render in next calls to [render].
@@ -3308,9 +3322,14 @@ abstract class UIComponent extends UIEventHandler {
   /// Purges all global UI state and resources.
   ///
   /// Clears globally managed components, mappings, and caches.
-  static void purgeGlobals() {
+  static Future<void> purgeGlobals() async {
     _contentsUIComponents.purge();
+    await yeld();
+
     _asyncRenderingZoneComponent.purge();
+    await yeld();
+
     DSX.purge();
+    await yeld();
   }
 }

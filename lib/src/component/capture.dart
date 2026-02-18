@@ -8,6 +8,7 @@ import 'package:swiss_knife/swiss_knife.dart';
 import 'package:web_utils/web_utils.dart' hide MimeType;
 
 import '../bones_ui_base.dart';
+import '../bones_ui_utils.dart';
 import '../bones_ui_log.dart';
 import 'button.dart';
 import 'dialog_edit_image.dart';
@@ -228,11 +229,11 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   final EventStream<UICapture> onCapture = EventStream();
 
   void _callOnCapture(HTMLInputElement input, Event event) async {
-    await _yeld();
+    await yeld();
 
     await _readFile(input);
 
-    await _yeld();
+    await yeld();
 
     onCaptureFile(input, event);
     onCapture.add(this);
@@ -370,7 +371,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
 
     _selectedFile = file;
 
-    await _yeld();
+    await yeld();
 
     var data = await _readFileInput(input);
 
@@ -378,14 +379,14 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
       throw StateError("Can't capture data as format: $captureDataFormat");
     }
 
-    await _yeld();
+    await yeld();
 
     var mimeType = getFileMimeType(file);
 
     var capturedData = _CapturedData.from(captureDataFormat, data,
         mimeType: mimeType?.toString());
 
-    await _yeld();
+    await yeld();
 
     capturedData = await _filterCapturedData(capturedData);
 
@@ -435,7 +436,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   Future<_CapturedData> _filterCapturedPhoto(
       _CapturedData capturedData, HTMLImageElement image) async {
     if (editCapture) {
-      await _yeld();
+      await yeld();
 
       var photoEditor = this.photoEditor;
       if (photoEditor != null) {
@@ -445,7 +446,7 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
         }
       } else {
         var dialogEdit = UIDialogEditImage(image);
-        await _yeld();
+        await yeld();
         var edited = await dialogEdit.showAndWait();
         if (edited) {
           image = dialogEdit.editedImage ?? image;
@@ -1318,5 +1319,3 @@ class UIButtonCapture extends UICapture {
     content!.style.width = '';
   }
 }
-
-Future<void> _yeld({int ms = 1}) => Future.delayed(Duration(milliseconds: ms));

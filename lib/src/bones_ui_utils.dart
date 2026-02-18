@@ -49,3 +49,6 @@ String? resolveToText(Object? o) {
     return o.toString();
   }
 }
+
+/// Yields to the event loop for at least [ms] milliseconds (default 1).
+Future<void> yeld({int ms = 1}) => Future.delayed(Duration(milliseconds: ms));

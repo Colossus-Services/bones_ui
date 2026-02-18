@@ -12,6 +12,7 @@ import 'bones_ui_component.dart';
 import 'bones_ui_document.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_navigator.dart';
+import 'bones_ui_utils.dart';
 import 'bones_ui_web.dart';
 import 'component/button.dart';
 import 'component/data_source.dart';
@@ -135,19 +136,25 @@ abstract class UIRootComponent extends UIComponent {
   final EventStream<UIRootComponent> onFinishRender = EventStream();
 
   void notifyFinishRender() {
-    purgeRoot();
-
     onFinishRender.add(this);
 
     //print('FINISH RENDER> _uiComponentsTree: $_uiComponentsTree');
   }
 
-  void purgeRoot() {
-    _uiComponentsTree?.purge();
+  Future<void> purgeRoot() async {
+    final uiComponentsTree = _uiComponentsTree;
+    if (uiComponentsTree != null) {
+      uiComponentsTree.purge();
+      await yeld();
+    }
 
-    domTreeMapIfInitialized?.purge();
+    final domTreeMap = domTreeMapIfInitialized;
+    if (domTreeMap != null) {
+      domTreeMap.purge();
+      await yeld();
+    }
 
-    UIComponent.purgeGlobals();
+    await UIComponent.purgeGlobals();
   }
 }
 

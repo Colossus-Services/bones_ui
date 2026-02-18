@@ -1,3 +1,21 @@
+## 3.0.1
+
+- `UIComponent`:
+  - Updated `render` to notify UI roots finish render before purging UI components and roots asynchronously after a 300ms delay.
+  - Added private async method `_purgeUI` to purge components and roots with yielding.
+  - Replaced synchronous `_onFinishRender` with async `_onPurge` that purges DOM tree map and yields.
+  - Made `purgeGlobals` async and added yields between purge calls.
+
+- `UIRootComponent`:
+  - Modified `notifyFinishRender` to only emit event without purging.
+  - Made `purgeRoot` async, purging UI components tree and DOM tree map with yields, and awaiting `UIComponent.purgeGlobals`.
+
+- `bones_ui_utils.dart`:
+  - Added `yeld` utility function to yield to event loop for at least 1 millisecond.
+
+- `UICapture`:
+  - Replaced all internal `_yeld` calls with `yeld` from `bones_ui_utils.dart` for consistent async yielding.
+
 ## 3.0.0
 
 - Release v3.0.0
