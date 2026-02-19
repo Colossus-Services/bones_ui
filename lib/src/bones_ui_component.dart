@@ -1859,7 +1859,22 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  static Future<void>? _notifyFinishRenderedFuture;
+
   static void _notifyFinishRendered() {
+    var future = _notifyFinishRenderedFuture;
+    if (future != null) return;
+
+    future = _notifyFinishRenderedFuture = _notifyFinishRenderedImpl();
+
+    future.whenComplete(() {
+      if (identical(future, _notifyFinishRenderedFuture)) {
+        _notifyFinishRenderedFuture = null;
+      }
+    });
+  }
+
+  static Future<void> _notifyFinishRenderedImpl() async {
     if (_renderFinished) return;
     _renderFinished = true;
 
@@ -1900,6 +1915,8 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   Future<void> _onPurge() async {
+    if (_subComponent) return;
+
     final domTreeMap = _domTreeMap;
     if (domTreeMap == null) return;
 

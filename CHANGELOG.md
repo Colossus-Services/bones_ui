@@ -1,3 +1,10 @@
+## 3.0.4
+
+- `UIComponent`:
+  - `_notifyFinishRendered`: updated to prevent concurrent executions by caching a future and resetting it on completion.
+  - `_notifyFinishRenderedImpl`: refactored to async method called by `_notifyFinishRendered`.
+  - `_onPurge`: added early return if `_subComponent` is `true` to skip purging for subcomponents.
+
 ## 3.0.3
 
 - Dependency updates in `pubspec.yaml`:
