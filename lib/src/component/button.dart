@@ -276,6 +276,12 @@ DOMElement $uiButtonLoader(
     Map<String, String>? attributes,
     content,
     bool commented = false,
+    loadedTextClass,
+    loadedTextStyle,
+    loadedTextErrorClass,
+    loadedTextErrorStyle,
+    loadedTextOK,
+    loadedTextError,
     bool? withProgress,
     dynamic loadingConfig}) {
   return $tag(
@@ -290,6 +296,18 @@ DOMElement $uiButtonLoader(
             parseStringFromInlineList(buttonClasses)?.join(',') ?? '',
       if (buttonClasses != null) 'button-style': CSS(buttonStyle).style,
       if (withProgress != null) 'with-progress': '$withProgress',
+      if (loadedTextStyle != null)
+        'loaded-text-style': CSS(loadedTextStyle).style,
+      if (loadedTextClass != null)
+        'loaded-text-classes':
+            parseStringFromInlineList(buttonClasses)?.join(',') ?? '',
+      if (loadedTextErrorStyle != null)
+        'loaded-text-error-style': CSS(loadedTextErrorStyle).style,
+      if (loadedTextErrorClass != null)
+        'loaded-text-error-classes':
+            parseStringFromInlineList(loadedTextErrorClass)?.join(',') ?? '',
+      if (loadedTextOK != null) 'loaded-text-ok': '$loadedTextOK',
+      if (loadedTextError != null) 'loaded-text-error': '$loadedTextError',
       if (loadingConfig != null)
         'loading-config': (loadingConfig is UILoadingConfig
             ? loadingConfig.toInlineProperties()

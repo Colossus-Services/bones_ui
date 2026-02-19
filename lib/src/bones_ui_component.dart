@@ -83,8 +83,12 @@ abstract class UIComponent extends UIEventHandler {
 
   bool? get constructing => _constructing;
 
-  UIComponent(Object? parent,
-      {dynamic componentClass,
+  final bool _subComponent;
+
+  UIComponent._(Object? parent,
+      {bool subComponent = false,
+      UIComponent? parentComponent,
+      dynamic componentClass,
       dynamic componentStyle,
       dynamic classes,
       dynamic classes2,
@@ -98,7 +102,12 @@ abstract class UIComponent extends UIEventHandler {
       this.id,
       UIComponentGenerator? generator})
       : globalID = ++_globalIDCount,
+        _subComponent = subComponent,
         _generator = generator {
+    if (subComponent) {
+      _domTreeMap = parentComponent?.domTreeMap;
+    }
+
     _resolveParent(parent);
 
     if (construct) {
@@ -106,6 +115,121 @@ abstract class UIComponent extends UIEventHandler {
           style, style2, componentStyle, renderOnConstruction);
     }
   }
+
+  /// Creates a UI component.
+  ///
+  /// The optional [parent] is the DOM target or logical container where the
+  /// component will be inserted. If null, it will be defined by the component
+  /// that encapsulates this one during render.
+  ///
+  /// Rendering behavior:
+  /// * [construct] builds the element immediately.
+  /// * [renderOnConstruction] renders right after construction.
+  /// * [preserveRender] preserves previously rendered elements in future renders.
+  /// * [inline] creates the [content] element as inline.
+  ///
+  /// Styling:
+  /// * [componentClass] / [componentStyle] default values applied to the
+  ///   [content] element.
+  /// * [classes] / [classes2] are merged CSS classes.
+  /// * [style] / [style2] are merged style declarations.
+  ///
+  /// Structure control:
+  /// * [clearParent] optionally clears the container before insertion.
+  /// * [generator] the [UIComponentGenerator] used to generate [DOMNode] elements.
+  /// * [id] the ID of the component instance (not applied to the [content] element).
+  UIComponent(
+    Object? parent, {
+    dynamic componentClass,
+    dynamic componentStyle,
+    dynamic classes,
+    dynamic classes2,
+    dynamic style,
+    dynamic style2,
+    UIComponentClearParent? clearParent,
+    bool inline = true,
+    bool construct = true,
+    bool renderOnConstruction = false,
+    bool preserveRender = false,
+    dynamic id,
+    UIComponentGenerator? generator,
+  }) : this._(
+          parent,
+          componentClass: componentClass,
+          componentStyle: componentStyle,
+          classes: classes,
+          classes2: classes2,
+          style: style,
+          style2: style2,
+          clearParent: clearParent,
+          inline: inline,
+          construct: construct,
+          renderOnConstruction: renderOnConstruction,
+          preserveRender: preserveRender,
+          id: id,
+          generator: generator,
+        );
+
+  /// Creates a component attached to an existing [parentComponent].
+  ///
+  /// This constructor establishes a hierarchical relationship: the new instance
+  /// becomes part of the parent component render tree and shares its DOM mapping
+  /// context ([domTreeMap]). It should be used for composition inside another
+  /// component rather than for standalone roots.
+  ///
+  /// The optional [parent] is the DOM target used during creation. If null,
+  /// the parent component defines the insertion point when rendering.
+  ///
+  /// Rendering behavior:
+  /// * [construct] builds the element immediately.
+  /// * [renderOnConstruction] renders right after construction.
+  /// * [preserveRender] preserves previously rendered elements in future renders.
+  /// * [inline] creates the [content] element as inline.
+  ///
+  /// Styling:
+  /// * [componentClass] / [componentStyle] default values applied to the
+  ///   [content] element.
+  /// * [classes] / [classes2] are merged CSS classes.
+  /// * [style] / [style2] are merged style declarations.
+  ///
+  /// Structure control:
+  /// * [clearParent] optionally clears the container before insertion.
+  /// * [generator] the [UIComponentGenerator] used to generate [DOMNode] elements.
+  /// * [id] the ID of the component instance (not applied to the [content] element).
+  UIComponent.subComponent(
+    Object? parent, {
+    required UIComponent parentComponent,
+    dynamic componentClass,
+    dynamic componentStyle,
+    dynamic classes,
+    dynamic classes2,
+    dynamic style,
+    dynamic style2,
+    UIComponentClearParent? clearParent,
+    bool inline = true,
+    bool construct = true,
+    bool renderOnConstruction = false,
+    bool preserveRender = false,
+    dynamic id,
+    UIComponentGenerator? generator,
+  }) : this._(
+          parent,
+          subComponent: true,
+          parentComponent: parentComponent,
+          componentClass: componentClass,
+          componentStyle: componentStyle,
+          classes: classes,
+          classes2: classes2,
+          style: style,
+          style2: style2,
+          clearParent: clearParent,
+          inline: inline,
+          construct: construct,
+          renderOnConstruction: renderOnConstruction,
+          preserveRender: preserveRender,
+          id: id,
+          generator: generator,
+        );
 
   void _resolveParent(Object? parent) {
     _resolveParentUIComponent(parent);
@@ -3295,7 +3419,9 @@ abstract class UIComponent extends UIEventHandler {
     if (!preserveRender) {
       final domTreeMap = _domTreeMap;
       if (domTreeMap != null) {
-        domTreeMap.dispose();
+        if (!_subComponent) {
+          domTreeMap.dispose();
+        }
         _domTreeMap = null;
       }
 
