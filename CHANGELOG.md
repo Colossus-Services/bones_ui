@@ -1,3 +1,18 @@
+## 3.0.2
+
+- `UIComponent`:
+  - Added private `_subComponent` flag to distinguish subcomponents.
+  - Refactored constructors:
+    - Added private named constructor `UIComponent._` to centralize initialization.
+    - Added public mirror constructor `UIComponent` with detailed documentation on parameters controlling rendering, styling, and structure.
+    - Added new constructor `UIComponent.subComponent` for creating components attached to an existing `parentComponent`, sharing its DOM mapping context.
+  - Updated `dispose` method to avoid disposing shared `domTreeMap` when the component is a subcomponent.
+
+- `UIButton` (`button.dart`):
+  - Extended `$uiButtonLoader` function to support additional attributes for loaded text styling and content:
+    - Added parameters: `loadedTextClass`, `loadedTextStyle`, `loadedTextErrorClass`, `loadedTextErrorStyle`, `loadedTextOK`, `loadedTextError`.
+    - Added corresponding attributes to the returned DOM element for these new parameters.
+
 ## 3.0.1
 
 - `UIComponent`:
