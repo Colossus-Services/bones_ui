@@ -1,3 +1,9 @@
+## 3.0.3
+
+- Dependency updates in `pubspec.yaml`:
+  - Updated `dom_builder` from ^3.0.0 to ^3.0.1.
+  - Updated `build_web_compilers` from ^4.4.11 to ^4.4.12.
+
 ## 3.0.2
 
 - `UIComponent`:
