@@ -1,3 +1,21 @@
+## 3.0.5
+
+- `UIComponent`:
+  - `toRenderableList`:
+    - Changed return type from `List<dynamic>?` to `List<Object>?`.
+    - Simplified list conversion logic; now accepts `List<Object>`, `Iterable<Object?>`, and `Map` with renderable keys/values.
+  - `_toContentElementsImpl`:
+    - Replaced `_normalizeRenderListValue` usage for HTML string rendering with direct `$html` call and DOM node building.
+  - `_normalizeRenderListValue`:
+    - Added null check returning null immediately.
+    - Reordered and refined type checks for better clarity and correctness.
+    - Removed redundant `UIComponent` check duplication.
+  - `_buildRenderList`:
+    - Added null check after normalization to skip null values.
+
+- Dependency updates:
+  - `dom_builder`: ^3.0.2
+
 ## 3.0.4
 
 - `UIComponent`:

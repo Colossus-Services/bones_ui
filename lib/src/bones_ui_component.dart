@@ -2026,24 +2026,18 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  static final _listDynamicRuntimeType = <dynamic>[].runtimeType;
-
-  List<dynamic>? toRenderableList(Object? list,
+  List<Object>? toRenderableList(Object? list,
       [DOMContext<UINode>? domContext]) {
     if (list == null) return null;
 
-    List<dynamic> renderableList;
+    List<Object> renderableList;
 
-    if (list is List) {
-      if (list.runtimeType == _listDynamicRuntimeType) {
-        renderableList = list;
-      } else {
-        renderableList = List<dynamic>.from(list);
-      }
-    } else if (list is Iterable) {
-      renderableList = List<dynamic>.from(list);
+    if (list is List<Object>) {
+      renderableList = list;
+    } else if (list is Iterable<Object?>) {
+      renderableList = List.from(list.nonNulls);
     } else if (list is Map) {
-      renderableList = <dynamic>[];
+      renderableList = [];
 
       for (var entry in list.entries) {
         var key = entry.key;
@@ -2056,7 +2050,7 @@ abstract class UIComponent extends UIEventHandler {
         }
       }
     } else {
-      renderableList = <dynamic>[list];
+      renderableList = [list];
     }
 
     return renderableList;
@@ -2079,16 +2073,16 @@ abstract class UIComponent extends UIEventHandler {
     if (isListOfStrings(renderableList)) {
       var html = renderableList.join('\n');
 
-      var values = _normalizeRenderListValue(content, html, domContext);
+      var domNodes = $html(html);
 
-      var nodes = (values is List
-              ? values
-              : (values is Iterable ? values.toList() : [values]))
-          .expand((e) => e is List ? e : [e])
-          .map((e) {
-            return _normalizeRenderListValue(content, e, domContext);
-          })
-          .cast<UINode>()
+      var nodes = domNodes
+          .map((e) => e.buildDOM(
+              generator: domGenerator,
+              treeMap: domTreeMap,
+              parent: content,
+              context: domContext,
+              setTreeMapRoot: false))
+          .nonNulls
           .toList();
 
       if (append) {
@@ -2122,20 +2116,26 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  dynamic _normalizeRenderListValue(
+  Object? _normalizeRenderListValue(
       UIElement? content, Object? value, DOMContext<UINode>? domContext) {
-    if (value is DOMNode) {
+    if (value == null) {
+      return null;
+    } else if (value is DOMNode) {
       return value.buildDOM(
           generator: domGenerator,
           treeMap: domTreeMap,
           parent: content,
           context: domContext,
           setTreeMapRoot: false);
+    } else if (value is UIComponent) {
+      return value;
     } else if (value is String) {
       var nodes = $html(value);
       return nodes;
     } else if (value is List) {
       return value;
+    } else if (value is Iterable) {
+      return value.toList();
     } else if (value.isNode) {
       return value;
     } else if (value is Function) {
@@ -2153,10 +2153,6 @@ abstract class UIComponent extends UIEventHandler {
         properties: {'__Future__': value},
       )..parentUIComponent = this;
       return asyncContent;
-    } else if (value is UIComponent) {
-      return value;
-    } else if (value is Iterable) {
-      return value.toList();
     } else if (value is AsDOMElement) {
       var element = value.asDOMElement;
       return element.buildDOM(
@@ -2187,6 +2183,7 @@ abstract class UIComponent extends UIEventHandler {
     final content = this.content;
 
     value = _normalizeRenderListValue(content, value, domContext);
+    if (value == null) return prevElemIndex;
 
     if (value.isNode) {
       prevElemIndex = _addElementToRenderList(
