@@ -326,7 +326,7 @@ abstract class UIComponent extends UIEventHandler {
       DualWeakMap();
 
   static UIComponent? getContentUIComponent(UIElement content) =>
-      _contentsUIComponents[content];
+      _contentsUIComponents.getNoPurge(content);
 
   void _setContent(HTMLElement content) {
     var prev = _content;

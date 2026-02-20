@@ -1,3 +1,12 @@
+## 3.0.6
+
+- `UIComponent`:
+  - `getContentUIComponent`: replaced direct map access with `DualWeakMap.getNoPurge` for `_contentsUIComponents`.
+
+- Dependencies:
+  - Updated `dom_builder` from ^3.0.2 to ^3.0.3.
+  - Updated `swiss_knife` from ^3.3.5 to ^3.3.7.
+
 ## 3.0.5
 
 - `UIComponent`:
