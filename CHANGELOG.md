@@ -1,3 +1,16 @@
+## 3.0.7
+
+- `UIComponent`:
+  - Rollback: avoid `WeakReference` issues with WASM on Chrome/Android.
+    - Replaced `DualWeakMap<UIElement, UIComponent>` with `Expando<WeakReference<UIComponent>>` for `_contentsUIComponents`.
+    - Updated `_setContent` and `_recycle` to store `WeakReference(this)` in `_contentsUIComponents`.
+    - Updated `getContentUIComponent` to retrieve the target from the weak reference.
+    - Removed `_contentsUIComponents.purge()` call from `purgeGlobals`.
+
+- Dependencies:
+  - Updated `dom_builder` from ^3.0.4 to ^3.0.5.
+  - Updated `swiss_knife` from ^3.3.7 to ^3.3.9.
+
 ## 3.0.6
 
 - `UIComponent`:

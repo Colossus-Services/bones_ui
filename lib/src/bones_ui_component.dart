@@ -322,20 +322,20 @@ abstract class UIComponent extends UIEventHandler {
 
   HTMLElement? _getContent() => _content;
 
-  static final DualWeakMap<UIElement, UIComponent> _contentsUIComponents =
-      DualWeakMap();
+  static final Expando<WeakReference<UIComponent>> _contentsUIComponents =
+      Expando();
 
   static UIComponent? getContentUIComponent(UIElement content) =>
-      _contentsUIComponents.getNoPurge(content);
+      _contentsUIComponents[content]?.target;
 
   void _setContent(HTMLElement content) {
     var prev = _content;
     if (prev != null && prev != content) {
-      _contentsUIComponents.remove(prev);
+      _contentsUIComponents[prev] = null;
     }
 
     _content = content;
-    _contentsUIComponents[content] = this;
+    _contentsUIComponents[content] = WeakReference(this);
   }
 
   void addTo(UIElement parent, {UIComponent? parentUIComponent}) {
@@ -3450,7 +3450,7 @@ abstract class UIComponent extends UIEventHandler {
 
     var content = _content;
     if (content != null) {
-      _contentsUIComponents[content] = this;
+      _contentsUIComponents[content] = WeakReference(this);
     } else {
       _setContent(createContentElement(true));
     }
@@ -3463,9 +3463,6 @@ abstract class UIComponent extends UIEventHandler {
   ///
   /// Clears globally managed components, mappings, and caches.
   static Future<void> purgeGlobals() async {
-    _contentsUIComponents.purge();
-    await yeld();
-
     _asyncRenderingZoneComponent.purge();
     await yeld();
 
