@@ -326,6 +326,23 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
     setupContextVariables();
   }
 
+  @override
+  bool isMappable(DOMNode domNode, {DOMContext<Node>? context}) {
+    if (domNode is TextNode) {
+      return false;
+    } else if (domNode is DOMElement) {
+      switch (domNode.tag) {
+        case 'br':
+        case 'p':
+          return false;
+        default:
+          return true;
+      }
+    }
+
+    return true;
+  }
+
   void setupContextVariables() {
     domContext!.variables = {
       'routes': () => _routesEntries(false),

@@ -3,8 +3,12 @@
 - `UIComponent`:
   - `getContentUIComponent`: replaced direct map access with `DualWeakMap.getNoPurge` for `_contentsUIComponents`.
 
+
+- `UIDOMGenerator`:
+  - Added override for `isMappable` method to exclude `TextNode` and certain `DOMElement` tags (`br`, `p`) from being mappable.
+
 - Dependencies:
-  - Updated `dom_builder` from ^3.0.2 to ^3.0.3.
+  - Updated `dom_builder` from ^3.0.2 to ^3.0.4.
   - Updated `swiss_knife` from ^3.3.5 to ^3.3.7.
 
 ## 3.0.5
