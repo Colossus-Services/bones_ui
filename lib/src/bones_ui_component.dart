@@ -1136,6 +1136,18 @@ abstract class UIComponent extends UIEventHandler {
   void clear({bool force = false, bool removeFromParent = false}) {
     if (!force && !isRendered) return;
 
+    if (!force && preserveRender) {
+      var loadingAsyncContents = _loadingAsyncContents;
+      var renderedAsyncContents = _renderedAsyncContents;
+
+      var loadingAsync = loadingAsyncContents?.isNotEmpty ?? false;
+      var renderedAsync = renderedAsyncContents?.isNotEmpty ?? false;
+
+      if (loadingAsync || renderedAsync) {
+        return;
+      }
+    }
+
     if (_renderedElements != null) {
       for (var e in _renderedElements!) {
         if (e is UIComponent) {
@@ -1723,10 +1735,11 @@ abstract class UIComponent extends UIEventHandler {
         _renderedWithError = false;
         _preserveRenderCount = 0;
         _renderedElements = null;
+
+        _renderedAsyncContents = null;
+
         rendered = render();
       }
-
-      _renderedAsyncContents = null;
 
       var renderedElements = toContentElements(rendered);
 

@@ -512,6 +512,10 @@ class _UIDOMTreeReferenceMap extends DOMTreeReferenceMap<UIComponent> {
 
   @override
   bool isValidEntry(Node key, UIComponent value) {
+    if (value.preserveRender) {
+      return true;
+    }
+
     var valid = super.isValidEntry(key, value);
 
     if (!valid && !value.isDisposed) {

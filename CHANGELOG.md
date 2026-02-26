@@ -1,3 +1,14 @@
+## 3.0.9
+
+- `UIComponent`:
+  - `clear`:
+    - Added check to prevent clearing when `preserveRender` is true and there are loading or rendered async contents.
+  - `render`:
+    - Reset `_renderedAsyncContents` to null when not preserving render.
+- `_UIDOMTreeReferenceMap`:
+  - `isValidEntry`:
+    - Added condition to always consider entries valid if their component's `preserveRender` is true.
+
 ## 3.0.8
 
 - `UIEventHandler`:
