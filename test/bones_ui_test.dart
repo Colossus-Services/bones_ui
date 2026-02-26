@@ -36,7 +36,7 @@ void main() {
           .firstOrNull;
 
       print('HTMLButtonElement: $btn0');
-      expect(btn0, isNotEmpty);
+      expect(btn0, isNotNull);
 
       var btn1 = uiRoot.selectExpectedTyped<web.HTMLButtonElement>(
           '*', Web.HTMLButtonElement);
