@@ -1,3 +1,19 @@
+## 3.0.10
+
+- `UIComponent`:
+  - `clear`:
+    - Prevent clearing when `preserveRender` is true and any async content is loading, to avoid breaking async content attachment.
+    - Added `_renderedElements = null` after removing elements.
+  - `dispose`:
+    - Added call to `clear(force: true)` before resetting `_rendered` and clearing rendered state fields.
+
+- `_UIDOMTreeReferenceMap`:
+  - `isValidEntry`:
+    - Components with loading async content are always valid to keep them alive.
+    - Components with `preserveRender` are always valid even if outside the DOM.
+    - Components not disposed and still in initial rendering phase are considered valid.
+    - Default validation falls back to superclass `isValidEntry`.
+
 ## 3.0.9
 
 - `UIComponent`:

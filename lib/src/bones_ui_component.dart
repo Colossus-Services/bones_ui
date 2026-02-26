@@ -1137,13 +1137,11 @@ abstract class UIComponent extends UIEventHandler {
     if (!force && !isRendered) return;
 
     if (!force && preserveRender) {
-      var loadingAsyncContents = _loadingAsyncContents;
-      var renderedAsyncContents = _renderedAsyncContents;
-
-      var loadingAsync = loadingAsyncContents?.isNotEmpty ?? false;
-      var renderedAsync = renderedAsyncContents?.isNotEmpty ?? false;
-
-      if (loadingAsync || renderedAsync) {
+      // When any UIAsyncContent is loading, it relies on the previously
+      // rendered elements to attach the newly loaded content, replacing
+      // the old nodes. Clearing the component elements here would break
+      // that attachment process.
+      if (isLoadingUIAsyncContent) {
         return;
       }
     }
@@ -1156,6 +1154,7 @@ abstract class UIComponent extends UIEventHandler {
           (e as Element).remove();
         }
       }
+      _renderedElements = null;
     }
 
     _renderedAsyncContents?.clear();
@@ -3534,6 +3533,9 @@ abstract class UIComponent extends UIEventHandler {
         _domTreeMap = null;
       }
 
+      clear(force: true);
+
+      _rendered = false;
       _renderedElements = null;
       _renderedFieldsValues = null;
     }

@@ -512,23 +512,30 @@ class _UIDOMTreeReferenceMap extends DOMTreeReferenceMap<UIComponent> {
 
   @override
   bool isValidEntry(Node key, UIComponent value) {
+    // Keep the component alive while async content is loading.
+    if (value.isLoadingUIAsyncContent) {
+      return true;
+    }
+
+    // Components that preserve rendered elements must remain valid
+    // even when outside the DOM, since they may be reused later.
     if (value.preserveRender) {
       return true;
     }
 
-    var valid = super.isValidEntry(key, value);
-
-    if (!valid && !value.isDisposed) {
-      var content = value.content;
-      var parent = value.parent;
+    // Avoid purging components still in their initial rendering phase.
+    if (!value.isDisposed) {
+      final content = value.content;
+      final parent = value.parent;
 
       // Component still in the initial rendering:
       if (content == null || parent == null) {
-        //print('!!! Prevent purge> $value >> $content ; $parent');
         return true;
       }
     }
 
-    return valid;
+    // Default validation:
+    // - Calls `isInTree`: checks whether `root` still contains the component.
+    return super.isValidEntry(key, value);
   }
 }
