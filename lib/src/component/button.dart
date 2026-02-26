@@ -64,7 +64,7 @@ abstract class UIButtonBase extends UIComponent {
   }
 
   void registerClickListener(UIEventListener listener) {
-    registerEventListener(eventClick, listener);
+    addEventListener(eventClick, listener);
   }
 
   // ignore: non_constant_identifier_names
@@ -118,14 +118,15 @@ abstract class UIButtonBase extends UIComponent {
 
     for (var elem in renderedElements) {
       if (elem.isElement) {
-        (elem as Element)
-            .addEventListenerTyped(EventType.click, (e) => fireClickEvent(e));
+        var element = (elem as Element);
+        addTrackedEventListener(element, EventType.click, fireClickEvent);
         clickSet = true;
       }
     }
 
     if (!clickSet && !_content_onClick_listening) {
-      content!.addEventListenerTyped(EventType.click, (e) => fireClickEvent(e));
+      final content = this.content!;
+      addTrackedEventListener(content, EventType.click, fireClickEvent);
       _content_onClick_listening = true;
     }
   }
@@ -606,5 +607,14 @@ class UIButtonLoader extends UIButtonBase {
       var percent = formatPercent(ratio, precision: 0, isRatio: true);
       progressDiv.text = percent;
     }
+  }
+
+  @override
+  void dispose() {
+    _button = null;
+    _loadedMessage = null;
+    _loadingDiv = null;
+
+    super.dispose();
   }
 }

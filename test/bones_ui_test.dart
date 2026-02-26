@@ -28,14 +28,15 @@ void main() {
       expect(myHome?.text, contains('- uiRoot: MyRoot'));
       expect(myHome?.text, contains('- uiRootComponent: MyRoot'));
 
-      var tmp = uiRoot
+      var btn0 = uiRoot
           .selectAll('*')
           .map((e) => e as Object?)
           .map((e) => e.asJSAny)
           .where((e) => e.isA<web.HTMLButtonElement>())
           .firstOrNull;
 
-      print('!!! HTMLButtonElement: $tmp');
+      print('HTMLButtonElement: $btn0');
+      expect(btn0, isNotEmpty);
 
       var btn1 = uiRoot.selectExpectedTyped<web.HTMLButtonElement>(
           '*', Web.HTMLButtonElement);

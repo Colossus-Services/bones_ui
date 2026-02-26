@@ -495,30 +495,31 @@ abstract class UIComponent extends UIEventHandler {
       return;
     }
 
-    if (elementUIComponent == null && element.isElement) {
-      elementUIComponent = _resolveNodeUIComponent(element as Element);
-    }
-
     if (elementUIComponent == null) {
-      if (recursive &&
-          element.isElement &&
-          (element as Element).hasUIChildren) {
-        if (parentUIComponent == null && parent.isElement) {
-          parentUIComponent = _resolveNodeUIComponent(parent as Element,
-              getUIComponentByChild: true);
-        }
-
-        if (parentUIComponent != null) {
-          for (var child in element.children.toIterable()) {
-            resolveParentUIComponent(
-                parent: parent,
-                parentUIComponent: parentUIComponent,
-                element: child);
-          }
-        }
+      var element2 = element?.asElementChecked;
+      if (element2 != null) {
+        elementUIComponent = _resolveNodeUIComponent(element2);
       }
 
-      return;
+      if (elementUIComponent == null) {
+        if (recursive && element2 != null && element2.hasUIChildren) {
+          if (parentUIComponent == null && parent.isElement) {
+            parentUIComponent = _resolveNodeUIComponent(parent as Element,
+                getUIComponentByChild: true);
+          }
+
+          if (parentUIComponent != null) {
+            for (var child in element2.children.toIterable()) {
+              resolveParentUIComponent(
+                  parent: parent,
+                  parentUIComponent: parentUIComponent,
+                  element: child);
+            }
+          }
+        }
+
+        return;
+      }
     }
 
     if (elementUIComponent._parentUIComponent != null) {
@@ -541,21 +542,26 @@ abstract class UIComponent extends UIEventHandler {
 
   static UIComponent? _resolveNodeUIComponent(UINode node,
       {bool getUIComponentByChild = false}) {
-    if (!node.isElement) return null;
+    var element = node.asElementChecked;
+    if (element == null) return null;
 
-    var component = UIComponent.getContentUIComponent(node as Element);
-    if (component == null) {
-      var uiRoot = UIRoot.getInstance();
+    var component = UIComponent.hasUIComponentClass(element)
+        ? UIComponent.getContentUIComponent(element)
+        : null;
 
-      if (uiRoot != null) {
-        component =
-            uiRoot.getUIComponentByContent(node, includePurgedEntries: true);
+    if (component != null) return component;
 
-        if (component == null && getUIComponentByChild) {
-          component = uiRoot.getUIComponentByChild(node);
-        }
+    var uiRoot = UIRoot.getInstance();
+
+    if (uiRoot != null) {
+      component =
+          uiRoot.getUIComponentByContent(element, includePurgedEntries: true);
+
+      if (component == null && getUIComponentByChild) {
+        component = uiRoot.getUIComponentByChild(element);
       }
     }
+
     return component;
   }
 
@@ -732,6 +738,9 @@ abstract class UIComponent extends UIEventHandler {
       content.classList.removeAll(classesNamesRemove);
     }
   }
+
+  static bool hasUIComponentClass(UIElement element) =>
+      element.classList.contains('ui-component');
 
   static final RegExp _cssEntryDelimiter = RegExp(r'\s*;\s*');
 
@@ -1168,7 +1177,7 @@ abstract class UIComponent extends UIEventHandler {
   ///   state changes.
   /// - If a [delay] is provided, the request uses [Future.delayed]; otherwise,
   ///   it defaults to [Future.microtask].
-  void requestRefresh({Duration? delay}) {
+  void requestRefresh({Duration? delay, bool clearPreservedRender = false}) {
     var future = _requestRefresh;
     if (future != null) return;
 
@@ -1177,14 +1186,14 @@ abstract class UIComponent extends UIEventHandler {
         if (identical(future, _requestRefresh)) {
           _requestRefresh = null;
         }
-        refresh();
+        refresh(clearPreservedRender: clearPreservedRender);
       });
     } else {
       _requestRefresh = future = Future.microtask(() {
         if (identical(future, _requestRefresh)) {
           _requestRefresh = null;
         }
-        refresh();
+        refresh(clearPreservedRender: clearPreservedRender);
       });
     }
   }
@@ -1207,19 +1216,21 @@ abstract class UIComponent extends UIEventHandler {
   ///   it wasn't rendered yet. A component is automatically rendered when
   ///   constructed. If a component has not yet been rendered, it may not have
   ///   been properly constructed or initialized yet.
-  void refresh({bool forceRender = false}) {
+  void refresh({bool forceRender = false, bool clearPreservedRender = false}) {
     try {
       __refreshFromExternalCall = true;
 
-      _refreshImpl(forceRender: forceRender);
+      _refreshImpl(
+          forceRender: forceRender, clearPreservedRender: clearPreservedRender);
     } finally {
       __refreshFromExternalCall = false;
     }
   }
 
-  void _refreshImpl({required bool forceRender}) {
+  void _refreshImpl(
+      {required bool forceRender, bool clearPreservedRender = false}) {
     if (!forceRender && !isRendered) return;
-    callRender(true);
+    callRender(clear: true, clearPreservedRender: clearPreservedRender);
   }
 
   void refreshIfLocaleChanged() {
@@ -1251,9 +1262,9 @@ abstract class UIComponent extends UIEventHandler {
     if (!isRendered) {
       callRender();
     } else if (localeChangedFromLastRender) {
-      callRender(true);
+      callRender(clear: true);
     } else if (force) {
-      callRender(true);
+      callRender(clear: true);
     }
   }
 
@@ -1315,21 +1326,20 @@ abstract class UIComponent extends UIEventHandler {
   static UIComponent? _getUIComponent(
       UIComponent? Function(UIRootComponent uiRootComponent) caller) {
     var uiRoot = UIRoot.getInstance();
-
-    var uiComponent = uiRoot == null ? null : caller(uiRoot);
-    if (uiComponent != null) {
-      return uiComponent;
+    if (uiRoot != null) {
+      var uiComponent = caller(uiRoot);
+      if (uiComponent != null) {
+        return uiComponent;
+      }
     }
 
-    if (uiComponent == null) {
-      var uiRootComponents = UIRootComponent.getInstances();
-      for (var uiRootComponent in uiRootComponents.reversed) {
-        if (uiRootComponent == uiRoot) continue;
+    var uiRootComponents = UIRootComponent.getInstances();
+    for (var uiRootComponent in uiRootComponents.reversed) {
+      if (uiRootComponent == uiRoot) continue;
 
-        uiComponent = caller(uiRootComponent);
-        if (uiComponent != null) {
-          return uiComponent;
-        }
+      var uiComponent = caller(uiRootComponent);
+      if (uiComponent != null) {
+        return uiComponent;
       }
     }
 
@@ -1433,12 +1443,12 @@ abstract class UIComponent extends UIEventHandler {
 
   bool _callingRender = false;
 
-  void callRender([bool clear = false]) {
+  void callRender({bool clear = false, bool clearPreservedRender = false}) {
     if (_callingRender) return;
 
     _callingRender = true;
     try {
-      _callRenderImpl(clear);
+      _callRenderImpl(clear, clearPreservedRender);
     } catch (e, s) {
       UIConsole.error('Error calling _callRenderImpl()', e, s);
     } finally {
@@ -1464,6 +1474,7 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   void _releaseRenderingZone(Zone zone) {
+    _releaseRenderingZoneUIComponent();
     _renderingZonePool.addLast(zone);
   }
 
@@ -1476,38 +1487,56 @@ abstract class UIComponent extends UIEventHandler {
     return _catchRenderingZone();
   }
 
-  static final WeakKeyMap<Zone, UIComponent> _asyncRenderingZoneComponent =
-      DualWeakMap<Zone, UIComponent>();
+  static final DualLazyWeakMap<Zone, UIComponent> _asyncRenderingZoneComponent =
+      DualLazyWeakMap<Zone, UIComponent>(
+    LazyWeakReferenceManagerByType.global.get<Zone>(),
+    LazyWeakReferenceManagerByType.global.get<UIComponent>(),
+  );
 
   void _setRenderingZoneUIComponent(Zone renderingZone) {
     _renderingZone = renderingZone;
     _asyncRenderingZoneComponent[renderingZone] = this;
   }
 
-  static final Queue<UIComponent> _renderingUIComponent = Queue();
-
-  /// Returns the current synchronous rendering [UIComponent] in the rendering stack.
-  static UIComponent? get renderingUIComponent {
-    var renderingComponent = _renderingUIComponent.lastOrNull;
-    return renderingComponent;
+  void _releaseRenderingZoneUIComponent() {
+    var renderingZone = _renderingZone;
+    if (renderingZone != null) {
+      _renderingZone = null;
+      _asyncRenderingZoneComponent.remove(renderingZone);
+    }
   }
 
-  /// Returns the parent rendering [UIComponent] for the parameter [uiComponent].
-  /// - Can also resolve the parent during asynchronous rendering.
-  static UIComponent? parentRenderingUIComponent(UIComponent uiComponent) {
-    var renderingComponent = _renderingUIComponent.lastOrNull;
+  static final List<UIComponent> _renderingUIComponent = [];
 
-    if (renderingComponent != null) {
+  /// Returns the current synchronous rendering [UIComponent] in the rendering stack.
+  static UIComponent? get renderingUIComponent =>
+      _renderingUIComponent.lastOrNull;
+
+  /// Returns the parent rendering [UIComponent] of [uiComponent], if any.
+  ///
+  /// If [uiComponent] is currently being rendered, this method may return:
+  /// - The component itself when it is the active rendering context.
+  /// - The nearest rendering ancestor, when available.
+  ///
+  /// The lookup works in two stages:
+  /// - Checks the synchronous rendering stack.
+  /// - Falls back to asynchronous rendering contexts using rendering [Zone]s.
+  ///
+  /// Returns `null` if no parent rendering component can be resolved.
+  static UIComponent? parentRenderingUIComponent(UIComponent uiComponent) {
+    final renderingUIComponent = UIComponent._renderingUIComponent;
+
+    if (renderingUIComponent.isNotEmpty) {
+      var renderingComponent = renderingUIComponent.last;
       if (!identical(renderingComponent, uiComponent)) {
         return renderingComponent;
       }
 
-      if (_renderingUIComponent.length > 1) {
-        var l = _renderingUIComponent.toList();
-        for (var i = l.length - 2; i >= 0; --i) {
-          var o = l[i];
-          if (!identical(o, uiComponent)) {
-            return o;
+      if (renderingUIComponent.length > 1) {
+        for (var i = renderingUIComponent.length - 2; i >= 0; --i) {
+          renderingComponent = renderingUIComponent[i];
+          if (!identical(renderingComponent, uiComponent)) {
+            return renderingComponent;
           }
         }
       }
@@ -1531,7 +1560,7 @@ abstract class UIComponent extends UIEventHandler {
     return null;
   }
 
-  void _callRenderImpl(bool clear) {
+  void _callRenderImpl(bool clear, bool clearPreservedRender) {
     _renderCount++;
     _requestRefresh = null;
 
@@ -1593,13 +1622,13 @@ abstract class UIComponent extends UIEventHandler {
     }
 
     _rendering = true;
-    _renderingUIComponent.addLast(this);
+    _renderingUIComponent.add(this);
 
     var renderingZone = _resolveRenderingZone();
 
     Object? rendered;
     try {
-      rendered = renderingZone.run(_doRender);
+      rendered = renderingZone.run(() => _doRender(clearPreservedRender));
     } finally {
       _rendering = false;
 
@@ -1644,7 +1673,7 @@ abstract class UIComponent extends UIEventHandler {
   int? _renderDeviceWidth;
   int? _renderDeviceHeight;
 
-  Object? _doRender() {
+  Object? _doRender(bool clearPreservedRender) {
     var currentLocale = UIRoot.getCurrentLocale();
 
     _renderLocale = currentLocale;
@@ -1683,6 +1712,7 @@ abstract class UIComponent extends UIEventHandler {
       _rendered = true;
 
       if (preserveRender &&
+          !clearPreservedRender &&
           !_renderedWithError &&
           _renderedElements != null &&
           _renderedElements!.isNotEmpty &&
@@ -1692,6 +1722,7 @@ abstract class UIComponent extends UIEventHandler {
       } else {
         _renderedWithError = false;
         _preserveRenderCount = 0;
+        _renderedElements = null;
         rendered = render();
       }
 
@@ -1734,11 +1765,15 @@ abstract class UIComponent extends UIEventHandler {
       if (e is UIComponent) {
         e.ensureRendered();
       } else if (e.isElement) {
-        var subElements = [];
+        var subElements = <Element>[];
 
         var children = (e as Element).children.toList();
         for (var child in children) {
-          var uiComponent = _getUIComponentByContent(child);
+          var classUiComponent = hasUIComponentClass(child);
+
+          var uiComponent = classUiComponent
+              ? _getUIComponentFromUIRootByContent(child)
+              : null;
 
           if (uiComponent != null) {
             uiComponent.ensureRendered();
@@ -1747,9 +1782,44 @@ abstract class UIComponent extends UIEventHandler {
           }
         }
 
-        _ensureAllRendered(subElements);
+        _ensureAllElementsRendered(subElements);
       }
     }
+  }
+
+  void _ensureAllElementsRendered(List<Element> elements) {
+    if (elements.isEmpty) return;
+
+    for (var e in elements) {
+      var subElements = <Element>[];
+
+      var children = e.children.toList();
+      for (var child in children) {
+        var classUiComponent = hasUIComponentClass(child);
+
+        var uiComponent =
+            classUiComponent ? _getUIComponentFromUIRootByContent(child) : null;
+
+        if (uiComponent != null) {
+          uiComponent.ensureRendered();
+        } else if (child.children.isNotEmpty) {
+          subElements.add(child);
+        }
+      }
+
+      _ensureAllRendered(subElements);
+    }
+  }
+
+  UIComponent? _getUIComponentFromUIRootByContent(UIElement? content) {
+    if (content == null) return null;
+
+    final uiRoot = _uiRoot;
+    if (uiRoot != null) {
+      return uiRoot.getUIComponentByContent(content);
+    }
+
+    return _getUIComponent((o) => o.getUIComponentByContent(content));
   }
 
   EventStream<UIComponent>? _onRender;
@@ -2417,6 +2487,15 @@ abstract class UIComponent extends UIEventHandler {
       }
     }
   }
+
+  static const handledElementAttributes = <String>[
+    'id',
+    'navigate',
+    'action',
+    'onEventKeyPress',
+    'onEventClick',
+    'data-source',
+  ];
 
   void _parseAttributes(List<Object?> list) {
     if (list.isEmpty) return;
@@ -3360,7 +3439,8 @@ abstract class UIComponent extends UIEventHandler {
     var actionValue = getElementAttribute(elem, 'action');
 
     if (actionValue != null && actionValue.isNotEmpty) {
-      elem.addEventListenerTyped(EventType.click, (e) => action(actionValue));
+      addTrackedEventListener(
+          elem, EventType.click, (e) => action(actionValue));
     }
   }
 
@@ -3390,10 +3470,10 @@ abstract class UIComponent extends UIEventHandler {
       var actionType = parts[1];
 
       if (key == '*') {
-        elem.addEventListenerTyped(
-            EventType.keyPress, (e) => action(actionType));
+        addTrackedEventListener(
+            elem, EventType.keyPress, (e) => action(actionType));
       } else {
-        elem.addEventListenerTyped(EventType.keyPress, (e) {
+        addTrackedEventListener(elem, EventType.keyPress, (e) {
           if (equalsIgnoreAsciiCase(e.key, key) ||
               equalsIgnoreAsciiCase(e.keyCodeSafe.toString(), key)) {
             action(actionType);
@@ -3407,7 +3487,7 @@ abstract class UIComponent extends UIEventHandler {
     var click = getElementAttribute(elem, 'onEventClick');
 
     if (click != null && click.isNotEmpty) {
-      elem.addEventListenerTyped(EventType.click, (e) => action(click));
+      addTrackedEventListener(elem, EventType.click, (e) => action(click));
     }
   }
 
@@ -3431,6 +3511,8 @@ abstract class UIComponent extends UIEventHandler {
     _disposed = true;
 
     if (!preserveRender) {
+      cancelRegisteredEventListeners();
+
       final domTreeMap = _domTreeMap;
       if (domTreeMap != null) {
         if (!_subComponent) {

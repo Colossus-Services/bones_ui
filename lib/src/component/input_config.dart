@@ -281,12 +281,19 @@ class InputConfig {
       element = _renderInputPath(parent, inputID, inputValue);
     } else if (inputType == 'html') {
       inputElement = createHTML(html: inputValue);
-      inputElement.onClick.listen((event) {
+
+      void callback(event) {
         var value = inputElement!.getAttribute('element_value');
         if (isNotEmptyObject(value)) {
           inputElement.setAttribute('field_value', value!);
         }
-      });
+      }
+
+      if (parent != null) {
+        parent.addTrackedEventListener(inputElement, EventType.click, callback);
+      } else {
+        inputElement.addEventListenerTyped(EventType.click, callback);
+      }
     } else {
       inputElement = _renderGenericInput(parent, inputType, inputValue);
     }
@@ -955,7 +962,7 @@ class UIInputTable extends UIComponent {
         var interactionCompleter = InteractionCompleter('field:$fieldName',
             triggerDelay: _onChangeTriggerDelay);
 
-        elem.onFocus.listen((event) {
+        addTrackedEventListener(elem, EventType.focus, (event) {
           var element = event.target;
           if (element.isElement) {
             onInputFocus.add(element);
@@ -971,22 +978,22 @@ class UIInputTable extends UIComponent {
 
   void _configureOnChangeListener(InputConfig? inputConfig, Element elem,
       InteractionCompleter interactionCompleter) {
-    var onChangeListener = inputConfig?.onChangeListener;
+    final onChangeListener = inputConfig?.onChangeListener;
     if (onChangeListener != null) {
-      elem.onChange.listen(onChangeListener);
+      addTrackedEventListener(elem, EventType.change, onChangeListener);
     }
 
-    elem.onChange.listen((e) {
+    addTrackedEventListener(elem, EventType.change, (e) {
       interactionCompleter.cancel();
       updateRenderedFieldElementValue(elem);
       onChange.add(elem);
     });
 
-    elem.onKeyUp.listen((event) {
+    addTrackedEventListener(elem, EventType.keyUp, (e) {
       interactionCompleter.interact();
     });
 
-    interactionCompleter.onComplete.listen((e) {
+    addTrackedEventListener(elem, EventType.complete, (e) {
       updateRenderedFieldElementValue(elem);
       onChange.add(elem);
       if (onChangeListener != null) {
@@ -1001,18 +1008,20 @@ class UIInputTable extends UIComponent {
 
     if (onActionListener != null) {
       if (elem.isA<HTMLButtonElement>()) {
-        elem.onClick.listen(onActionListener);
+        addTrackedEventListener(elem, EventType.click, onActionListener);
       } else if (elem.isA<HTMLInputElement>()) {
         var type = (elem as HTMLInputElement).type;
 
         if (type == 'submit' || type == 'reset' || type == 'checkbox') {
-          elem.onClick.listen(onActionListener);
+          addTrackedEventListener(elem, EventType.click, onActionListener);
         } else if (type == 'date') {
           interactionCompleter.onComplete.listen(onActionListener);
         } else {
-          elem.onKeyUp
-              .where((evt) => evt.isKeyTabOrEnter)
-              .listen(onActionListener);
+          addTrackedEventListener(elem, EventType.keyUp, (evt) {
+            if (evt.isKeyTabOrEnter) {
+              onActionListener(evt);
+            }
+          });
 
           if (type != 'password') {
             interactionCompleter.onComplete.listen(onActionListener);
@@ -1021,7 +1030,7 @@ class UIInputTable extends UIComponent {
       } else if (elem.isA<HTMLTextAreaElement>()) {
         interactionCompleter.onComplete.listen(onActionListener);
       } else {
-        elem.onClick.listen(onActionListener);
+        addTrackedEventListener(elem, EventType.click, onActionListener);
       }
     }
   }

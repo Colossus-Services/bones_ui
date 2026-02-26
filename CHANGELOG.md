@@ -1,3 +1,73 @@
+## 3.0.8
+
+- `UIEventHandler`:
+  - Renamed base class to `_EventHandlerPrivate`.
+  - Added event listener tracking methods:
+    - `addTrackedEventListener`, `trackRegisteredEventListener`, `trackAllRegisteredEventListeners`,
+      `untrackRegisteredEventListener`, `cancelRegisteredEventListeners`.
+  - Updated event listener registration methods to use new internal implementations.
+
+- `_EventHandlerPrivate`:
+  - Added support for tracked event listeners with automatic unregistering.
+  - Added internal management of `_registeredEventListeners`.
+
+- `UIDeviceOrientation`:
+  - Updated to extend `_EventHandlerPrivate`.
+  - Updated event listener registration to use `_addEventListener`.
+
+- `UIComponent`:
+  - Improved `resolveParentUIComponent` logic to handle recursive resolution more robustly.
+  - Added `hasUIComponentClass` static method to check for 'ui-component' CSS class.
+  - Updated style and refresh methods to support `clearPreservedRender` parameter.
+  - Enhanced rendering zone management with `_releaseRenderingZoneUIComponent`.
+  - Changed rendering stack from `Queue` to `List` for `_renderingUIComponent`.
+  - Improved `parentRenderingUIComponent` to check async rendering zones.
+  - Updated `_callRenderImpl` and `_doRender` to support clearing preserved render.
+  - Improved `_doRender` to reset `_renderedElements` when not preserving render.
+  - Added `_ensureAllElementsRendered` helper to recursively ensure rendering of nested elements.
+  - Updated event listener registration in `_parseAction`, `_parseOnEventKeyPress`, `_parseOnEventClick` to use tracked event listeners.
+  - Added `cancelRegisteredEventListeners` call in `dispose` to unregister all tracked listeners.
+  - Added static `handledElementAttributes` list for attributes that trigger event handling.
+  - Improved `_getUIComponent` to search all `UIRootComponent` instances.
+  - Updated `_getUIComponentByChild` and related methods to use new logic.
+
+- `UIDOMGenerator`:
+  - Refactored `isMappable` to use iterative stack-based traversal.
+  - Added detection of handled element attributes and event listeners to determine mappability.
+  - Added `_isNoEventDOMElement` helper to exclude certain tags from event handling.
+
+- `UIRoot`:
+  - Updated `callRender` to support `clearPreservedRender` parameter.
+
+- `UIButtonBase`:
+  - Updated event listener registration to use tracked event listeners.
+  - Added `dispose` override in `UIButtonLoader` to clear internal fields.
+
+- `UICapture`:
+  - Updated event listener registration to use tracked event listeners.
+
+- `URLFileReader`:
+  - Added tracked event listeners for `FileReader` events with automatic unregistering on load/error.
+
+- `UIButtonCapturePhoto`:
+  - Updated event listener registration to use tracked event listeners.
+
+- `InputConfig`:
+  - Updated event listener registration in input elements to use tracked event listeners.
+
+- `UIInputTable`:
+  - Updated event listener registration to use tracked event listeners for focus, change, keyUp, and complete events.
+
+- `UISVG`:
+  - Added `_onLoadContent` handler to refresh component on resource load.
+
+- Dependency updates:
+  - `js_interop_utils`: ^1.0.11
+  - `web_utils`: ^1.0.23
+  - `dom_builder`: ^3.0.6
+  - `swiss_knife`: ^3.3.14
+  - `build_web_compilers`: ^4.4.13
+
 ## 3.0.7
 
 - `UIComponent`:

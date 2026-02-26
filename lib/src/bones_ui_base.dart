@@ -10,34 +10,53 @@ import 'bones_ui_web.dart';
 
 typedef UIEventListener = void Function(dynamic event, List? params);
 
-abstract class UIEventHandler extends EventHandlerPrivate {
-  void registerEventListener(String type, UIEventListener listener) {
-    _registerEventListener(type, listener);
-  }
+abstract class UIEventHandler extends _EventHandlerPrivate {
+  List<MapEntry<String, List<UIEventListener>>> get eventListeners =>
+      _eventListeners?.entries.toList() ?? [];
 
-  void unregisterEventListener(String type) {
-    _unregisterEventListener(type);
-  }
+  void addEventListener(String type, UIEventListener listener) =>
+      _addEventListener(type, listener);
 
-  void clearEventListeners() {
-    _clearEventListeners();
-  }
+  void removeEventListener(String type) => _removeEventListener(type);
 
-  void fireEvent(String type, dynamic event, [List? params]) {
-    _fireEvent(type, event, params);
-  }
+  void clearEventListeners() => _clearEventListeners();
+
+  void fireEvent(String type, dynamic event, [List? params]) =>
+      _fireEvent(type, event, params);
+
+  RegisteredEventListener
+      addTrackedEventListener<T extends EventTarget, E extends Event>(
+    T target,
+    EventType<E> type,
+    EventCallback<E> callback,
+  ) =>
+          _addTrackedEventListener<T, E>(target, type, callback);
+
+  void trackRegisteredEventListener(
+          RegisteredEventListener registeredEventListener) =>
+      _trackRegisteredEventListener(registeredEventListener);
+
+  void trackAllRegisteredEventListeners(
+          List<RegisteredEventListener> registeredEventListener) =>
+      _trackAllRegisteredEventListeners(registeredEventListener);
+
+  bool untrackRegisteredEventListener(
+          RegisteredEventListener registeredEventListener) =>
+      _untrackRegisteredEventListener(registeredEventListener);
+
+  void cancelRegisteredEventListeners() => _cancelRegisteredEventListeners();
 }
 
-abstract class EventHandlerPrivate {
+abstract class _EventHandlerPrivate {
   Map<String, List<UIEventListener>>? _eventListeners;
 
-  void _registerEventListener(String type, UIEventListener listener) {
+  void _addEventListener(String type, UIEventListener listener) {
     var eventListeners = _eventListeners ??= {};
     var events = eventListeners[type] ??= [];
     events.add(listener);
   }
 
-  void _unregisterEventListener(String type) {
+  void _removeEventListener(String type) {
     var events = _eventListeners?.remove(type);
     events?.clear();
   }
@@ -63,10 +82,55 @@ abstract class EventHandlerPrivate {
       }
     }
   }
+
+  RegisteredEventListener
+      _addTrackedEventListener<T extends EventTarget, E extends Event>(
+    T target,
+    EventType<E> type,
+    EventCallback<E> callback,
+  ) {
+    var registeredEventListener = target.addEventListenerTyped(type, callback);
+    _trackRegisteredEventListener(registeredEventListener);
+    return registeredEventListener;
+  }
+
+  List<RegisteredEventListener>? _registeredEventListeners;
+
+  void _trackRegisteredEventListener(
+      RegisteredEventListener registeredEventListener) {
+    var registeredEventListeners = _registeredEventListeners ??= [];
+    registeredEventListeners.add(registeredEventListener);
+  }
+
+  void _trackAllRegisteredEventListeners(
+      List<RegisteredEventListener>? listeners) {
+    if (listeners == null || listeners.isElement) return;
+
+    var registeredEventListeners = _registeredEventListeners ??= [];
+    registeredEventListeners.addAll(listeners);
+  }
+
+  bool _untrackRegisteredEventListener(
+      RegisteredEventListener registeredEventListener) {
+    return _registeredEventListeners?.remove(registeredEventListener) ?? false;
+  }
+
+  void _cancelRegisteredEventListeners() {
+    final registeredEventListeners = _registeredEventListeners;
+    if (registeredEventListeners == null || registeredEventListeners.isEmpty) {
+      return;
+    }
+
+    _registeredEventListeners = null;
+
+    for (var reg in registeredEventListeners) {
+      reg.unregister();
+    }
+  }
 }
 
 /// Tracks and fires events of device orientation changes.
-class UIDeviceOrientation extends EventHandlerPrivate {
+class UIDeviceOrientation extends _EventHandlerPrivate {
   static final eventChangeOrientation = 'CHANGE_ORIENTATION';
 
   static UIDeviceOrientation? _instance;
@@ -86,7 +150,7 @@ class UIDeviceOrientation extends EventHandlerPrivate {
   }
 
   void _listen(UIEventListener listener) {
-    _registerEventListener(eventChangeOrientation, listener);
+    _addEventListener(eventChangeOrientation, listener);
   }
 
   int? _lastOrientation;

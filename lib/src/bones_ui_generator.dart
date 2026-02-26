@@ -327,20 +327,75 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
   }
 
   @override
-  bool isMappable(DOMNode domNode, {DOMContext<Node>? context}) {
-    if (domNode is TextNode) {
-      return false;
-    } else if (domNode is DOMElement) {
-      switch (domNode.tag) {
-        case 'br':
-        case 'p':
-          return false;
-        default:
-          return true;
-      }
-    }
+  bool isMappable(DOMNode domNode, {DOMContext<Node>? context}) =>
+      _isMappableImpl(domNode);
 
-    return true;
+  static bool _isNoEventDOMElement(DOMElement domElement) {
+    switch (domElement.tag) {
+      // No event elements:
+      case 'br':
+      case 'wbr':
+      case 'hr':
+        return true;
+
+      default:
+        return false;
+    }
+  }
+
+  static final _handledElementAttributes = UIComponent.handledElementAttributes
+      .map(DOMAttribute.normalizeName)
+      .nonNulls
+      .toList();
+
+  static bool _domElementContainsHandledAttribute(DOMElement domElement) {
+    for (var a in _handledElementAttributes) {
+      if (domElement.containsAttribute(a)) return true;
+    }
+    return false;
+  }
+
+  final _stack = <DOMNode>[];
+
+  bool _isMappableImpl(DOMNode node) {
+    final stack = _stack..clear();
+
+    stack.add(node);
+
+    do {
+      final domNode = stack.removeLast();
+
+      if (domNode is TextNode) {
+        continue;
+      } else if (domNode is! DOMElement) {
+        stack.clear();
+        return true;
+      }
+
+      if (_isNoEventDOMElement(domNode)) {
+        continue;
+      }
+
+      if (domNode.hasAnyEventListener) {
+        stack.clear();
+        return true;
+      }
+
+      if (_domElementContainsHandledAttribute(domNode)) {
+        stack.clear();
+        return true;
+      }
+
+      final content = domNode.content;
+      if (content == null || content.isEmpty) continue;
+
+      for (var i = content.length - 1; i >= 0; --i) {
+        stack.add(content[i]);
+      }
+    } while (stack.isNotEmpty);
+
+    stack.clear();
+    return false;
   }
 
   void setupContextVariables() {

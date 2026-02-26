@@ -182,7 +182,7 @@ class UISVG extends UIComponent {
       var svg = buildSVGElement(content);
       element = svg;
     } else {
-      resourceContent.onLoad.listen((_) => refresh());
+      resourceContent.onLoad.listen(_onLoadContent);
       resourceContent.getContent();
       element = buildSVGImg();
     }
@@ -190,6 +190,10 @@ class UISVG extends UIComponent {
     _renderedElement = element;
 
     return element;
+  }
+
+  void _onLoadContent([_]) {
+    refresh();
   }
 
   SVGElement? buildSVGElement([String? content]) {

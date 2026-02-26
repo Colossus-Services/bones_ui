@@ -380,9 +380,9 @@ abstract class UIRoot extends UIRootComponent {
   }
 
   @override
-  void callRender([bool clear = false]) {
+  void callRender({bool clear = false, bool clearPreservedRender = false}) {
     UIConsole.log('UIRoot> rendering...');
-    super.callRender(clear);
+    super.callRender(clear: clear, clearPreservedRender: clearPreservedRender);
   }
 
   void onInitialized() {}

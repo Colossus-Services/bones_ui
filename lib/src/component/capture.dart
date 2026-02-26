@@ -8,8 +8,8 @@ import 'package:swiss_knife/swiss_knife.dart';
 import 'package:web_utils/web_utils.dart' hide MimeType;
 
 import '../bones_ui_base.dart';
-import '../bones_ui_utils.dart';
 import '../bones_ui_log.dart';
+import '../bones_ui_utils.dart';
 import 'button.dart';
 import 'dialog_edit_image.dart';
 
@@ -223,7 +223,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     super.posRender();
 
     var fieldCapture = getInputCapture() as HTMLInputElement;
-    fieldCapture.onChange.listen((e) => _callOnCapture(fieldCapture, e));
+
+    addTrackedEventListener(
+        fieldCapture, EventType.change, (e) => _callOnCapture(fieldCapture, e));
   }
 
   final EventStream<UICapture> onCapture = EventStream();
@@ -979,18 +981,29 @@ class URLFileReader {
   final File _file;
 
   URLFileReader(this._file) {
-    var fileReader = FileReader();
+    final fileReader = FileReader();
 
-    fileReader.onError.listen((event) {
+    final registeredEvents = <RegisteredEventListener>[];
+
+    var regOnError = fileReader.addEventListenerTyped(EventType.error, (event) {
+      registeredEvents.unregisterAll();
       _notifyOnLoad(null);
     });
 
-    fileReader.onLoad.listen((e) {
+    registeredEvents.add(regOnError);
+
+    var regOnLoad = fileReader.addEventListenerTyped(EventType.load, (e) {
+      registeredEvents.unregisterAll();
       var dataURL = fileReader.result.dartify()?.toString();
       _notifyOnLoad(dataURL);
     });
 
-    fileReader.onLoadEnd.listen((event) {
+    registeredEvents.add(regOnLoad);
+
+    var regLoadEnd =
+        fileReader.addEventListenerTyped(EventType.loadEnd, (event) {
+      registeredEvents.unregisterAll();
+
       final error = fileReader.error;
 
       if (error != null) {
@@ -1000,6 +1013,8 @@ class URLFileReader {
         _notifyOnLoad(dataURL);
       }
     });
+
+    registeredEvents.add(regLoadEnd);
 
     fileReader.readAsDataURL(_file);
   }
@@ -1209,7 +1224,7 @@ class UIButtonCapturePhoto extends UICapture {
     }
     _selectedImageElements.add(img);
 
-    img.onClick.listen((e) => fireClickEvent(e));
+    addTrackedEventListener(img, EventType.click, (e) => fireClickEvent(e));
 
     content.appendNodes(_selectedImageElements);
   }
