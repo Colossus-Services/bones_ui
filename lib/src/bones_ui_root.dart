@@ -141,10 +141,13 @@ abstract class UIRootComponent extends UIComponent {
     //print('FINISH RENDER> _uiComponentsTree: $_uiComponentsTree');
   }
 
-  Future<void> purgeRoot() async {
+  Future<void> purgeRoot({bool disposePurgedComponents = false}) async {
     final uiComponentsTree = _uiComponentsTree;
     if (uiComponentsTree != null) {
       uiComponentsTree.purge();
+      if (disposePurgedComponents) {
+        uiComponentsTree.disposePurgedEntries();
+      }
       await yeld();
     }
 
@@ -439,16 +442,18 @@ abstract class UIRoot extends UIRootComponent {
 
     if (ret is Future<bool>) {
       return ret.then((value) {
+        purgeRoot(disposePurgedComponents: true);
         if (refreshAfterClose) {
-          refresh(forceRender: true);
+          refresh(forceRender: true, clearPreservedRender: true);
         }
         UIConsole.log('UIRoot> closed!');
         onClose.add(this);
         return true;
       });
     } else {
+      purgeRoot(disposePurgedComponents: true);
       if (refreshAfterClose) {
-        refresh(forceRender: true);
+        refresh(forceRender: true, clearPreservedRender: true);
       }
       UIConsole.log('UIRoot> closed!');
       onClose.add(this);

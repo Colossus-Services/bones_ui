@@ -1154,6 +1154,7 @@ abstract class UIComponent extends UIEventHandler {
           (e as Element).remove();
         }
       }
+
       _renderedElements = null;
     }
 
@@ -1272,7 +1273,7 @@ abstract class UIComponent extends UIEventHandler {
   void ensureRendered([bool force = false]) {
     if (!isRendered) {
       callRender();
-    } else if (localeChangedFromLastRender) {
+    } else if (localeChangedFromLastRender || isDisposed) {
       callRender(clear: true);
     } else if (force) {
       callRender(clear: true);
@@ -3533,9 +3534,6 @@ abstract class UIComponent extends UIEventHandler {
         _domTreeMap = null;
       }
 
-      clear(force: true);
-
-      _rendered = false;
       _renderedElements = null;
       _renderedFieldsValues = null;
     }

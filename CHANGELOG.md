@@ -1,3 +1,18 @@
+## 3.0.11
+
+- `UIComponent`:
+  - `clear`: fixed `_renderedElements` nullification to occur after element removal.
+  - `ensureRendered`: updated to call `callRender(clear: true)` if `isDisposed` is true or locale changed.
+  - `_dispose`:
+    - Fix issue: removed redundant `clear(force: true)` and `_rendered = false` assignments.
+
+- `UIRootComponent`:
+  - `purgeRoot`: added optional `disposePurgedComponents` parameter to dispose purged components after purge.
+  
+- `UIRoot`:
+  - `close`: updated to call `purgeRoot(disposePurgedComponents: true)` before refreshing UI and emitting close events.
+  - `close`: updated `refresh` calls to include `clearPreservedRender: true` flag.
+
 ## 3.0.10
 
 - `UIComponent`:
