@@ -1,3 +1,18 @@
+## 3.0.12
+
+- `ConfigDocument`:
+  - `getPath`: fixed traversal logic to correctly handle nested maps by checking type and updating value at each key.
+- `UITestChain`:
+  - `logDocument`: renamed local variable to avoid shadowing and correctly encode compressed data length in log message.
+- Internal utility:
+  - `_equalsParameters`: refactored parameter comparison logic for clarity and correctness, ensuring full match checks for extra keys.
+- `bones_ui_utils.dart`:
+  - `stackTraceSafe`: improved error message when failing to get current stack trace.
+
+- Dependencies:
+  - Updated `dom_builder` to ^3.0.7.
+  - Updated `test` to ^1.30.0, `test_api` to ^0.7.10, and `test_core` to ^0.6.16.
+
 ## 3.0.11
 
 - `UIComponent`:

@@ -150,16 +150,13 @@ abstract class ConfigDocument {
   dynamic getPath(List<String> keys, [dynamic def]) {
     if (keys.isEmpty) return def;
 
-    if (keys.length == 1) return get(keys[0]);
-
-    var val = getAsMap(keys[0]);
+    dynamic val = get(keys[0]);
     if (val == null) return def;
 
     for (var i = 1; i < keys.length; i++) {
-      var k = keys[i];
-      var v = val?[k] as Map?;
-      if (v == null) return def;
-      val = v;
+      if (val is! Map) return def;
+      val = val[keys[i]];
+      if (val == null) return def;
     }
 
     return val;

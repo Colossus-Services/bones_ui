@@ -8,6 +8,7 @@ import 'package:stack_trace/stack_trace.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:test/test.dart' as pkg_test;
 import 'package:test/test.dart';
+
 // ignore: implementation_imports
 import 'package:test_api/src/backend/invoker.dart' as pkg_test_invoker;
 import 'package:web_utils/web_utils.dart' as web;
@@ -1231,11 +1232,11 @@ abstract class UITestChain<
       var bytes = dart_convert.utf8.encode(outerHtml);
 
       var gZipEncoder = GZipEncoder();
-      var compressed = gZipEncoder.encode(bytes);
+      var bytesCompressed = gZipEncoder.encode(bytes);
 
-      var base64 = dart_convert.base64.encode(compressed);
+      var base64 = dart_convert.base64.encode(bytesCompressed);
       msg =
-          '[$id]<<<<<<(GZIP: ${compressed.length}/${bytes.length})\n$base64\n>>>>>>$timeMs';
+          '[$id]<<<<<<(GZIP: ${bytesCompressed.length}/${bytes.length})\n$base64\n>>>>>>$timeMs';
     }
 
     msg ??= '[$id]<<<<<<\n$outerHtml\n>>>>>>$timeMs';
@@ -2587,34 +2588,32 @@ _chainCaptureOnError(Object e, Chain c, Chain parentChain) {
 }
 
 bool _equalsParameters(
-    Map<String, Object?> parameters, Map<String, String>? currentParameters,
-    {required bool partialParameters}) {
-  currentParameters ??= {};
+  Map<String, Object?> parameters,
+  Map<String, String>? currentParameters, {
+  required bool partialParameters,
+}) {
+  final cp = currentParameters ?? {};
 
-  var keysOk = <String>[];
-
-  for (var e in parameters.entries) {
-    var key = e.key;
-    var v1 = e.value;
-    var v2 = currentParameters[key];
+  for (final entry in parameters.entries) {
+    final key = entry.key;
+    final v1 = entry.value;
+    final v2 = cp[key];
 
     if (v1 is RegExp) {
       if (v2 == null || !v1.hasMatch(v2)) return false;
     } else if (v1 == null) {
-      if (v2 != null && v2 != '') return false;
+      if (v2 != null && v2.isNotEmpty) return false; // null is optional
     } else {
       if (v1 != v2) return false;
     }
-
-    keysOk.add(key);
   }
 
-  if (partialParameters) {
-    return true;
-  } else {
-    var notCheckedEntries = currentParameters.entries
-        .where((e) => !keysOk.contains(e.key))
-        .toList();
-    return notCheckedEntries.isEmpty;
+  if (partialParameters) return true;
+
+  // For full match, ensure currentParameters doesn't have extra keys
+  for (final key in cp.keys) {
+    if (!parameters.containsKey(key)) return false;
   }
+
+  return true;
 }

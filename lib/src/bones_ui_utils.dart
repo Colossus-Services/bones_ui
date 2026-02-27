@@ -7,7 +7,7 @@ StackTrace stackTraceSafe() {
     var s = StackTrace.current;
     return s;
   } catch (e) {
-    print('Error getting current StackTrace');
+    print('** Error getting current StackTrace **');
     print(e);
     return StackTrace.empty;
   }
