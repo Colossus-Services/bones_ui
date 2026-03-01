@@ -1,3 +1,9 @@
+## 3.0.13
+
+- `UINavigator`:
+  - `_callNavigateTo`:
+    - Fix null-pointer: updated to handle null `route` by assigning an empty string before checking navigables and calling `_navigateTo`.
+
 ## 3.0.12
 
 - `ConfigDocument`:

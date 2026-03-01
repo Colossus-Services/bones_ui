@@ -249,7 +249,8 @@ class UINavigator {
       {Map<String, String>? parameters,
       ParametersProvider? parametersProvider,
       bool force = false}) {
-    if (_navigables.isEmpty || findNavigable(route!) == null) {
+    route ??= '';
+    if (_navigables.isEmpty || findNavigable(route) == null) {
       Future.delayed(
           Duration(milliseconds: 50),
           () => _navigateTo(++_navigateIDCount, route,
