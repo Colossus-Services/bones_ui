@@ -1656,6 +1656,14 @@ abstract class UIComponent extends UIEventHandler {
       // Mark `renderingZone` with `this` [UIComponent].
       if (rendered is Future) {
         _setRenderingZoneUIComponent(renderingZone);
+      } else if (rendered is DOMNode &&
+          rendered.hasFutureElement(recursive: true)) {
+        _setRenderingZoneUIComponent(renderingZone);
+      } else if (rendered is Iterable &&
+          rendered
+              .whereType<DOMNode>()
+              .any((e) => e.hasFutureElement(recursive: true))) {
+        _setRenderingZoneUIComponent(renderingZone);
       }
       // Normal render:
       // Release `renderingZone` in the pool to be reused.
@@ -1896,17 +1904,18 @@ abstract class UIComponent extends UIEventHandler {
 
   static bool _renderFinished = true;
 
-  static final Set<UIRoot> _renderedUIRoots = {};
+  static final Set<UIRootComponent> _renderedUIRootComponents = {};
   static final Set<UIComponent> _renderedUIComponents = {};
 
-  static void _markRenderTime(UIComponent uiComponent, UIRoot? uiRoot) {
+  static void _markRenderTime(
+      UIComponent uiComponent, UIRootComponent? uiRootComponent) {
     _lastRenderTime = DateTime.now().millisecondsSinceEpoch;
     _renderFinished = false;
 
     _renderedUIComponents.add(uiComponent);
 
-    if (uiRoot != null) {
-      _renderedUIRoots.add(uiRoot);
+    if (uiRootComponent != null) {
+      _renderedUIRootComponents.add(uiRootComponent);
     }
 
     _scheduleCheckFinishedRendered();
@@ -1970,30 +1979,31 @@ abstract class UIComponent extends UIEventHandler {
     var mainUIRoot = UIRoot.getInstance();
 
     var uiComponents = _renderedUIComponents.toList();
-    var uiRoots = {
-      ..._renderedUIRoots,
+
+    var uiRootComponents = {
+      ..._renderedUIRootComponents,
       if (mainUIRoot != null) mainUIRoot,
     };
 
     _renderedUIComponents.clear();
-    _renderedUIRoots.clear();
+    _renderedUIRootComponents.clear();
 
-    for (var uiRoot in uiRoots) {
-      uiRoot.notifyFinishRender();
+    for (var uiRootComponent in uiRootComponents) {
+      uiRootComponent.notifyFinishRender();
     }
 
-    Future.delayed(
-        Duration(milliseconds: 300), () => _purgeUI(uiComponents, uiRoots));
+    Future.delayed(Duration(milliseconds: 300),
+        () => _purgeUI(uiComponents, uiRootComponents));
   }
 
-  static Future<void> _purgeUI(
-      List<UIComponent> uiComponents, Set<UIRoot> uiRoots) async {
+  static Future<void> _purgeUI(List<UIComponent> uiComponents,
+      Set<UIRootComponent> uiRootComponents) async {
     for (var uiComponent in uiComponents) {
       await uiComponent._onPurge();
     }
 
-    for (var uiRoot in uiRoots) {
-      await uiRoot.purgeRoot();
+    for (var uiRootComponent in uiRootComponents) {
+      await uiRootComponent.purgeRoot();
     }
   }
 

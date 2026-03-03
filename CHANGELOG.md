@@ -1,3 +1,15 @@
+## 3.0.14
+
+- `UIComponent`:
+  - Updated rendering logic to mark `renderingZone` with `this` [UIComponent] if the rendered result is a `DOMNode` with future elements or an iterable containing such nodes.
+  - Renamed `_renderedUIRoots` to `_renderedUIRootComponents` and updated related methods and fields accordingly.
+  - Updated `_markRenderTime`, `_scheduleCheckFinishedRendered`, and `_purgeUI` methods to use `UIRootComponent` instead of `UIRoot`.
+  - Improved render finish notification and purge logic to handle `UIRootComponent` instances.
+
+- Dependencies:
+  - Updated `dom_builder` from ^3.0.7 to ^3.0.8.
+  - Updated `build_web_compilers` from ^4.4.13 to ^4.4.14.
+
 ## 3.0.13
 
 - `UINavigator`:
