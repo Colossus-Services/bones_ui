@@ -89,28 +89,40 @@ String? getLanguageByExtension(String extension) {
 /// like `markdown`, `html`, `json` and `text`.
 class UIDocument extends UIComponentAsync {
   static final UIComponentGenerator<UIDocument> generator =
-      UIComponentGenerator<UIDocument>('ui-document', 'div', 'ui-document', '',
-          (parent, attributes, contentHolder, contentNodes) {
-    var src = attributes['src']?.toString();
+      UIComponentGenerator<UIDocument>(
+        'ui-document',
+        'div',
+        'ui-document',
+        '',
+        (parent, attributes, contentHolder, contentNodes) {
+          var src = attributes['src']?.toString();
 
-    ResourceContent? resourceContent;
-    if (isNotEmptyString(src)) {
-      resourceContent = ResourceContent.from(src);
-    } else {
-      var type = attributes['type']?.toString() ?? '.md';
-      resourceContent =
-          ResourceContent.fromURI('file.$type', contentHolder?.textContent);
-    }
+          ResourceContent? resourceContent;
+          if (isNotEmptyString(src)) {
+            resourceContent = ResourceContent.from(src);
+          } else {
+            var type = attributes['type']?.toString() ?? '.md';
+            resourceContent = ResourceContent.fromURI(
+              'file.$type',
+              contentHolder?.textContent,
+            );
+          }
 
-    return UIDocument(parent, resourceContent);
-  }, [
-    UIComponentAttributeHandler<UIDocument, String>('src',
-        parser: parseString,
-        getter: (c) => c._resourceContent?.uri?.toString(),
-        setter: (c, v) => c.resourceContent = v,
-        appender: (c, v) => c.resourceContent = v,
-        cleaner: (c) => c.resourceContent = null)
-  ], hasChildrenElements: false, contentAsText: true);
+          return UIDocument(parent, resourceContent);
+        },
+        [
+          UIComponentAttributeHandler<UIDocument, String>(
+            'src',
+            parser: parseString,
+            getter: (c) => c._resourceContent?.uri?.toString(),
+            setter: (c, v) => c.resourceContent = v,
+            appender: (c, v) => c.resourceContent = v,
+            cleaner: (c) => c.resourceContent = null,
+          ),
+        ],
+        hasChildrenElements: false,
+        contentAsText: true,
+      );
 
   static void register() {
     UIComponent.registerGenerator(generator);
@@ -118,23 +130,31 @@ class UIDocument extends UIComponentAsync {
 
   ResourceContent? _resourceContent;
 
-  UIDocument(UIElement? parent, ResourceContent? resourceContent,
-      {loadingContent,
-      errorContent,
-      dynamic classes,
-      dynamic classes2,
-      dynamic style,
-      dynamic style2,
-      dynamic id})
-      : _resourceContent = resourceContent,
-        super(parent, null, null, loadingContent, errorContent,
-            componentClass: 'ui-document',
-            classes: classes,
-            classes2: classes2,
-            style: style,
-            style2: style2,
-            id: id,
-            generator: generator);
+  UIDocument(
+    UIElement? parent,
+    ResourceContent? resourceContent, {
+    loadingContent,
+    errorContent,
+    dynamic classes,
+    dynamic classes2,
+    dynamic style,
+    dynamic style2,
+    dynamic id,
+  }) : _resourceContent = resourceContent,
+       super(
+         parent,
+         null,
+         null,
+         loadingContent,
+         errorContent,
+         componentClass: 'ui-document',
+         classes: classes,
+         classes2: classes2,
+         style: style,
+         style2: style2,
+         id: id,
+         generator: generator,
+       );
 
   ResourceContent? get resourceContent => _resourceContent;
 

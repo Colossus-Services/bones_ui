@@ -10,8 +10,9 @@ void main() {
     late final MyRoot uiRoot;
 
     setUpAll(() async {
-      uiRoot =
-          await initializeTestUIRoot((rootContainer) => MyRoot(rootContainer));
+      uiRoot = await initializeTestUIRoot(
+        (rootContainer) => MyRoot(rootContainer),
+      );
     });
 
     test('basic', () async {
@@ -39,7 +40,9 @@ void main() {
       expect(btn0, isNotNull);
 
       var btn1 = uiRoot.selectExpectedTyped<web.HTMLButtonElement>(
-          '*', Web.HTMLButtonElement);
+        '*',
+        Web.HTMLButtonElement,
+      );
       expect(btn1.isA<web.HTMLButtonElement>(), isTrue, reason: "btn1: $btn1");
       expect(btn1.text, equals('Go to: contact'));
 
@@ -50,7 +53,9 @@ void main() {
       expect(uiRoot.querySelectorNonTyped('#my-contact'), isNotNull);
 
       var myContact1 = uiRoot.querySelectorTyped<web.HTMLDivElement>(
-          '#my-contact', Web.HTMLDivElement);
+        '#my-contact',
+        Web.HTMLDivElement,
+      );
 
       expect(myContact1!.text, contains('Loading...'));
       expect(myContact1.text, isNot(contains('foo@mail.com')));
@@ -65,7 +70,9 @@ void main() {
       await testUISleep(ms: 1200);
 
       var myContact2 = uiRoot.querySelectorTyped<web.HTMLDivElement>(
-          '#my-contact', Web.HTMLDivElement);
+        '#my-contact',
+        Web.HTMLDivElement,
+      );
       expect(myContact2.isA<web.HTMLDivElement>(), isTrue);
 
       expect(myContact2?.text, contains('foo@mail.com'));
@@ -82,7 +89,9 @@ void main() {
       expect(identical(uiContact1, uiContact2), isTrue);
 
       var btn2 = uiRoot.selectExpectedTyped<web.HTMLButtonElement>(
-          '*', Web.HTMLButtonElement);
+        '*',
+        Web.HTMLButtonElement,
+      );
       expect(btn2.isA<web.HTMLButtonElement>(), isTrue);
       expect(btn2.text, equals('Go to: home'));
 
@@ -110,7 +119,7 @@ class MyRoot extends UIRoot {
 
 class MyContent extends UINavigableContent {
   MyContent(Object? parent)
-      : super(parent, ['home', 'contact'], id: 'MyContent');
+    : super(parent, ['home', 'contact'], id: 'MyContent');
 
   @override
   renderRoute(String? route, Map<String, String>? parameters) {
@@ -128,7 +137,8 @@ class MyHome extends UIComponent {
   MyHome(super.parent) : super(id: 'my-home');
 
   @override
-  render() => '<h1>Home</h1>'
+  render() =>
+      '<h1>Home</h1>'
       '<p>Hello world!<br>'
       '<hr>'
       '- uiRoot: ${uiRoot?.id} <br>'
@@ -148,14 +158,16 @@ class MyContact extends UIComponent {
     return Future.delayed(Duration(milliseconds: 1000), _myRender);
   }
 
-  _myRender() => $div(content: [
-        $tag('h1', content: 'Contact'),
-        $p(),
-        $span(content: 'foo@mail.com'),
-        $hr(),
-        $div(content: ['* uiRoot: ', uiRoot?.id]),
-        $div(content: ['* uiRootComponent: ', uiRootComponent?.id]),
-        $hr(),
-        $button(attributes: {'navigate': 'home'}, content: 'Go to: home'),
-      ]);
+  _myRender() => $div(
+    content: [
+      $tag('h1', content: 'Contact'),
+      $p(),
+      $span(content: 'foo@mail.com'),
+      $hr(),
+      $div(content: ['* uiRoot: ', uiRoot?.id]),
+      $div(content: ['* uiRootComponent: ', uiRootComponent?.id]),
+      $hr(),
+      $button(attributes: {'navigate': 'home'}, content: 'Go to: home'),
+    ],
+  );
 }

@@ -17,16 +17,17 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
 
   final int _pickerHeight;
 
-  UIColorPickerInput(super.parent,
-      {this.placeholder,
-      String? fieldName,
-      String? value = '',
-      int pickerWidth = 200,
-      int pickerHeight = 200})
-      : fieldName = fieldName ?? 'color-picker',
-        _initialValue = value ?? '',
-        _pickerWidth = pickerWidth,
-        _pickerHeight = pickerHeight;
+  UIColorPickerInput(
+    super.parent, {
+    this.placeholder,
+    String? fieldName,
+    String? value = '',
+    int pickerWidth = 200,
+    int pickerHeight = 200,
+  }) : fieldName = fieldName ?? 'color-picker',
+       _initialValue = value ?? '',
+       _pickerWidth = pickerWidth,
+       _pickerHeight = pickerHeight;
 
   @override
   String getFieldValue() => _input?.value ?? '';
@@ -55,8 +56,9 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
 
     var cssColor = CSSColor.parse(_initialValue) ?? CSSColorName('grey');
 
-    var color =
-        isNotEmptyObject(_initialValue) ? Color.parse(cssColor.args) : null;
+    var color = isNotEmptyObject(_initialValue)
+        ? Color.parse(cssColor.args)
+        : null;
 
     var colorButton = createDivInline()
       ..style.width = '20px'
@@ -73,15 +75,23 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
     panel.append(input);
     panel.append(colorButton);
 
-    var picker = UIColorPicker(content,
-        color: color, width: _pickerWidth, height: _pickerHeight)
-      ..content!.style.display = 'none'
-      ..content!.style.paddingRight = '22px';
+    var picker =
+        UIColorPicker(
+            content,
+            color: color,
+            width: _pickerWidth,
+            height: _pickerHeight,
+          )
+          ..content!.style.display = 'none'
+          ..content!.style.paddingRight = '22px';
 
-    var inputInteractionCompleter = InteractionCompleter('UIColorPickerInput',
-        triggerDelay: Duration(seconds: 2), functionToTrigger: () {
-      _updateColorFromInput(input, picker);
-    });
+    var inputInteractionCompleter = InteractionCompleter(
+      'UIColorPickerInput',
+      triggerDelay: Duration(seconds: 2),
+      functionToTrigger: () {
+        _updateColorFromInput(input, picker);
+      },
+    );
 
     input.onKeyUp.listen((_) {
       inputInteractionCompleter.interact();
@@ -119,7 +129,10 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
   }
 
   void _updateColorFromPicker(
-      Object? color, HTMLInputElement input, HTMLDivElement colorButton) {
+    Object? color,
+    HTMLInputElement input,
+    HTMLDivElement colorButton,
+  ) {
     if (color is! Color) return;
 
     var pickerColor = CSSColor.from([color.red, color.green, color.blue]);
@@ -202,9 +215,13 @@ class UIColorPicker extends UIComponent {
 
   int pointSize;
 
-  UIColorPicker(super.parent,
-      {Color? color, this.width = 200, this.height = 200, this.pointSize = 6})
-      : super(componentClass: 'ui-color-picker') {
+  UIColorPicker(
+    super.parent, {
+    Color? color,
+    this.width = 200,
+    this.height = 200,
+    this.pointSize = 6,
+  }) : super(componentClass: 'ui-color-picker') {
     this.color = color ?? Color.BLUE;
   }
 
@@ -481,14 +498,21 @@ class UIColorPicker extends UIComponent {
 
     var saturationX = _clip((_hsvColor!.saturation * width), 0, width);
     var lumaY = _clip(((1 - _hsvColor!.value) * height), 0, height);
-    var hueX =
-        _clip(((_hsvColor!.hue / 360) * (width + barSize)), 0, width + barSize);
+    var hueX = _clip(
+      ((_hsvColor!.hue / 360) * (width + barSize)),
+      0,
+      width + barSize,
+    );
 
     _point!.style.left = '${saturationX - pointSizeHalf}px';
     _point!.style.top = '${lumaY - pointSizeHalf}px';
 
     var c = Color.fromARGB(
-        255, 255 - _color!.red, 255 - _color!.green, 255 - _color!.blue);
+      255,
+      255 - _color!.red,
+      255 - _color!.green,
+      255 - _color!.blue,
+    );
     _point!.style.background = 'rgb(${c.red},${c.green},${c.blue})';
 
     _saturationBar!.style.left = '${saturationX}px';
@@ -647,8 +671,12 @@ class UIColorPicker extends UIComponent {
     y = _clip(y, 0, height);
 
     var value = (height - y) / height;
-    var hsvColor =
-        HSVColor.fromAHSV(1, _hsvColor!.hue, _hsvColor!.saturation, value);
+    var hsvColor = HSVColor.fromAHSV(
+      1,
+      _hsvColor!.hue,
+      _hsvColor!.saturation,
+      value,
+    );
 
     this.hsvColor = hsvColor;
   }
@@ -657,8 +685,12 @@ class UIColorPicker extends UIComponent {
     x = _clip(x, 0, width);
 
     var saturation = x / width;
-    var hsvColor =
-        HSVColor.fromAHSV(1, _hsvColor!.hue, saturation, _hsvColor!.value);
+    var hsvColor = HSVColor.fromAHSV(
+      1,
+      _hsvColor!.hue,
+      saturation,
+      _hsvColor!.value,
+    );
 
     this.hsvColor = hsvColor;
   }
@@ -671,7 +703,11 @@ class UIColorPicker extends UIComponent {
 
     var hue = x / hueWidth;
     var hsvColor = HSVColor.fromAHSV(
-        1, hue * 360, _hsvColor!.saturation, _hsvColor!.value);
+      1,
+      hue * 360,
+      _hsvColor!.saturation,
+      _hsvColor!.value,
+    );
 
     this.hsvColor = hsvColor;
   }

@@ -17,8 +17,11 @@ import 'dialog.dart';
 enum CalendarMode { day, week, month }
 
 extension CalendarModeExtension on CalendarMode {
-  CalendarMode nextMode(
-      {bool day = true, bool week = true, bool month = true}) {
+  CalendarMode nextMode({
+    bool day = true,
+    bool week = true,
+    bool month = true,
+  }) {
     for (var i = index - 1; i >= 0; --i) {
       var v = CalendarMode.values[i];
       if (v == CalendarMode.day) {
@@ -33,8 +36,11 @@ extension CalendarModeExtension on CalendarMode {
     return this;
   }
 
-  CalendarMode previousMode(
-      {bool day = true, bool week = true, bool month = true}) {
+  CalendarMode previousMode({
+    bool day = true,
+    bool week = true,
+    bool month = true,
+  }) {
     for (var i = index + 1; i < CalendarMode.values.length; ++i) {
       var v = CalendarMode.values[i];
       if (v == CalendarMode.day) {
@@ -62,18 +68,19 @@ class UICalendarPopup extends UIComponent
   late final UICalendar _calendar;
   late final UIButton _button;
 
-  UICalendarPopup(super.parent,
-      {String? buttonText,
-      String? fieldName,
-      DateTime? currentDate,
-      List<CalendarEvent>? events,
-      CalendarMode mode = CalendarMode.week,
-      Iterable<CalendarMode>? allowedModes,
-      int backgroundGrey = 0,
-      double backgroundAlpha = 0.80,
-      int? backgroundBlur})
-      : fieldName = fieldName ?? 'calendar',
-        _buttonText = buttonText {
+  UICalendarPopup(
+    super.parent, {
+    String? buttonText,
+    String? fieldName,
+    DateTime? currentDate,
+    List<CalendarEvent>? events,
+    CalendarMode mode = CalendarMode.week,
+    Iterable<CalendarMode>? allowedModes,
+    int backgroundGrey = 0,
+    double backgroundAlpha = 0.80,
+    int? backgroundBlur,
+  }) : fieldName = fieldName ?? 'calendar',
+       _buttonText = buttonText {
     _calendar = UICalendar(
       null,
       fieldName: fieldName,
@@ -177,21 +184,22 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
 
   Set<CalendarMode> _allowedModes;
 
-  UICalendar(super.parent,
-      {String? fieldName,
-      List<CalendarEvent>? events,
-      CalendarMode mode = CalendarMode.week,
-      int? timeInterval,
-      DateTime? currentDate,
-      DateTimeWeekDay? firstDayOfWeek,
-      Iterable<CalendarMode>? allowedModes})
-      : fieldName = fieldName ?? 'calendar',
-        _mode = mode,
-        _events = events?.toList() ?? <CalendarEvent>[],
-        timeInterval = timeInterval ?? 60,
-        _currentDate = currentDate ?? today(),
-        firstDayOfWeek = firstDayOfWeek ?? _getFirstDayOfWeek(),
-        _allowedModes = (allowedModes ?? CalendarMode.values).toSet();
+  UICalendar(
+    super.parent, {
+    String? fieldName,
+    List<CalendarEvent>? events,
+    CalendarMode mode = CalendarMode.week,
+    int? timeInterval,
+    DateTime? currentDate,
+    DateTimeWeekDay? firstDayOfWeek,
+    Iterable<CalendarMode>? allowedModes,
+  }) : fieldName = fieldName ?? 'calendar',
+       _mode = mode,
+       _events = events?.toList() ?? <CalendarEvent>[],
+       timeInterval = timeInterval ?? 60,
+       _currentDate = currentDate ?? today(),
+       firstDayOfWeek = firstDayOfWeek ?? _getFirstDayOfWeek(),
+       _allowedModes = (allowedModes ?? CalendarMode.values).toSet();
 
   Set<CalendarMode> get allowedModes =>
       UnmodifiableSetView<CalendarMode>(_allowedModes);
@@ -281,121 +289,146 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
   final EventStream<CalendarEvent> onEventClick = EventStream<CalendarEvent>();
 
   final InteractionCompleter _inputDateInteractionCompleter =
-      InteractionCompleter('ui-calendar-input-date',
-          triggerDelay: Duration(milliseconds: 1200));
+      InteractionCompleter(
+        'ui-calendar-input-date',
+        triggerDelay: Duration(milliseconds: 1200),
+      );
 
   dynamic _renderModeDay() {
-    var allowPrevMode = _allowedModes.contains(CalendarMode.month) ||
+    var allowPrevMode =
+        _allowedModes.contains(CalendarMode.month) ||
         _allowedModes.contains(CalendarMode.week);
 
     return $div(
-        classes: 'ui-calendar-panel',
-        style: 'min-width: 28ch',
-        content: [
-          $div(
-              classes: 'ui-calendar-title',
-              style: 'background-color: rgba(0,0,0, 0.50); padding: 2px',
-              content: [
-                if (allowPrevMode)
-                  $span(
-                      style: 'cursor: pointer; float: left;',
-                      content: '&nbsp;&nbsp;&#8673;&nbsp;')
-                    ..onClick.listen((evt) {
-                      evt.cancel(stopImmediatePropagation: true);
-                      mode = mode.previousMode(
-                          week: _allowedModes.contains(CalendarMode.week),
-                          month: _allowedModes.contains(CalendarMode.month));
-                    }),
-                $span(style: 'cursor: pointer;', content: '&larr;&nbsp;&nbsp;')
-                  ..onClick.listen((evt) {
-                    evt.cancel(stopImmediatePropagation: true);
-                    previousDay();
-                  }),
-                _renderInputDate(textWithDay: true),
-                $span(style: 'cursor: pointer;', content: '&nbsp;&nbsp;&rarr;')
-                  ..onClick.listen((evt) {
-                    evt.cancel(stopImmediatePropagation: true);
-                    nextDay();
-                  }),
-                if (allowPrevMode)
-                  $span(
-                      style: 'visibility: hidden; float: right;',
-                      content: '&nbsp;&uarr;&nbsp;&nbsp;'),
-              ])
-            ..onClick.listen((_) => onTitleClick.add(_currentDate)),
-          $div(
-              style:
-                  'overflow-y: scroll; max-height: calc(100vh - 120px); max-width: calc(100vw - 12px)',
-              content: [
-                $table(
-                    classes: 'ui-calendar-grid',
-                    style:
-                        'border-collapse: collapse; border-top: 1px solid #000; width: 100%;',
-                    trsStyle:
-                        'border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000;',
-                    tdsStyle:
-                        'text-align: left; vertical-align: top; padding: 2px',
-                    body: [
-                      for (var t in _dayHours(timeInterval))
-                        [
-                          $td(
-                              classes: 'ui-calendar-hour-cell',
-                              style:
-                                  'background-color: rgba(0,0,0, 0.50); width: 6ch; word-wrap: break-word; text-align: center;',
-                              content:
-                                  '${t.a.toString().padLeft(2, '0')}:${t.b.toString().padLeft(2, '0')}&nbsp;'),
-                          $td(
-                              content: selectEvents(
-                                      _currentDate.withTime(t.a, t.b),
-                                      _currentDate
-                                          .withTime(t.a, t.b)
-                                          .add(Duration(minutes: timeInterval)))
-                                  .map((e) => e.render()
-                                    ..onClick
-                                        .listen((_) => onEventClick.add(e)))
-                                  .toList())
-                            ..onClick.listen((event) => onHourClick
-                                .add(_currentDate.withTime(t.a, t.b))),
-                        ]
-                    ])
-              ])
-            ..onGenerate.listen((Object? element) {
-              if (element.isHTMLElement) {
-                blockVerticalScrollTraverse(element as HTMLElement);
-              }
-            })
-        ]);
+      classes: 'ui-calendar-panel',
+      style: 'min-width: 28ch',
+      content: [
+        $div(
+          classes: 'ui-calendar-title',
+          style: 'background-color: rgba(0,0,0, 0.50); padding: 2px',
+          content: [
+            if (allowPrevMode)
+              $span(
+                  style: 'cursor: pointer; float: left;',
+                  content: '&nbsp;&nbsp;&#8673;&nbsp;',
+                )
+                ..onClick.listen((evt) {
+                  evt.cancel(stopImmediatePropagation: true);
+                  mode = mode.previousMode(
+                    week: _allowedModes.contains(CalendarMode.week),
+                    month: _allowedModes.contains(CalendarMode.month),
+                  );
+                }),
+            $span(style: 'cursor: pointer;', content: '&larr;&nbsp;&nbsp;')
+              ..onClick.listen((evt) {
+                evt.cancel(stopImmediatePropagation: true);
+                previousDay();
+              }),
+            _renderInputDate(textWithDay: true),
+            $span(style: 'cursor: pointer;', content: '&nbsp;&nbsp;&rarr;')
+              ..onClick.listen((evt) {
+                evt.cancel(stopImmediatePropagation: true);
+                nextDay();
+              }),
+            if (allowPrevMode)
+              $span(
+                style: 'visibility: hidden; float: right;',
+                content: '&nbsp;&uarr;&nbsp;&nbsp;',
+              ),
+          ],
+        )..onClick.listen((_) => onTitleClick.add(_currentDate)),
+        $div(
+            style:
+                'overflow-y: scroll; max-height: calc(100vh - 120px); max-width: calc(100vw - 12px)',
+            content: [
+              $table(
+                classes: 'ui-calendar-grid',
+                style:
+                    'border-collapse: collapse; border-top: 1px solid #000; width: 100%;',
+                trsStyle:
+                    'border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000;',
+                tdsStyle: 'text-align: left; vertical-align: top; padding: 2px',
+                body: [
+                  for (var t in _dayHours(timeInterval))
+                    [
+                      $td(
+                        classes: 'ui-calendar-hour-cell',
+                        style:
+                            'background-color: rgba(0,0,0, 0.50); width: 6ch; word-wrap: break-word; text-align: center;',
+                        content:
+                            '${t.a.toString().padLeft(2, '0')}:${t.b.toString().padLeft(2, '0')}&nbsp;',
+                      ),
+                      $td(
+                          content:
+                              selectEvents(
+                                    _currentDate.withTime(t.a, t.b),
+                                    _currentDate
+                                        .withTime(t.a, t.b)
+                                        .add(Duration(minutes: timeInterval)),
+                                  )
+                                  .map(
+                                    (e) => e.render()
+                                      ..onClick.listen(
+                                        (_) => onEventClick.add(e),
+                                      ),
+                                  )
+                                  .toList(),
+                        )
+                        ..onClick.listen(
+                          (event) =>
+                              onHourClick.add(_currentDate.withTime(t.a, t.b)),
+                        ),
+                    ],
+                ],
+              ),
+            ],
+          )
+          ..onGenerate.listen((Object? element) {
+            if (element.isHTMLElement) {
+              blockVerticalScrollTraverse(element as HTMLElement);
+            }
+          }),
+      ],
+    );
   }
 
   DIVElement _renderInputDate({required bool textWithDay}) {
-    var dateStr =
-        _currentDate.toStringParts(year: true, month: true, day: true);
+    var dateStr = _currentDate.toStringParts(
+      year: true,
+      month: true,
+      day: true,
+    );
 
     var elemText = $span(
-        id: 'ui-calendar-day-date-text',
-        style: 'display: inline',
-        content: (textWithDay ? dateStr : dateStr.sublist(0, 2)).join('/'));
+      id: 'ui-calendar-day-date-text',
+      style: 'display: inline',
+      content: (textWithDay ? dateStr : dateStr.sublist(0, 2)).join('/'),
+    );
 
     var elemInput = $input(
-        classes: 'ui-calendar-input-date',
-        id: 'ui-calendar-day-input-date',
-        style: 'display: none',
-        type: 'date',
-        value: dateStr.join('-'));
+      classes: 'ui-calendar-input-date',
+      id: 'ui-calendar-day-input-date',
+      style: 'display: none',
+      type: 'date',
+      value: dateStr.join('-'),
+    );
 
     elemInput.onChange.listen((_) {
       var date = parseDateTime(elemInput.runtime.value);
 
       if (date != null) {
-        elemText.runtime.text =
-            date.toStringParts(year: true, month: true, day: true).join('/');
+        elemText.runtime.text = date
+            .toStringParts(year: true, month: true, day: true)
+            .join('/');
 
         _inputDateInteractionCompleter.interact();
       }
     });
 
-    var div =
-        $div(style: 'display: inline-block;', content: [elemText, elemInput]);
+    var div = $div(
+      style: 'display: inline-block;',
+      content: [elemText, elemInput],
+    );
 
     bool isShowingInput() =>
         elemInput.runtime.getStyleProperty('display') == 'inline';
@@ -447,68 +480,83 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
     var today = UICalendar.today();
 
     return $div(
-        classes: 'ui-calendar-panel',
-        style: 'min-width: 18ch',
-        content: [
-          $div(
-              classes: 'ui-calendar-title',
-              style: 'background-color: rgba(0,0,0, 0.50); padding: 2px',
-              content: [
-                $span(style: 'cursor: pointer;', content: '&larr;&nbsp;&nbsp;')
-                  ..onClick.listen((_) => previousMonth()),
-                _renderInputDate(textWithDay: false),
-                $span(style: 'cursor: pointer;', content: '&nbsp;&nbsp;&rarr;')
-                  ..onClick.listen((_) => nextMonth()),
-              ])
-            ..onClick.listen((_) => onTitleClick.add(_currentDate)),
-          $div(
+      classes: 'ui-calendar-panel',
+      style: 'min-width: 18ch',
+      content: [
+        $div(
+          classes: 'ui-calendar-title',
+          style: 'background-color: rgba(0,0,0, 0.50); padding: 2px',
+          content: [
+            $span(style: 'cursor: pointer;', content: '&larr;&nbsp;&nbsp;')
+              ..onClick.listen((_) => previousMonth()),
+            _renderInputDate(textWithDay: false),
+            $span(style: 'cursor: pointer;', content: '&nbsp;&nbsp;&rarr;')
+              ..onClick.listen((_) => nextMonth()),
+          ],
+        )..onClick.listen((_) => onTitleClick.add(_currentDate)),
+        $div(
+          style:
+              'overflow-y: scroll; max-height: calc(100vh - 40px); max-width: calc(100vw - 12px)',
+          content: [
+            $table(
+              classes: 'ui-calendar-grid',
               style:
-                  'overflow-y: scroll; max-height: calc(100vh - 40px); max-width: calc(100vw - 12px)',
-              content: [
-                $table(
-                    classes: 'ui-calendar-grid',
-                    style:
-                        'border-collapse: collapse; border-top: 1px solid #000; width: 100%;',
-                    trsStyle:
-                        'border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000;',
-                    tdsStyle:
-                        'text-align: left; vertical-align: top; padding: 2px',
-                    body: [
-                      _weekDays(firstDayOfWeek)
-                          .map((w) => $td(
-                              classes: 'ui-calendar-week-cell',
-                              style: 'text-align: center; min-width: 3ch',
-                              content:
-                                  '${IntlBasicDictionary.msg('week_day_$w')?.truncate(3)}'))
-                          .toList(),
-                      for (var week in _monthDaysPerWeek(_currentDate.year,
-                          _currentDate.month, firstDayOfWeek))
-                        week
-                            .map((day) =>
-                                _renderMonthDay(day, _currentDate, today))
-                            .toList()
-                    ])
-              ])
-        ]);
+                  'border-collapse: collapse; border-top: 1px solid #000; width: 100%;',
+              trsStyle:
+                  'border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000;',
+              tdsStyle: 'text-align: left; vertical-align: top; padding: 2px',
+              body: [
+                _weekDays(firstDayOfWeek)
+                    .map(
+                      (w) => $td(
+                        classes: 'ui-calendar-week-cell',
+                        style: 'text-align: center; min-width: 3ch',
+                        content:
+                            '${IntlBasicDictionary.msg('week_day_$w')?.truncate(3)}',
+                      ),
+                    )
+                    .toList(),
+                for (var week in _monthDaysPerWeek(
+                  _currentDate.year,
+                  _currentDate.month,
+                  firstDayOfWeek,
+                ))
+                  week
+                      .map((day) => _renderMonthDay(day, _currentDate, today))
+                      .toList(),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   final EventStream<DateTime> onDayClick = EventStream<DateTime>();
 
   DOMElement _renderMonthDay(
-      DateTime day, DateTime currentDate, DateTime today) {
+    DateTime day,
+    DateTime currentDate,
+    DateTime today,
+  ) {
     var dayEvents = selectEvents(day, day.endOfDayTime);
 
-    var div = $div(content: [
-      $div(
-          style: 'width: 100%; text-align: center; cursor: pointer;',
-          content: day.day),
-      if (dayEvents.isNotEmpty)
+    var div = $div(
+      content: [
         $div(
+          style: 'width: 100%; text-align: center; cursor: pointer;',
+          content: day.day,
+        ),
+        if (dayEvents.isNotEmpty)
+          $div(
             style: 'line-height: 26%; width: 100%; text-align: center;',
-            content:
-                List.generate(math.min(dayEvents.length, 4), (_) => '&bull;')
-                    .join()),
-    ]);
+            content: List.generate(
+              math.min(dayEvents.length, 4),
+              (_) => '&bull;',
+            ).join(),
+          ),
+      ],
+    );
 
     div.appendToAttribute('class', 'ui-calendar-day-cell');
 
@@ -557,16 +605,20 @@ class CalendarEvent implements Comparable<CalendarEvent> {
   String description;
 
   CalendarEvent(this.title, this.initTime, this.endTime, {String? description})
-      : description = description ?? '' {
+    : description = description ?? '' {
     if (endTime.compareTo(initTime) < 0) {
       throw ArgumentError(
-          'endTime <  initTime: initTime:$initTime .. endTime:$endTime');
+        'endTime <  initTime: initTime:$initTime .. endTime:$endTime',
+      );
     }
   }
 
-  CalendarEvent.byDuration(String title, DateTime initTime, Duration duration,
-      {String? description})
-      : this(title, initTime, initTime.add(duration), description: description);
+  CalendarEvent.byDuration(
+    String title,
+    DateTime initTime,
+    Duration duration, {
+    String? description,
+  }) : this(title, initTime, initTime.add(duration), description: description);
 
   bool isInTimeRange(DateTime init, DateTime end) {
     var a = init.compareTo(initTime) <= 0;
@@ -587,15 +639,17 @@ class CalendarEvent implements Comparable<CalendarEvent> {
   Duration get duration => endTime.difference(initTime);
 
   DIVElement render() => $div(
-          classes: 'ui-calendar-day-events-cell',
-          style: 'cursor: pointer;',
-          content: [
-            $span(
-                style: 'font-size: 90%',
-                content: description.isNotEmpty ? '$title:<br>' : title),
-            if (description.isNotEmpty)
-              $span(style: 'font-size: 70%', content: description)
-          ]);
+    classes: 'ui-calendar-day-events-cell',
+    style: 'cursor: pointer;',
+    content: [
+      $span(
+        style: 'font-size: 90%',
+        content: description.isNotEmpty ? '$title:<br>' : title,
+      ),
+      if (description.isNotEmpty)
+        $span(style: 'font-size: 70%', content: description),
+    ],
+  );
 
   @override
   String toString() {
@@ -603,18 +657,18 @@ class CalendarEvent implements Comparable<CalendarEvent> {
   }
 
   factory CalendarEvent.fromJson(Map<String, dynamic> json) => CalendarEvent(
-        json['title'],
-        _parseDateTime(json['initTime'])!,
-        _parseDateTime(json['endTime'])!,
-        description: json['description'],
-      );
+    json['title'],
+    _parseDateTime(json['initTime'])!,
+    _parseDateTime(json['endTime'])!,
+    description: json['description'],
+  );
 
   Map<String, dynamic> toJson() => <String, dynamic>{
-        'title': title,
-        'initTime': initTime.formatYYYY_MM_DD_HH_mm,
-        'endTime': endTime.formatYYYY_MM_DD_HH_mm,
-        if (description.isNotEmpty) 'description': description,
-      };
+    'title': title,
+    'initTime': initTime.formatYYYY_MM_DD_HH_mm,
+    'endTime': endTime.formatYYYY_MM_DD_HH_mm,
+    if (description.isNotEmpty) 'description': description,
+  };
 }
 
 extension _StringExtension on String {
@@ -670,17 +724,16 @@ extension _DateTimeExtension on DateTime {
     bool second = false,
     bool millisecond = false,
     bool microsecond = false,
-  }) =>
-      <String>[
-        if (year) this.year.toString().padLeft(4, '0'),
-        if (month) this.month.toString().padLeft(2, '0'),
-        if (day) this.day.toString().padLeft(2, '0'),
-        if (hour) this.hour.toString().padLeft(2, '0'),
-        if (minute) this.minute.toString().padLeft(2, '0'),
-        if (second) this.second.toString().padLeft(2, '0'),
-        if (millisecond) this.millisecond.toString().padLeft(3, '0'),
-        if (microsecond) this.microsecond.toString().padLeft(3, '0'),
-      ];
+  }) => <String>[
+    if (year) this.year.toString().padLeft(4, '0'),
+    if (month) this.month.toString().padLeft(2, '0'),
+    if (day) this.day.toString().padLeft(2, '0'),
+    if (hour) this.hour.toString().padLeft(2, '0'),
+    if (minute) this.minute.toString().padLeft(2, '0'),
+    if (second) this.second.toString().padLeft(2, '0'),
+    if (millisecond) this.millisecond.toString().padLeft(3, '0'),
+    if (microsecond) this.microsecond.toString().padLeft(3, '0'),
+  ];
 
   DateTime withTime([int hour = 0, int min = 0, int sec = 0]) =>
       DateTime(year, month, day, hour, min, sec, 0, 0);
@@ -688,7 +741,15 @@ extension _DateTimeExtension on DateTime {
   DateTime get endOfDayTime => DateTime(year, month, day, 23, 59, 59, 999, 999);
 
   DateTime withDay(int day) => DateTime(
-      year, month, day, hour, minute, second, millisecond, microsecond);
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    second,
+    millisecond,
+    microsecond,
+  );
 
   // ignore: unused_element
   DateTime withMonth(int month, {int? year, int? day}) {
@@ -699,7 +760,15 @@ extension _DateTimeExtension on DateTime {
     day = _clipDay(year, month, day);
 
     return DateTime(
-        year, month, day, hour, minute, second, millisecond, microsecond);
+      year,
+      month,
+      day,
+      hour,
+      minute,
+      second,
+      millisecond,
+      microsecond,
+    );
   }
 
   // ignore: unused_element
@@ -785,12 +854,16 @@ List<int> _monthDays(int year, int month) {
 }
 
 List<List<DateTime>> _monthDaysPerWeek(
-    int year, int month, DateTimeWeekDay firstDayOfWeek) {
+  int year,
+  int month,
+  DateTimeWeekDay firstDayOfWeek,
+) {
   var datePrevMonth =
       (month == 1 ? DateTime(year - 1, 12) : DateTime(year, month - 1))
           .withLastDayOfMonth;
-  var dateNextMonth =
-      (month == 12 ? DateTime(year + 1, 1, 1) : DateTime(year, month + 1, 1));
+  var dateNextMonth = (month == 12
+      ? DateTime(year + 1, 1, 1)
+      : DateTime(year, month + 1, 1));
   var date = DateTime(year, month);
 
   var days = _monthDays(year, month);

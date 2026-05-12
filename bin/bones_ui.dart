@@ -28,8 +28,13 @@ void main(List<String> args) async {
     ..addCommand(commandCreate)
     ..addCommand(commandTest);
 
-  commandRunner.argParser.addFlag('version',
-      abbr: 'v', negatable: false, defaultsTo: false, help: 'Show version.');
+  commandRunner.argParser.addFlag(
+    'version',
+    abbr: 'v',
+    negatable: false,
+    defaultsTo: false,
+    help: 'Show version.',
+  );
 
   {
     if (args.isNotEmpty && args[0] == 'test') {
@@ -60,7 +65,8 @@ mixin DefaultTemplate {
   Future<bool> configure() async {
     if (_defaultTemplateUri == null) {
       var resource = Resource(
-          'package:bones_ui/src/template/bones_ui_app_template.tar.gz');
+        'package:bones_ui/src/template/bones_ui_app_template.tar.gz',
+      );
       _defaultTemplateUri = await resource.uriResolved;
     }
 
@@ -127,9 +133,11 @@ class MyCommandTest extends CommandBase {
 
     var dartRunner = bones_ui_test_cli.DartRunner();
 
-    var exitCode = await dartRunner.runDartCommand(
-        ['run', 'bones_ui:bones_ui_test', ..._cmdTestSubArgs],
-        inheritStdio: true);
+    var exitCode = await dartRunner.runDartCommand([
+      'run',
+      'bones_ui:bones_ui_test',
+      ..._cmdTestSubArgs,
+    ], inheritStdio: true);
 
     if (exitCode != 0) {
       // Exit with the dart command exit code:

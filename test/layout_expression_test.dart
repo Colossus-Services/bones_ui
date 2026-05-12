@@ -17,25 +17,28 @@ void main() {
         'i': 0,
         'x': [10, 20],
         'cos': math.cos,
-        'sin': math.sin
+        'sin': math.sin,
       };
 
       var elementsAccess = [];
 
-      final evaluator = UILayoutEvaluator((String id, bool all) {
-        elementsAccess.add(id);
-        var list = [
-          {
-            'center': {'x': 11, 'y': 22}
-          },
-          {
-            'center': {'x': 111, 'y': 222}
-          }
-        ];
-        return all ? list : list[0];
-      }, (dynamic elem, String property) {
-        return elem is Map ? elem[property] : null;
-      });
+      final evaluator = UILayoutEvaluator(
+        (String id, bool all) {
+          elementsAccess.add(id);
+          var list = [
+            {
+              'center': {'x': 11, 'y': 22},
+            },
+            {
+              'center': {'x': 111, 'y': 222},
+            },
+          ];
+          return all ? list : list[0];
+        },
+        (dynamic elem, String property) {
+          return elem is Map ? elem[property] : null;
+        },
+      );
 
       print(evaluator.toString());
 

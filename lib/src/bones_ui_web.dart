@@ -62,7 +62,8 @@ extension UIElementExtension on UIElement {
         var opt = options.firstWhereOrNull((op) => op.value == value);
 
         opt ??= options.firstWhereOrNull(
-            (op) => equalsIgnoreAsciiCase(op.value.trim(), value.trim()));
+          (op) => equalsIgnoreAsciiCase(op.value.trim(), value.trim()),
+        );
 
         opt ??= options.firstWhereOrNull((op) {
           var label = op.label;
@@ -88,7 +89,8 @@ void navigationHistoryPush(String routeTitle, String locationUrl) {
 String navigationURL() => web.window.location.href;
 
 void navigationOnChangeRoute(
-    void Function(String? oldURL, String? newURL) listener) {
+  void Function(String? oldURL, String? newURL) listener,
+) {
   web.window.onHashChange.listen((e) {
     if (e.isA<web.HashChangeEvent>()) {
       var hashEvent = e as web.HashChangeEvent;

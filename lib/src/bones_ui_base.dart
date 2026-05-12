@@ -25,24 +25,23 @@ abstract class UIEventHandler extends _EventHandlerPrivate {
       _fireEvent(type, event, params);
 
   RegisteredEventListener
-      addTrackedEventListener<T extends EventTarget, E extends Event>(
+  addTrackedEventListener<T extends EventTarget, E extends Event>(
     T target,
     EventType<E> type,
     EventCallback<E> callback,
-  ) =>
-          _addTrackedEventListener<T, E>(target, type, callback);
+  ) => _addTrackedEventListener<T, E>(target, type, callback);
 
   void trackRegisteredEventListener(
-          RegisteredEventListener registeredEventListener) =>
-      _trackRegisteredEventListener(registeredEventListener);
+    RegisteredEventListener registeredEventListener,
+  ) => _trackRegisteredEventListener(registeredEventListener);
 
   void trackAllRegisteredEventListeners(
-          List<RegisteredEventListener> registeredEventListener) =>
-      _trackAllRegisteredEventListeners(registeredEventListener);
+    List<RegisteredEventListener> registeredEventListener,
+  ) => _trackAllRegisteredEventListeners(registeredEventListener);
 
   bool untrackRegisteredEventListener(
-          RegisteredEventListener registeredEventListener) =>
-      _untrackRegisteredEventListener(registeredEventListener);
+    RegisteredEventListener registeredEventListener,
+  ) => _untrackRegisteredEventListener(registeredEventListener);
 
   void cancelRegisteredEventListeners() => _cancelRegisteredEventListeners();
 }
@@ -76,19 +75,18 @@ abstract class _EventHandlerPrivate {
         }
       } catch (exception, stackTrace) {
         UIConsole.error(
-            'Error firing event: type: $type ; event: $event ; params: $params',
-            exception,
-            stackTrace);
+          'Error firing event: type: $type ; event: $event ; params: $params',
+          exception,
+          stackTrace,
+        );
       }
     }
   }
 
-  RegisteredEventListener
-      _addTrackedEventListener<T extends EventTarget, E extends Event>(
-    T target,
-    EventType<E> type,
-    EventCallback<E> callback,
-  ) {
+  RegisteredEventListener _addTrackedEventListener<
+    T extends EventTarget,
+    E extends Event
+  >(T target, EventType<E> type, EventCallback<E> callback) {
     var registeredEventListener = target.addEventListenerTyped(type, callback);
     _trackRegisteredEventListener(registeredEventListener);
     return registeredEventListener;
@@ -97,13 +95,15 @@ abstract class _EventHandlerPrivate {
   List<RegisteredEventListener>? _registeredEventListeners;
 
   void _trackRegisteredEventListener(
-      RegisteredEventListener registeredEventListener) {
+    RegisteredEventListener registeredEventListener,
+  ) {
     var registeredEventListeners = _registeredEventListeners ??= [];
     registeredEventListeners.add(registeredEventListener);
   }
 
   void _trackAllRegisteredEventListeners(
-      List<RegisteredEventListener>? listeners) {
+    List<RegisteredEventListener>? listeners,
+  ) {
     if (listeners == null || listeners.isElement) return;
 
     var registeredEventListeners = _registeredEventListeners ??= [];
@@ -111,7 +111,8 @@ abstract class _EventHandlerPrivate {
   }
 
   bool _untrackRegisteredEventListener(
-      RegisteredEventListener registeredEventListener) {
+    RegisteredEventListener registeredEventListener,
+  ) {
     return _registeredEventListeners?.remove(registeredEventListener) ?? false;
   }
 
@@ -252,11 +253,19 @@ class TextProvider {
 
   TextProvider.fromIntlKey(this._intlKey);
 
-  TextProvider.fromMessages(IntlMessages intlMessages, String key,
-      {Map<String, dynamic>? variables,
-      IntlVariablesProvider? variablesProvider})
-      : this.fromIntlKey(IntlKey(intlMessages, key,
-            variables: variables, variablesProvider: variablesProvider));
+  TextProvider.fromMessages(
+    IntlMessages intlMessages,
+    String key, {
+    Map<String, dynamic>? variables,
+    IntlVariablesProvider? variablesProvider,
+  }) : this.fromIntlKey(
+         IntlKey(
+           intlMessages,
+           key,
+           variables: variables,
+           variablesProvider: variablesProvider,
+         ),
+       );
 
   static TextProvider? from(Object? text) {
     if (text == null) return null;
@@ -392,9 +401,11 @@ class ElementProvider {
         return runtime.node as UIElement?;
       } else {
         return _domNode!.buildDOM(
-            generator: UIComponent.domGenerator,
-            treeMap: UIComponent.domTreeMapDummy,
-            setTreeMapRoot: false) as UIElement?;
+              generator: UIComponent.domGenerator,
+              treeMap: UIComponent.domTreeMapDummy,
+              setTreeMapRoot: false,
+            )
+            as UIElement?;
       }
     }
 
@@ -467,10 +478,13 @@ class CSSProvider {
       if (runtime.exists) {
         return cssFromElement(runtime.node as UIElement);
       } else {
-        var element = _domNode!.buildDOM(
-            generator: UIComponent.domGenerator,
-            treeMap: UIComponent.domTreeMapDummy,
-            setTreeMapRoot: false) as UIElement;
+        var element =
+            _domNode!.buildDOM(
+                  generator: UIComponent.domGenerator,
+                  treeMap: UIComponent.domTreeMapDummy,
+                  setTreeMapRoot: false,
+                )
+                as UIElement;
         return cssFromElement(element);
       }
     }

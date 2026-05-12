@@ -21,7 +21,8 @@ class UIComponentInternals {
     dynamic style2,
     dynamic componentStyle,
     bool renderOnConstruction,
-  ) _construct;
+  )
+  _construct;
 
   final HTMLElement? Function() _getContent;
 
@@ -54,9 +55,17 @@ class UIComponentInternals {
     dynamic style2,
     dynamic componentStyle,
     bool renderOnConstruction,
-  ) =>
-      _construct(preserveRender, inline, classes, classes2, componentClass,
-          style, style2, componentStyle, renderOnConstruction);
+  ) => _construct(
+    preserveRender,
+    inline,
+    classes,
+    classes2,
+    componentClass,
+    style,
+    style2,
+    componentStyle,
+    renderOnConstruction,
+  );
 
   UIElement? getContent() => _getContent();
 

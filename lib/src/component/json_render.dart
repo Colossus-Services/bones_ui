@@ -6,15 +6,16 @@ import 'package:dom_builder/dom_builder.dart';
 class UIJsonRender extends UIComponent {
   final Object? json;
 
-  UIJsonRender(super.parent,
-      {required this.json,
-      super.classes,
-      super.classes2,
-      super.style,
-      super.style2,
-      super.inline = true,
-      super.id})
-      : super(componentClass: 'ui-json-render');
+  UIJsonRender(
+    super.parent, {
+    required this.json,
+    super.classes,
+    super.classes2,
+    super.style,
+    super.style2,
+    super.inline = true,
+    super.id,
+  }) : super(componentClass: 'ui-json-render');
 
   @override
   Object? render() {

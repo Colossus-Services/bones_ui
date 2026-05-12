@@ -42,18 +42,20 @@ class MyMenu extends UIComponent {
   @override
   dynamic render() {
     return $div(
-        style:
-            'position: fixed; top: 0; left: 0; width: 100%; background-color: black; color: white; padding: 10px',
-        content: [
-          $span(
-              content:
-                  '<span style="font-size: 120%; font-weight: bold" navigate="home">Bones_UI &nbsp; - &nbsp;</span>'),
-          $span(attributes: {'navigate': 'home'}, content: 'Home'),
-          '<span> &nbsp; | &nbsp; </span>',
-          $span(attributes: {'navigate': 'components'}, content: 'Components'),
-          '<span> &nbsp; | &nbsp; </span>',
-          $span(attributes: {'navigate': 'help'}, content: 'Help')
-        ]);
+      style:
+          'position: fixed; top: 0; left: 0; width: 100%; background-color: black; color: white; padding: 10px',
+      content: [
+        $span(
+          content:
+              '<span style="font-size: 120%; font-weight: bold" navigate="home">Bones_UI &nbsp; - &nbsp;</span>',
+        ),
+        $span(attributes: {'navigate': 'home'}, content: 'Home'),
+        '<span> &nbsp; | &nbsp; </span>',
+        $span(attributes: {'navigate': 'components'}, content: 'Components'),
+        '<span> &nbsp; | &nbsp; </span>',
+        $span(attributes: {'navigate': 'help'}, content: 'Help'),
+      ],
+    );
   }
 }
 
@@ -65,13 +67,15 @@ class MyFooter extends UIComponent {
   @override
   dynamic render() {
     return $div(
-        style:
-            'position: absolute; position: fixed; bottom: 0; left: 0; width: 100%; background-color: rgba(0,0,0, 0.05); color: black; padding: 4px',
-        content: [
-          $span(
-              content:
-                  '<span style="font-size: 90%;" navigate="home">Built with <a href="https://colossus-services.github.io/bones_ui/" target="_blank">Bones_UI</a></span>'),
-        ]);
+      style:
+          'position: absolute; position: fixed; bottom: 0; left: 0; width: 100%; background-color: rgba(0,0,0, 0.05); color: black; padding: 4px',
+      content: [
+        $span(
+          content:
+              '<span style="font-size: 90%;" navigate="home">Built with <a href="https://colossus-services.github.io/bones_ui/" target="_blank">Bones_UI</a></span>',
+        ),
+      ],
+    );
   }
 }
 
@@ -123,9 +127,9 @@ class MyHelp extends UIComponent {
   @override
   dynamic render() {
     return $divInline(
-        style: 'width: 300px ; max-width:80vw; text-align: left',
-        content: [
-          markdownToDiv('''
+      style: 'width: 300px ; max-width:80vw; text-align: left',
+      content: [
+        markdownToDiv('''
           <br>
     
           # Help
@@ -142,8 +146,9 @@ class MyHelp extends UIComponent {
           
             See the [project page](https://colossus-services.github.io/bones_ui/){:target="_blank"}.
     
-          ''')
-        ]);
+          '''),
+      ],
+    );
   }
 }
 
@@ -159,17 +164,28 @@ class MyComponents extends UIComponent {
       '<br><h1>Components</h1>',
       '<hr>',
       UIButton(content, 'UIButton')
-        ..onClick.listen((event) => _showAlert('<b>UIButton Clicked:</b>',
-            'x: ${event.clientX}<br> y: ${event.clientY}')),
+        ..onClick.listen(
+          (event) => _showAlert(
+            '<b>UIButton Clicked:</b>',
+            'x: ${event.clientX}<br> y: ${event.clientY}',
+          ),
+        ),
       '<hr>',
       UIInputTable(content, [
         InputConfig('name', 'Name', type: 'text'),
-        InputConfig('email', 'Email',
-            type: 'email',
-            valueNormalizer: (f, v) => v?.toString().trim() ?? ''),
+        InputConfig(
+          'email',
+          'Email',
+          type: 'email',
+          valueNormalizer: (f, v) => v?.toString().trim() ?? '',
+        ),
         InputConfig('color', 'Color', type: 'color', optional: true),
-        InputConfig('sel', 'Select',
-            type: 'select', options: {'a': 'A Option', 'b': 'B Option'}),
+        InputConfig(
+          'sel',
+          'Select',
+          type: 'select',
+          options: {'a': 'A Option', 'b': 'B Option'},
+        ),
       ]),
       '<hr>',
       _uiCalendarPopup,
@@ -180,41 +196,56 @@ class MyComponents extends UIComponent {
   UICalendarPopup? _uiCalendarPopup;
 
   void _buildCalendar() {
-    _uiCalendarPopup ??= UICalendarPopup(content,
-        backgroundBlur: 4,
-        mode: CalendarMode.month,
-        allowedModes: {CalendarMode.month, CalendarMode.day},
-        currentDate: DateTime(2022, 3, 20),
-        events: [
-          CalendarEvent.fromJson({
-            'title': 'Sleep',
-            'initTime': '2022/03/20 01:00',
-            'endTime': '2022/03/20 01:30',
-          }),
-          CalendarEvent('Meeting', DateTime(2022, 3, 20, 9, 0),
-              DateTime(2022, 3, 20, 9, 30),
-              description: 'Call'),
-          CalendarEvent('Lunch', DateTime(2022, 3, 20, 13, 0),
-              DateTime(2022, 3, 20, 14, 0),
-              description: 'At X'),
-          CalendarEvent('Dinner', DateTime(2022, 3, 20, 21, 0),
-              DateTime(2022, 3, 20, 21, 40),
-              description: 'At Y'),
-          CalendarEvent.byDuration(
-              'Wine', DateTime(2022, 3, 21, 21, 0), Duration(minutes: 40),
-              description: 'Wine and cheese.'),
-        ])
-      ..onDayClick.listen((day) {
-        _uiCalendarPopup!.currentDate = day;
-        _uiCalendarPopup!.mode = CalendarMode.day;
-      })
-      ..onEventClick.listen((event) => window.alert('$event'));
+    _uiCalendarPopup ??=
+        UICalendarPopup(
+            content,
+            backgroundBlur: 4,
+            mode: CalendarMode.month,
+            allowedModes: {CalendarMode.month, CalendarMode.day},
+            currentDate: DateTime(2022, 3, 20),
+            events: [
+              CalendarEvent.fromJson({
+                'title': 'Sleep',
+                'initTime': '2022/03/20 01:00',
+                'endTime': '2022/03/20 01:30',
+              }),
+              CalendarEvent(
+                'Meeting',
+                DateTime(2022, 3, 20, 9, 0),
+                DateTime(2022, 3, 20, 9, 30),
+                description: 'Call',
+              ),
+              CalendarEvent(
+                'Lunch',
+                DateTime(2022, 3, 20, 13, 0),
+                DateTime(2022, 3, 20, 14, 0),
+                description: 'At X',
+              ),
+              CalendarEvent(
+                'Dinner',
+                DateTime(2022, 3, 20, 21, 0),
+                DateTime(2022, 3, 20, 21, 40),
+                description: 'At Y',
+              ),
+              CalendarEvent.byDuration(
+                'Wine',
+                DateTime(2022, 3, 21, 21, 0),
+                Duration(minutes: 40),
+                description: 'Wine and cheese.',
+              ),
+            ],
+          )
+          ..onDayClick.listen((day) {
+            _uiCalendarPopup!.currentDate = day;
+            _uiCalendarPopup!.mode = CalendarMode.day;
+          })
+          ..onEventClick.listen((event) => window.alert('$event'));
   }
 
   UIDialogAlert _showAlert(String title, String text) => UIDialogAlert(
-      '<div style="background-color: rgba(0,0,0, 0.80); width: 100%; padding: 4px 0;">$title</div><br>$text<br>',
-      'OK',
-      style:
-          'width: 200px; overflow: hidden; border-radius: 8px; padding: 0px 0px 8px 0px; box-shadow: 0 6px 14px rgba(0,0,0, 0.60);')
-    ..show();
+    '<div style="background-color: rgba(0,0,0, 0.80); width: 100%; padding: 4px 0;">$title</div><br>$text<br>',
+    'OK',
+    style:
+        'width: 200px; overflow: hidden; border-radius: 8px; padding: 0px 0px 8px 0px; box-shadow: 0 6px 14px rgba(0,0,0, 0.60);',
+  )..show();
 }

@@ -33,14 +33,22 @@ class ImageClip {
       var h = (_imageDimension!.height * r).toInt();
 
       var imgViewRect = Rectangle(
-          (viewDimension.width - w) / 2, (viewDimension.height - h) / 2, w, h);
+        (viewDimension.width - w) / 2,
+        (viewDimension.height - h) / 2,
+        w,
+        h,
+      );
 
       var imgViewClip = imgViewRect.intersection(viewClip!)!;
 
       var rInv = 1 / r;
 
-      var imgRect = Rectangle(imgViewRect.left * rInv, imgViewRect.top * rInv,
-          imgViewRect.width * rInv, imgViewRect.height * rInv);
+      var imgRect = Rectangle(
+        imgViewRect.left * rInv,
+        imgViewRect.top * rInv,
+        imgViewRect.width * rInv,
+        imgViewRect.height * rInv,
+      );
       var imgClip = Rectangle(
         (imgViewClip.left * rInv).toInt(),
         (imgViewClip.top * rInv).toInt(),
@@ -49,10 +57,11 @@ class ImageClip {
       );
 
       imgClip = Rectangle(
-          (imgClip.left - imgRect.left).toInt(),
-          (imgClip.top - imgRect.top).toInt(),
-          imgClip.width.toInt(),
-          imgClip.height.toInt());
+        (imgClip.left - imgRect.left).toInt(),
+        (imgClip.top - imgRect.top).toInt(),
+        imgClip.width.toInt(),
+        imgClip.height.toInt(),
+      );
 
       _clip = imgClip;
     } else {
@@ -72,12 +81,14 @@ class UIClipImage extends UIComponent {
 
   String color;
 
-  UIClipImage(Element super.container, this._img,
-      {this.imgWidth = 0,
-      this.imgHeight = 0,
-      this.color = '#00ff00',
-      dynamic classes})
-      : super(classes: 'ui-dialog', classes2: classes);
+  UIClipImage(
+    Element super.container,
+    this._img, {
+    this.imgWidth = 0,
+    this.imgHeight = 0,
+    this.color = '#00ff00',
+    dynamic classes,
+  }) : super(classes: 'ui-dialog', classes2: classes);
 
   @override
   void configure() {
@@ -163,12 +174,19 @@ class UIClipImage extends UIComponent {
 
     var clipRect = _createRect(start, end)!;
 
-    _clipRect = Rectangle(clipRect.left - _img.offsetLeft,
-        clipRect.top - _img.offsetTop, clipRect.width, clipRect.height);
+    _clipRect = Rectangle(
+      clipRect.left - _img.offsetLeft,
+      clipRect.top - _img.offsetTop,
+      clipRect.width,
+      clipRect.height,
+    );
 
     if (_clipRect!.width > 1 && _clipRect!.height > 1) {
-      _imageClip = ImageClip(Dimension(_img.offsetWidth, _img.offsetHeight),
-          _clipRect, imageDimension);
+      _imageClip = ImageClip(
+        Dimension(_img.offsetWidth, _img.offsetHeight),
+        _clipRect,
+        imageDimension,
+      );
     } else {
       _imageClip = null;
     }

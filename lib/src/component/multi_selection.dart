@@ -15,28 +15,42 @@ import '../bones_ui_web.dart';
 /// A component that renders a multi-selection input.
 class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   static final UIComponentGenerator<UIMultiSelection> generator =
-      UIComponentGenerator<UIMultiSelection>('ui-multi-selection', 'div',
-          'ui-multi-selection', 'display: inline-block',
-          (parent, attributes, contentHolder, contentNodes) {
-    var jsonConfig = parseJSON(contentHolder?.textContent, {});
-    if (jsonConfig is! Map) jsonConfig = {};
-    return UIMultiSelection(parent, jsonConfig['options']);
-  }, [
-    UIComponentAttributeHandler<UIMultiSelection, dynamic>('options',
-        parser: parseJSON,
-        getter: (c) => c._options,
-        setter: (c, v) => c._options = v is Map
-            ? v
-            : (parseFromInlineMap(parseString(v), RegExp(r'\s*[,;]\s*'),
-                    RegExp(r'\s*[:=]\s*')) ??
-                {}),
-        cleaner: (c) => c._options = null),
-    UIComponentAttributeHandler<UIMultiSelection, dynamic>('multi-selection',
-        parser: parseBool,
-        getter: (c) => c.multiSelection,
-        setter: (c, v) => c.multiSelection = v as bool?,
-        cleaner: (c) => c.multiSelection = null)
-  ], hasChildrenElements: false, contentAsText: false);
+      UIComponentGenerator<UIMultiSelection>(
+        'ui-multi-selection',
+        'div',
+        'ui-multi-selection',
+        'display: inline-block',
+        (parent, attributes, contentHolder, contentNodes) {
+          var jsonConfig = parseJSON(contentHolder?.textContent, {});
+          if (jsonConfig is! Map) jsonConfig = {};
+          return UIMultiSelection(parent, jsonConfig['options']);
+        },
+        [
+          UIComponentAttributeHandler<UIMultiSelection, dynamic>(
+            'options',
+            parser: parseJSON,
+            getter: (c) => c._options,
+            setter: (c, v) => c._options = v is Map
+                ? v
+                : (parseFromInlineMap(
+                        parseString(v),
+                        RegExp(r'\s*[,;]\s*'),
+                        RegExp(r'\s*[:=]\s*'),
+                      ) ??
+                      {}),
+            cleaner: (c) => c._options = null,
+          ),
+          UIComponentAttributeHandler<UIMultiSelection, dynamic>(
+            'multi-selection',
+            parser: parseBool,
+            getter: (c) => c.multiSelection,
+            setter: (c, v) => c.multiSelection = v as bool?,
+            cleaner: (c) => c.multiSelection = null,
+          ),
+        ],
+        hasChildrenElements: false,
+        contentAsText: false,
+      );
 
   static void register() {
     UIComponent.registerGenerator(generator);
@@ -65,31 +79,38 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
   final EventStream<UIMultiSelection> onSelect = EventStream();
 
-  UIMultiSelection(super.parent, Map? options,
-      {this.fieldName = 'multi-selection',
-      this.multiSelection = true,
-      List? selections,
-      this.allowInputValue = false,
-      this.optionsPanelMargin = 20,
-      this.separator = ' ; ',
-      this.autoInputFontShrink = true,
-      Duration? selectionMaxDelay,
-      super.classes,
-      super.style})
-      : _options = options ?? {},
-        _initialSelections = selections ?? [],
-        super(
-            componentClass: 'ui-multi-selection',
-            renderOnConstruction: false,
-            generator: generator) {
-    _optionsPanelInteractionCompleter = InteractionCompleter('optionsPanel',
-        triggerDelay: selectionMaxDelay ?? Duration(seconds: 10),
-        functionToTrigger: _notifySelection);
+  UIMultiSelection(
+    super.parent,
+    Map? options, {
+    this.fieldName = 'multi-selection',
+    this.multiSelection = true,
+    List? selections,
+    this.allowInputValue = false,
+    this.optionsPanelMargin = 20,
+    this.separator = ' ; ',
+    this.autoInputFontShrink = true,
+    Duration? selectionMaxDelay,
+    super.classes,
+    super.style,
+  }) : _options = options ?? {},
+       _initialSelections = selections ?? [],
+       super(
+         componentClass: 'ui-multi-selection',
+         renderOnConstruction: false,
+         generator: generator,
+       ) {
+    _optionsPanelInteractionCompleter = InteractionCompleter(
+      'optionsPanel',
+      triggerDelay: selectionMaxDelay ?? Duration(seconds: 10),
+      functionToTrigger: _notifySelection,
+    );
 
     if (allowInputValue) {
-      _inputInteractionCompleter = InteractionCompleter('input',
-          triggerDelay: selectionMaxDelay ?? Duration(seconds: 10),
-          functionToTrigger: _notifyInput);
+      _inputInteractionCompleter = InteractionCompleter(
+        'input',
+        triggerDelay: selectionMaxDelay ?? Duration(seconds: 10),
+        functionToTrigger: _notifyInput,
+      );
     } else {
       _inputInteractionCompleter = InteractionCompleterDummy();
     }
@@ -133,9 +154,11 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       if (data.length == 1 && data[0] is Map) {
         return data[0];
       } else {
-        return Map.fromEntries(data.map((e) {
-          return parseMapEntryOfStrings(e, RegExp(r'\s*[:=]\s*'))!;
-        }));
+        return Map.fromEntries(
+          data.map((e) {
+            return parseMapEntryOfStrings(e, RegExp(r'\s*[:=]\s*'))!;
+          }),
+        );
       }
     } else {
       return {};
@@ -207,7 +230,11 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   }
 
   void _checkByIDImpl(
-      dynamic id, bool? check, bool fromCheckElement, bool notify) {
+    dynamic id,
+    bool? check,
+    bool fromCheckElement,
+    bool notify,
+  ) {
     if (id == null) return;
 
     if (!fromCheckElement) {
@@ -221,8 +248,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
   bool get isAllChecked {
     if (_checkElements.isEmpty) return false;
-    var firstNotChecked =
-        _checkElements.firstWhereOrNull((e) => !_isChecked(e)!);
+    var firstNotChecked = _checkElements.firstWhereOrNull(
+      (e) => !_isChecked(e)!,
+    );
     return firstNotChecked == null;
   }
 
@@ -400,10 +428,12 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
     inputWidth -= (paddingLeft + paddingRight).toInt();
 
-    var textDim = measureText(text,
-        fontFamily: inputComputedStyle.fontFamily,
-        fontSize: inputComputedStyle.fontSize,
-        bold: inputComputedStyle.fontStyle == 'bold');
+    var textDim = measureText(
+      text,
+      fontFamily: inputComputedStyle.fontFamily,
+      fontSize: inputComputedStyle.fontSize,
+      bold: inputComputedStyle.fontStyle == 'bold',
+    );
 
     var textWidth = textDim?.width ?? text.length * 16;
 
@@ -485,8 +515,10 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       window.onTouchStart.listen((e) {
         if (_optionsPanel == null) return;
 
-        var overDivOptions = nodeTreeContainsAny(_optionsPanel!,
-            e.targetTouches.toIterable().map((t) => t.target as UINode));
+        var overDivOptions = nodeTreeContainsAny(
+          _optionsPanel!,
+          e.targetTouches.toIterable().map((t) => t.target as UINode),
+        );
         if (!overDivOptions && _isShowing()) {
           _toggleDivOptions(true);
         }
@@ -550,8 +582,12 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   }
 
   Rectangle<num> _appendScrollCoords(Rectangle<num> rect) {
-    return Rectangle(window.scrollX + rect.left, window.scrollY + rect.top,
-        rect.width, rect.height);
+    return Rectangle(
+      window.scrollX + rect.left,
+      window.scrollY + rect.top,
+      rect.width,
+      rect.height,
+    );
   }
 
   void _updateDivOptionsPosition() {
@@ -647,8 +683,10 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     _checkElements = checksList;
   }
 
-  String _optionsSignature(List<MapEntry<dynamic, dynamic>> entries,
-      List<MapEntry<dynamic, dynamic>> entriesFiltered) {
+  String _optionsSignature(
+    List<MapEntry<dynamic, dynamic>> entries,
+    List<MapEntry<dynamic, dynamic>> entriesFiltered,
+  ) {
     var str = StringBuffer();
 
     str.write('$multiSelection\n');
@@ -708,11 +746,16 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     _optionsPanel!.clear();
 
     if (_options!.isEmpty) {
-      _optionsPanel!.appendChild(createHTML(html: '''
+      _optionsPanel!.appendChild(
+        createHTML(
+          html:
+              '''
           <div style="text-align: center; width: 100%">
             <i>${IntlBasicDictionary.msg('no_options')}</i>
           </div>
-          '''));
+          ''',
+        ),
+      );
       return [];
     }
 
@@ -742,8 +785,9 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     if (isNotEmptyObject(inputValue)) {
       _optionsPanel!.scrollTop = 0;
     } else {
-      var firstCheckedElement =
-          checksList.firstWhereOrNull((e) => _isChecked(e)!);
+      var firstCheckedElement = checksList.firstWhereOrNull(
+        (e) => _isChecked(e)!,
+      );
 
       if (firstCheckedElement != null) {
         _scrollToElement(_optionsPanel, firstCheckedElement);
@@ -754,19 +798,22 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   }
 
   void _scrollToElement(Element? parent, Element element) {
-    element.scrollIntoView({
-      'behavior': 'smooth',
-      'block': 'center',
-      'inline': 'center',
-    }.toJSDeep);
+    element.scrollIntoView(
+      {'behavior': 'smooth', 'block': 'center', 'inline': 'center'}.toJSDeep,
+    );
   }
 
-  void _renderOptionsPanelEntry(HTMLTableSectionElement tbody,
-      List<HTMLInputElement> checksList, MapEntry optEntry, bool filtered) {
+  void _renderOptionsPanelEntry(
+    HTMLTableSectionElement tbody,
+    List<HTMLInputElement> checksList,
+    MapEntry optEntry,
+    bool filtered,
+  ) {
     var optKey = '${optEntry.key}';
     var optValue = '${optEntry.value}';
 
-    var check = isCheckedByID(optKey) ??
+    var check =
+        isCheckedByID(optKey) ??
         (_initialSelections.contains(optKey) ||
             _initialSelections.contains(optEntry.key));
 

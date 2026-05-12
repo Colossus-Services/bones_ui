@@ -20,11 +20,12 @@ extension UIElementExtension on UIElement {
   }
 
   /// Resolves the value of this [UIElement].
-  String? resolveElementValue(
-      {UIComponent? parentUIComponent,
-      UIComponent? uiComponent,
-      bool allowTextAsValue = true,
-      bool resolveUIComponents = true}) {
+  String? resolveElementValue({
+    UIComponent? parentUIComponent,
+    UIComponent? uiComponent,
+    bool allowTextAsValue = true,
+    bool resolveUIComponents = true,
+  }) {
     var self = this;
 
     if (self.isA<HTMLInputElement>() ||
@@ -73,7 +74,8 @@ extension UIElementExtension on UIElement {
           return parseBool(self.checked, false)! ? self.value : null;
         case 'file':
           return MapProperties.toStringValue(
-              self.files!.toList().map((f) => f.name));
+            self.files!.toList().map((f) => f.name),
+          );
         default:
           return self.value;
       }
@@ -119,8 +121,12 @@ extension ElementStreamExtension<E extends Event> on ElementStream<E> {
     void Function()? onDone,
     bool? cancelOnError,
   }) {
-    var subscription = listen(onData,
-        onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+    var subscription = listen(
+      onData,
+      onError: onError,
+      onDone: onDone,
+      cancelOnError: cancelOnError,
+    );
 
     if (element != null) {
       treeMap ??= component?.domTreeMap;
@@ -136,7 +142,9 @@ extension ElementStreamExtension<E extends Event> on ElementStream<E> {
 
 extension StreamSubscriptionExtension<T> on StreamSubscription<T> {
   StreamSubscription<T> trackSubscription(
-      UIComponent component, Element element) {
+    UIComponent component,
+    Element element,
+  ) {
     var domTreeMap = component.domTreeMap;
     domTreeMap.mapSubscriptions(element, [this]);
     return this;

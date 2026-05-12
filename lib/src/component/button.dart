@@ -17,18 +17,19 @@ import 'loading.dart';
 abstract class UIButtonBase extends UIComponent {
   static final eventClick = 'CLICK';
 
-  UIButtonBase(super.parent,
-      {String? navigate,
-      Map<String, String>? navigateParameters,
-      ParametersProvider? navigateParametersProvider,
-      super.classes,
-      super.classes2,
-      dynamic componentClass,
-      super.style,
-      super.style2,
-      super.componentStyle,
-      super.generator})
-      : super(componentClass: ['ui-button', componentClass]) {
+  UIButtonBase(
+    super.parent, {
+    String? navigate,
+    Map<String, String>? navigateParameters,
+    ParametersProvider? navigateParametersProvider,
+    super.classes,
+    super.classes2,
+    dynamic componentClass,
+    super.style,
+    super.style2,
+    super.componentStyle,
+    super.generator,
+  }) : super(componentClass: ['ui-button', componentClass]) {
     registerClickListener(onClickEvent);
 
     if (navigate != null) {
@@ -55,12 +56,18 @@ abstract class UIButtonBase extends UIComponent {
     }
   }
 
-  void navigate(String navigate,
-      [Map<String, String>? navigateParameters,
-      ParametersProvider? navigateParametersProvider]) {
+  void navigate(
+    String navigate, [
+    Map<String, String>? navigateParameters,
+    ParametersProvider? navigateParametersProvider,
+  ]) {
     cancelNavigate();
     _navigateOnClick_Subscription = UINavigator.navigateOnClick(
-        content!, navigate, navigateParameters, navigateParametersProvider);
+      content!,
+      navigate,
+      navigateParameters,
+      navigateParametersProvider,
+    );
   }
 
   void registerClickListener(UIEventListener listener) {
@@ -148,38 +155,43 @@ DOMElement $uiButton({
   String? text,
   bool commented = false,
 }) {
-  return $tag('ui-button',
-      id: id,
-      classes: classes,
-      style: style,
-      attributes: {
-        if (field != null && field.isNotEmpty) 'field': field,
-        ...?attributes
-      },
-      content: text,
-      commented: commented);
+  return $tag(
+    'ui-button',
+    id: id,
+    classes: classes,
+    style: style,
+    attributes: {
+      if (field != null && field.isNotEmpty) 'field': field,
+      ...?attributes,
+    },
+    content: text,
+    commented: commented,
+  );
 }
 
 /// A simple button implementation.
 class UIButton extends UIButtonBase {
   static final UIComponentGenerator<UIButton> generator =
       UIComponentGenerator<UIButton>(
-          'ui-button',
-          'button',
-          'ui-button',
-          '',
-          (parent, attributes, contentHolder, contentNodes) =>
-              UIButton(parent, contentHolder?.textContent),
-          [
-            UIComponentAttributeHandler<UIButton, String>('text',
-                parser: parseString,
-                getter: (c) => c.text,
-                setter: (c, v) => c.text = v,
-                appender: (c, v) => c.text = v,
-                cleaner: (c) => c.text = null)
-          ],
-          hasChildrenElements: false,
-          contentAsText: true);
+        'ui-button',
+        'button',
+        'ui-button',
+        '',
+        (parent, attributes, contentHolder, contentNodes) =>
+            UIButton(parent, contentHolder?.textContent),
+        [
+          UIComponentAttributeHandler<UIButton, String>(
+            'text',
+            parser: parseString,
+            getter: (c) => c.text,
+            setter: (c, v) => c.text = v,
+            appender: (c, v) => c.text = v,
+            cleaner: (c) => c.text = null,
+          ),
+        ],
+        hasChildrenElements: false,
+        contentAsText: true,
+      );
 
   static void register() {
     UIComponent.registerGenerator(generator);
@@ -191,23 +203,28 @@ class UIButton extends UIButtonBase {
   /// Font size of the button.
   String? _fontSize;
 
-  UIButton(super.parent, Object? buttonContent,
-      {super.navigate,
-      super.navigateParameters,
-      super.navigateParametersProvider,
-      super.classes,
-      super.classes2,
-      dynamic componentClass,
-      super.style,
-      super.style2,
-      bool small = false,
-      String? fontSize})
-      : _buttonContent = buttonContent,
-        _fontSize = fontSize,
-        super(componentClass: [
-          small ? 'ui-button-small' : 'ui-button',
-          componentClass
-        ], generator: generator);
+  UIButton(
+    super.parent,
+    Object? buttonContent, {
+    super.navigate,
+    super.navigateParameters,
+    super.navigateParametersProvider,
+    super.classes,
+    super.classes2,
+    dynamic componentClass,
+    super.style,
+    super.style2,
+    bool small = false,
+    String? fontSize,
+  }) : _buttonContent = buttonContent,
+       _fontSize = fontSize,
+       super(
+         componentClass: [
+           small ? 'ui-button-small' : 'ui-button',
+           componentClass,
+         ],
+         generator: generator,
+       );
 
   /// The [buttonContent] as text.
   String? get text => resolveToText(_buttonContent);
@@ -267,24 +284,25 @@ class UIButton extends UIButtonBase {
 }
 
 /// [DOMElement] tag `ui-button-loader` for [UIButtonLoader].
-DOMElement $uiButtonLoader(
-    {id,
-    String? field,
-    classes,
-    style,
-    buttonClasses,
-    buttonStyle,
-    Map<String, String>? attributes,
-    content,
-    bool commented = false,
-    loadedTextClass,
-    loadedTextStyle,
-    loadedTextErrorClass,
-    loadedTextErrorStyle,
-    loadedTextOK,
-    loadedTextError,
-    bool? withProgress,
-    dynamic loadingConfig}) {
+DOMElement $uiButtonLoader({
+  id,
+  String? field,
+  classes,
+  style,
+  buttonClasses,
+  buttonStyle,
+  Map<String, String>? attributes,
+  content,
+  bool commented = false,
+  loadedTextClass,
+  loadedTextStyle,
+  loadedTextErrorClass,
+  loadedTextErrorStyle,
+  loadedTextOK,
+  loadedTextError,
+  bool? withProgress,
+  dynamic loadingConfig,
+}) {
   return $tag(
     'ui-button-loader',
     id: id,
@@ -313,7 +331,7 @@ DOMElement $uiButtonLoader(
         'loading-config': (loadingConfig is UILoadingConfig
             ? loadingConfig.toInlineProperties()
             : '$loadingConfig'),
-      ...?attributes
+      ...?attributes,
     },
     content: content,
     commented: commented,
@@ -323,43 +341,55 @@ DOMElement $uiButtonLoader(
 class UIButtonLoader extends UIButtonBase {
   static final UIComponentGenerator<UIButtonLoader> generator =
       UIComponentGenerator<UIButtonLoader>(
-          'ui-button-loader', 'div', 'ui-button-loader', '',
-          (parent, attributes, contentHolder, contentNodes) {
-    var loadedTextStyle = attributes['loaded-text-style'];
-    var loadedTextClass = attributes['loaded-text-class'];
-    var loadedTextErrorStyle = attributes['loaded-text-error-style'];
-    var loadedTextErrorClass = attributes['loaded-text-error-class'] ??
-        attributes['loaded-text-error-classes'];
-    var loadedTextOK = attributes['loaded-text-ok'];
-    var loadedTextError = attributes['loaded-text-error'];
-    var buttonClasses =
-        attributes['button-class'] ?? attributes['button-classes'];
-    var buttonStyle = attributes['button-style'];
-    var withProgress = parseBool(attributes['with-progress']);
-    var loadingConfig =
-        UILoadingConfig.parse(attributes['loading-config']?.value);
+        'ui-button-loader',
+        'div',
+        'ui-button-loader',
+        '',
+        (parent, attributes, contentHolder, contentNodes) {
+          var loadedTextStyle = attributes['loaded-text-style'];
+          var loadedTextClass = attributes['loaded-text-class'];
+          var loadedTextErrorStyle = attributes['loaded-text-error-style'];
+          var loadedTextErrorClass =
+              attributes['loaded-text-error-class'] ??
+              attributes['loaded-text-error-classes'];
+          var loadedTextOK = attributes['loaded-text-ok'];
+          var loadedTextError = attributes['loaded-text-error'];
+          var buttonClasses =
+              attributes['button-class'] ?? attributes['button-classes'];
+          var buttonStyle = attributes['button-style'];
+          var withProgress = parseBool(attributes['with-progress']);
+          var loadingConfig = UILoadingConfig.parse(
+            attributes['loading-config']?.value,
+          );
 
-    return UIButtonLoader(parent, contentNodes,
-        loadedTextStyle: loadedTextStyle,
-        loadedTextClass: loadedTextClass,
-        loadedTextErrorStyle: loadedTextErrorStyle,
-        loadedTextErrorClass: loadedTextErrorClass,
-        loadedTextOK: loadedTextOK,
-        loadedTextError: loadedTextError,
-        withProgress: withProgress,
-        loadingConfig: loadingConfig,
-        buttonClasses: buttonClasses,
-        buttonStyle: buttonStyle);
-  }, [
-    UIComponentAttributeHandler<UIButtonLoader, String>(
-      'text',
-      parser: parseString,
-      getter: (c) => c.text,
-      setter: (c, v) => c.text = v,
-      appender: (c, v) => c.text = v,
-      cleaner: (c) => c.text = null,
-    )
-  ], usesContentHolder: false, hasChildrenElements: true);
+          return UIButtonLoader(
+            parent,
+            contentNodes,
+            loadedTextStyle: loadedTextStyle,
+            loadedTextClass: loadedTextClass,
+            loadedTextErrorStyle: loadedTextErrorStyle,
+            loadedTextErrorClass: loadedTextErrorClass,
+            loadedTextOK: loadedTextOK,
+            loadedTextError: loadedTextError,
+            withProgress: withProgress,
+            loadingConfig: loadingConfig,
+            buttonClasses: buttonClasses,
+            buttonStyle: buttonStyle,
+          );
+        },
+        [
+          UIComponentAttributeHandler<UIButtonLoader, String>(
+            'text',
+            parser: parseString,
+            getter: (c) => c.text,
+            setter: (c, v) => c.text = v,
+            appender: (c, v) => c.text = v,
+            cleaner: (c) => c.text = null,
+          ),
+        ],
+        usesContentHolder: false,
+        hasChildrenElements: true,
+      );
 
   static void register() {
     UIComponent.registerGenerator(generator);
@@ -406,19 +436,20 @@ class UIButtonLoader extends UIButtonBase {
     super.style2,
     dynamic buttonStyle,
     bool? withProgress,
-  })  : _loadedTextOK = TextProvider.from(loadedTextOK),
-        _loadedTextError = TextProvider.from(loadedTextError),
-        _loadedTextStyle = TextProvider.from(loadedTextStyle),
-        _loadedTextClass = TextProvider.from(loadedTextClass),
-        _loadedTextErrorStyle = TextProvider.from(loadedTextErrorStyle),
-        _loadedTextErrorClass = TextProvider.from(loadedTextErrorClass),
-        _buttonClasses = TextProvider.from(buttonClasses),
-        _buttonStyle = TextProvider.from(buttonStyle),
-        withProgress = withProgress ?? false,
-        _buttonContent = buttonContent,
-        super(
-            componentClass: ['ui-button-loader', componentClass],
-            generator: generator);
+  }) : _loadedTextOK = TextProvider.from(loadedTextOK),
+       _loadedTextError = TextProvider.from(loadedTextError),
+       _loadedTextStyle = TextProvider.from(loadedTextStyle),
+       _loadedTextClass = TextProvider.from(loadedTextClass),
+       _loadedTextErrorStyle = TextProvider.from(loadedTextErrorStyle),
+       _loadedTextErrorClass = TextProvider.from(loadedTextErrorClass),
+       _buttonClasses = TextProvider.from(buttonClasses),
+       _buttonStyle = TextProvider.from(buttonStyle),
+       withProgress = withProgress ?? false,
+       _buttonContent = buttonContent,
+       super(
+         componentClass: ['ui-button-loader', componentClass],
+         generator: generator,
+       );
 
   /// The [buttonContent] as text.
   String? get text => resolveToText(_buttonContent);
@@ -450,13 +481,14 @@ class UIButtonLoader extends UIButtonBase {
       content!.style.opacity = '';
     }
 
-    _loadingDiv ??= UILoading.asHTMLDivElement(UILoadingType.ring,
-        zoom: 0.50,
-        textZoom: 1.5,
-        cssContext: content,
-        withProgress: withProgress,
-        config: loadingConfig)
-      ..style.display = 'none';
+    _loadingDiv ??= UILoading.asHTMLDivElement(
+      UILoadingType.ring,
+      zoom: 0.50,
+      textZoom: 1.5,
+      cssContext: content,
+      withProgress: withProgress,
+      config: loadingConfig,
+    )..style.display = 'none';
 
     _button ??= renderButtonElement();
 
@@ -469,9 +501,10 @@ class UIButtonLoader extends UIButtonBase {
 
   dynamic renderButtonElement() {
     return $button(
-        classes: _buttonClasses?.text,
-        style: _buttonStyle?.text,
-        content: _buttonContent);
+      classes: _buttonClasses?.text,
+      style: _buttonStyle?.text,
+      content: _buttonContent,
+    );
   }
 
   void _setLoadedMessageStyle({bool error = false}) {
@@ -486,10 +519,9 @@ class UIButtonLoader extends UIButtonBase {
       loadedMessage.style.cssText = style ?? '';
     }
 
-    var classesError = (_loadedTextErrorClass?.text ?? '')
-        .trim()
-        .split(RegExp(r'\s+'))
-      ..removeWhere((e) => e.isEmpty);
+    var classesError = (_loadedTextErrorClass?.text ?? '').trim().split(
+      RegExp(r'\s+'),
+    )..removeWhere((e) => e.isEmpty);
 
     var classesOk = (_loadedTextClass?.text ?? '').trim().split(RegExp(r'\s+'))
       ..removeWhere((e) => e.isEmpty);
@@ -520,9 +552,11 @@ class UIButtonLoader extends UIButtonBase {
 
     var button = _button;
 
-    var buttonElement = (button is DOMElement
-        ? button.runtimeNode
-        : (button.isHTMLElement ? button : null)) as HTMLElement?;
+    var buttonElement =
+        (button is DOMElement
+                ? button.runtimeNode
+                : (button.isHTMLElement ? button : null))
+            as HTMLElement?;
 
     buttonElement?.style.display = 'none';
 
@@ -543,9 +577,11 @@ class UIButtonLoader extends UIButtonBase {
 
     var button = _button;
 
-    var buttonElement = (button is DOMElement
-        ? button.runtimeNode
-        : (button.isElement ? button : null)) as HTMLElement?;
+    var buttonElement =
+        (button is DOMElement
+                ? button.runtimeNode
+                : (button.isElement ? button : null))
+            as HTMLElement?;
 
     var loadedMessage = _loadedMessage;
 

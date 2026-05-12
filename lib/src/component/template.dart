@@ -22,16 +22,17 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
   @override
   Element generate(
-      DOMGenerator<UINode> domGenerator,
-      DOMTreeMap<UINode> treeMap,
-      String? tag,
-      DOMElement? domParent,
-      UINode? parent,
-      DOMNode domNode,
-      Map<String, DOMAttribute> attributes,
-      UINode? contentHolder,
-      List<DOMNode>? contentNodes,
-      DOMContext<UINode>? context) {
+    DOMGenerator<UINode> domGenerator,
+    DOMTreeMap<UINode> treeMap,
+    String? tag,
+    DOMElement? domParent,
+    UINode? parent,
+    DOMNode domNode,
+    Map<String, DOMAttribute> attributes,
+    UINode? contentHolder,
+    List<DOMNode>? contentNodes,
+    DOMContext<UINode>? context,
+  ) {
     context ??= domGenerator.domContext;
 
     var domElement = domNode as DOMElement;
@@ -42,16 +43,30 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
     domGenerator.addChildToElement(parent, element);
 
-    var hasUnresolvedTemplate =
-        contentNodes!.where((e) => e.hasUnresolvedTemplate).isNotEmpty;
+    var hasUnresolvedTemplate = contentNodes!
+        .where((e) => e.hasUnresolvedTemplate)
+        .isNotEmpty;
 
     if (hasUnresolvedTemplate) {
       var htmlUnresolved = _nodesToHTMLUnresolved(contentNodes);
-      _generateFromTemplateHTML(htmlUnresolved, domGenerator, treeMap,
-          domElement, element, attributes, context);
+      _generateFromTemplateHTML(
+        htmlUnresolved,
+        domGenerator,
+        treeMap,
+        domElement,
+        element,
+        attributes,
+        context,
+      );
     } else {
-      domGenerator.generateWithRoot(domElement, element, contentNodes,
-          treeMap: treeMap, context: context, setTreeMapRoot: false);
+      domGenerator.generateWithRoot(
+        domElement,
+        element,
+        contentNodes,
+        treeMap: treeMap,
+        context: context,
+        setTreeMapRoot: false,
+      );
     }
 
     return element;
@@ -59,38 +74,52 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
   String _nodesToHTMLUnresolved(List<DOMNode> contentNodes) {
     return contentNodes
-        .map((e) => e.buildHTML(
+        .map(
+          (e) => e.buildHTML(
             withIndent: true,
             buildTemplates: false,
-            dsxResolution: DSXResolution.skipDSX))
+            dsxResolution: DSXResolution.skipDSX,
+          ),
+        )
         .join('');
   }
 
   void _generateFromTemplateHTML(
-      String html,
-      DOMGenerator<UINode> domGenerator,
-      DOMTreeMap<UINode> treeMap,
-      DOMElement domElement,
-      HTMLDivElement element,
-      Map<String, DOMAttribute> attributes,
-      DOMContext<UINode>? domContext) {
+    String html,
+    DOMGenerator<UINode> domGenerator,
+    DOMTreeMap<UINode> treeMap,
+    DOMElement domElement,
+    HTMLDivElement element,
+    Map<String, DOMAttribute> attributes,
+    DOMContext<UINode>? domContext,
+  ) {
     try {
       var template = DOMTemplate.tryParse(html);
 
       if (template == null) {
         _generateElementContentFromHTML(
-            domGenerator, treeMap, html, domElement, element);
+          domGenerator,
+          treeMap,
+          html,
+          domElement,
+          element,
+        );
       } else {
-        var variables =
-            getTemplateVariables(domGenerator, attributes, domContext);
+        var variables = getTemplateVariables(
+          domGenerator,
+          attributes,
+          domContext,
+        );
 
         var asyncValues = deepCatchesMapValues(variables, (c, k, v) {
           return v is AsyncValue;
         });
 
         if (asyncValues.isNotEmpty) {
-          var futures =
-              asyncValues.whereType<AsyncValue>().map((e) => e.future).toList();
+          var futures = asyncValues
+              .whereType<AsyncValue>()
+              .map((e) => e.future)
+              .toList();
 
           var loadingConfig = UILoadingConfig.fromMap(attributes, 'loading-');
 
@@ -105,12 +134,26 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
             uiLoading?.remove();
 
-            _generateElementContentFromTemplate(domGenerator, treeMap,
-                domContext, template, variables, domElement, element);
+            _generateElementContentFromTemplate(
+              domGenerator,
+              treeMap,
+              domContext,
+              template,
+              variables,
+              domElement,
+              element,
+            );
           });
         } else {
-          _generateElementContentFromTemplate(domGenerator, treeMap, domContext,
-              template, variables, domElement, element);
+          _generateElementContentFromTemplate(
+            domGenerator,
+            treeMap,
+            domContext,
+            template,
+            variables,
+            domElement,
+            element,
+          );
         }
       }
     } catch (e, s) {
@@ -118,25 +161,35 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
       print(s);
 
       _generateElementContentFromHTML(
-          domGenerator, treeMap, html, domElement, element);
+        domGenerator,
+        treeMap,
+        html,
+        domElement,
+        element,
+      );
     }
   }
 
   void _generateElementContentFromTemplate(
-      DOMGenerator<UINode> domGenerator,
-      DOMTreeMap<UINode> treeMap,
-      DOMContext<UINode>? domContext,
-      DOMTemplateNode template,
-      Map<String, dynamic> variables,
-      DOMElement domElement,
-      HTMLDivElement element) {
-    var templateBuiltHTML = template.buildAsString(variables,
+    DOMGenerator<UINode> domGenerator,
+    DOMTreeMap<UINode> treeMap,
+    DOMContext<UINode>? domContext,
+    DOMTemplateNode template,
+    Map<String, dynamic> variables,
+    DOMElement domElement,
+    HTMLDivElement element,
+  ) {
+    var templateBuiltHTML = template.buildAsString(
+      variables,
+      dsxResolution: DSXResolution.skipDSX,
+      elementProvider: (q) => treeMap.queryElementAsHTML(
+        q,
+        domContext: domContext,
+        buildTemplates: true,
         dsxResolution: DSXResolution.skipDSX,
-        elementProvider: (q) => treeMap.queryElementAsHTML(q,
-            domContext: domContext,
-            buildTemplates: true,
-            dsxResolution: DSXResolution.skipDSX),
-        intlMessageResolver: domContext?.intlMessageResolver);
+      ),
+      intlMessageResolver: domContext?.intlMessageResolver,
+    );
 
     var nodes = DOMNode.parseNodes(templateBuiltHTML);
 
@@ -144,28 +197,37 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
     domElement.clearNodes();
 
-    domGenerator.generateWithRoot(domElement, element, nodes,
-        treeMap: treeMap, finalizeTree: false, setTreeMapRoot: false);
+    domGenerator.generateWithRoot(
+      domElement,
+      element,
+      nodes,
+      treeMap: treeMap,
+      finalizeTree: false,
+      setTreeMapRoot: false,
+    );
 
     return;
   }
 
   void _generateElementContentFromHTML(
-      DOMGenerator<UINode> domGenerator,
-      DOMTreeMap<UINode> treeMap,
-      String html,
-      DOMElement domElement,
-      HTMLDivElement element) {
+    DOMGenerator<UINode> domGenerator,
+    DOMTreeMap<UINode> treeMap,
+    String html,
+    DOMElement domElement,
+    HTMLDivElement element,
+  ) {
     _setElementAttributes(domElement, element);
 
     domElement.clearNodes();
 
-    domGenerator.generateFromHTML(html,
-        treeMap: treeMap,
-        domParent: domElement,
-        parent: element,
-        finalizeTree: false,
-        setTreeMapRoot: false);
+    domGenerator.generateFromHTML(
+      html,
+      treeMap: treeMap,
+      domParent: domElement,
+      parent: element,
+      finalizeTree: false,
+      setTreeMapRoot: false,
+    );
   }
 
   void _setElementAttributes(DOMElement domElement, HTMLDivElement element) {
@@ -184,8 +246,11 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     }
   }
 
-  Map<String, dynamic> getTemplateVariables(DOMGenerator domGenerator,
-      Map<String, DOMAttribute> attributes, DOMContext<UINode>? domContext) {
+  Map<String, dynamic> getTemplateVariables(
+    DOMGenerator domGenerator,
+    Map<String, DOMAttribute> attributes,
+    DOMContext<UINode>? domContext,
+  ) {
     domContext ??= domGenerator.domContext as DOMContext<UINode>?;
     if (domContext == null) return {};
 
@@ -199,8 +264,9 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
     resolveAttributeVariables(attributes, variables);
 
-    variables['attributes'] =
-        attributes.map((key, value) => MapEntry(key, '$value'));
+    variables['attributes'] = attributes.map(
+      (key, value) => MapEntry(key, '$value'),
+    );
 
     _normalizeVariables(variables, domContext);
 
@@ -218,7 +284,9 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   }
 
   void resolveAttributeVariables(
-      Map<String, DOMAttribute> attributes, Map<String, dynamic> variables) {
+    Map<String, DOMAttribute> attributes,
+    Map<String, dynamic> variables,
+  ) {
     var map = parseAttributeVariables(attributes) ?? {};
 
     for (var entry in map.entries) {
@@ -244,37 +312,57 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   }
 
   void _normalizeVariables(
-      Map<String, dynamic> variables, DOMContext? domContext) {
-    deepReplaceValues(variables, (c, k, v) {
-      return v is Function;
-    }, (c, k, v) {
-      var f = v as Function;
-      // ignore: avoid_dynamic_calls
-      return f();
-    });
+    Map<String, dynamic> variables,
+    DOMContext? domContext,
+  ) {
+    deepReplaceValues(
+      variables,
+      (c, k, v) {
+        return v is Function;
+      },
+      (c, k, v) {
+        var f = v as Function;
+        // ignore: avoid_dynamic_calls
+        return f();
+      },
+    );
 
-    deepReplaceValues(variables, (c, k, v) {
-      return v is Future;
-    }, (c, k, v) {
-      return AsyncValue.from(v);
-    });
+    deepReplaceValues(
+      variables,
+      (c, k, v) {
+        return v is Future;
+      },
+      (c, k, v) {
+        return AsyncValue.from(v);
+      },
+    );
 
-    deepReplaceValues(variables, (c, k, v) {
-      return v is AsyncValue && v.isLoaded;
-    }, (c, k, v) {
-      var v2 = (v as AsyncValue).get();
-      return v2;
-    });
+    deepReplaceValues(
+      variables,
+      (c, k, v) {
+        return v is AsyncValue && v.isLoaded;
+      },
+      (c, k, v) {
+        var v2 = (v as AsyncValue).get();
+        return v2;
+      },
+    );
 
-    deepReplaceValues(variables, (c, k, v) {
-      return v is String && DOMTemplate.possiblyATemplate(v);
-    }, (c, k, v) {
-      var template = DOMTemplate.parse(v as String);
-      var v2 = template.build(variables,
+    deepReplaceValues(
+      variables,
+      (c, k, v) {
+        return v is String && DOMTemplate.possiblyATemplate(v);
+      },
+      (c, k, v) {
+        var template = DOMTemplate.parse(v as String);
+        var v2 = template.build(
+          variables,
           dsxResolution: DSXResolution.skipDSX,
-          intlMessageResolver: domContext?.intlMessageResolver);
-      return v2;
-    });
+          intlMessageResolver: domContext?.intlMessageResolver,
+        );
+        return v2;
+      },
+    );
   }
 
   Future<dynamic>? getDataSourceResponse(Map<String, String> attributes) {
@@ -302,12 +390,20 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
   }
 
   @override
-  DOMElement? revert(DOMGenerator domGenerator, DOMTreeMap? treeMap,
-      DOMElement? domParent, UINode? parent, UINode? node) {
+  DOMElement? revert(
+    DOMGenerator domGenerator,
+    DOMTreeMap? treeMap,
+    DOMElement? domParent,
+    UINode? parent,
+    UINode? node,
+  ) {
     if (node.isA<HTMLDivElement>()) {
       var div = node as HTMLDivElement;
-      var domElement =
-          $tag(tag, classes: div.classList.value, style: div.style.cssText);
+      var domElement = $tag(
+        tag,
+        classes: div.classList.value,
+        style: div.style.cssText,
+      );
 
       if (treeMap != null) {
         var mappedDOMNode = treeMap.getMappedDOMNode(div);

@@ -24,10 +24,11 @@ import 'package:yaml/src/yaml_node.dart'; // ignore: implementation_imports
 const bonesUiTestCliTitle = 'Bones_UI/${BonesUI.version} - Test Tool';
 
 /// Prints the Bones_UI Test CLI title.
-void printTestCliTitle(
-    {bool showDartVersion = true,
-    bool showOSVersion = true,
-    String? testPlatform}) {
+void printTestCliTitle({
+  bool showDartVersion = true,
+  bool showOSVersion = true,
+  String? testPlatform,
+}) {
   var dartVersion = Platform.version;
   var os = Platform.operatingSystem;
   var osVer = Platform.operatingSystemVersion;
@@ -45,9 +46,10 @@ void printTestCliTitle(
 
 void printBox(List lines) {
   print(
-      '╔═══════════════════════════════════════════════════════════════════════════════\n'
-      '${lines.map((l) => '║ $l\n').join()}'
-      '╚═══════════════════════════════════════════════════════════════════════════════');
+    '╔═══════════════════════════════════════════════════════════════════════════════\n'
+    '${lines.map((l) => '║ $l\n').join()}'
+    '╚═══════════════════════════════════════════════════════════════════════════════',
+  );
 }
 
 bool isJustHelpArgs(List<String> args) =>
@@ -109,27 +111,28 @@ class BonesUITestRunner {
   File get bonesUITestTemplateFile =>
       File(pack_path.join(bonesUICompileDir.path, bonesUITestTemplateFileName));
 
-  BonesUITestRunner(
-      {List<String>? args,
-      Directory? compileDir,
-      String bonesUITestConfigFileName = 'bones_ui_test_config.yaml',
-      this.bonesUITestTemplateFileName = 'bones_ui_test.html.tpl'})
-      : args = args ?? <String>[],
-        bonesUICompiler = BonesUICompiler(compileDir: compileDir) {
+  BonesUITestRunner({
+    List<String>? args,
+    Directory? compileDir,
+    String bonesUITestConfigFileName = 'bones_ui_test_config.yaml',
+    this.bonesUITestTemplateFileName = 'bones_ui_test.html.tpl',
+  }) : args = args ?? <String>[],
+       bonesUICompiler = BonesUICompiler(compileDir: compileDir) {
     var args = this.args.toList();
 
-    bonesUiTestConfigFile =
-        File(pack_path.join(bonesUICompileDir.path, bonesUITestConfigFileName));
+    bonesUiTestConfigFile = File(
+      pack_path.join(bonesUICompileDir.path, bonesUITestConfigFileName),
+    );
 
     var argHeadless = args.remove('--headless');
     var argShowUI = args.remove('--show-ui');
 
     var argEnableDeferredLibraries =
         args.remove('--enable-deferred-libraries') ||
-            args.remove('--enable-deferred-library');
+        args.remove('--enable-deferred-library');
     var argDisableDeferredLibraries =
         args.remove('--disable-deferred-libraries') ||
-            args.remove('--disable-deferred-library');
+        args.remove('--disable-deferred-library');
 
     String? logDir;
     {
@@ -164,13 +167,15 @@ class BonesUITestRunner {
 
     logDirectory = logDir != null ? Directory(logDir) : null;
 
-    var configuration =
-        args.isNotEmpty ? Configuration.parse(args) : Configuration.empty;
+    var configuration = args.isNotEmpty
+        ? Configuration.parse(args)
+        : Configuration.empty;
 
     try {
       if (File(configuration.configurationPath).existsSync()) {
-        var fileConfiguration =
-            Configuration.load(configuration.configurationPath);
+        var fileConfiguration = Configuration.load(
+          configuration.configurationPath,
+        );
 
         configuration = fileConfiguration.merge(configuration);
       }
@@ -208,10 +213,10 @@ class BonesUITestRunner {
 
   /// Returns all the known platforms for the `test` package.
   List<String> get allKnownPlatforms => <String>{
-        ...Runtime.builtIn.map((e) => e.identifier),
-        ...parsedArgs.overrideRuntimes.values.map((e) => e.identifier),
-        ...parsedArgs.defineRuntimes.values.map((e) => e.identifier),
-      }.toList();
+    ...Runtime.builtIn.map((e) => e.identifier),
+    ...parsedArgs.overrideRuntimes.values.map((e) => e.identifier),
+    ...parsedArgs.defineRuntimes.values.map((e) => e.identifier),
+  }.toList();
 
   String? get jsonReportFilePath => logDirectory != null
       ? '${logDirectory!.path}/bones_ui_test_report.json'
@@ -224,46 +229,61 @@ class BonesUITestRunner {
     print('Options:');
     print('-h, --help                            Show this usage information.');
     print(
-        '    --show-ui                         Run the tests showing the UI in the browser.');
+      '    --show-ui                         Run the tests showing the UI in the browser.',
+    );
 
     print('');
     print('    --enable-deferred-libraries       Enables deferred libraries.');
     print(
-        '    --disable-deferred-libraries      Disables deferred libraries. (default due issue test#2088)');
+      '    --disable-deferred-libraries      Disables deferred libraries. (default due issue test#2088)',
+    );
 
     print('\nOptions from `dart test`:');
     print('-t, --tags                            Select a tag: -t basic');
     print('-x, --exclude-tags                    Exclude a tag: -x slow');
     print(
-        '-n, --name                            A substring of the name of the test to run.');
+      '-n, --name                            A substring of the name of the test to run.',
+    );
     print(
-        '    --pause-after-load                Pauses the browser for debugging before running the tests.');
+      '    --pause-after-load                Pauses the browser for debugging before running the tests.',
+    );
     print(
-        '    --debug                           Run the Chrome tests in debug mode.');
+      '    --debug                           Run the Chrome tests in debug mode.',
+    );
 
     print(
-        '    --timeout                         The default test timeout. For example: 15s, 2x, none, 60s (default)');
+      '    --timeout                         The default test timeout. For example: 15s, 2x, none, 60s (default)',
+    );
     print(
-        '    --ignore-timeouts                 Ignore all timeouts (useful if debugging)');
+      '    --ignore-timeouts                 Ignore all timeouts (useful if debugging)',
+    );
     print(
-        '    --run-skipped                     Run skipped tests instead of skipping them.');
+      '    --run-skipped                     Run skipped tests instead of skipping them.',
+    );
     print(
-        "    --no-retry                        Don't rerun tests that have retry set.");
+      "    --no-retry                        Don't rerun tests that have retry set.",
+    );
 
     print(
-        '    --coverage=<directory>            Gather coverage and output it to the specified directory.');
+      '    --coverage=<directory>            Gather coverage and output it to the specified directory.',
+    );
     print(
-        '    --reporter=<option>               Set how to print test results.');
+      '    --reporter=<option>               Set how to print test results.',
+    );
     print(
-        '    --file-reporter                   Enable an additional reporter writing test results to a file.');
+      '    --file-reporter                   Enable an additional reporter writing test results to a file.',
+    );
 
     print(
-        '    --js-trace                        Emit raw JavaScript stack traces for browser tests.');
+      '    --js-trace                        Emit raw JavaScript stack traces for browser tests.',
+    );
     print(
-        '    --dart2js-args                    Pass arguments to `dart2js` compiler.');
+      '    --dart2js-args                    Pass arguments to `dart2js` compiler.',
+    );
 
     print(
-        '\n** See `dart test --help` or https://dart.dev/tools/dart-test for more details.');
+      '\n** See `dart test --help` or https://dart.dev/tools/dart-test for more details.',
+    );
 
     print('');
 
@@ -287,7 +307,8 @@ class BonesUITestRunner {
 
     if (!_isValidPlatform(parsedPlatform) && args.contains(parsedPlatform)) {
       print(
-          '** Ignoring `platform` parameter `$parsedPlatform`. Selected platform: `$platform`');
+        '** Ignoring `platform` parameter `$parsedPlatform`. Selected platform: `$platform`',
+      );
     }
   }
 
@@ -312,23 +333,23 @@ class BonesUITestRunner {
     ], () => BonesUIPlatform.create(bonesUICompiler, showUI: showUI));
 
     print(
-        '\n════════════════════════════════════════════════════════════════════════════════');
+      '\n════════════════════════════════════════════════════════════════════════════════',
+    );
     print(
-        '\n** Show UI: $showUI ${headless ? '(headless)' : '(showing browser)'}');
+      '\n** Show UI: $showUI ${headless ? '(headless)' : '(showing browser)'}',
+    );
 
     final enableDeferredLibraries = this.enableDeferredLibraries;
     if (enableDeferredLibraries != null) {
       print(
-          '** Deferred libraries: ${enableDeferredLibraries ? 'enabled' : 'disabled'}');
+        '** Deferred libraries: ${enableDeferredLibraries ? 'enabled' : 'disabled'}',
+      );
     }
 
     print('\n** Test ARGS: ${testArgs.join(' ')}');
     print('\n** Executing tests...\n');
 
-    testArgs.insertAll(0, [
-      '--configuration',
-      configurationPath,
-    ]);
+    testArgs.insertAll(0, ['--configuration', configurationPath]);
 
     await test_executable.runTests(testArgs);
     test_executable.completeShutdown();
@@ -391,20 +412,27 @@ class BonesUITestRunner {
             .whereType<Map>()
             .where((e) => e['messageType'] == 'print')
             .where((e) {
-          var m = e['message'];
-          return m is String && m.startsWith(testMultiplePathMark);
-        }).map((e) {
-          var m = e['message'] as String;
-          var idx = m.indexOf(testMultiplePathMark);
-          return m.substring(idx + testMultiplePathMark.length).trim();
-        }).firstOrNull;
+              var m = e['message'];
+              return m is String && m.startsWith(testMultiplePathMark);
+            })
+            .map((e) {
+              var m = e['message'] as String;
+              var idx = m.indexOf(testMultiplePathMark);
+              return m.substring(idx + testMultiplePathMark.length).trim();
+            })
+            .firstOrNull;
 
         return testLine
             .whereType<Map>()
             .where((e) => e['messageType'] == 'print')
             .where((e) => _DocumentLog.matches(e['message']))
-            .map((e) => _DocumentLog.parse(e['message'],
-                testPath: suitePath, testMultipleUIPath: testMultipleUIPath));
+            .map(
+              (e) => _DocumentLog.parse(
+                e['message'],
+                testPath: suitePath,
+                testMultipleUIPath: testMultipleUIPath,
+              ),
+            );
       }).toList();
     }).toList();
 
@@ -418,8 +446,11 @@ class BonesUITestRunner {
       var logBuildDir = Directory(pack_path.join(logDir.path, 'build'));
       logBuildDir.createSync();
 
-      _copyPathSync(bonesUICompileDir.path, logBuildDir.path,
-          clearIfExists: true);
+      _copyPathSync(
+        bonesUICompileDir.path,
+        logBuildDir.path,
+        clearIfExists: true,
+      );
 
       for (var e in documentLogs) {
         var id = e.id.trim().replaceAll(RegExp(r'\W+'), '_');
@@ -445,8 +476,10 @@ class BonesUITestRunner {
         var documentsLogDir = Directory(documentsLogDirPath)
           ..createSync(recursive: true);
 
-        var fPath = pack_path.join(documentsLogDir.path,
-            'document_log--$id--${e.time.millisecondsSinceEpoch}.html');
+        var fPath = pack_path.join(
+          documentsLogDir.path,
+          'document_log--$id--${e.time.millisecondsSinceEpoch}.html',
+        );
 
         var content = e.contentResolved(basePath: basePath, title: e.id);
 
@@ -464,24 +497,30 @@ class BonesUITestRunner {
 
   void printTestInfo(Iterable<dynamic> jsons) {
     try {
-      var eventDone =
-          jsons.whereType<Map>().lastWhere((e) => e['type'] == 'done');
-      var testsDone =
-          jsons.whereType<Map>().where((e) => e['type'] == 'testDone').toList();
+      var eventDone = jsons.whereType<Map>().lastWhere(
+        (e) => e['type'] == 'done',
+      );
+      var testsDone = jsons
+          .whereType<Map>()
+          .where((e) => e['type'] == 'testDone')
+          .toList();
 
       var testsSkipped = testsDone
           .whereType<Map>()
           .where((e) => e['skipped'] == true)
           .toList();
 
-      var testsNotSkipped =
-          testsDone.where((e) => e['skipped'] != true).toList();
+      var testsNotSkipped = testsDone
+          .where((e) => e['skipped'] != true)
+          .toList();
 
-      var testsSuccess =
-          testsNotSkipped.where((e) => e['result'] == 'success').toList();
+      var testsSuccess = testsNotSkipped
+          .where((e) => e['result'] == 'success')
+          .toList();
 
-      var testsFail =
-          testsNotSkipped.where((e) => e['result'] == 'failure').toList();
+      var testsFail = testsNotSkipped
+          .where((e) => e['result'] == 'failure')
+          .toList();
 
       var sucess = eventDone['success'] as bool;
       var timeMs = eventDone['time'] as int;
@@ -576,8 +615,9 @@ class BonesUITestRunner {
 
     var testSelections = parsedArgs.testSelections;
 
-    var testsPaths =
-        testSelections.keys.where((p) => p.endsWith('.dart')).toList();
+    var testsPaths = testSelections.keys
+        .where((p) => p.endsWith('.dart'))
+        .toList();
 
     var jsonReportFilePath = this.jsonReportFilePath;
 
@@ -608,34 +648,36 @@ class BonesUITestRunner {
       if (testTimeout !=
           Configuration.empty.suiteDefaults.metadata.timeout) ...[
         '--timeout',
-        testTimeout.toString()
+        testTimeout.toString(),
       ],
       if (testIgnoreTimeouts) '--ignore-timeouts',
       if (testRunSkipped) '--run-skipped',
       if (testNoRetry) '--no-retry',
       if (testReporter.isNotEmpty) ...['--reporter', testReporter],
       if (testFileReporters.isNotEmpty)
-        ...testFileReporters.entries
-            .expand((e) => ['--file-reporter', '${e.key}:${e.value}']),
+        ...testFileReporters.entries.expand(
+          (e) => ['--file-reporter', '${e.key}:${e.value}'],
+        ),
       if (jsonReportFilePath != null) ...[
         '--file-reporter',
-        'json:$jsonReportFilePath'
+        'json:$jsonReportFilePath',
       ],
       if (includeTags.isNotEmpty) ...includeTags.expand((t) => ['-t', t]),
       if (excludeTags.isNotEmpty) ...excludeTags.expand((t) => ['-x', t]),
       if (testsNames.isNotEmpty)
-        ...testsNames
-            .expand((p) => ['-n', p is RegExp ? p.pattern : p.toString()]),
+        ...testsNames.expand(
+          (p) => ['-n', p is RegExp ? p.pattern : p.toString()],
+        ),
       if (testCoverage != null && testCoverage.isNotEmpty) ...[
         '--coverage',
-        testCoverage
+        testCoverage,
       ],
       if (testJsTrace) '--js-trace',
       if (testDart2jsArgs2.isNotEmpty) ...[
         '--dart2js-args',
-        testDart2jsArgs2.join(' ')
+        testDart2jsArgs2.join(' '),
       ],
-      ...testsPaths
+      ...testsPaths,
     ];
 
     return testArgs;
@@ -667,8 +709,10 @@ class BonesUITestRunner {
     var dartTestConfigFile = File('dart_test.yaml').absolute;
     var includeDartTestConfig = dartTestConfigFile.existsSync();
 
-    var config =
-        buildBonesUITestConfig(includeDartTestConfig, dartTestConfigFile);
+    var config = buildBonesUITestConfig(
+      includeDartTestConfig,
+      dartTestConfigFile,
+    );
 
     bonesUiTestConfigFile.writeAsStringSync(config);
   }
@@ -677,8 +721,11 @@ class BonesUITestRunner {
   /// - If [includeDartTestConfig] is `true` should include the [dartTestConfigFile].
   /// - A detected date test configuration file.
   String buildBonesUITestConfig(
-      bool includeDartTestConfig, File dartTestConfigFile) {
-    String config = '''
+    bool includeDartTestConfig,
+    File dartTestConfigFile,
+  ) {
+    String config =
+        '''
 ##
 ## AUTO GENERATED:
 ##   $bonesUiTestCliTitle
@@ -730,8 +777,8 @@ class BonesUICompiler {
   final Directory compileDir;
 
   BonesUICompiler({Directory? projectDir, Directory? compileDir})
-      : projectDir = (projectDir ?? Directory.current).absolute,
-        compileDir = (compileDir ?? _createTempBonesUICompilerDir()).absolute;
+    : projectDir = (projectDir ?? Directory.current).absolute,
+      compileDir = (compileDir ?? _createTempBonesUICompilerDir()).absolute;
 
   /// Prepares the compiler.
   Future<void> prepare() async {
@@ -754,8 +801,10 @@ class BonesUICompiler {
     var buildArgs = ['run', 'build_runner', 'build', '-o', compileDirPath];
 
     // dart run build_runner build -o /tmp/compileDir/
-    var exitCode = await _dartRunner.runDartCommand(buildArgs,
-        workingDirectory: projectPath);
+    var exitCode = await _dartRunner.runDartCommand(
+      buildArgs,
+      workingDirectory: projectPath,
+    );
 
     if (exitCode != 0) {
       throw StateError("Dart build error. Exit code: $exitCode");
@@ -823,17 +872,25 @@ class DartRunner {
   FutureOr<String> get dartExecutable async =>
       _dartExecutable ??= await _executablePath('dart');
 
-  Future<int> runDartCommand(List<String> args,
-      {String? workingDirectory, bool inheritStdio = false}) async {
+  Future<int> runDartCommand(
+    List<String> args, {
+    String? workingDirectory,
+    bool inheritStdio = false,
+  }) async {
     var dartExecutable = await this.dartExecutable;
 
     workingDirectory ??= Directory.current.path;
 
-    var processMode =
-        inheritStdio ? ProcessStartMode.inheritStdio : ProcessStartMode.normal;
+    var processMode = inheritStdio
+        ? ProcessStartMode.inheritStdio
+        : ProcessStartMode.normal;
 
-    var process = await Process.start(dartExecutable, args,
-        workingDirectory: workingDirectory, mode: processMode);
+    var process = await Process.start(
+      dartExecutable,
+      args,
+      workingDirectory: workingDirectory,
+      mode: processMode,
+    );
 
     if (processMode == ProcessStartMode.normal) {
       var outputDecoder = systemEncoding.decoder;
@@ -848,8 +905,10 @@ class DartRunner {
 
   static final Map<String, String> _whichExecutables = <String, String>{};
 
-  Future<String> _executablePath(String executableName,
-      {bool refresh = false}) async {
+  Future<String> _executablePath(
+    String executableName, {
+    bool refresh = false,
+  }) async {
     executableName = executableName.trim();
 
     String? binPath;
@@ -887,8 +946,10 @@ class DartRunner {
 class BonesUIPlatform extends PlatformPlugin
     implements CustomizablePlatform<ExecutableSettings> {
   /// Instantiates a [BonesUIPlatform].
-  static Future<BonesUIPlatform> create(BonesUICompiler bonesUICompiler,
-      {bool showUI = false}) async {
+  static Future<BonesUIPlatform> create(
+    BonesUICompiler bonesUICompiler, {
+    bool showUI = false,
+  }) async {
     final compileDirPath = bonesUICompiler.compileDir.path;
 
     if (compileDirPath.length < 5) {
@@ -908,14 +969,21 @@ class BonesUIPlatform extends PlatformPlugin
   /// If `true` runs the tests showing the UI in the browser.
   final bool showUI;
 
-  BonesUIPlatform(this.browserPlatform, this.bonesUICompiler,
-      {this.showUI = false});
+  BonesUIPlatform(
+    this.browserPlatform,
+    this.bonesUICompiler, {
+    this.showUI = false,
+  });
 
   bool get headless => !showUI;
 
   @override
-  Future<RunnerSuite?> load(String path, SuitePlatform platform,
-      SuiteConfiguration suiteConfig, Map<String, Object?> message) async {
+  Future<RunnerSuite?> load(
+    String path,
+    SuitePlatform platform,
+    SuiteConfiguration suiteConfig,
+    Map<String, Object?> message,
+  ) async {
     print('** Compiling test...');
 
     var prevWorkingDir = Directory.current;
@@ -924,8 +992,12 @@ class BonesUIPlatform extends PlatformPlugin
 
     Directory.current = bonesUICompileDir;
 
-    var runnerSuite =
-        await browserPlatform.load(path, platform, suiteConfig, message);
+    var runnerSuite = await browserPlatform.load(
+      path,
+      platform,
+      suiteConfig,
+      message,
+    );
 
     Directory.current = prevWorkingDir;
 
@@ -938,8 +1010,9 @@ class BonesUIPlatform extends PlatformPlugin
 
   @override
   ExecutableSettings mergePlatformSettings(
-          ExecutableSettings settings1, ExecutableSettings settings2) =>
-      browserPlatform.mergePlatformSettings(settings1, settings2);
+    ExecutableSettings settings1,
+    ExecutableSettings settings2,
+  ) => browserPlatform.mergePlatformSettings(settings1, settings2);
 
   @override
   ExecutableSettings parsePlatformSettings(YamlMap settings) {
@@ -961,8 +1034,9 @@ class BonesUIPlatform extends PlatformPlugin
 }
 
 Directory _createTempBonesUICompilerDir() {
-  var tempDir = Directory(Directory.systemTemp.path)
-      .createTempSync('dart_test_bones_ui_');
+  var tempDir = Directory(
+    Directory.systemTemp.path,
+  ).createTempSync('dart_test_bones_ui_');
   return Directory(tempDir.resolveSymbolicLinksSync());
 }
 
@@ -986,15 +1060,24 @@ class _DocumentLog {
 
   final String? testMultipleUIPath;
 
-  _DocumentLog(this.id, this.content, this.time,
-      {this.decompressed = false, this.testPath, this.testMultipleUIPath});
+  _DocumentLog(
+    this.id,
+    this.content,
+    this.time, {
+    this.decompressed = false,
+    this.testPath,
+    this.testMultipleUIPath,
+  });
 
-  factory _DocumentLog.parse(String msg,
-      {String? testPath, String? testMultipleUIPath}) {
+  factory _DocumentLog.parse(
+    String msg, {
+    String? testPath,
+    String? testMultipleUIPath,
+  }) {
     var match = RegExp(
-            r'^\[DOCUMENT\]\s*\[(.*?)\]<<<<<<(\(GZIP:.*?\))?\n?(.*?)\n?>>>>>>(\d+)$',
-            dotAll: true)
-        .firstMatch(msg.trim());
+      r'^\[DOCUMENT\]\s*\[(.*?)\]<<<<<<(\(GZIP:.*?\))?\n?(.*?)\n?>>>>>>(\d+)$',
+      dotAll: true,
+    ).firstMatch(msg.trim());
 
     var id = match!.group(1)!;
     var gzip = match.group(2);
@@ -1010,10 +1093,14 @@ class _DocumentLog {
       content = utf8.decode(bytes);
     }
 
-    return _DocumentLog(id, content, DateTime.fromMillisecondsSinceEpoch(time),
-        decompressed: decompressed,
-        testPath: testPath,
-        testMultipleUIPath: testMultipleUIPath);
+    return _DocumentLog(
+      id,
+      content,
+      DateTime.fromMillisecondsSinceEpoch(time),
+      decompressed: decompressed,
+      testPath: testPath,
+      testMultipleUIPath: testMultipleUIPath,
+    );
   }
 
   String contentResolved({String? basePath, String? title}) {
@@ -1031,18 +1118,24 @@ class _DocumentLog {
   }
 
   String _setContentBasePath(String content, String basePath) {
-    var m = RegExp(r'<base\s+href="(.*?)"(.*?)>',
-            caseSensitive: false, dotAll: true)
-        .firstMatch(content);
+    var m = RegExp(
+      r'<base\s+href="(.*?)"(.*?)>',
+      caseSensitive: false,
+      dotAll: true,
+    ).firstMatch(content);
 
     if (m != null) {
       var attrs = m.group(2) ?? '';
 
       content = content.replaceFirst(
-          RegExp(r'<base\s.*?>'), '<base href="$basePath"$attrs>');
+        RegExp(r'<base\s.*?>'),
+        '<base href="$basePath"$attrs>',
+      );
     } else {
       content = content.replaceFirst(
-          RegExp(r'<head>'), '<head><base href="$basePath">');
+        RegExp(r'<head>'),
+        '<head><base href="$basePath">',
+      );
     }
     return content;
   }
@@ -1050,24 +1143,32 @@ class _DocumentLog {
   String _setContentTitle(String content, String title) {
     title = title.trim();
 
-    var m = RegExp(r'<title>(.*?)</title>', caseSensitive: false, dotAll: true)
-        .firstMatch(content);
+    var m = RegExp(
+      r'<title>(.*?)</title>',
+      caseSensitive: false,
+      dotAll: true,
+    ).firstMatch(content);
 
     if (m != null) {
       var prevTitle = m.group(1) ?? '';
 
       content = content.replaceFirst(
-          RegExp(r'<title>.*?</title>'), '<title>$prevTitle - $title</title>');
+        RegExp(r'<title>.*?</title>'),
+        '<title>$prevTitle - $title</title>',
+      );
     } else {
       content = content.replaceFirst(
-          RegExp(r'<title>.*?</title>'), '<title>$title</title>');
+        RegExp(r'<title>.*?</title>'),
+        '<title>$title</title>',
+      );
     }
     return content;
   }
 
   @override
   String toString({bool withContent = false}) {
-    var head = 'DOCUMENT[$id][$time]${decompressed ? '[decompressed]' : ''}'
+    var head =
+        'DOCUMENT[$id][$time]${decompressed ? '[decompressed]' : ''}'
         '${testPath != null ? '@$testPath' : ''}'
         '${testMultipleUIPath != null ? '@$testMultipleUIPath' : ''}';
 

@@ -13,7 +13,7 @@ import 'component_async.dart';
 enum ControllerPropertiesType {
   controllerValue,
   routeParameters,
-  implementation
+  implementation,
 }
 
 abstract class UIControlledComponent extends UIComponent {
@@ -27,30 +27,37 @@ abstract class UIControlledComponent extends UIComponent {
 
   final ControllerPropertiesType controllersPropertiesType;
 
-  UIControlledComponent(super.parent, this.loadingContent, this.errorContent,
-      {this.resultLoadingContent,
-      this.resultErrorContent,
-      ControllerPropertiesType? controllersPropertiesType,
-      super.classes,
-      super.classes2})
-      : controllersPropertiesType = controllersPropertiesType ??
-            ControllerPropertiesType.controllerValue,
-        super(renderOnConstruction: false);
+  UIControlledComponent(
+    super.parent,
+    this.loadingContent,
+    this.errorContent, {
+    this.resultLoadingContent,
+    this.resultErrorContent,
+    ControllerPropertiesType? controllersPropertiesType,
+    super.classes,
+    super.classes2,
+  }) : controllersPropertiesType =
+           controllersPropertiesType ??
+           ControllerPropertiesType.controllerValue,
+       super(renderOnConstruction: false);
 
   UIComponentAsync? _componentAsync;
 
   @override
   dynamic render() {
     if (!UIComponentAsync.isValidLocaleComponentAsync(
-        _componentAsync, getControllersProperties())) {
+      _componentAsync,
+      getControllersProperties(),
+    )) {
       reset();
       _componentAsync = UIComponentAsync(
-          content,
-          getControllersProperties,
-          (props) => renderAsync(props as MapProperties),
-          loadingContent,
-          errorContent,
-          id: '$id/_componentAsync');
+        content,
+        getControllersProperties,
+        (props) => renderAsync(props as MapProperties),
+        loadingContent,
+        errorContent,
+        id: '$id/_componentAsync',
+      );
     }
     return _componentAsync;
   }
@@ -97,7 +104,8 @@ abstract class UIControlledComponent extends UIComponent {
 
   MapProperties getControllersPropertiesByRouteParameters() {
     return MapProperties.fromStringProperties(
-        UINavigator.currentNavigation!.parameters!);
+      UINavigator.currentNavigation!.parameters!,
+    );
   }
 
   Map<String, dynamic>? _controllers;
@@ -138,36 +146,46 @@ abstract class UIControlledComponent extends UIComponent {
         this.resultErrorContent ?? UIComponent.copyRenderable(errorContent);
 
     if (!UIComponentAsync.isValidComponentAsync(
-        _componentAsyncResult, properties)) {
+      _componentAsyncResult,
+      properties,
+    )) {
       _componentAsyncResult = UIComponentAsync(
-          content,
-          getControllersProperties,
-          (props) => renderResult(props as MapProperties),
-          resultLoadingContent,
-          resultErrorContent,
-          id: '$id/_componentAsyncResult');
+        content,
+        getControllersProperties,
+        (props) => renderResult(props as MapProperties),
+        resultLoadingContent,
+        resultErrorContent,
+        id: '$id/_componentAsyncResult',
+      );
     }
 
     return renderControllersAndResult(
-        properties, _controllers, _componentAsyncResult);
+      properties,
+      _controllers,
+      _componentAsyncResult,
+    );
   }
 
   Future<Map<String, dynamic>> renderControllers(MapProperties properties);
 
   Future<bool> setupControllers(
-      MapProperties properties, Map<String, dynamic>? controllers);
+    MapProperties properties,
+    Map<String, dynamic>? controllers,
+  );
 
   Future<bool> setupControllersOnChange(
-      MapProperties properties, Map<String, dynamic>? controllers) async {
+    MapProperties properties,
+    Map<String, dynamic>? controllers,
+  ) async {
     return false;
   }
 
   Future<bool> listenControllers(Map<String, Object?> controllers) async {
     for (var control in controllers.values) {
       if (control.isElement) {
-        (control as Element)
-            .onChange
-            .listen((e) => callOnChangeControllers(control));
+        (control as Element).onChange.listen(
+          (e) => callOnChangeControllers(control),
+        );
       } else if (control is UIComponent) {
         control.onChange.listen((e) => callOnChangeControllers(control));
       } else if (control is UIAsyncContent) {
@@ -192,8 +210,11 @@ abstract class UIControlledComponent extends UIComponent {
     onChange.add(this);
   }
 
-  void onChangeController(Map<String, dynamic>? controllers,
-      bool validControllersSetup, dynamic changedController) {
+  void onChangeController(
+    Map<String, dynamic>? controllers,
+    bool validControllersSetup,
+    dynamic changedController,
+  ) {
     if (validControllersSetup) {
       switch (controllersPropertiesType) {
         case ControllerPropertiesType.controllerValue:
@@ -229,10 +250,14 @@ abstract class UIControlledComponent extends UIComponent {
   }
 
   bool isValidControllersSetup(
-      MapProperties properties, Map<String, dynamic>? controllers);
+    MapProperties properties,
+    Map<String, dynamic>? controllers,
+  );
 
   Future<dynamic> renderOnlyControllers(
-      MapProperties properties, Map<String, dynamic>? controllers) async {
+    MapProperties properties,
+    Map<String, dynamic>? controllers,
+  ) async {
     return _renderControllers(controllers);
   }
 
@@ -247,10 +272,10 @@ abstract class UIControlledComponent extends UIComponent {
       if (list.isNotEmpty) {
         var separatorH = createSpan(html: '&nbsp<wbr>');
         var separatorV = HTMLDivElement()
-              ..classList.add('w-100')
-              ..classList.add('d-md-none')
-            //..classes.add('d-lg-block')
-            ;
+          ..classList.add('w-100')
+          ..classList.add('d-md-none')
+        //..classes.add('d-lg-block')
+        ;
         list.add(separatorH);
         list.add(separatorV);
       }
@@ -285,8 +310,11 @@ abstract class UIControlledComponent extends UIComponent {
 
   Future<dynamic> renderResult(MapProperties properties);
 
-  Future<dynamic> renderControllersAndResult(MapProperties properties,
-      Map<String, dynamic>? controllers, dynamic result) async {
+  Future<dynamic> renderControllersAndResult(
+    MapProperties properties,
+    Map<String, dynamic>? controllers,
+    dynamic result,
+  ) async {
     return [_renderControllers(controllers), '<p>', result];
   }
 }

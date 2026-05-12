@@ -13,25 +13,27 @@ import 'bones_ui_web.dart';
 import 'component/bui.dart';
 import 'component/template.dart';
 
-typedef UIComponentInstantiator<C extends UIComponent> = C Function(
-    UIElement? parent,
-    Map<String, DOMAttribute> attributes,
-    UINode? contentHolder,
-    List<DOMNode>? contentNodes);
+typedef UIComponentInstantiator<C extends UIComponent> =
+    C Function(
+      UIElement? parent,
+      Map<String, DOMAttribute> attributes,
+      UINode? contentHolder,
+      List<DOMNode>? contentNodes,
+    );
 
 typedef UIComponentAttributeParser<T> = T? Function(dynamic value);
 
-typedef UIComponentAttributeGetter<C extends UIComponent, T> = T? Function(
-    C uiComponent);
+typedef UIComponentAttributeGetter<C extends UIComponent, T> =
+    T? Function(C uiComponent);
 
-typedef UIComponentAttributeSetter<C extends UIComponent, T> = void Function(
-    C uiComponent, T? value);
+typedef UIComponentAttributeSetter<C extends UIComponent, T> =
+    void Function(C uiComponent, T? value);
 
-typedef UIComponentAttributeAppender<C extends UIComponent, T> = void Function(
-    C uiComponent, T? value);
+typedef UIComponentAttributeAppender<C extends UIComponent, T> =
+    void Function(C uiComponent, T? value);
 
-typedef UIComponentAttributeCleaner<C extends UIComponent, T> = void Function(
-    C uiComponent);
+typedef UIComponentAttributeCleaner<C extends UIComponent, T> =
+    void Function(C uiComponent);
 
 /// Handler of a [UIComponent] attribute.
 class UIComponentAttributeHandler<C extends UIComponent, T> {
@@ -53,15 +55,16 @@ class UIComponentAttributeHandler<C extends UIComponent, T> {
 
   final UIComponentAttributeCleaner<C, T> cleaner;
 
-  UIComponentAttributeHandler(String name,
-      {this.parser,
-      this.getter,
-      this.setter,
-      UIComponentAttributeAppender<C, T>? appender,
-      UIComponentAttributeCleaner<C, T>? cleaner})
-      : name = normalizeComponentAttributeName(name),
-        appender = appender ?? setter,
-        cleaner = cleaner ?? ((c) => setter!(c, null)) {
+  UIComponentAttributeHandler(
+    String name, {
+    this.parser,
+    this.getter,
+    this.setter,
+    UIComponentAttributeAppender<C, T>? appender,
+    UIComponentAttributeCleaner<C, T>? cleaner,
+  }) : name = normalizeComponentAttributeName(name),
+       appender = appender ?? setter,
+       cleaner = cleaner ?? ((c) => setter!(c, null)) {
     if (getter == null) throw ArgumentError.notNull('getter');
     if (setter == null) throw ArgumentError.notNull('setter');
   }
@@ -105,37 +108,44 @@ class UIComponentGenerator<C extends UIComponent>
   final Map<String, UIComponentAttributeHandler> attributes;
 
   UIComponentGenerator(
-      this.tag,
-      this.generatedTag,
-      String componentClass,
-      String componentStyle,
-      this.instantiator,
-      Iterable<UIComponentAttributeHandler> attributes,
-      {this.hasChildrenElements = true,
-      this.usesContentHolder = true,
-      bool contentAsText = false})
-      : componentClass = DOMAttributeValueSet(
-            componentClass,
-            DOMAttribute.getAttributeDelimiter('class')!,
-            DOMAttribute.getAttributeDelimiterPattern('class')!),
-        componentStyle = DOMAttributeValueCSS(componentStyle),
-        attributes = Map<String, UIComponentAttributeHandler>.fromEntries(
-            attributes.map(((attr) => MapEntry(attr.name!, attr))));
+    this.tag,
+    this.generatedTag,
+    String componentClass,
+    String componentStyle,
+    this.instantiator,
+    Iterable<UIComponentAttributeHandler> attributes, {
+    this.hasChildrenElements = true,
+    this.usesContentHolder = true,
+    bool contentAsText = false,
+  }) : componentClass = DOMAttributeValueSet(
+         componentClass,
+         DOMAttribute.getAttributeDelimiter('class')!,
+         DOMAttribute.getAttributeDelimiterPattern('class')!,
+       ),
+       componentStyle = DOMAttributeValueCSS(componentStyle),
+       attributes = Map<String, UIComponentAttributeHandler>.fromEntries(
+         attributes.map(((attr) => MapEntry(attr.name!, attr))),
+       );
 
   @override
   UIElement generate(
-      DOMGenerator<UINode> domGenerator,
-      DOMTreeMap<UINode> treeMap,
-      tag,
-      DOMElement? domParent,
-      UINode? parent,
-      DOMNode domNode,
-      Map<String, DOMAttribute> attributes,
-      UINode? contentHolder,
-      List<DOMNode>? contentNodes,
-      DOMContext<UINode>? context) {
+    DOMGenerator<UINode> domGenerator,
+    DOMTreeMap<UINode> treeMap,
+    tag,
+    DOMElement? domParent,
+    UINode? parent,
+    DOMNode domNode,
+    Map<String, DOMAttribute> attributes,
+    UINode? contentHolder,
+    List<DOMNode>? contentNodes,
+    DOMContext<UINode>? context,
+  ) {
     var component = instantiator(
-        parent as UIElement?, attributes, contentHolder, contentNodes);
+      parent as UIElement?,
+      attributes,
+      contentHolder,
+      contentNodes,
+    );
     var anySet = component.appendAttributes(attributes.values);
 
     if (anySet) {
@@ -197,19 +207,25 @@ class UIComponentGenerator<C extends UIComponent>
 
   @override
   DOMElement? revert(
-      DOMGenerator<UINode> domGenerator,
-      DOMTreeMap<UINode>? treeMap,
-      DOMElement? domParent,
-      UIElement? parent,
-      UIElement? node) {
-    var attributes =
-        node != null ? node.attributes.toMap() : <String, String>{};
+    DOMGenerator<UINode> domGenerator,
+    DOMTreeMap<UINode>? treeMap,
+    DOMElement? domParent,
+    UIElement? parent,
+    UIElement? node,
+  ) {
+    var attributes = node != null
+        ? node.attributes.toMap()
+        : <String, String>{};
 
     var classes = _parseNodeClass(attributes);
     var style = _parseNodeStyle(attributes);
 
-    var domElement =
-        DOMElement(tag, attributes: attributes, classes: classes, style: style);
+    var domElement = DOMElement(
+      tag,
+      attributes: attributes,
+      classes: classes,
+      style: style,
+    );
 
     if (!hasChildrenElements) {
       if (treeMap != null) {
@@ -257,12 +273,16 @@ class UIComponentGenerator<C extends UIComponent>
 
     if (componentClass.hasAttributeValue && classes.isNotEmpty) {
       var attributeDelimiter = DOMAttribute.getAttributeDelimiter('class')!;
-      var attrClass = DOMAttributeValueList(classes, attributeDelimiter,
-          DOMAttribute.getAttributeDelimiterPattern('class')!);
+      var attrClass = DOMAttributeValueList(
+        classes,
+        attributeDelimiter,
+        DOMAttribute.getAttributeDelimiterPattern('class')!,
+      );
 
       attrClass.removeAttributeValueEntry('ui-component');
-      attrClass
-          .removeAttributeValueAllEntries(componentClass.asAttributeValues!);
+      attrClass.removeAttributeValueAllEntries(
+        componentClass.asAttributeValues!,
+      );
 
       classes = attrClass.asAttributeValue;
     }
@@ -277,7 +297,9 @@ class UIComponentGenerator<C extends UIComponent>
 
 abstract class ElementGeneratorBase extends ElementGenerator<UINode> {
   void setElementAttributes(
-      UIElement element, Map<String, DOMAttribute> attributes) {
+    UIElement element,
+    Map<String, DOMAttribute> attributes,
+  ) {
     element.classList.add(tag);
 
     var attrClass = attributes['class'];
@@ -304,7 +326,7 @@ class UIComponentDOMContext extends DOMContext<UINode> {
   final UIComponent uiComponent;
 
   UIComponentDOMContext(this.uiComponent, DOMContext<UINode>? parent)
-      : super(parent: parent, intlMessageResolver: parent?.intlMessageResolver);
+    : super(parent: parent, intlMessageResolver: parent?.intlMessageResolver);
 
   @override
   String toString() {
@@ -425,8 +447,9 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
 
   List<Map<String, String>> _routesEntries(bool menuRoutes) {
     return UINavigator.navigables
-        .map((e) =>
-            (menuRoutes ? e.menuRoutesAndNames : e.routesAndNames).entries)
+        .map(
+          (e) => (menuRoutes ? e.menuRoutesAndNames : e.routesAndNames).entries,
+        )
         .expand((e) => e)
         .map((e) => {'route': e.key, 'name': e.value})
         .toList();
@@ -437,16 +460,32 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
   }
 
   static void setElementsDivCentered(UIElement element) {
-    setTreeElementsDivCentered(element, 'div-centered-vh',
-        centerVertically: true, centerHorizontally: true);
+    setTreeElementsDivCentered(
+      element,
+      'div-centered-vh',
+      centerVertically: true,
+      centerHorizontally: true,
+    );
 
-    setTreeElementsDivCentered(element, 'div-centered-hv',
-        centerVertically: true, centerHorizontally: true);
+    setTreeElementsDivCentered(
+      element,
+      'div-centered-hv',
+      centerVertically: true,
+      centerHorizontally: true,
+    );
 
-    setTreeElementsDivCentered(element, 'div-centered-v',
-        centerVertically: true, centerHorizontally: false);
-    setTreeElementsDivCentered(element, 'div-centered-h',
-        centerVertically: false, centerHorizontally: true);
+    setTreeElementsDivCentered(
+      element,
+      'div-centered-v',
+      centerVertically: true,
+      centerHorizontally: false,
+    );
+    setTreeElementsDivCentered(
+      element,
+      'div-centered-h',
+      centerVertically: false,
+      centerHorizontally: true,
+    );
   }
 
   @override
@@ -467,22 +506,33 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
 
   @override
   List<UINode>? addExternalElementToElement(
-      UINode element, Object? externalElement,
-      {DOMTreeMap<Node>? treeMap, DOMContext<Node>? context}) {
+    UINode element,
+    Object? externalElement, {
+    DOMTreeMap<Node>? treeMap,
+    DOMContext<Node>? context,
+  }) {
     if (externalElement == null) return null;
 
     if (externalElement is List) {
       if (externalElement.isEmpty) return null;
 
       if (externalElement.length == 1) {
-        return addExternalElementToElement(element, externalElement.first,
-            treeMap: treeMap, context: context);
+        return addExternalElementToElement(
+          element,
+          externalElement.first,
+          treeMap: treeMap,
+          context: context,
+        );
       }
 
       var children = <UINode>[];
       for (var elem in externalElement) {
-        var child = addExternalElementToElement(element, elem,
-            treeMap: treeMap, context: context);
+        var child = addExternalElementToElement(
+          element,
+          elem,
+          treeMap: treeMap,
+          context: context,
+        );
         if (child != null) {
           children.addAll(child);
         }
@@ -497,13 +547,19 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
         if (element2 != null) {
           element2.appendChild(componentContent);
           component.setParent(element2);
-          _resolveParentUIComponent(element2, component.content,
-              childUIComponent: component);
+          _resolveParentUIComponent(
+            element2,
+            component.content,
+            childUIComponent: component,
+          );
           component.ensureRendered();
           return [componentContent];
         } else {
-          _resolveParentUIComponent(element2, component.content,
-              childUIComponent: component);
+          _resolveParentUIComponent(
+            element2,
+            component.content,
+            childUIComponent: component,
+          );
           return null;
         }
       }
@@ -515,8 +571,12 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
       return [span];
     }
 
-    return super.addExternalElementToElement(element, externalElement,
-        treeMap: treeMap, context: context);
+    return super.addExternalElementToElement(
+      element,
+      externalElement,
+      treeMap: treeMap,
+      context: context,
+    );
   }
 
   @override
@@ -528,18 +588,26 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
 
   @override
   void attachFutureElement(
-      DOMElement? domParent,
-      UINode? parent,
-      DOMNode domElement,
-      UINode? templateElement,
-      Object? futureElementResolved,
-      DOMTreeMap<UINode> treeMap,
-      DOMContext<UINode>? context) {
+    DOMElement? domParent,
+    UINode? parent,
+    DOMNode domElement,
+    UINode? templateElement,
+    Object? futureElementResolved,
+    DOMTreeMap<UINode> treeMap,
+    DOMContext<UINode>? context,
+  ) {
     futureElementResolved = resolveElements(futureElementResolved);
     if (futureElementResolved == null) return;
 
-    super.attachFutureElement(domParent, parent, domElement, templateElement,
-        futureElementResolved, treeMap, context);
+    super.attachFutureElement(
+      domParent,
+      parent,
+      domElement,
+      templateElement,
+      futureElementResolved,
+      treeMap,
+      context,
+    );
 
     if (futureElementResolved.isElement) {
       UIComponent? parentComponent;
@@ -547,28 +615,35 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
       if (context is UIComponentDOMContext) {
         parentComponent = context.uiComponent;
       } else {
-        parentComponent = UIRoot.getInstance()!
-            .findUIComponentByChild(futureElementResolved as UIElement);
+        parentComponent = UIRoot.getInstance()!.findUIComponentByChild(
+          futureElementResolved as UIElement,
+        );
       }
 
       if (parentComponent != null) {
-        parentComponent.componentInternals
-            .parseAttributes([futureElementResolved]);
-        parentComponent.componentInternals
-            .ensureAllRendered([futureElementResolved]);
+        parentComponent.componentInternals.parseAttributes([
+          futureElementResolved,
+        ]);
+        parentComponent.componentInternals.ensureAllRendered([
+          futureElementResolved,
+        ]);
 
         _resolveParentUIComponent(
-            parentComponent.content, futureElementResolved as UIElement,
-            parentUIComponent: parentComponent);
+          parentComponent.content,
+          futureElementResolved as UIElement,
+          parentUIComponent: parentComponent,
+        );
       }
     }
   }
 
   @override
-  List<UINode>? toElements(Object? elements,
-      {DOMTreeMap<UINode>? treeMap,
-      DOMContext<UINode>? context,
-      bool setTreeMapRoot = true}) {
+  List<UINode>? toElements(
+    Object? elements, {
+    DOMTreeMap<UINode>? treeMap,
+    DOMContext<UINode>? context,
+    bool setTreeMapRoot = true,
+  }) {
     if (elements is UIComponent) {
       elements.ensureRendered();
       var content = elements.content;
@@ -577,26 +652,38 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
       var content = elements.content;
       return content != null ? [content] : null;
     } else {
-      return super.toElements(elements,
-          treeMap: treeMap, context: context, setTreeMapRoot: setTreeMapRoot);
+      return super.toElements(
+        elements,
+        treeMap: treeMap,
+        context: context,
+        setTreeMapRoot: setTreeMapRoot,
+      );
     }
   }
 
   @override
   bool replaceChildElement(
-      UINode parent, UINode? child1, List<UINode>? child2) {
+    UINode parent,
+    UINode? child1,
+    List<UINode>? child2,
+  ) {
     var ok = super.replaceChildElement(parent, child1, child2);
 
     if (ok && child2 != null && child2.isNotEmpty) {
       var uiRoot = UIRoot.getInstance();
 
       for (var element in child2.whereElement()) {
-        var uiComponent = uiRoot!
-            .getUIComponentByContent(element, includePurgedEntries: true);
+        var uiComponent = uiRoot!.getUIComponentByContent(
+          element,
+          includePurgedEntries: true,
+        );
         if (uiComponent != null) {
           uiComponent.setParent(parent as UIElement);
-          _resolveParentUIComponent(parent, element,
-              childUIComponent: uiComponent);
+          _resolveParentUIComponent(
+            parent,
+            element,
+            childUIComponent: uiComponent,
+          );
           uiComponent.ensureRendered();
         }
       }
@@ -614,20 +701,28 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
     }
   }
 
-  void _resolveParentUIComponent(UINode? parent, UINode? child,
-      {UIComponent? parentUIComponent, UIComponent? childUIComponent}) {
+  void _resolveParentUIComponent(
+    UINode? parent,
+    UINode? child, {
+    UIComponent? parentUIComponent,
+    UIComponent? childUIComponent,
+  }) {
     UIComponent.resolveParentUIComponent(
-        parent: parent,
-        parentUIComponent: parentUIComponent,
-        element: child,
-        elementUIComponent: childUIComponent);
+      parent: parent,
+      parentUIComponent: parentUIComponent,
+      element: child,
+      elementUIComponent: childUIComponent,
+    );
   }
 }
 
 class UIDOMActionExecutor extends DOMActionExecutorWebHTML {
   @override
   UINode? callLocale(
-      UINode? target, List<String> parameters, DOMContext? context) {
+    UINode? target,
+    List<String> parameters,
+    DOMContext? context,
+  ) {
     var variables = context?.variables ?? {};
     var event = (variables['event'] as Map?) ?? {};
     var locale = event['value'] ?? '';

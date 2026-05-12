@@ -20,18 +20,21 @@ class UIDialogEditImage extends UIDialog {
 
   final String? btnStyle;
 
-  UIDialogEditImage(this.image,
-      {this.btnClasses = 'btn btn-primary',
-      this.btnStyle =
-          'background-color: rgba(0,0,0, 0.50); color: #ffffff; border-color: #ffffff;',
-      this.marginHorizontal = 8,
-      this.marginVertical = 48,
-      super.hideUIRoot = false})
-      : super(null,
-            showCloseButton: true,
-            backgroundGrey: 16,
-            backgroundAlpha: 0.80,
-            backgroundBlur: 2) {
+  UIDialogEditImage(
+    this.image, {
+    this.btnClasses = 'btn btn-primary',
+    this.btnStyle =
+        'background-color: rgba(0,0,0, 0.50); color: #ffffff; border-color: #ffffff;',
+    this.marginHorizontal = 8,
+    this.marginVertical = 48,
+    super.hideUIRoot = false,
+  }) : super(
+         null,
+         showCloseButton: true,
+         backgroundGrey: 16,
+         backgroundAlpha: 0.80,
+         backgroundBlur: 2,
+       ) {
     onClickListenOnlyForDialogButtonClass = true;
   }
 
@@ -39,23 +42,28 @@ class UIDialogEditImage extends UIDialog {
 
   @override
   dynamic renderContent() {
-    _canvasEditImage ??= _CanvasEditImage(image, image.naturalWidth,
-        image.naturalHeight, marginHorizontal, marginVertical);
+    _canvasEditImage ??= _CanvasEditImage(
+      image,
+      image.naturalWidth,
+      image.naturalHeight,
+      marginHorizontal,
+      marginVertical,
+    );
 
     return [
       _canvasEditImage!,
       $br(),
       $button(
-          classes: btnClasses,
-          style: btnStyle,
-          content: $span(content: '&nbsp;+&nbsp;'))
-        ..onClick.listen((event) => _canvasEditImage?.zoomIn()),
+        classes: btnClasses,
+        style: btnStyle,
+        content: $span(content: '&nbsp;+&nbsp;'),
+      )..onClick.listen((event) => _canvasEditImage?.zoomIn()),
       $nbsp(),
       $button(
-          classes: btnClasses,
-          style: btnStyle,
-          content: $span(content: '&nbsp;-&nbsp;'))
-        ..onClick.listen((event) => _canvasEditImage?.zoomOut()),
+        classes: btnClasses,
+        style: btnStyle,
+        content: $span(content: '&nbsp;-&nbsp;'),
+      )..onClick.listen((event) => _canvasEditImage?.zoomOut()),
       $nbsp(6),
       $button(classes: btnClasses, style: btnStyle, content: 'OK')
         ..onClick.listen((_) => hide()),
@@ -87,10 +95,21 @@ class _CanvasEditImage extends ExternalElementNode {
 
   late final TrackElementResize _elementResize;
 
-  _CanvasEditImage(this.img, this.imgNaturalWidth, this.imgNaturalHeight,
-      this.marginHorizontal, this.marginVertical)
-      : super(_buildCanvas(img, imgNaturalWidth, imgNaturalHeight,
-            marginHorizontal, marginVertical)) {
+  _CanvasEditImage(
+    this.img,
+    this.imgNaturalWidth,
+    this.imgNaturalHeight,
+    this.marginHorizontal,
+    this.marginVertical,
+  ) : super(
+        _buildCanvas(
+          img,
+          imgNaturalWidth,
+          imgNaturalHeight,
+          marginHorizontal,
+          marginVertical,
+        ),
+      ) {
     _elementResize = TrackElementResize();
 
     _resetZoom(requestRender: false);
@@ -144,7 +163,9 @@ class _CanvasEditImage extends ExternalElementNode {
   }
 
   static void _pointHandler(
-      TouchEvent event, void Function(Point<num> p1, [Point<num>? p2]) f) {
+    TouchEvent event,
+    void Function(Point<num> p1, [Point<num>? p2]) f,
+  ) {
     var canvasTouches = event.touches
         .toIterable()
         .where((t) => t.target.isA<HTMLCanvasElement>())
@@ -234,13 +255,18 @@ class _CanvasEditImage extends ExternalElementNode {
   }
 
   static HTMLCanvasElement _buildCanvas(
-      CanvasImageSource img,
-      int imgNaturalWidth,
-      int imgNaturalHeight,
-      int marginHorizontal,
-      int marginVertical) {
+    CanvasImageSource img,
+    int imgNaturalWidth,
+    int imgNaturalHeight,
+    int marginHorizontal,
+    int marginVertical,
+  ) {
     var d = _calcCanvasDimension(
-        imgNaturalWidth, imgNaturalHeight, marginHorizontal, marginVertical);
+      imgNaturalWidth,
+      imgNaturalHeight,
+      marginHorizontal,
+      marginVertical,
+    );
     var w = d[0];
     var h = d[1];
 
@@ -251,10 +277,15 @@ class _CanvasEditImage extends ExternalElementNode {
       ..style.borderRadius = '12px';
   }
 
-  static double _calcZoom(int imgNaturalWidth, int imgNaturalHeight,
-      int canvasWidth, int canvasHeight) {
-    var zoomW =
-        imgNaturalWidth <= canvasWidth ? 1.0 : canvasWidth / imgNaturalWidth;
+  static double _calcZoom(
+    int imgNaturalWidth,
+    int imgNaturalHeight,
+    int canvasWidth,
+    int canvasHeight,
+  ) {
+    var zoomW = imgNaturalWidth <= canvasWidth
+        ? 1.0
+        : canvasWidth / imgNaturalWidth;
     var zoomH = imgNaturalHeight <= canvasHeight
         ? 1.0
         : canvasHeight / imgNaturalHeight;
@@ -262,13 +293,21 @@ class _CanvasEditImage extends ExternalElementNode {
     return zoom;
   }
 
-  static List<int> _calcCanvasDimension(int imgNaturalWidth,
-      int imgNaturalHeight, int marginHorizontal, int marginVertical) {
+  static List<int> _calcCanvasDimension(
+    int imgNaturalWidth,
+    int imgNaturalHeight,
+    int marginHorizontal,
+    int marginVertical,
+  ) {
     var innerWidth = window.innerWidth - (marginHorizontal * 2);
     var innerHeight = window.innerHeight - (marginVertical * 2);
 
-    var zoom =
-        _calcZoom(imgNaturalWidth, imgNaturalHeight, innerWidth, innerHeight);
+    var zoom = _calcZoom(
+      imgNaturalWidth,
+      imgNaturalHeight,
+      innerWidth,
+      innerHeight,
+    );
 
     var imgW = (imgNaturalWidth * zoom).toInt();
     var imgH = (imgNaturalHeight * zoom).toInt();
@@ -281,7 +320,11 @@ class _CanvasEditImage extends ExternalElementNode {
 
   bool _updateCanvasDimension() {
     var d = _calcCanvasDimension(
-        imgNaturalWidth, imgNaturalHeight, marginHorizontal, marginVertical);
+      imgNaturalWidth,
+      imgNaturalHeight,
+      marginHorizontal,
+      marginVertical,
+    );
     var w = d[0];
     var h = d[1];
 
@@ -308,15 +351,16 @@ class _CanvasEditImage extends ExternalElementNode {
   double _zoom = 1.0;
 
   void _resetZoom({bool requestRender = true}) {
-    _fitZoom = _zoom =
-        _calcZoom(imgNaturalWidth, imgNaturalHeight, canvasWidth, canvasHeight);
+    _fitZoom = _zoom = _calcZoom(
+      imgNaturalWidth,
+      imgNaturalHeight,
+      canvasWidth,
+      canvasHeight,
+    );
 
     var t = _translate;
     if (t != null) {
-      _translateImpl(
-        Point(t.x + 1, t.y),
-        requestRender: false,
-      );
+      _translateImpl(Point(t.x + 1, t.y), requestRender: false);
     }
 
     if (requestRender) {

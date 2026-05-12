@@ -64,8 +64,13 @@ class InputConfig {
     }
 
     if (config is String) {
-      config = parseFromInlineMap(config, RegExp(r'\s*[,;]\s*'),
-          RegExp(r'\s*[=:]\s*'), parseString, parseString);
+      config = parseFromInlineMap(
+        config,
+        RegExp(r'\s*[,;]\s*'),
+        RegExp(r'\s*[=:]\s*'),
+        parseString,
+        parseString,
+      );
     }
 
     if (config is Map) {
@@ -79,8 +84,9 @@ class InputConfig {
       var attributes = findKeyValue(config, ['attributes'], true);
       var classes = findKeyValue(config, ['class', 'classes'], true);
       var labelStyle = findKeyValue(config, ['labelStyle'], true);
-      var labelVerticalAlign =
-          findKeyValue(config, ['labelVerticalAlign'], true);
+      var labelVerticalAlign = findKeyValue(config, [
+        'labelVerticalAlign',
+      ], true);
       var style = findKeyValue(config, ['style'], true);
       var options = findKeyValue(config, ['options'], true);
       var optional = parseBool(findKeyValue(config, ['optional'], true), false);
@@ -93,18 +99,21 @@ class InputConfig {
         options = asMapOfString(options);
       }
 
-      return InputConfig(id!, label,
-          type: type,
-          value: value,
-          checked: checked,
-          precision: precision,
-          attributes: attributes,
-          options: options,
-          optional: optional,
-          classes: classes,
-          labelStyle: labelStyle,
-          labelVerticalAlign: labelVerticalAlign,
-          style: style);
+      return InputConfig(
+        id!,
+        label,
+        type: type,
+        value: value,
+        checked: checked,
+        precision: precision,
+        attributes: attributes,
+        options: options,
+        optional: optional,
+        classes: classes,
+        labelStyle: labelStyle,
+        labelVerticalAlign: labelVerticalAlign,
+        style: style,
+      );
     }
 
     return null;
@@ -132,20 +141,21 @@ class InputConfig {
     Object? invalidValueMessage,
     this.onChangeListener,
     this.onActionListener,
-  })  : _id = id,
-        _type = type == null || type.isEmpty ? 'text' : type,
-        value = value == null || value.isEmpty ? null : value,
-        _placeholder =
-            placeholder == null || placeholder.isEmpty ? null : placeholder,
-        _optional = optional ?? false,
-        _attributes = attributes,
-        _options = options,
-        _inputRender = inputRender,
-        _valueProvider = valueProvider,
-        _valueValidator = valueValidator,
-        _valueNormalizer = valueNormalizer,
-        _invalidValueMessage = invalidValueMessage,
-        classes = UIComponent.parseClasses(classes) {
+  }) : _id = id,
+       _type = type == null || type.isEmpty ? 'text' : type,
+       value = value == null || value.isEmpty ? null : value,
+       _placeholder = placeholder == null || placeholder.isEmpty
+           ? null
+           : placeholder,
+       _optional = optional ?? false,
+       _attributes = attributes,
+       _options = options,
+       _inputRender = inputRender,
+       _valueProvider = valueProvider,
+       _valueValidator = valueValidator,
+       _valueNormalizer = valueNormalizer,
+       _invalidValueMessage = invalidValueMessage,
+       classes = UIComponent.parseClasses(classes) {
     if (label == null || label.isEmpty) {
       if (this.value != null) {
         label = this.value!;
@@ -229,8 +239,10 @@ class InputConfig {
     }
   }
 
-  dynamic renderInput(
-      {UIComponent? parent, FieldValueProvider? fieldValueProvider}) {
+  dynamic renderInput({
+    UIComponent? parent,
+    FieldValueProvider? fieldValueProvider,
+  }) {
     var inputID = id;
     var inputType = type;
     var inputValue = fieldValueProvider != null
@@ -258,7 +270,8 @@ class InputConfig {
         element = obj as Element;
       } else {
         throw StateError(
-            "Can't handle input rendered object type: ${obj.runtimeType} > $obj");
+          "Can't handle input rendered object type: ${obj.runtimeType} > $obj",
+        );
       }
     } else if (inputType == 'textarea') {
       inputElement = _renderTextArea(parent, inputValue);
@@ -270,12 +283,14 @@ class InputConfig {
       var capture = UIButtonCapturePhoto(null, text: label, fieldName: inputID);
       inputComponent = capture;
     } else if (inputType == 'color') {
-      var picker = UIColorPickerInput(null,
-          fieldName: inputID,
-          placeholder: placeholder,
-          value: inputValue,
-          pickerWidth: 150,
-          pickerHeight: 100);
+      var picker = UIColorPickerInput(
+        null,
+        fieldName: inputID,
+        placeholder: placeholder,
+        value: inputValue,
+        pickerWidth: 150,
+        pickerHeight: 100,
+      );
       inputComponent = picker;
     } else if (inputType == 'path') {
       element = _renderInputPath(parent, inputID, inputValue);
@@ -337,9 +352,10 @@ class InputConfig {
     if (containsIntlMessage(valText)) {
       var domSpan = $span(content: valText);
       var dom = domSpan.buildDOM(
-          generator: UIComponent.domGenerator,
-          treeMap: parent?.domTreeMap ?? UIComponent.domTreeMapDummy,
-          setTreeMapRoot: false);
+        generator: UIComponent.domGenerator,
+        treeMap: parent?.domTreeMap ?? UIComponent.domTreeMapDummy,
+        setTreeMapRoot: false,
+      );
       var text = dom?.textContent;
 
       return text;
@@ -356,8 +372,9 @@ class InputConfig {
     final style = this.style;
     if (style != null && style.isNotEmpty) {
       var cssText = inputElement.style?.cssText;
-      inputElement.style?.cssText =
-          cssText != null && cssText.isNotEmpty ? '$cssText ; $style' : style;
+      inputElement.style?.cssText = cssText != null && cssText.isNotEmpty
+          ? '$cssText ; $style'
+          : style;
     }
   }
 
@@ -383,37 +400,43 @@ class InputConfig {
   }
 
   HTMLDivElement? _renderInputPath(
-      UIComponent? parent, String fieldName, String? inputValue) {
+    UIComponent? parent,
+    String fieldName,
+    String? inputValue,
+  ) {
     var input = $input(style: 'width: auto', value: inputValue);
     DOMElement? button;
 
     var valueProvider = _valueProvider;
 
     if (valueProvider != null) {
-      button = $button(
-          classes: 'btn-sm btn-secondary',
-          style: 'font-size: 80%',
-          content: 'File')
-        ..onClick.listen((_) async {
-          var ret = valueProvider(fieldName) ?? '';
-          dynamic value;
-          if (ret is Future) {
-            value = await ret;
-          } else {
-            value = ret;
-          }
-          value ??= '';
+      button =
+          $button(
+              classes: 'btn-sm btn-secondary',
+              style: 'font-size: 80%',
+              content: 'File',
+            )
+            ..onClick.listen((_) async {
+              var ret = valueProvider(fieldName) ?? '';
+              dynamic value;
+              if (ret is Future) {
+                value = await ret;
+              } else {
+                value = ret;
+              }
+              value ??= '';
 
-          var element = input.runtime.node as HTMLInputElement;
-          element.value = '$value';
-          element.dispatchChangeEvent();
-        });
+              var element = input.runtime.node as HTMLInputElement;
+              element.value = '$value';
+              element.dispatchChangeEvent();
+            });
     }
 
     var div = $div(content: [input, button]).buildDOM(
-        generator: UIComponent.domGenerator,
-        treeMap: parent?.domTreeMap ?? UIComponent.domTreeMapDummy,
-        setTreeMapRoot: false);
+      generator: UIComponent.domGenerator,
+      treeMap: parent?.domTreeMap ?? UIComponent.domTreeMapDummy,
+      setTreeMapRoot: false,
+    );
 
     return div as HTMLDivElement?;
   }
@@ -454,7 +477,10 @@ class InputConfig {
   }
 
   Element _renderGenericInput(
-      UIComponent? parent, String? inputType, Object? inputValue) {
+    UIComponent? parent,
+    String? inputType,
+    Object? inputValue,
+  ) {
     var valText = _resolveValueText(parent, inputValue);
 
     var input = HTMLInputElement()
@@ -535,28 +561,30 @@ class UIInputTable extends UIComponent {
 
   final bool scrollToInvalidElement;
 
-  UIInputTable(super.parent, this._inputs,
-      {List? extraRows,
-      this.actionListenerComponent,
-      this.actionListener,
-      Duration? onChangeTriggerDelay,
-      this.inputErrorClass,
-      this.invalidValueClass,
-      this.showLabels = true,
-      this.showInvalidMessages = true,
-      this.scrollToInvalidElement = true,
-      super.classes,
-      super.style,
-      dynamic tableClasses,
-      String? tableStyle,
-      dynamic inputsClasses})
-      : _onChangeTriggerDelay =
-            onChangeTriggerDelay ?? defaultOnChangeTriggerDelay,
-        _extraRows = extraRows ?? [],
-        _tableClasses = UIComponent.parseClasses(tableClasses),
-        _tableStyle = tableStyle?.trim(),
-        _inputsClasses = UIComponent.parseClasses(inputsClasses),
-        super(componentClass: 'ui-infos-table');
+  UIInputTable(
+    super.parent,
+    this._inputs, {
+    List? extraRows,
+    this.actionListenerComponent,
+    this.actionListener,
+    Duration? onChangeTriggerDelay,
+    this.inputErrorClass,
+    this.invalidValueClass,
+    this.showLabels = true,
+    this.showInvalidMessages = true,
+    this.scrollToInvalidElement = true,
+    super.classes,
+    super.style,
+    dynamic tableClasses,
+    String? tableStyle,
+    dynamic inputsClasses,
+  }) : _onChangeTriggerDelay =
+           onChangeTriggerDelay ?? defaultOnChangeTriggerDelay,
+       _extraRows = extraRows ?? [],
+       _tableClasses = UIComponent.parseClasses(tableClasses),
+       _tableStyle = tableStyle?.trim(),
+       _inputsClasses = UIComponent.parseClasses(inputsClasses),
+       super(componentClass: 'ui-infos-table');
 
   InputConfig? getInputConfig(String fieldName) =>
       _inputs.firstWhereOrNull((e) => e.fieldName == fieldName);
@@ -576,7 +604,8 @@ class UIInputTable extends UIComponent {
     var highlightClass = this.highlightClass;
 
     return forEachEmptyFieldElement(
-        (fieldElement) => fieldElement.classList.add(highlightClass));
+      (fieldElement) => fieldElement.classList.add(highlightClass),
+    );
   }
 
   int unhighlightErrorInputs() {
@@ -646,8 +675,9 @@ class UIInputTable extends UIComponent {
       var fieldOk = input.validateValue(fieldValue);
 
       if (!fieldOk) {
-        var invalidValueMessage =
-            isEmptyValue(fieldValue) ? null : input.invalidValueMessage;
+        var invalidValueMessage = isEmptyValue(fieldValue)
+            ? null
+            : input.invalidValueMessage;
 
         highlightField(fieldName, invalidValueMessage: invalidValueMessage);
 
@@ -721,34 +751,43 @@ class UIInputTable extends UIComponent {
         var labelStyle = input.labelStyle;
         if (labelStyle != null) {
           var cssText = cell.style.cssText;
-          cell.style.cssText =
-              isNotEmptyObject(cssText) ? '$cssText ; $labelStyle' : labelStyle;
+          cell.style.cssText = isNotEmptyObject(cssText)
+              ? '$cssText ; $labelStyle'
+              : labelStyle;
         }
 
         if (label.isNotEmpty) {
           if (containsIntlMessage(label)) {
             var domLabel = $label(
-                classes: 'form-check-label',
-                forID: input.id,
-                style: 'font-weight: bold',
-                content: [label, ':', '&nbsp;']);
-            var dom = domLabel.buildDOM(
-                generator: UIComponent.domGenerator,
-                treeMap: domTreeMap,
-                setTreeMapRoot: false) as HTMLLabelElement;
+              classes: 'form-check-label',
+              forID: input.id,
+              style: 'font-weight: bold',
+              content: [label, ':', '&nbsp;'],
+            );
+            var dom =
+                domLabel.buildDOM(
+                      generator: UIComponent.domGenerator,
+                      treeMap: domTreeMap,
+                      setTreeMapRoot: false,
+                    )
+                    as HTMLLabelElement;
             cell.appendChild(dom);
           } else {
             cell.appendHTML(
-                '<label class="form-check-label" for="${input.id}"><b>$label:&nbsp;</b></label>');
+              '<label class="form-check-label" for="${input.id}"><b>$label:&nbsp;</b></label>',
+            );
           }
         }
       }
 
       var celInput = row.appendCell()..style.textAlign = 'left';
 
-      var inputRendered = input.renderInput(
-          parent: this,
-          fieldValueProvider: getPreviousRenderedFieldValue) as Object?;
+      var inputRendered =
+          input.renderInput(
+                parent: this,
+                fieldValueProvider: getPreviousRenderedFieldValue,
+              )
+              as Object?;
 
       if (inputRendered.isElement) {
         var inputRenderedElement = inputRendered as Element;
@@ -776,10 +815,11 @@ class UIInputTable extends UIComponent {
         }
       } else if (inputRendered is DOMElement) {
         inputRendered.buildDOM(
-            generator: UIComponent.domGenerator,
-            treeMap: domTreeMap,
-            parent: celInput,
-            setTreeMapRoot: false);
+          generator: UIComponent.domGenerator,
+          treeMap: domTreeMap,
+          parent: celInput,
+          setTreeMapRoot: false,
+        );
       }
 
       if (showInvalidMessages) {
@@ -850,10 +890,11 @@ class UIInputTable extends UIComponent {
 
     for (var element in children) {
       UIComponent.resolveParentUIComponent(
-          parent: content,
-          parentUIComponent: this,
-          element: element,
-          recursive: true);
+        parent: content,
+        parentUIComponent: this,
+        element: element,
+        recursive: true,
+      );
     }
   }
 
@@ -896,20 +937,26 @@ class UIInputTable extends UIComponent {
     }
 
     if (table != null) {
-      var dom = table.buildDOM(
-          generator: UIComponent.domGenerator,
-          treeMap: domTreeMap,
-          setTreeMapRoot: false) as HTMLTableElement;
+      var dom =
+          table.buildDOM(
+                generator: UIComponent.domGenerator,
+                treeMap: domTreeMap,
+                setTreeMapRoot: false,
+              )
+              as HTMLTableElement;
       var trs = dom.rows.toList();
       if (trs.isEmpty) return null;
       return trs.length == 1 ? trs.first : trs;
     }
 
     var div = $div(content: nodes);
-    var dom = div.buildDOM(
-        generator: UIComponent.domGenerator,
-        treeMap: domTreeMap,
-        setTreeMapRoot: false) as HTMLDivElement;
+    var dom =
+        div.buildDOM(
+              generator: UIComponent.domGenerator,
+              treeMap: domTreeMap,
+              setTreeMapRoot: false,
+            )
+            as HTMLDivElement;
 
     return dom.children.toList();
   }
@@ -959,8 +1006,10 @@ class UIInputTable extends UIComponent {
         var inputConfig = getInputConfig(fieldName);
         if (inputConfig == null) continue;
 
-        var interactionCompleter = InteractionCompleter('field:$fieldName',
-            triggerDelay: _onChangeTriggerDelay);
+        var interactionCompleter = InteractionCompleter(
+          'field:$fieldName',
+          triggerDelay: _onChangeTriggerDelay,
+        );
 
         addTrackedEventListener(elem, EventType.focus, (event) {
           var element = event.target;
@@ -976,8 +1025,11 @@ class UIInputTable extends UIComponent {
     }
   }
 
-  void _configureOnChangeListener(InputConfig? inputConfig, Element elem,
-      InteractionCompleter interactionCompleter) {
+  void _configureOnChangeListener(
+    InputConfig? inputConfig,
+    Element elem,
+    InteractionCompleter interactionCompleter,
+  ) {
     final onChangeListener = inputConfig?.onChangeListener;
     if (onChangeListener != null) {
       addTrackedEventListener(elem, EventType.change, onChangeListener);
@@ -1002,8 +1054,11 @@ class UIInputTable extends UIComponent {
     });
   }
 
-  void _configureActionListener(InputConfig? inputConfig, Element elem,
-      InteractionCompleter interactionCompleter) {
+  void _configureActionListener(
+    InputConfig? inputConfig,
+    Element elem,
+    InteractionCompleter interactionCompleter,
+  ) {
     var onActionListener = inputConfig?.onActionListener;
 
     if (onActionListener != null) {

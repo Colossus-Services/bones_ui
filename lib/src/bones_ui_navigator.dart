@@ -34,7 +34,8 @@ class UINavigator {
     _currentRouteParameters = parameters;
 
     UIConsole.log(
-        'Init UINavigator[$href]> route: $_currentRoute ; parameters:  $_currentRouteParameters ; secureContext: $isSecureContext');
+      'Init UINavigator[$href]> route: $_currentRoute ; parameters:  $_currentRouteParameters ; secureContext: $isSecureContext',
+    );
   }
 
   /// Returns [true] if this device is online.
@@ -70,11 +71,12 @@ class UINavigator {
   ///
   /// Returns true if called [navigateTo].
   static bool navigateToMainRoute(
-      bool Function() isLogged,
-      String mainRouteLogged,
-      String mainRouteNotLogged,
-      bool Function(String? route) isLoggedRoute,
-      [bool Function(String route)? isNotLoggedRoute]) {
+    bool Function() isLogged,
+    String mainRouteLogged,
+    String mainRouteNotLogged,
+    bool Function(String? route) isLoggedRoute, [
+    bool Function(String route)? isNotLoggedRoute,
+  ]) {
     isNotLoggedRoute ??= (r) => !isLoggedRoute(r);
 
     var currentRoute = UINavigator.currentRoute;
@@ -107,8 +109,12 @@ class UINavigator {
       return;
     }
 
-    _navigateTo(++_navigateIDCount, currentRoute,
-        parameters: _currentRouteParameters, force: force);
+    _navigateTo(
+      ++_navigateIDCount,
+      currentRoute,
+      parameters: _currentRouteParameters,
+      force: force,
+    );
   }
 
   String? _currentRoute;
@@ -138,8 +144,10 @@ class UINavigator {
   /// Returns `true` if [route] equals to [currentRoute].
   ///
   /// - If [parameters] is provided it checks if [parameters] is equals to [currentRouteParameters].
-  static bool equalsToCurrentRoute(String route,
-          {Map<String, String>? parameters}) =>
+  static bool equalsToCurrentRoute(
+    String route, {
+    Map<String, String>? parameters,
+  }) =>
       currentRoute == route &&
       (parameters == null || equalsToCurrentRouteParameters(parameters));
 
@@ -190,7 +198,8 @@ class UINavigator {
 
     if (route.toLowerCase() == 'uiconsole') {
       String? enableStr = parameters['enable'];
-      var enable = enableStr == null ||
+      var enable =
+          enableStr == null ||
           enableStr.toLowerCase() == 'true' ||
           enableStr == '1';
 
@@ -202,77 +211,112 @@ class UINavigator {
     }
 
     UIConsole.log(
-        'UINavigator._navigateToFromURL[$url] route: $route ; parameters: $parameters');
+      'UINavigator._navigateToFromURL[$url] route: $route ; parameters: $parameters',
+    );
 
-    _navigateTo(++_navigateIDCount, route,
-        parameters: parameters, force: force, fromURL: true);
+    _navigateTo(
+      ++_navigateIDCount,
+      route,
+      parameters: parameters,
+      force: force,
+      fromURL: true,
+    );
   }
 
   /// Navigate using [navigation] do determine route and parameters.
   static void navigate(Navigation navigation, [bool force = false]) {
     if (!navigation.isValid) return;
-    get()._callNavigateTo(navigation.route,
-        parameters: navigation.parameters, force: force);
+    get()._callNavigateTo(
+      navigation.route,
+      parameters: navigation.parameters,
+      force: force,
+    );
   }
 
   /// Navigate asynchronously using [navigation] do determine route and parameters.
   static void navigateAsync(Navigation navigation, {bool force = false}) {
     if (!navigation.isValid) return;
     get()._callNavigateToAsync(
-        navigation.route, navigation.parameters, null, force);
+      navigation.route,
+      navigation.parameters,
+      null,
+      force,
+    );
   }
 
   /// Navigate to a [route] with [parameters] or [parametersProvider].
   ///
   /// [force] If [true] changes the route even if the current route is the same.
-  static void navigateTo(String? route,
-      {Map<String, String>? parameters,
-      ParametersProvider? parametersProvider,
-      bool force = false}) {
-    get()._callNavigateTo(route,
-        parameters: parameters,
-        parametersProvider: parametersProvider,
-        force: force);
+  static void navigateTo(
+    String? route, {
+    Map<String, String>? parameters,
+    ParametersProvider? parametersProvider,
+    bool force = false,
+  }) {
+    get()._callNavigateTo(
+      route,
+      parameters: parameters,
+      parametersProvider: parametersProvider,
+      force: force,
+    );
   }
 
   /// Navigate asynchronously to a [route] with [parameters] or [parametersProvider].
   ///
   /// [force] If [true] changes the route even if the current route is the same.
-  static void navigateToAsync(String? route,
-      {Map<String, String>? parameters,
-      ParametersProvider? parametersProvider,
-      bool force = false}) {
+  static void navigateToAsync(
+    String? route, {
+    Map<String, String>? parameters,
+    ParametersProvider? parametersProvider,
+    bool force = false,
+  }) {
     get()._callNavigateToAsync(route, parameters, parametersProvider, force);
   }
 
-  void _callNavigateTo(String? route,
-      {Map<String, String>? parameters,
-      ParametersProvider? parametersProvider,
-      bool force = false}) {
+  void _callNavigateTo(
+    String? route, {
+    Map<String, String>? parameters,
+    ParametersProvider? parametersProvider,
+    bool force = false,
+  }) {
     route ??= '';
     if (_navigables.isEmpty || findNavigable(route) == null) {
       Future.delayed(
-          Duration(milliseconds: 50),
-          () => _navigateTo(++_navigateIDCount, route,
-              parameters: parameters,
-              parametersProvider: parametersProvider,
-              force: force));
-    } else {
-      _navigateTo(++_navigateIDCount, route,
+        Duration(milliseconds: 50),
+        () => _navigateTo(
+          ++_navigateIDCount,
+          route,
           parameters: parameters,
           parametersProvider: parametersProvider,
-          force: force);
+          force: force,
+        ),
+      );
+    } else {
+      _navigateTo(
+        ++_navigateIDCount,
+        route,
+        parameters: parameters,
+        parametersProvider: parametersProvider,
+        force: force,
+      );
     }
   }
 
-  void _callNavigateToAsync(String? route,
-      [Map<String, String>? parameters,
-      ParametersProvider? parametersProvider,
-      bool force = false]) {
-    Future.microtask(() => _navigateTo(++_navigateIDCount, route,
+  void _callNavigateToAsync(
+    String? route, [
+    Map<String, String>? parameters,
+    ParametersProvider? parametersProvider,
+    bool force = false,
+  ]) {
+    Future.microtask(
+      () => _navigateTo(
+        ++_navigateIDCount,
+        route,
         parameters: parameters,
         parametersProvider: parametersProvider,
-        force: force));
+        force: force,
+      ),
+    );
   }
 
   int _navigateCount = 0;
@@ -317,17 +361,21 @@ class UINavigator {
   int _navigateIDCount = 0;
   int _lastNavigateID = 0;
 
-  void _navigateTo(int navigateID, String? route,
-      {Map<String, String>? parameters,
-      ParametersProvider? parametersProvider,
-      bool force = false,
-      bool fromURL = false,
-      int cantFindNavigableRetry = 0}) {
+  void _navigateTo(
+    int navigateID,
+    String? route, {
+    Map<String, String>? parameters,
+    ParametersProvider? parametersProvider,
+    bool force = false,
+    bool fromURL = false,
+    int cantFindNavigableRetry = 0,
+  }) {
     if (navigateID <= _lastNavigateID) return;
 
     if (route == '<') {
-      var navigation =
-          _navigationHistory.isNotEmpty ? _navigationHistory.last : null;
+      var navigation = _navigationHistory.isNotEmpty
+          ? _navigationHistory.last
+          : null;
 
       if (navigation != null) {
         route = navigation.route;
@@ -364,11 +412,15 @@ class UINavigator {
     if (routeNavigable == null && cantFindNavigableRetry < 3) {
       var delay = 100 + (cantFindNavigableRetry * 500);
       Future.delayed(
-          Duration(milliseconds: delay),
-          () => _navigateTo(navigateID, route,
-              parameters: parameters,
-              force: force,
-              cantFindNavigableRetry: cantFindNavigableRetry + 1));
+        Duration(milliseconds: delay),
+        () => _navigateTo(
+          navigateID,
+          route,
+          parameters: parameters,
+          force: force,
+          cantFindNavigableRetry: cantFindNavigableRetry + 1,
+        ),
+      );
       return;
     }
 
@@ -394,14 +446,17 @@ class UINavigator {
     _lastNavigateID = navigateID;
 
     UIConsole.log(
-        'UINavigator.navigateTo[force: $force ; count: $_navigateCount] from: $_lastNavigateRoute $_lastNavigateRouteParameters > to: $route $parameters');
+      'UINavigator.navigateTo[force: $force ; count: $_navigateCount] from: $_lastNavigateRoute $_lastNavigateRouteParameters > to: $route $parameters',
+    );
 
     _currentRoute = route;
     _currentRouteParameters = copyMapString(parameters);
 
     if (_lastNavigateRoute != null) {
-      var navigation =
-          Navigation(_lastNavigateRoute!, _lastNavigateRouteParameters);
+      var navigation = Navigation(
+        _lastNavigateRoute!,
+        _lastNavigateRouteParameters,
+      );
       _navigationHistory.add(navigation);
 
       if (_navigationHistory.length > 12) {
@@ -516,7 +571,9 @@ class UINavigator {
   }
 
   void _findElementNavigableRoutes(
-      List<UIElement> elements, List<String> routes) {
+    List<UIElement> elements,
+    List<String> routes,
+  ) {
     for (var elem in elements) {
       var navigateRoute = elem.getAttribute('navigate');
       if (navigateRoute != null &&
@@ -549,10 +606,13 @@ class UINavigator {
 
   /// Register a `onClick` listener in [element] to navigate to [route]
   /// with [parameters].
-  static StreamSubscription? navigateOnClick(Element element, String? route,
-      [Map<String, String>? parameters,
-      ParametersProvider? parametersProvider,
-      bool force = false]) {
+  static StreamSubscription? navigateOnClick(
+    Element element,
+    String? route, [
+    Map<String, String>? parameters,
+    ParametersProvider? parametersProvider,
+    bool force = false,
+  ]) {
     var paramsStr = encodeQueryString(parameters);
 
     var attrRoute = element.getAttribute('__navigate__route');
@@ -569,10 +629,12 @@ class UINavigator {
         var elemRouteParams = element.getAttribute('__navigate__parameters');
 
         if (elemRoute == route && elemRouteParams == paramsStr) {
-          navigateTo(route,
-              parameters: parameters,
-              parametersProvider: parametersProvider,
-              force: force);
+          navigateTo(
+            route,
+            parameters: parameters,
+            parametersProvider: parametersProvider,
+            force: force,
+          );
         } else if (subscriptionHolder.isNotEmpty) {
           var subscription = subscriptionHolder[0];
           subscription.cancel();
@@ -635,7 +697,9 @@ class Navigation {
   /// - It's the same format used in an URL fragment route.
   /// - See [encodeParameters].
   static String encodeRouteAndParameters(
-      String route, Map<String, String>? parameters) {
+    String route,
+    Map<String, String>? parameters,
+  ) {
     route = route.trim();
 
     return parameters != null && parameters.isNotEmpty
@@ -671,23 +735,23 @@ class Navigation {
 
   List<String>? parameterAsStringList(String key, [List<String>? def]) =>
       parameters != null
-          ? parseStringFromInlineList(parameters![key], RegExp(r'\s*,\s*'), def)
-          : def;
+      ? parseStringFromInlineList(parameters![key], RegExp(r'\s*,\s*'), def)
+      : def;
 
   List<int>? parameterAsIntList(String key, [List<int>? def]) =>
       parameters != null
-          ? parseIntsFromInlineList(parameters![key], RegExp(r'\s*,\s*'), def)
-          : def;
+      ? parseIntsFromInlineList(parameters![key], RegExp(r'\s*,\s*'), def)
+      : def;
 
   List<num>? parameterAsNumList(String key, [List<num>? def]) =>
       parameters != null
-          ? parseNumsFromInlineList(parameters![key], RegExp(r'\s*,\s*'), def)
-          : def;
+      ? parseNumsFromInlineList(parameters![key], RegExp(r'\s*,\s*'), def)
+      : def;
 
   List<bool>? parameterAsBoolList(String key, [List<bool>? def]) =>
       parameters != null
-          ? parseBoolsFromInlineList(parameters![key], RegExp(r'\s*,\s*'), def)
-          : def;
+      ? parseBoolsFromInlineList(parameters![key], RegExp(r'\s*,\s*'), def)
+      : def;
 
   @override
   String toString() {
@@ -707,21 +771,23 @@ abstract class UINavigableComponent extends UIComponent {
 
   Map<String, String>? _currentRouteParameters;
 
-  UINavigableComponent(super.parent, Iterable<String> routes,
-      {dynamic componentClass,
-      dynamic componentStyle,
-      super.classes,
-      super.classes2,
-      super.style,
-      super.style2,
-      super.id,
-      super.inline,
-      bool renderOnConstruction = false})
-      : _routes = routes.toList(),
-        super(componentClass: [
-          UINavigableComponent.componentClass,
-          componentClass
-        ], renderOnConstruction: renderOnConstruction) {
+  UINavigableComponent(
+    super.parent,
+    Iterable<String> routes, {
+    dynamic componentClass,
+    dynamic componentStyle,
+    super.classes,
+    super.classes2,
+    super.style,
+    super.style2,
+    super.id,
+    super.inline,
+    bool renderOnConstruction = false,
+  }) : _routes = routes.toList(),
+       super(
+         componentClass: [UINavigableComponent.componentClass, componentClass],
+         renderOnConstruction: renderOnConstruction,
+       ) {
     _normalizeRoutes();
 
     if (findRoutes!) updateRoutes();
@@ -937,15 +1003,18 @@ abstract class UINavigableContent extends UINavigableComponent {
   /// Optional top margin (in px) for the content.
   int topMargin;
 
-  UINavigableContent(super.parent, List<String> super.routes,
-      {this.topMargin = 0,
-      super.classes,
-      super.classes2,
-      super.style,
-      super.style2,
-      super.inline,
-      super.renderOnConstruction,
-      super.id});
+  UINavigableContent(
+    super.parent,
+    List<String> super.routes, {
+    this.topMargin = 0,
+    super.classes,
+    super.classes2,
+    super.style,
+    super.style2,
+    super.inline,
+    super.renderOnConstruction,
+    super.id,
+  });
 
   @override
   dynamic render() {

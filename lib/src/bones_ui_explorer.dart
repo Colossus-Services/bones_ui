@@ -203,7 +203,7 @@ class JSONConfigDocument extends ConfigDocument {
   JSONConfigDocument(this._document);
 
   JSONConfigDocument.loadFromJSONString(String json)
-      : this(dart_convert.json.decode(json));
+    : this(dart_convert.json.decode(json));
 
   JSONConfigDocument.loadFromJSON(dynamic json) : this(json);
 
@@ -222,7 +222,7 @@ class JSONConfigDocument extends ConfigDocument {
 
 class YAMLConfig extends ResourceConfig<YAMLConfigDocument> {
   YAMLConfig(dynamic resourceContent)
-      : super(ResourceContent.from(resourceContent));
+    : super(ResourceContent.from(resourceContent));
 
   @override
   YAMLConfigDocument loadDocument(String content) =>
@@ -236,7 +236,7 @@ class YAMLConfig extends ResourceConfig<YAMLConfigDocument> {
 
 class JSONConfig extends ResourceConfig<JSONConfigDocument> {
   JSONConfig(dynamic resourceContent)
-      : super(ResourceContent.from(resourceContent));
+    : super(ResourceContent.from(resourceContent));
 
   JSONConfig.withDocument(JSONConfigDocument doc) : super(null) {
     setDocument(doc);
@@ -301,7 +301,8 @@ class ExplorerModel {
       resourceConfig = JSONConfig(resourceConfigUri);
     } else {
       throw ArgumentError(
-          'Unknown config extension[$extension]: $resourceConfigUri');
+        'Unknown config extension[$extension]: $resourceConfigUri',
+      );
     }
 
     return ExplorerModel(resourceConfig);
@@ -331,11 +332,22 @@ class UIExplorer extends UIComponentAsync {
 
   final ExplorerModel model;
 
-  UIExplorer(UIElement? parent, dynamic model,
-      {loadingContent, errorContent, dynamic classes})
-      : model = ExplorerModel.from(model)!,
-        super(parent, null, null, loadingContent, errorContent,
-            componentClass: componentClass, classes2: classes);
+  UIExplorer(
+    UIElement? parent,
+    dynamic model, {
+    loadingContent,
+    errorContent,
+    dynamic classes,
+  }) : model = ExplorerModel.from(model)!,
+       super(
+         parent,
+         null,
+         null,
+         loadingContent,
+         errorContent,
+         componentClass: componentClass,
+         classes2: classes,
+       );
 
   @override
   Map<String, dynamic> renderPropertiesProvider() {
@@ -390,8 +402,11 @@ class UIExplorer extends UIComponentAsync {
 
     ResourceContent? resourceContent;
     if (localeUrlPattern != null) {
-      var intlResourceUri =
-          IntlResourceUri(RegExp(localeUrlPattern), url, _resourceContentCache);
+      var intlResourceUri = IntlResourceUri(
+        RegExp(localeUrlPattern),
+        url,
+        _resourceContentCache,
+      );
       resourceContent = await intlResourceUri.resolveResourceContent();
     } else {
       resourceContent = ResourceContent.fromURI(uri);
@@ -431,29 +446,45 @@ class UIExplorer extends UIComponentAsync {
 
     var viewer = MapProperties.fromMap(conf.getAsMap('viewer')!);
 
-    return _UIExplorerQuery(content, inputConfigs, executor, viewer,
-        loadingContent: '${IntlBasicDictionary.msg('loading')}...',
-        errorContent: '${IntlBasicDictionary.msg('error')}!');
+    return _UIExplorerQuery(
+      content,
+      inputConfigs,
+      executor,
+      viewer,
+      loadingContent: '${IntlBasicDictionary.msg('loading')}...',
+      errorContent: '${IntlBasicDictionary.msg('error')}!',
+    );
   }
 
   Future<dynamic> renderCatalog() async {
     var conf = model.configDocument!;
 
-    var documentInputConfigs =
-        InputConfig.listFromMap(conf.getAsMap('document')!);
+    var documentInputConfigs = InputConfig.listFromMap(
+      conf.getAsMap('document')!,
+    );
 
-    var documentViewer =
-        MapProperties.fromMap(conf.getAsMap('document_viewer')!);
+    var documentViewer = MapProperties.fromMap(
+      conf.getAsMap('document_viewer')!,
+    );
 
-    var documentPreview =
-        MapProperties.fromMap(conf.getAsMap('document_preview')!);
-    var documentStorage =
-        MapProperties.fromMap(conf.getAsMap('document_storage')!);
-    var documentListing =
-        MapProperties.fromMap(conf.getAsMap('document_listing')!);
+    var documentPreview = MapProperties.fromMap(
+      conf.getAsMap('document_preview')!,
+    );
+    var documentStorage = MapProperties.fromMap(
+      conf.getAsMap('document_storage')!,
+    );
+    var documentListing = MapProperties.fromMap(
+      conf.getAsMap('document_listing')!,
+    );
 
-    return _UIExplorerCatalog(content, documentInputConfigs, documentViewer,
-        documentPreview, documentStorage, documentListing);
+    return _UIExplorerCatalog(
+      content,
+      documentInputConfigs,
+      documentViewer,
+      documentPreview,
+      documentStorage,
+      documentListing,
+    );
   }
 }
 
@@ -470,22 +501,23 @@ class _UIExplorerCatalog extends UIComponent {
   final MapProperties _documentListing;
 
   _UIExplorerCatalog(
-      super.parent,
-      this.documentInputConfig,
-      this._documentViewer,
-      this._documentPreview,
-      this._documentStorage,
-      this._documentListing)
-      : super(renderOnConstruction: false);
+    super.parent,
+    this.documentInputConfig,
+    this._documentViewer,
+    this._documentPreview,
+    this._documentStorage,
+    this._documentListing,
+  ) : super(renderOnConstruction: false);
 
   @override
   dynamic render() {
     var listingAsync = UIComponentAsync(
-        content,
-        _listingProperties,
-        renderListing,
-        '${IntlBasicDictionary.msg('loading')}...',
-        '${IntlBasicDictionary.msg('error')}!');
+      content,
+      _listingProperties,
+      renderListing,
+      '${IntlBasicDictionary.msg('loading')}...',
+      '${IntlBasicDictionary.msg('error')}!',
+    );
 
     var newDoc = renderNewDocument();
 
@@ -501,15 +533,18 @@ class _UIExplorerCatalog extends UIComponent {
   }
 
   Future<dynamic> renderListing(Map<String, dynamic> properties) async {
-    var httpRequester = HttpRequester(MapProperties.fromMap(_documentListing),
-        MapProperties.fromMap(properties));
+    var httpRequester = HttpRequester(
+      MapProperties.fromMap(_documentListing),
+      MapProperties.fromMap(properties),
+    );
 
     var response = await httpRequester.doRequest();
 
     var viewerRender = _ViewerRender(_documentViewer);
 
-    var responseType =
-        httpRequester.config.getPropertyAsStringTrimLC('response');
+    var responseType = httpRequester.config.getPropertyAsStringTrimLC(
+      'response',
+    );
 
     return viewerRender.render(content, responseType, response);
   }
@@ -519,9 +554,10 @@ class _UIExplorerCatalog extends UIComponent {
     var sendButton = UIButton(content, 'Send');
 
     var error = $span(
-        classes: 'ui-text-alert',
-        attributes: {'hidden': 'true', 'field': 'send-error'},
-        content: 'Error sending!');
+      classes: 'ui-text-alert',
+      attributes: {'hidden': 'true', 'field': 'send-error'},
+      content: 'Error sending!',
+    );
 
     sendButton.onClick.listen((e) => _sendNewDocument(documentInputs));
 
@@ -531,8 +567,9 @@ class _UIExplorerCatalog extends UIComponent {
   void _sendNewDocument(UIInputTable documentInputs) async {
     var fields = documentInputs.getFields();
 
-    var inputFields =
-        documentInputConfig.map((input) => input.fieldName).toList();
+    var inputFields = documentInputConfig
+        .map((input) => input.fieldName)
+        .toList();
     fields.removeWhere((k, v) => !inputFields.contains(k));
 
     var document = dart_convert.json.encode(fields);
@@ -540,7 +577,9 @@ class _UIExplorerCatalog extends UIComponent {
     fields['DOCUMENT'] = document;
 
     var httpRequester = HttpRequester(
-        MapProperties.fromMap(_documentStorage), MapProperties.fromMap(fields));
+      MapProperties.fromMap(_documentStorage),
+      MapProperties.fromMap(fields),
+    );
     var response = await httpRequester.doRequest();
 
     if (response == null) {
@@ -560,11 +599,20 @@ class _UIExplorerQuery extends UIControlledComponent {
   final MapProperties _viewer;
 
   _UIExplorerQuery(
-      UIElement? parent, this.inputConfig, this._executor, this._viewer,
-      {dynamic loadingContent, dynamic errorContent, dynamic classes})
-      : super(parent, loadingContent, errorContent,
-            controllersPropertiesType: ControllerPropertiesType.implementation,
-            classes: classes);
+    UIElement? parent,
+    this.inputConfig,
+    this._executor,
+    this._viewer, {
+    dynamic loadingContent,
+    dynamic errorContent,
+    dynamic classes,
+  }) : super(
+         parent,
+         loadingContent,
+         errorContent,
+         controllersPropertiesType: ControllerPropertiesType.implementation,
+         classes: classes,
+       );
 
   @override
   MapProperties getControllersProperties() {
@@ -583,20 +631,25 @@ class _UIExplorerQuery extends UIControlledComponent {
 
   @override
   Future<Map<String, dynamic>> renderControllers(
-      MapProperties properties) async {
+    MapProperties properties,
+  ) async {
     return {'table': UIInputTable(parent, inputConfig)};
   }
 
   @override
   bool isValidControllersSetup(
-      MapProperties properties, Map<String, dynamic>? controllers) {
+    MapProperties properties,
+    Map<String, dynamic>? controllers,
+  ) {
     var inputTable = controllers!['table'] as UIInputTable;
     return inputTable.checkFields();
   }
 
   @override
   Future<bool> setupControllers(
-      MapProperties properties, Map<String, dynamic>? controllers) async {
+    MapProperties properties,
+    Map<String, dynamic>? controllers,
+  ) async {
     var inputTable = controllers!['table'] as UIInputTable?;
 
     properties.forEach((k, v) {
@@ -616,8 +669,11 @@ class _UIExplorerQuery extends UIControlledComponent {
   }
 
   @override
-  void onChangeController(Map<String, dynamic>? controllers,
-      bool validControllersSetup, dynamic changedController) {
+  void onChangeController(
+    Map<String, dynamic>? controllers,
+    bool validControllersSetup,
+    dynamic changedController,
+  ) {
     if (!validControllersSetup) return;
 
     refreshComponentAsync();
@@ -634,7 +690,9 @@ class _UIExplorerQuery extends UIControlledComponent {
   }
 
   Future<dynamic> executeQuery(
-      MapProperties properties, MapProperties executor) async {
+    MapProperties properties,
+    MapProperties executor,
+  ) async {
     var type = executor.getPropertyAsStringTrimLC('type', 'http');
 
     if (type == 'http' || type == 'https') {
@@ -644,8 +702,12 @@ class _UIExplorerQuery extends UIControlledComponent {
     }
   }
 
-  Future<dynamic> executeQueryHttp(MapProperties executor, String? type,
-      MapProperties properties, int? page) async {
+  Future<dynamic> executeQueryHttp(
+    MapProperties executor,
+    String? type,
+    MapProperties properties,
+    int? page,
+  ) async {
     var httpRequester = HttpRequester(executor, properties);
     return httpRequester.doRequest();
   }
@@ -657,7 +719,10 @@ class _ViewerRender {
   _ViewerRender(this.config);
 
   Future<dynamic> render(
-      UIElement? output, String? contentType, Object? content) async {
+    UIElement? output,
+    String? contentType,
+    Object? content,
+  ) async {
     var type = config.getPropertyAsStringTrimLC('type', 'html');
 
     if (type == 'html') {

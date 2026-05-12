@@ -34,12 +34,14 @@ class MenuEntry<P> extends MenuItem {
 
   P? payload;
 
-  MenuEntry(dynamic name,
-      {dynamic icon,
-      dynamic title,
-      Iterable<MenuItem>? subMenu,
-      this.action,
-      this.payload}) {
+  MenuEntry(
+    dynamic name, {
+    dynamic icon,
+    dynamic title,
+    Iterable<MenuItem>? subMenu,
+    this.action,
+    this.payload,
+  }) {
     this.icon = icon;
     this.name = name;
     this.title = title;
@@ -120,22 +122,24 @@ class UIMenu extends UIComponent {
 
   final String? zIndex;
 
-  UIMenu(super.parent, Iterable<MenuItem> entries,
-      {bool? vertical,
-      String? itemSeparator,
-      this.backgroundBlur,
-      this.popupBackgroundBlur,
-      this.itemOverBgColor,
-      this.popupItemOverBgColor,
-      this.scrollbarColors,
-      super.classes,
-      super.style,
-      this.popupOffset,
-      this.popupClasses,
-      this.popupStyle,
-      this.zIndex})
-      : itemSeparator = ElementProvider.from(itemSeparator ?? ' | ')!,
-        super(componentClass: 'ui-menu') {
+  UIMenu(
+    super.parent,
+    Iterable<MenuItem> entries, {
+    bool? vertical,
+    String? itemSeparator,
+    this.backgroundBlur,
+    this.popupBackgroundBlur,
+    this.itemOverBgColor,
+    this.popupItemOverBgColor,
+    this.scrollbarColors,
+    super.classes,
+    super.style,
+    this.popupOffset,
+    this.popupClasses,
+    this.popupStyle,
+    this.zIndex,
+  }) : itemSeparator = ElementProvider.from(itemSeparator ?? ' | ')!,
+       super(componentClass: 'ui-menu') {
     this.entries = entries.toList();
     this.vertical = vertical;
 
@@ -202,8 +206,12 @@ class UIMenu extends UIComponent {
 
         UISVG? dropDownIcon;
         if (menuEntry.hasSubMenu) {
-          dropDownIcon = UISVG(null,
-              width: 'auto', height: '1.2em', svgContent: svgArrowDown);
+          dropDownIcon = UISVG(
+            null,
+            width: 'auto',
+            height: '1.2em',
+            svgContent: svgArrowDown,
+          );
         }
 
         if (isNotEmptyObject(titleText)) {
@@ -215,20 +223,24 @@ class UIMenu extends UIComponent {
         }
 
         var menuEntryDiv = $divInline(
-            style: 'cursor: pointer;',
-            content: [iconElement, iconSeparator, nameText, dropDownIcon]);
+          style: 'cursor: pointer;',
+          content: [iconElement, iconSeparator, nameText, dropDownIcon],
+        );
         nodes.add(menuEntryDiv);
 
         if (menuEntry.hasSubMenu) {
-          var popupMenu = UIPopupMenu(parent, menuEntry.subMenu,
-              group: _popupGroup,
-              popupOffset: popupOffset,
-              backgroundBlur: popupBackgroundBlur,
-              itemOverBgColor: popupItemOverBgColor,
-              scrollbarColors: scrollbarColors,
-              targetElement: menuEntryDiv,
-              classes: popupClasses,
-              style: popupStyle);
+          var popupMenu = UIPopupMenu(
+            parent,
+            menuEntry.subMenu,
+            group: _popupGroup,
+            popupOffset: popupOffset,
+            backgroundBlur: popupBackgroundBlur,
+            itemOverBgColor: popupItemOverBgColor,
+            scrollbarColors: scrollbarColors,
+            targetElement: menuEntryDiv,
+            classes: popupClasses,
+            style: popupStyle,
+          );
 
           menuEntryDiv.onClick.listen((_) {
             popupMenu.switchShowing();
@@ -236,8 +248,10 @@ class UIMenu extends UIComponent {
 
           if (isNotEmptyObject(itemOverBgColor)) {
             menuEntryDiv.onMouseOver.listen((_) {
-              menuEntryDiv.runtime
-                  .setStyleProperty('background-color', itemOverBgColor!);
+              menuEntryDiv.runtime.setStyleProperty(
+                'background-color',
+                itemOverBgColor!,
+              );
             });
 
             menuEntryDiv.onMouseOut.listen((_) {
@@ -289,12 +303,7 @@ void _callMenuAction(MenuEntry menuEntry, Function? action) {
   }
 }
 
-enum PopupPosition {
-  leftSide,
-  below,
-  rightSide,
-  upward,
-}
+enum PopupPosition { leftSide, below, rightSide, upward }
 
 class PopupGroup {
   final Set<UIPopupMenu> _popups = {};
@@ -350,23 +359,26 @@ class UIPopupMenu extends UIComponent {
 
   final List<String>? scrollbarColors;
 
-  UIPopupMenu(super.parent, Iterable<MenuItem>? entries,
-      {this.group,
-      this.point,
-      PopupPosition? popupPosition,
-      this.popupOffset,
-      dynamic targetElement,
-      this.backgroundBlur,
-      this.itemOverBgColor,
-      this.scrollbarColors,
-      super.classes,
-      super.style})
-      : popupPosition = popupPosition ?? PopupPosition.below,
-        targetElement = ElementProvider.from(targetElement),
-        super(
-            componentClass: 'ui-popup-menu',
-            componentStyle:
-                'max-height: 80vh; max-width: 80vw; overflow: auto; scrollbar-color: auto;') {
+  UIPopupMenu(
+    super.parent,
+    Iterable<MenuItem>? entries, {
+    this.group,
+    this.point,
+    PopupPosition? popupPosition,
+    this.popupOffset,
+    dynamic targetElement,
+    this.backgroundBlur,
+    this.itemOverBgColor,
+    this.scrollbarColors,
+    super.classes,
+    super.style,
+  }) : popupPosition = popupPosition ?? PopupPosition.below,
+       targetElement = ElementProvider.from(targetElement),
+       super(
+         componentClass: 'ui-popup-menu',
+         componentStyle:
+             'max-height: 80vh; max-width: 80vw; overflow: auto; scrollbar-color: auto;',
+       ) {
     this.entries = (entries ?? <MenuItem>[]).toList();
 
     removeEmptyEntries(scrollbarColors);
@@ -386,8 +398,9 @@ class UIPopupMenu extends UIComponent {
 
     if (isNotEmptyObject(scrollbarColors)) {
       var buttonColor = scrollbarColors![0].trim();
-      var bgColor =
-          scrollbarColors!.length > 1 ? scrollbarColors![1].trim() : '';
+      var bgColor = scrollbarColors!.length > 1
+          ? scrollbarColors![1].trim()
+          : '';
 
       setElementScrollColors(content!, 8, buttonColor, bgColor);
     }
@@ -484,8 +497,10 @@ class UIPopupMenu extends UIComponent {
       var menuEntry = entries[i];
 
       if (menuEntry is MenuSeparator) {
-        var menuEntryDiv =
-            $div(style: 'width: 100%;', content: menuEntry.content);
+        var menuEntryDiv = $div(
+          style: 'width: 100%;',
+          content: menuEntry.content,
+        );
         if (menuEntry.size != null) {
           menuEntryDiv.style.put('height', '${menuEntry.size}px');
         }
@@ -500,8 +515,9 @@ class UIPopupMenu extends UIComponent {
         }
 
         var menuEntryDiv = $div(
-            style: 'cursor: pointer; width: 100%; padding: 1px 6px 1px 6px',
-            content: [iconElement, iconSeparator, nameText]);
+          style: 'cursor: pointer; width: 100%; padding: 1px 6px 1px 6px',
+          content: [iconElement, iconSeparator, nameText],
+        );
 
         if (nameText == null || iconElement == null) {
           menuEntryDiv.style.put('text-align', 'center');
@@ -516,8 +532,10 @@ class UIPopupMenu extends UIComponent {
 
         if (isNotEmptyObject(itemOverBgColor)) {
           menuEntryDiv.onMouseOver.listen((_) {
-            menuEntryDiv.runtime
-                .setStyleProperty('background-color', itemOverBgColor!);
+            menuEntryDiv.runtime.setStyleProperty(
+              'background-color',
+              itemOverBgColor!,
+            );
           });
 
           menuEntryDiv.onMouseOut.listen((_) {

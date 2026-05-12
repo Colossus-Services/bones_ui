@@ -482,8 +482,10 @@ abstract class UILoading {
     }
   }
 
-  static void resolveLoadingElementsOfType(UILoadingType type,
-      [Element? root]) {
+  static void resolveLoadingElementsOfType(
+    UILoadingType type, [
+    Element? root,
+  ]) {
     root ??= document.documentElement;
 
     var loadingClass = getUILoadingTypeClass(type);
@@ -502,15 +504,17 @@ abstract class UILoading {
     }
   }
 
-  static DIVElement asDIVElement(UILoadingType? type,
-      {bool inline = true,
-      String? color,
-      double? zoom,
-      String? text,
-      double? textZoom,
-      dynamic cssContext,
-      bool? withProgress,
-      UILoadingConfig? config}) {
+  static DIVElement asDIVElement(
+    UILoadingType? type, {
+    bool inline = true,
+    String? color,
+    double? zoom,
+    String? text,
+    double? textZoom,
+    dynamic cssContext,
+    bool? withProgress,
+    UILoadingConfig? config,
+  }) {
     if (config != null) {
       type = config.type;
       if (isNotEmptyString(config.color, trim: true)) color = config.color;
@@ -537,8 +541,10 @@ abstract class UILoading {
 
     loadingClass = _loadCSS(loadingClass, color) ?? loadingClass;
 
-    var divLoading =
-        $div(style: 'margin: auto', classes: ['ui-loading', loadingClass]);
+    var divLoading = $div(
+      style: 'margin: auto',
+      classes: ['ui-loading', loadingClass],
+    );
 
     for (var i = 0; i < _getUILoadingTypeSubDivs(type); ++i) {
       divLoading.add(DIVElement());
@@ -561,46 +567,54 @@ abstract class UILoading {
     if (isNotEmptyString(text)) {
       div.add(
         $div(
-            classes: 'ui-loading-text',
-            style: 'margin: auto; color: $color$fontSize',
-            content: text),
+          classes: 'ui-loading-text',
+          style: 'margin: auto; color: $color$fontSize',
+          content: text,
+        ),
       );
     }
 
     if (withProgress ?? false) {
       div.add(
         $div(
-            classes: 'ui-loading-progress',
-            style: 'margin: auto; color: $color$fontSize',
-            content: '0%'),
+          classes: 'ui-loading-progress',
+          style: 'margin: auto; color: $color$fontSize',
+          content: '0%',
+        ),
       );
     }
 
     return div;
   }
 
-  static HTMLDivElement asHTMLDivElement(UILoadingType? type,
-      {bool inline = true,
-      String? color,
-      double? zoom,
-      String? text,
-      double? textZoom,
-      dynamic cssContext,
-      bool? withProgress,
-      UILoadingConfig? config}) {
-    var div = asDIVElement(type,
-        inline: inline,
-        color: color,
-        zoom: zoom,
-        text: text,
-        textZoom: textZoom,
-        cssContext: cssContext,
-        withProgress: withProgress,
-        config: config);
+  static HTMLDivElement asHTMLDivElement(
+    UILoadingType? type, {
+    bool inline = true,
+    String? color,
+    double? zoom,
+    String? text,
+    double? textZoom,
+    dynamic cssContext,
+    bool? withProgress,
+    UILoadingConfig? config,
+  }) {
+    var div = asDIVElement(
+      type,
+      inline: inline,
+      color: color,
+      zoom: zoom,
+      text: text,
+      textZoom: textZoom,
+      cssContext: cssContext,
+      withProgress: withProgress,
+      config: config,
+    );
     return div.buildDOM(
-        generator: UIComponent.domGenerator,
-        treeMap: UIComponent.domTreeMapDummy,
-        setTreeMapRoot: false) as HTMLDivElement;
+          generator: UIComponent.domGenerator,
+          treeMap: UIComponent.domTreeMapDummy,
+          setTreeMapRoot: false,
+        )
+        as HTMLDivElement;
   }
 }
 
@@ -613,20 +627,20 @@ class UILoadingConfig implements AsDOMElement {
   final double? textZoom;
   final bool? withProgress;
 
-  UILoadingConfig(
-      {UILoadingType? type,
-      dynamic inline,
-      dynamic color,
-      dynamic zoom,
-      dynamic text,
-      dynamic textZoom,
-      this.withProgress})
-      : type = getUILoadingType(type) ?? UILoadingType.ring,
-        inline = parseBool(inline),
-        _color = TextProvider.from(color),
-        zoom = parseDouble(zoom),
-        _text = TextProvider.from(text),
-        textZoom = parseDouble(textZoom);
+  UILoadingConfig({
+    UILoadingType? type,
+    dynamic inline,
+    dynamic color,
+    dynamic zoom,
+    dynamic text,
+    dynamic textZoom,
+    this.withProgress,
+  }) : type = getUILoadingType(type) ?? UILoadingType.ring,
+       inline = parseBool(inline),
+       _color = TextProvider.from(color),
+       zoom = parseDouble(zoom),
+       _text = TextProvider.from(text),
+       textZoom = parseDouble(textZoom);
 
   static UILoadingConfig? from(dynamic o, [String? prefix]) {
     if (o == null) return null;
@@ -651,13 +665,14 @@ class UILoadingConfig implements AsDOMElement {
         isNotEmptyString(text, trim: true) ||
         isNotEmptyString(zoom, trim: true)) {
       return UILoadingConfig(
-          type: getUILoadingType(type),
-          inline: parseBool(inline),
-          color: color,
-          zoom: parseDouble(zoom),
-          text: text,
-          textZoom: parseDouble(textZoom),
-          withProgress: withProgress);
+        type: getUILoadingType(type),
+        inline: parseBool(inline),
+        color: color,
+        zoom: parseDouble(zoom),
+        text: text,
+        textZoom: parseDouble(textZoom),
+        withProgress: withProgress,
+      );
     }
 
     return null;
@@ -701,20 +716,20 @@ class UILoadingConfig implements AsDOMElement {
   }
 }
 
-DIVElement $uiLoading(
-        {UILoadingType? type,
-        dynamic inline,
-        dynamic color,
-        dynamic zoom,
-        dynamic text,
-        dynamic textZoom,
-        bool? withProgress}) =>
-    UILoadingConfig(
-            type: type,
-            inline: inline,
-            color: color,
-            zoom: zoom,
-            text: text,
-            textZoom: textZoom,
-            withProgress: withProgress)
-        .asDIVElement();
+DIVElement $uiLoading({
+  UILoadingType? type,
+  dynamic inline,
+  dynamic color,
+  dynamic zoom,
+  dynamic text,
+  dynamic textZoom,
+  bool? withProgress,
+}) => UILoadingConfig(
+  type: type,
+  inline: inline,
+  color: color,
+  zoom: zoom,
+  text: text,
+  textZoom: textZoom,
+  withProgress: withProgress,
+).asDIVElement();

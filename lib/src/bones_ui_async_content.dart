@@ -44,13 +44,17 @@ class UIAsyncContent {
 
   final Map<String, dynamic> _properties;
 
-  static bool isNotValid(UIAsyncContent asyncContent,
-      [Map<String, dynamic>? properties]) {
+  static bool isNotValid(
+    UIAsyncContent asyncContent, [
+    Map<String, dynamic>? properties,
+  ]) {
     return !isValid(asyncContent, properties);
   }
 
-  static bool isValid(UIAsyncContent? asyncContent,
-      [Map<String, dynamic>? properties]) {
+  static bool isValid(
+    UIAsyncContent? asyncContent, [
+    Map<String, dynamic>? properties,
+  ]) {
     if (asyncContent == null) return false;
 
     if (asyncContent.equalsProperties(properties)) {
@@ -84,16 +88,18 @@ class UIAsyncContent {
   /// [errorContent] Content to show on error.
   /// [_refreshInterval] Interval to refresh the content.
   /// [properties] Properties of this content.
-  UIAsyncContent.provider(this._asyncContentProvider, dynamic loadingContent,
-      {dynamic errorContent,
-      Duration? refreshInterval,
-      Map<String, dynamic>? properties})
-      : _locale = IntlLocale.getDefaultLocale(),
-        _refreshInterval = refreshInterval,
-        _properties = properties ?? {},
-        _loadingContent = _normalizeContent(loadingContent),
-        _errorContent = _normalizeContent(errorContent),
-        _constructionStackTrace = stackTraceSafe() {
+  UIAsyncContent.provider(
+    this._asyncContentProvider,
+    dynamic loadingContent, {
+    dynamic errorContent,
+    Duration? refreshInterval,
+    Map<String, dynamic>? properties,
+  }) : _locale = IntlLocale.getDefaultLocale(),
+       _refreshInterval = refreshInterval,
+       _properties = properties ?? {},
+       _loadingContent = _normalizeContent(loadingContent),
+       _errorContent = _normalizeContent(errorContent),
+       _constructionStackTrace = stackTraceSafe() {
     _callContentProvider(false);
   }
 
@@ -103,16 +109,18 @@ class UIAsyncContent {
   /// [errorContent] Content to show on error.
   /// [_refreshInterval] Interval to refresh the content.
   /// [properties] Properties of this content.
-  UIAsyncContent.future(Future<dynamic> contentFuture, dynamic loadingContent,
-      {dynamic errorContent,
-      Duration? refreshInterval,
-      Map<String, dynamic>? properties})
-      : _locale = IntlLocale.getDefaultLocale(),
-        _refreshInterval = refreshInterval,
-        _properties = properties ?? {},
-        _loadingContent = _normalizeContent(loadingContent),
-        _errorContent = _normalizeContent(errorContent),
-        _constructionStackTrace = stackTraceSafe() {
+  UIAsyncContent.future(
+    Future<dynamic> contentFuture,
+    dynamic loadingContent, {
+    dynamic errorContent,
+    Duration? refreshInterval,
+    Map<String, dynamic>? properties,
+  }) : _locale = IntlLocale.getDefaultLocale(),
+       _refreshInterval = refreshInterval,
+       _properties = properties ?? {},
+       _loadingContent = _normalizeContent(loadingContent),
+       _errorContent = _normalizeContent(errorContent),
+       _constructionStackTrace = stackTraceSafe() {
     _setAsyncContentFuture(contentFuture);
   }
 
@@ -259,7 +267,7 @@ class UIAsyncContent {
   /// Returns in milliseconds the amount of elapsed time since last load.
   int get elapsedLoadTime => _loadTime != null
       ? DateTime.now().millisecondsSinceEpoch -
-          _loadTime!.millisecondsSinceEpoch
+            _loadTime!.millisecondsSinceEpoch
       : -1;
 
   /// Returns true if this content is expired ([elapsedLoadTime] > [_refreshInterval]).
@@ -283,11 +291,15 @@ class UIAsyncContent {
   }
 
   void _onLoadError(
-      dynamic error, StackTrace stackTrace, StackTrace parentStackTrace) {
+    dynamic error,
+    StackTrace stackTrace,
+    StackTrace parentStackTrace,
+  ) {
     logger.error(
-        'Error loading async content! parentUIComponent: $parentUIComponent ; _asyncContentFuture: <<<$_asyncContentFuture>>> ; this: <<<$this>>>',
-        error,
-        stackTrace);
+      'Error loading async content! parentUIComponent: $parentUIComponent ; _asyncContentFuture: <<<$_asyncContentFuture>>> ; this: <<<$this>>>',
+      error,
+      stackTrace,
+    );
 
     logger.error('Parent StackTrace:', error, parentStackTrace);
 
@@ -313,7 +325,8 @@ class UIAsyncContent {
       }
     } else if (content is UIAsyncContent) {
       throw StateError(
-          "Can't have as content another UIAsyncContent: $content");
+        "Can't have as content another UIAsyncContent: $content",
+      );
     }
   }
 

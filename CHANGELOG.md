@@ -1,3 +1,22 @@
+## 3.0.15
+
+- `lib/src/component/capture.dart`:
+  - Reformatted capture component constructors and methods with trailing commas.
+  - `_CapturedData.data`: casts with toString() for safer conversions
+
+- `pubspec.yaml`:
+  - Updated SDK constraint to `>=3.10.0 <4.0.0`.
+  - Updated dependencies:
+    - `intl_messages`: ^3.0.1
+    - `dom_builder`: ^3.0.9
+    - `archive`: ^4.0.9
+    - `test`: ^1.31.1
+    - `test_api`: ^0.7.12
+    - `test_core`: ^0.6.18
+    - `build_web_compilers`: ^4.4.19
+    - `build_runner`: ^2.15.0
+    - `dependency_validator`: ^5.0.5
+
 ## 3.0.14
 
 - `UIComponent`:

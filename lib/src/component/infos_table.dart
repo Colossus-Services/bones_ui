@@ -14,14 +14,16 @@ class UIInfosTable extends UIComponent {
 
   List<String>? rowsColors;
 
-  UIInfosTable(super.parent, this._infos,
-      {this.headerColumnsNames,
-      this.headerColor,
-      this.rowsStyles,
-      this.cellsStyles,
-      super.classes,
-      super.style})
-      : super(componentClass: 'ui-infos-table');
+  UIInfosTable(
+    super.parent,
+    this._infos, {
+    this.headerColumnsNames,
+    this.headerColor,
+    this.rowsStyles,
+    this.cellsStyles,
+    super.classes,
+    super.style,
+  }) : super(componentClass: 'ui-infos-table');
 
   @override
   List render() {

@@ -17,8 +17,9 @@ void main() {
 
       print(projectDirectory);
 
-      var pubspecFile =
-          File(pack_path.join(projectDirectory.path, 'pubspec.yaml'));
+      var pubspecFile = File(
+        pack_path.join(projectDirectory.path, 'pubspec.yaml'),
+      );
 
       print('pubspecFile: $pubspecFile');
 
@@ -34,11 +35,17 @@ void main() {
 
       print('BonesUI.version: $version');
 
-      expect(pubSpecName, equals('bones_ui'),
-          reason: 'PubSpec.name[$pubSpecName] != `bones_ui`');
+      expect(
+        pubSpecName,
+        equals('bones_ui'),
+        reason: 'PubSpec.name[$pubSpecName] != `bones_ui`',
+      );
 
-      expect(pubSpecVer, equals(version),
-          reason: 'BonesUI.version[$version] != PubSpec.version[$pubSpecVer]');
+      expect(
+        pubSpecVer,
+        equals(version),
+        reason: 'BonesUI.version[$version] != PubSpec.version[$pubSpecVer]',
+      );
     });
   });
 }

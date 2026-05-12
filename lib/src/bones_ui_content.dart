@@ -8,12 +8,14 @@ abstract class UIContent extends UIComponent {
   /// Optional top margin (in px) for the content.
   int topMargin;
 
-  UIContent(super.parent,
-      {this.topMargin = 0,
-      super.classes,
-      super.classes2,
-      super.inline,
-      super.renderOnConstruction});
+  UIContent(
+    super.parent, {
+    this.topMargin = 0,
+    super.classes,
+    super.classes2,
+    super.inline,
+    super.renderOnConstruction,
+  });
 
   @override
   List render() {

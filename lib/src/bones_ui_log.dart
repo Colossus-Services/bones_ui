@@ -9,8 +9,9 @@ import 'bones_ui_web.dart';
 StreamSubscription<logging.LogRecord>? _loggingListenSubscription;
 
 void _logToConsole() {
-  _loggingListenSubscription ??=
-      logging.Logger.root.onRecord.listen(_logConsole);
+  _loggingListenSubscription ??= logging.Logger.root.onRecord.listen(
+    _logConsole,
+  );
 }
 
 void _logConsole(logging.LogRecord msg) {
@@ -51,10 +52,7 @@ class _Logger {
 
   Object? _format(Object? msg, [Object? error]) {
     if (msg is List) {
-      return [
-        ...msg.map((e) => _format(msg)),
-        if (error != null) error,
-      ];
+      return [...msg.map((e) => _format(msg)), if (error != null) error];
     } else if (msg is String) {
       var str = StringBuffer(error != null ? '\n' : '');
 
@@ -386,24 +384,29 @@ class UIConsole {
     buttonClear.style.cursor = 'pointer';
 
     consoleButtons.appendChild(buttonClose);
-    consoleButtons.children
-        .add(HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS);
+    consoleButtons.children.add(
+      HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS,
+    );
     consoleButtons.appendChild(buttonCopy);
-    consoleButtons.children
-        .add(HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS);
+    consoleButtons.children.add(
+      HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS,
+    );
     consoleButtons.appendChild(buttonZoomIn);
-    consoleButtons.children
-        .add(HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS);
+    consoleButtons.children.add(
+      HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS,
+    );
     consoleButtons.appendChild(buttonZoomOut);
-    consoleButtons.children
-        .add(HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS);
+    consoleButtons.children.add(
+      HTMLSpanElement()..innerHTML = '&nbsp;&nbsp;'.toJS,
+    );
     consoleButtons.appendChild(buttonClear);
 
     var consoleText = HTMLDivElement();
     consoleText.style.fontSize = '$_fontSize%';
     consoleText.style.overflow = 'scroll';
 
-    var html = '<br><pre style="color: #999999;">\n'
+    var html =
+        '<br><pre style="color: #999999;">\n'
         '$allLogs'
         '</pre>';
 

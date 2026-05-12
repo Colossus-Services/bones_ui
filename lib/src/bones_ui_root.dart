@@ -53,20 +53,22 @@ abstract class UIRootComponent extends UIComponent {
     return instances;
   }
 
-  UIRootComponent(super.parent,
-      {super.componentClass,
-      super.componentStyle,
-      super.classes,
-      super.classes2,
-      super.style,
-      super.style2,
-      super.clearParent,
-      super.inline,
-      super.construct,
-      super.renderOnConstruction,
-      super.preserveRender,
-      super.id,
-      super.generator}) {
+  UIRootComponent(
+    super.parent, {
+    super.componentClass,
+    super.componentStyle,
+    super.classes,
+    super.classes2,
+    super.style,
+    super.style2,
+    super.clearParent,
+    super.inline,
+    super.construct,
+    super.renderOnConstruction,
+    super.preserveRender,
+    super.id,
+    super.generator,
+  }) {
     _rootComponentInstances.add(WeakReference(this));
   }
 
@@ -97,8 +99,10 @@ abstract class UIRootComponent extends UIComponent {
   bool get isAnyComponentRendering =>
       _uiComponentsTree?.validEntries.any((e) => e.value.isRendering) ?? false;
 
-  UIComponent? getUIComponentByContent(UIElement? uiComponentContent,
-      {bool includePurgedEntries = false}) {
+  UIComponent? getUIComponentByContent(
+    UIElement? uiComponentContent, {
+    bool includePurgedEntries = false,
+  }) {
     if (uiComponentContent == null) return null;
 
     if (includePurgedEntries) {
@@ -108,21 +112,29 @@ abstract class UIRootComponent extends UIComponent {
     }
   }
 
-  UIComponent? getUIComponentByChild(UIElement? child,
-      {bool includePurgedEntries = false}) {
-    return _uiComponentsTree?.getParentValue(child,
-        includePurgedEntries: includePurgedEntries);
+  UIComponent? getUIComponentByChild(
+    UIElement? child, {
+    bool includePurgedEntries = false,
+  }) {
+    return _uiComponentsTree?.getParentValue(
+      child,
+      includePurgedEntries: includePurgedEntries,
+    );
   }
 
-  List<UIComponent>? getSubUIComponentsByElement(UIElement? element,
-      {bool includePurgedEntries = false}) {
+  List<UIComponent>? getSubUIComponentsByElement(
+    UIElement? element, {
+    bool includePurgedEntries = false,
+  }) {
     if (element == null ||
         (!includePurgedEntries &&
             !(_uiComponentsTree?.isInTree(element) ?? false))) {
       return null;
     }
-    return _uiComponentsTree?.getSubValues(element,
-        includePurgedEntries: includePurgedEntries);
+    return _uiComponentsTree?.getSubValues(
+      element,
+      includePurgedEntries: includePurgedEntries,
+    );
   }
 
   void registerUIComponentInTree(UIComponent uiComponent) {
@@ -178,19 +190,21 @@ abstract class UIRoot extends UIRootComponent {
 
   final String? name;
 
-  UIRoot(super.rootContainer,
-      {this.name,
-      dynamic style,
-      dynamic classes,
-      super.id,
-      UIComponentClearParent super.clearParent =
-          UIComponentClearParent.onInitialRender,
-      this.readyTimeout = const Duration(seconds: 15)})
-      : super(
-            style: style,
-            classes: classes,
-            componentClass: 'ui-root',
-            construct: false) {
+  UIRoot(
+    super.rootContainer, {
+    this.name,
+    dynamic style,
+    dynamic classes,
+    super.id,
+    UIComponentClearParent super.clearParent =
+        UIComponentClearParent.onInitialRender,
+    this.readyTimeout = const Duration(seconds: 15),
+  }) : super(
+         style: style,
+         classes: classes,
+         componentClass: 'ui-root',
+         construct: false,
+       ) {
     _initializeAll();
 
     final componentInternals = this.componentInternals;
@@ -204,10 +218,21 @@ abstract class UIRoot extends UIRootComponent {
     _rootInstance = this;
 
     componentInternals.construct(
-        false, true, classes, null, 'ui-root', style, null, null, false);
+      false,
+      true,
+      classes,
+      null,
+      'ui-root',
+      style,
+      null,
+      null,
+      false,
+    );
 
-    _localesManager =
-        createLocalesManager(_callInitializeLocale, _onDefineLocale);
+    _localesManager = createLocalesManager(
+      _callInitializeLocale,
+      _onDefineLocale,
+    );
     _localesManager!.onPreDefineLocale.add(onPreDefineLocale);
 
     _futureInitializeLocale = _localesManager!.initialize(getPreferredLocale);
@@ -352,13 +377,21 @@ abstract class UIRoot extends UIRootComponent {
     if (ready == null) {
       _onReadyToInitialize();
     } else {
-      ready.then((_) {
-        _onReadyToInitialize();
-      }, onError: (e) {
-        _onReadyToInitialize();
-      }).timeout(readyTimeout, onTimeout: () {
-        _onReadyToInitialize();
-      });
+      ready
+          .then(
+            (_) {
+              _onReadyToInitialize();
+            },
+            onError: (e) {
+              _onReadyToInitialize();
+            },
+          )
+          .timeout(
+            readyTimeout,
+            onTimeout: () {
+              _onReadyToInitialize();
+            },
+          );
     }
   }
 
@@ -412,10 +445,11 @@ abstract class UIRoot extends UIRootComponent {
 
   void renderAlert(dynamic dialogContent) {
     var div = $div(
-        classes: 'ui-root-alert bg-blur',
-        style:
-            'color: #fff; background-color: rgba(255,255,255,0.20); margin: 12px 24px; padding: 14px; border-radius: 8px;',
-        content: dialogContent);
+      classes: 'ui-root-alert bg-blur',
+      style:
+          'color: #fff; background-color: rgba(255,255,255,0.20); margin: 12px 24px; padding: 14px; border-radius: 8px;',
+      content: dialogContent,
+    );
     UIDialog($div(content: [$br(), div]), showCloseButton: true, show: true);
   }
 
@@ -508,12 +542,12 @@ class _UIDOMTreeReferenceMap extends DOMTreeReferenceMap<UIComponent> {
   final UIRootComponent rootComponent;
 
   _UIDOMTreeReferenceMap(this.rootComponent, {super.onPurgedEntries})
-      : super(
-          rootComponent.content!,
-          autoPurge: false,
-          keepPurgedKeys: true,
-          purgedEntriesTimeout: Duration(minutes: 1),
-        );
+    : super(
+        rootComponent.content!,
+        autoPurge: false,
+        keepPurgedKeys: true,
+        purgedEntriesTimeout: Duration(minutes: 1),
+      );
 
   @override
   bool isValidEntry(Node key, UIComponent value) {

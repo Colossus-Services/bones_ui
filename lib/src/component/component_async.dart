@@ -6,23 +6,27 @@ import '../bones_ui_async_content.dart';
 import '../bones_ui_component.dart';
 
 typedef RenderPropertiesProvider = Map<String, dynamic> Function();
-typedef RenderAsync = Future<dynamic>? Function(
-    Map<String, dynamic> properties);
+typedef RenderAsync =
+    Future<dynamic>? Function(Map<String, dynamic> properties);
 
 /// A component that renders a content asynchronously.
 ///
 /// Useful to render a content that is loading.
 class UIComponentAsync extends UIComponent {
-  static bool isValidComponentAsync(UIComponentAsync? asyncContent,
-      [Map<String, dynamic>? properties]) {
+  static bool isValidComponentAsync(
+    UIComponentAsync? asyncContent, [
+    Map<String, dynamic>? properties,
+  ]) {
     if (asyncContent == null || asyncContent._asyncContent == null) {
       return false;
     }
     return UIAsyncContent.isValid(asyncContent._asyncContent, properties);
   }
 
-  static bool isValidLocaleComponentAsync(UIComponentAsync? asyncContent,
-      [Map<String, dynamic>? properties]) {
+  static bool isValidLocaleComponentAsync(
+    UIComponentAsync? asyncContent, [
+    Map<String, dynamic>? properties,
+  ]) {
     if (asyncContent == null || asyncContent._asyncContent == null) {
       return false;
     }
@@ -51,20 +55,24 @@ class UIComponentAsync extends UIComponent {
   /// [loadingContent] Content to show while loading.
   /// [errorContent] Content to show on error.
   /// [refreshInterval] Refresh interval [Duration].
-  UIComponentAsync(super.parent, this._renderPropertiesProvider,
-      this._renderAsync, this.loadingContent, this.errorContent,
-      {this.refreshInterval,
-      this.cacheRenderAsync = true,
-      super.componentClass,
-      super.componentStyle,
-      super.classes,
-      super.classes2,
-      super.style,
-      super.style2,
-      super.id,
-      super.generator,
-      bool renderOnConstruction = false})
-      : super(renderOnConstruction: false) {
+  UIComponentAsync(
+    super.parent,
+    this._renderPropertiesProvider,
+    this._renderAsync,
+    this.loadingContent,
+    this.errorContent, {
+    this.refreshInterval,
+    this.cacheRenderAsync = true,
+    super.componentClass,
+    super.componentStyle,
+    super.classes,
+    super.classes2,
+    super.style,
+    super.style2,
+    super.id,
+    super.generator,
+    bool renderOnConstruction = false,
+  }) : super(renderOnConstruction: false) {
     _renderPropertiesProvider ??= renderPropertiesProvider;
     _renderAsync ??= renderAsync;
 
@@ -91,10 +99,12 @@ class UIComponentAsync extends UIComponent {
     if ((!cacheRenderAsync && _asyncContentRenderCount > 1) ||
         !UIAsyncContent.isValid(_asyncContent, properties)) {
       _asyncContent = UIAsyncContent.provider(
-          () => _renderAsync!(renderProperties()), loadingContent,
-          errorContent: errorContent,
-          refreshInterval: refreshInterval,
-          properties: properties);
+        () => _renderAsync!(renderProperties()),
+        loadingContent,
+        errorContent: errorContent,
+        refreshInterval: refreshInterval,
+        properties: properties,
+      );
       _asyncContent!.onLoadContent.listen((content) {
         onLoadAsyncContent.add(content);
         onChange.add(content);
@@ -145,12 +155,13 @@ class UIComponentAsync extends UIComponent {
 
   bool asyncContentEqualsProperties(Map<String, dynamic> properties) =>
       _asyncContent != null
-          ? _asyncContent!.equalsProperties(properties)
-          : false;
+      ? _asyncContent!.equalsProperties(properties)
+      : false;
 
   Map<String, dynamic> renderProperties() {
-    var properties =
-        _renderPropertiesProvider != null ? _renderPropertiesProvider!() : null;
+    var properties = _renderPropertiesProvider != null
+        ? _renderPropertiesProvider!()
+        : null;
     properties ??= {};
     return properties;
   }

@@ -5,8 +5,8 @@ import 'bones_ui_component.dart';
 import 'bones_ui_web.dart';
 
 typedef ElementProvider = dynamic Function(String id, bool all);
-typedef ElementPropertyResolver = dynamic Function(
-    dynamic element, String property);
+typedef ElementPropertyResolver =
+    dynamic Function(dynamic element, String property);
 
 class ValueUnitExpression extends SimpleExpression {
   static String? getUnit(Expression? a, Expression? b) {
@@ -16,7 +16,8 @@ class ValueUnitExpression extends SimpleExpression {
 
       if (unitA != unitB) {
         throw UnsupportedError(
-            'Different unit expressions not supported: $a != $b');
+          'Different unit expressions not supported: $a != $b',
+        );
       }
 
       return unitA;
@@ -74,10 +75,10 @@ class ElementExpression extends SimpleExpression {
 }
 
 typedef ValueFromElement = String Function(UIElement elem);
-typedef ElementCoordsValue = String Function(
-    int parentWidth, int parentHeight, int width, int height);
-typedef ElementPercentageValue = String Function(
-    int parentWidth, int parentHeight, double percentage);
+typedef ElementCoordsValue =
+    String Function(int parentWidth, int parentHeight, int width, int height);
+typedef ElementPercentageValue =
+    String Function(int parentWidth, int parentHeight, double percentage);
 
 class UILayoutEvaluator extends ExpressionEvaluator {
   final ElementProvider elementProvider;
@@ -133,7 +134,9 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 
   @override
   dynamic evalBinaryExpression(
-      BinaryExpression expression, Map<String, dynamic> context) {
+    BinaryExpression expression,
+    Map<String, dynamic> context,
+  ) {
     dynamic left = expression.left;
     dynamic right = expression.right;
 
@@ -179,8 +182,11 @@ class UILayoutEvaluator extends ExpressionEvaluator {
           ? right.valueAsLiteral
           : _toExpression(right)!;
 
-      var expression2 =
-          BinaryExpression(expression.operator, leftValue, rightValue);
+      var expression2 = BinaryExpression(
+        expression.operator,
+        leftValue,
+        rightValue,
+      );
 
       var evaluated = super.evalBinaryExpression(expression2, context);
       var unit = ValueUnitExpression.getUnit(left, right);
@@ -188,7 +194,10 @@ class UILayoutEvaluator extends ExpressionEvaluator {
       return ValueUnitExpression(evaluated, unit);
     } else if (changed) {
       var expression2 = BinaryExpression(
-          expression.operator, _toExpression(left)!, _toExpression(right)!);
+        expression.operator,
+        _toExpression(left)!,
+        _toExpression(right)!,
+      );
       return super.evalBinaryExpression(expression2, context);
     } else {
       return super.evalBinaryExpression(expression, context);
@@ -197,7 +206,9 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 
   @override
   dynamic evalUnaryExpression(
-      UnaryExpression expression, Map<String, dynamic> context) {
+    UnaryExpression expression,
+    Map<String, dynamic> context,
+  ) {
     dynamic arg = expression.argument;
 
     var changed = false;
@@ -219,8 +230,11 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 
     if (arg is ValueUnitExpression) {
       Expression leftValue = arg.valueAsLiteral;
-      var expression2 = UnaryExpression(expression.operator, leftValue,
-          prefix: expression.prefix);
+      var expression2 = UnaryExpression(
+        expression.operator,
+        leftValue,
+        prefix: expression.prefix,
+      );
 
       var evaluated = super.evalUnaryExpression(expression2, context);
       var unit = arg.unit;
@@ -228,8 +242,10 @@ class UILayoutEvaluator extends ExpressionEvaluator {
       return ValueUnitExpression(evaluated, unit);
     } else if (changed) {
       var expression2 = UnaryExpression(
-          expression.operator, _toExpression(arg)!,
-          prefix: expression.prefix);
+        expression.operator,
+        _toExpression(arg)!,
+        prefix: expression.prefix,
+      );
       return super.evalUnaryExpression(expression2, context);
     } else {
       return super.evalUnaryExpression(expression, context);
@@ -238,7 +254,9 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 
   @override
   dynamic evalIndexExpression(
-      IndexExpression expression, Map<String, dynamic> context) {
+    IndexExpression expression,
+    Map<String, dynamic> context,
+  ) {
     var o = expression.object;
 
     dynamic list;
@@ -274,8 +292,10 @@ class UILayoutEvaluator extends ExpressionEvaluator {
   }
 
   Expression? resolveThisExpression(
-      ThisExpression expression, Map<String, dynamic> context,
-      [String? subProperty]) {
+    ThisExpression expression,
+    Map<String, dynamic> context, [
+    String? subProperty,
+  ]) {
     var element = _requestElement('_', false);
     if (element == null) return null;
     var elemProperty = subProperty != null ? Identifier(subProperty) : null;
@@ -287,10 +307,16 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     return _evalThisImpl(expression, context);
   }
 
-  dynamic _evalThisImpl(ThisExpression expression, Map<String, dynamic> context,
-      [String? subProperty]) {
-    var expressionResolved =
-        resolveThisExpression(expression, context, subProperty);
+  dynamic _evalThisImpl(
+    ThisExpression expression,
+    Map<String, dynamic> context, [
+    String? subProperty,
+  ]) {
+    var expressionResolved = resolveThisExpression(
+      expression,
+      context,
+      subProperty,
+    );
 
     if (expressionResolved is ElementExpression) {
       return evalElementExpression(expressionResolved, context);
@@ -299,12 +325,16 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     }
   }
 
-  static final RegExp _patternNumberPlaceHolder =
-      RegExp(r'^__(\d+)(?:D(\d+))?__$');
+  static final RegExp _patternNumberPlaceHolder = RegExp(
+    r'^__(\d+)(?:D(\d+))?__$',
+  );
 
   Expression? resolveMemberExpression(
-      MemberExpression expression, Map<String, dynamic> context,
-      [String? subProperty, bool? fromIndexExpression = false]) {
+    MemberExpression expression,
+    Map<String, dynamic> context, [
+    String? subProperty,
+    bool? fromIndexExpression = false,
+  ]) {
     dynamic o = expression.object;
 
     if (o is Variable) {
@@ -319,8 +349,9 @@ class UILayoutEvaluator extends ExpressionEvaluator {
         if (element == null) return null;
         var elemProperty = subProperty != null ? Identifier(subProperty) : null;
         return ElementExpression(element, elemProperty);
-      } else if ((matches = _patternNumberPlaceHolder.allMatches(varName))
-          .isNotEmpty) {
+      } else if ((matches = _patternNumberPlaceHolder.allMatches(
+        varName,
+      )).isNotEmpty) {
         var number = matches.first.group(1);
         var decimal = matches.first.group(2);
 
@@ -343,15 +374,24 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 
   @override
   dynamic evalMemberExpression(
-      MemberExpression expression, Map<String, dynamic> context) {
+    MemberExpression expression,
+    Map<String, dynamic> context,
+  ) {
     return _evalMemberExpressionImpl(expression, context);
   }
 
   dynamic _evalMemberExpressionImpl(
-      MemberExpression expression, Map<String, dynamic> context,
-      [String? subProperty, bool? fromIndexExpression]) {
+    MemberExpression expression,
+    Map<String, dynamic> context, [
+    String? subProperty,
+    bool? fromIndexExpression,
+  ]) {
     var expressionResolved = resolveMemberExpression(
-        expression, context, subProperty, fromIndexExpression);
+      expression,
+      context,
+      subProperty,
+      fromIndexExpression,
+    );
 
     if (expressionResolved is ElementExpression) {
       return evalElementExpression(expressionResolved, context);
@@ -379,7 +419,9 @@ class UILayoutEvaluator extends ExpressionEvaluator {
   }
 
   dynamic evalElementExpression(
-      ElementExpression expression, Map<String, dynamic> context) {
+    ElementExpression expression,
+    Map<String, dynamic> context,
+  ) {
     var elem = expression.element;
 
     if (expression.property != null) {
@@ -390,7 +432,9 @@ class UILayoutEvaluator extends ExpressionEvaluator {
   }
 
   dynamic evalValueUnitExpression(
-      ValueUnitExpression expression, Map<String, dynamic> context) {
+    ValueUnitExpression expression,
+    Map<String, dynamic> context,
+  ) {
     return expression.toString();
   }
 
@@ -423,8 +467,12 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 
   static final RegExp _patternNumber = RegExp(r'^(\d+(?:\.\d+)?)$');
 
-  dynamic processLayout(String expressionStr, Map<String, dynamic> context,
-      [String? unit, dynamic defaultValue]) {
+  dynamic processLayout(
+    String expressionStr,
+    Map<String, dynamic> context, [
+    String? unit,
+    dynamic defaultValue,
+  ]) {
     reset();
 
     var expression = _parse(expressionStr);
@@ -469,15 +517,17 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     //print("1<<$expressionStr>>") ;
 
     expressionStr = expressionStr.replaceAll('#', 'elements.');
-    expressionStr = expressionStr
-        .replaceAllMapped(RegExp(r'(\d+)(?:\.(\d+))?([a-zA-Z_]+)'), (m) {
-      var gDecimal = m.group(2);
-      if (gDecimal != null && gDecimal.isNotEmpty) {
-        return '__${m.group(1)!}D${gDecimal}__.${m.group(3)!}';
-      } else {
-        return '__${m.group(1)!}__.${m.group(3)!}';
-      }
-    });
+    expressionStr = expressionStr.replaceAllMapped(
+      RegExp(r'(\d+)(?:\.(\d+))?([a-zA-Z_]+)'),
+      (m) {
+        var gDecimal = m.group(2);
+        if (gDecimal != null && gDecimal.isNotEmpty) {
+          return '__${m.group(1)!}D${gDecimal}__.${m.group(3)!}';
+        } else {
+          return '__${m.group(1)!}__.${m.group(3)!}';
+        }
+      },
+    );
 
     //print("2<<$expressionStr>>") ;
 
@@ -510,8 +560,10 @@ class UILayout {
   late UILayoutEvaluator _uiLayoutEvaluator;
 
   UILayout(this.parent, this.element, this.layout) {
-    _uiLayoutEvaluator =
-        UILayoutEvaluator(_getElementByID, _getElementProperty);
+    _uiLayoutEvaluator = UILayoutEvaluator(
+      _getElementByID,
+      _getElementProperty,
+    );
 
     _registerWindowResize();
     _configure();
@@ -562,8 +614,9 @@ class UILayout {
 
   int _getElementIndexByID(UIElement elem) {
     var elemID = elem.id;
-    List<UIElement> elemsSameID =
-        elem.parentElement!.querySelectorAll('#$elemID').toElements();
+    List<UIElement> elemsSameID = elem.parentElement!
+        .querySelectorAll('#$elemID')
+        .toElements();
     if (elemsSameID.isEmpty) return -1;
     var idx = elemsSameID.indexOf(elem);
     return idx;
@@ -729,9 +782,10 @@ class UILayout {
 
   String _commandFunctionXValue(String value) {
     return _valueXY(
-        value,
-        (pw, ph, w, h) => '${((pw / 2) - (w / 2)).toStringAsFixed(0)}px',
-        (e) => e.style?.left ?? '');
+      value,
+      (pw, ph, w, h) => '${((pw / 2) - (w / 2)).toStringAsFixed(0)}px',
+      (e) => e.style?.left ?? '',
+    );
   }
 
   void _commandFunctionY(String value) {
@@ -741,9 +795,10 @@ class UILayout {
 
   String _commandFunctionYValue(String value) {
     return _valueXY(
-        value,
-        (pw, ph, w, h) => '${((ph / 2) - (h / 2)).toStringAsFixed(0)}px',
-        (e) => e.style?.top ?? '');
+      value,
+      (pw, ph, w, h) => '${((ph / 2) - (h / 2)).toStringAsFixed(0)}px',
+      (e) => e.style?.top ?? '',
+    );
   }
 
   void _commandFunctionCenterX(String value) {
@@ -772,8 +827,11 @@ class UILayout {
     }
   }
 
-  String _valueXY(String value, ElementCoordsValue valueCenter,
-      ValueFromElement valueFromElement) {
+  String _valueXY(
+    String value,
+    ElementCoordsValue valueCenter,
+    ValueFromElement valueFromElement,
+  ) {
     if (_patternElementID.hasMatch(value)) {
       var sel = element.parentElement!.querySelector(value);
       if (sel == null) return '0px';
@@ -799,29 +857,32 @@ class UILayout {
 
   void _commandFunctionWidth(String value) {
     var width = _valueWH(
-        value,
-        (pw, ph, w, h) => '${pw}px',
-        (pw, ph, p) => '${(pw * p).toStringAsFixed(0)}px',
-        (e) => e.style?.width ?? '');
+      value,
+      (pw, ph, w, h) => '${pw}px',
+      (pw, ph, p) => '${(pw * p).toStringAsFixed(0)}px',
+      (e) => e.style?.width ?? '',
+    );
     element.style.width = width;
   }
 
   void _commandFunctionHeight(String value) {
     var height = _valueWH(
-        value,
-        (pw, ph, w, h) => '${ph}px',
-        (pw, ph, p) => '${(ph * p).toStringAsFixed(0)}px',
-        (e) => e.style?.height ?? '');
+      value,
+      (pw, ph, w, h) => '${ph}px',
+      (pw, ph, p) => '${(ph * p).toStringAsFixed(0)}px',
+      (e) => e.style?.height ?? '',
+    );
     element.style.height = height;
   }
 
   static final RegExp _patternElementID = RegExp(r'^#\w+$');
 
   String _valueWH(
-      String value,
-      ElementCoordsValue valueFull,
-      ElementPercentageValue valuePercentage,
-      ValueFromElement valueFromElement) {
+    String value,
+    ElementCoordsValue valueFull,
+    ElementPercentageValue valuePercentage,
+    ValueFromElement valueFromElement,
+  ) {
     var w = element.offsetWidth;
     var h = element.offsetHeight;
 
@@ -855,8 +916,12 @@ class UILayout {
 
   String _evaluateValue(String value, ValueFromElement valueFromElement) {
     var context = _buildEvaluationContext();
-    Object? evaluated =
-        _uiLayoutEvaluator.processLayout(value, context, 'px', '0px');
+    Object? evaluated = _uiLayoutEvaluator.processLayout(
+      value,
+      context,
+      'px',
+      '0px',
+    );
     if (evaluated.isElement) {
       return valueFromElement(evaluated as Element);
     }
