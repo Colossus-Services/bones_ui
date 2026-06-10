@@ -86,7 +86,12 @@ void main() {
 
     test('returns default value for unresolvable element', () {
       var evaluator = newEvaluator();
-      var r = evaluator.processLayout('#missing.center.x', {}, 'px', 'fallback');
+      var r = evaluator.processLayout(
+        '#missing.center.x',
+        {},
+        'px',
+        'fallback',
+      );
       expect(r, equals('fallback'));
     });
   });
