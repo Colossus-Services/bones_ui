@@ -612,8 +612,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
   File? getInputFile() {
     var input = getInputCapture() as HTMLInputElement?;
     if (input == null) return null;
-    var files = input.files!;
-    return files.isNotEmpty ? files.item(0) : null;
+    var files = input.files;
+    if (files == null || files.isEmpty) return null;
+    return files.item(0);
   }
 
   bool isFileImage() {
