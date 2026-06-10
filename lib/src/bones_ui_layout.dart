@@ -320,8 +320,10 @@ class UILayoutEvaluator extends ExpressionEvaluator {
 
     if (expressionResolved is ElementExpression) {
       return evalElementExpression(expressionResolved, context);
+    } else if (expressionResolved == null) {
+      return null;
     } else {
-      return eval(expressionResolved!, context);
+      return eval(expressionResolved, context);
     }
   }
 
@@ -413,8 +415,10 @@ class UILayoutEvaluator extends ExpressionEvaluator {
         }
         return evaluated;
       }
+    } else if (expressionResolved == null) {
+      return null;
     } else {
-      return eval(expressionResolved!, context);
+      return eval(expressionResolved, context);
     }
   }
 

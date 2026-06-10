@@ -1,3 +1,22 @@
+## 3.0.16
+
+- `UILayoutEvaluator`:
+  - Fixed a null-check crash when a layout expression referenced an unresolvable element or
+    `this` target (e.g. `#missing.center.x`). `_evalMemberExpressionImpl` and `_evalThisImpl`
+    now return `null` instead of force-unwrapping a null resolved expression, so `processLayout`
+    correctly falls back to its `defaultValue`.
+
+- `lib/src/component/capture.dart`:
+  - `UICapture.getInputFile`: hardened against a null `HTMLInputElement.files`, returning `null`
+    instead of throwing (matching the null-safe handling already used in `_readFile`).
+
+- Tests:
+  - Added `test/capture_test.dart` covering the `UICapture` data-format conversion matrix
+    (`arrayBuffer`/`base64`/`string`/`dataUrlBase64`), field value round-trips, `null` clearing
+    and `latin1` encoding.
+  - Expanded `test/layout_expression_test.dart` with unit arithmetic, fallback-unit application,
+    mixed-unit rejection and the unresolvable-element fallback (regression test for the fix above).
+
 ## 3.0.15
 
 - `lib/src/component/capture.dart`:
