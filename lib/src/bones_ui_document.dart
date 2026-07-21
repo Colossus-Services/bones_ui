@@ -144,7 +144,8 @@ class UIDocument extends UIComponentAsync {
     dynamic style,
     dynamic style2,
     dynamic id,
-  }) : _resourceContent = resourceContent,
+  }) : _markdownExtensionSet = markdownExtensionSet,
+       _resourceContent = resourceContent,
        super(
          parent,
          null,
