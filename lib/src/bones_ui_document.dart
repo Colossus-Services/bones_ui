@@ -1,4 +1,5 @@
 import 'package:dom_tools/dom_tools.dart';
+import 'package:markdown/markdown.dart' as mk;
 import 'package:swiss_knife/swiss_knife.dart';
 
 import 'bones_ui_component.dart';
@@ -130,9 +131,12 @@ class UIDocument extends UIComponentAsync {
 
   ResourceContent? _resourceContent;
 
+  mk.ExtensionSet? _markdownExtensionSet;
+
   UIDocument(
     UIElement? parent,
     ResourceContent? resourceContent, {
+    mk.ExtensionSet? markdownExtensionSet,
     loadingContent,
     errorContent,
     dynamic classes,
@@ -166,6 +170,13 @@ class UIDocument extends UIComponentAsync {
     }
   }
 
+  mk.ExtensionSet? get markdownExtensionSet => _markdownExtensionSet;
+
+  set markdownExtensionSet(mk.ExtensionSet value) {
+    _markdownExtensionSet = value;
+    refreshInternal();
+  }
+
   @override
   Map<String, dynamic> renderPropertiesProvider() {
     return {'uri': resourceContent!.uri};
@@ -191,7 +202,10 @@ class UIDocument extends UIComponentAsync {
       } else if (language == 'text') {
         return '<pre>\n$docContent\n</pre>';
       } else if (language == 'markdown') {
-        var div = markdownToDiv(docContent);
+        var div = markdownToDiv(
+          docContent,
+          extensionSet: _markdownExtensionSet,
+        );
         div.style.overflowWrap = 'break-word';
         return div;
       } else if (language == 'json') {

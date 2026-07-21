@@ -1,3 +1,14 @@
+## 3.0.17
+
+- `UIDocument`:
+  - Added support for custom Markdown extension sets via new `markdownExtensionSet` field.
+  - Updated `renderAsync` to pass `markdownExtensionSet` to `markdownToDiv` when rendering Markdown content.
+- Dependencies:
+  - Added `markdown` package dependency (^7.3.1).
+  - Updated `dom_tools` to ^3.0.1.
+  - Updated `intl` to ^0.20.3.
+  - Updated `build_web_compilers` to ^4.8.0.
+
 ## 3.0.16
 
 - `UILayoutEvaluator`:
