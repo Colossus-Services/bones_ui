@@ -1,3 +1,8 @@
+## 3.0.18
+
+- `UIDocument`:
+  - Constructor: added initialization of `_markdownExtensionSet` field.
+
 ## 3.0.17
 
 - `UIDocument`:
