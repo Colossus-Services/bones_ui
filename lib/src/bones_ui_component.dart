@@ -830,11 +830,16 @@ abstract class UIComponent extends UIEventHandler {
 
       final content = this.content!;
 
-      var cssText = content.style.cssText;
-      if (cssText == '') {
+      var cssText = content.style.cssText.trim();
+      if (cssText.isEmpty) {
         cssText = allStylesLine;
       } else {
-        cssText += allStylesLine;
+        // Ensure that the previous declarations are terminated, otherwise
+        // the appended entry would be merged into the last property value:
+        if (!cssText.endsWith(';')) {
+          cssText += ';';
+        }
+        cssText += ' $allStylesLine';
       }
 
       content.style.cssText = cssText;
@@ -1049,9 +1054,19 @@ abstract class UIComponent extends UIEventHandler {
     List<String>? fields,
     List<String>? ignoreFields,
   }) {
-    var map = Map<String, Object>.fromEntries(
-      _listFieldsEntriesInContentDeepImpl(_content!.children.toList()),
-    );
+    var map = <String, Object>{};
+
+    for (var entry in _listFieldsEntriesInContentDeepImpl(
+      _content!.children.toList(),
+    )) {
+      var value = entry.value;
+
+      // For a repeated field name prefer an `UIComponent` over a plain
+      // element, since it resolves the field value through `UIField`:
+      if (map[entry.key] is UIComponent && value is! UIComponent) continue;
+
+      map[entry.key] = value;
+    }
 
     if (fields != null) {
       map.removeWhere((key, value) => !fields.contains(key));
@@ -1982,7 +1997,7 @@ abstract class UIComponent extends UIEventHandler {
 
   void _callOnChildRendered(UIComponent child) {
     try {
-      onChildRendered(this);
+      onChildRendered(child);
     } catch (e, s) {
       logger.error('Error calling onChildRendered() for instance: $this', e, s);
     }
@@ -3306,34 +3321,11 @@ abstract class UIComponent extends UIEventHandler {
     List<String>? fields,
     List<String>? ignoreFields,
   }) {
-    var fieldsElementsMap = getFieldsComponentsMap(
-      fields: fields,
-      ignoreFields: ignoreFields,
+    // Repeated field names are already resolved by [getFieldsComponentsMap],
+    // that prefers an `UIComponent` over a plain element:
+    return Map<String, Object?>.of(
+      getFieldsComponentsMap(fields: fields, ignoreFields: ignoreFields),
     );
-
-    var entries = fieldsElementsMap.entries.toList();
-    entries.sort((a, b) {
-      var aIsUIComponent = a is UIComponent;
-      var bIsUIComponent = b is UIComponent;
-
-      if (aIsUIComponent && !bIsUIComponent) {
-        return -1;
-      } else if (bIsUIComponent && !aIsUIComponent) {
-        return 1;
-      } else {
-        return 0;
-      }
-    });
-
-    var fieldsValues = <String, Object?>{};
-
-    for (var entry in entries) {
-      var key = entry.key;
-      if (fieldsValues.containsKey(key)) continue;
-      fieldsValues[key] = entry.value;
-    }
-
-    return fieldsValues;
   }
 
   Map<String, dynamic>? _renderedFieldsValues;
@@ -3622,7 +3614,7 @@ abstract class UIComponent extends UIEventHandler {
       (component as HTMLElement).focus();
       return true;
     } else if (component is UIComponent) {
-      var input = findInContentChildDeep((e) => e.isTextInput);
+      var input = component.findInContentChildDeep((e) => e.isTextInput);
       if (input != null) {
         return input.focus();
       }
@@ -3725,9 +3717,14 @@ abstract class UIComponent extends UIEventHandler {
     var keypress = getElementAttribute(elem, 'onEventKeyPress');
 
     if (keypress != null && keypress.isNotEmpty) {
-      var parts = keypress.split(':');
-      var key = parts[0].trim();
-      var actionType = parts[1];
+      var idx = keypress.indexOf(':');
+
+      // Without a `key:action` delimiter the whole value is the action,
+      // triggered by any key:
+      var key = idx >= 0 ? keypress.substring(0, idx).trim() : '*';
+      var actionType = idx >= 0 ? keypress.substring(idx + 1) : keypress;
+
+      if (key.isEmpty) key = '*';
 
       if (key == '*') {
         addTrackedEventListener(

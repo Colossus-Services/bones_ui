@@ -15,7 +15,7 @@ extension UIElementExtension on UIElement {
     if (parentUIComponent != null) {
       return parentUIComponent.findUIComponentByChild(this);
     } else {
-      return UIRoot.getInstance()!.findUIComponentByChild(this);
+      return UIRoot.getInstance()?.findUIComponentByChild(this);
     }
   }
 

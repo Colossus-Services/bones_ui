@@ -418,6 +418,7 @@ class UINavigator {
           route,
           parameters: parameters,
           force: force,
+          fromURL: fromURL,
           cantFindNavigableRetry: cantFindNavigableRetry + 1,
         ),
       );
@@ -613,13 +614,20 @@ class UINavigator {
     ParametersProvider? parametersProvider,
     bool force = false,
   ]) {
+    if (route == null || route.isEmpty) {
+      if (element.isA<HTMLElement>()) {
+        clearNavigateOnClick(element as HTMLElement);
+      }
+      return null;
+    }
+
     var paramsStr = encodeQueryString(parameters);
 
     var attrRoute = element.getAttribute('__navigate__route');
     var attrParams = element.getAttribute('__navigate__parameters');
 
     if (route != attrRoute || paramsStr != attrParams) {
-      element.setAttribute('__navigate__route', route!);
+      element.setAttribute('__navigate__route', route);
       element.setAttribute('__navigate__parameters', paramsStr);
 
       var subscriptionHolder = <StreamSubscription>[];

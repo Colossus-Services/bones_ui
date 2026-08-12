@@ -313,13 +313,13 @@ DOMElement $uiButtonLoader({
       if (buttonClasses != null)
         'button-classes':
             parseStringFromInlineList(buttonClasses)?.join(',') ?? '',
-      if (buttonClasses != null) 'button-style': CSS(buttonStyle).style,
+      if (buttonStyle != null) 'button-style': CSS(buttonStyle).style,
       if (withProgress != null) 'with-progress': '$withProgress',
       if (loadedTextStyle != null)
         'loaded-text-style': CSS(loadedTextStyle).style,
       if (loadedTextClass != null)
         'loaded-text-classes':
-            parseStringFromInlineList(buttonClasses)?.join(',') ?? '',
+            parseStringFromInlineList(loadedTextClass)?.join(',') ?? '',
       if (loadedTextErrorStyle != null)
         'loaded-text-error-style': CSS(loadedTextErrorStyle).style,
       if (loadedTextErrorClass != null)
@@ -347,7 +347,9 @@ class UIButtonLoader extends UIButtonBase {
         '',
         (parent, attributes, contentHolder, contentNodes) {
           var loadedTextStyle = attributes['loaded-text-style'];
-          var loadedTextClass = attributes['loaded-text-class'];
+          var loadedTextClass =
+              attributes['loaded-text-class'] ??
+              attributes['loaded-text-classes'];
           var loadedTextErrorStyle = attributes['loaded-text-error-style'];
           var loadedTextErrorClass =
               attributes['loaded-text-error-class'] ??

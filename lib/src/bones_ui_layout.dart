@@ -612,18 +612,25 @@ class UILayout {
   }
 
   int _getElementIndex(UIElement elem) {
-    var idx = elem.parentElement!.children.indexOf(elem);
-    return idx;
+    var parent = elem.parentElement;
+    if (parent == null) return -1;
+    return parent.children.indexOf(elem);
   }
 
   int _getElementIndexByID(UIElement elem) {
-    var elemID = elem.id;
-    List<UIElement> elemsSameID = elem.parentElement!
+    var elemID = elem.id.trim();
+    // An empty ID would build the invalid CSS selector `#`:
+    if (elemID.isEmpty) return -1;
+
+    var parent = elem.parentElement;
+    if (parent == null) return -1;
+
+    List<UIElement> elemsSameID = parent
         .querySelectorAll('#$elemID')
         .toElements();
     if (elemsSameID.isEmpty) return -1;
-    var idx = elemsSameID.indexOf(elem);
-    return idx;
+
+    return elemsSameID.indexOf(elem);
   }
 
   Map<String, int> _getElementCenter(HTMLElement elem) {
@@ -638,8 +645,10 @@ class UILayout {
     return {'x': x2, 'y': y2};
   }
 
-  Window? _registeredWindow;
+  static Window? _registeredWindow;
 
+  /// Registers the `resize` listener only once per [Window], since
+  /// [_onWindowResize] refreshes all the [UILayout] instances.
   void _registerWindowResize() {
     if (_registeredWindow != window) {
       _registeredWindow = window;
@@ -726,8 +735,7 @@ class UILayout {
 
     element.style.position = 'absolute';
 
-    var commands = this.layout.split('\\s*;\\s*');
-    commands.forEach(_commandsParser);
+    _commandsParser(layout);
   }
 
   void _commandsParser(String cmds) {
@@ -850,7 +858,7 @@ class UILayout {
 
       if (pw == 0 || ph == 0) {
         _needRefresh = true;
-        return '0 px';
+        return '0px';
       }
 
       return valueCenter(pw, ph, w, h);
@@ -940,10 +948,12 @@ class UILayout {
     return context;
   }
 
-  int? _parseValuePx(String val) {
+  /// Parses a `px` value, returning `null` if [val] is not a plain
+  /// `px` value (like `calc(...)` or a value with another unit).
+  num? _parseValuePx(String val) {
+    val = val.trim();
     if (val.endsWith('px')) {
-      var n = int.parse(val.substring(0, val.length - 2));
-      return n;
+      return num.tryParse(val.substring(0, val.length - 2).trim());
     }
     return null;
   }
