@@ -390,7 +390,7 @@ Object? _ensureElementForDOM(Object? element) {
       if (childNodes.length == 1) {
         return childNodes.toIterable().first;
       } else {
-        div;
+        return div;
       }
     } else {
       var span = HTMLSpanElement();

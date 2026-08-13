@@ -104,7 +104,7 @@ abstract class _EventHandlerPrivate {
   void _trackAllRegisteredEventListeners(
     List<RegisteredEventListener>? listeners,
   ) {
-    if (listeners == null || listeners.isElement) return;
+    if (listeners == null || listeners.isEmpty) return;
 
     var registeredEventListeners = _registeredEventListeners ??= [];
     registeredEventListeners.addAll(listeners);

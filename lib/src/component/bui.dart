@@ -98,8 +98,8 @@ class BUIRender extends UINavigableComponent {
     DOMGenerator<UINode>? domGenerator,
     DataAssets? dataAssets,
     BUIViewProviderBase? viewProvider,
-    dynamic classes,
-    dynamic style,
+    super.classes,
+    super.style,
     bool renderOnConstruction = true,
   }) : renderDomGenerator =
            domGenerator ?? DOMGeneratorDelegate(UIComponent.domGenerator),
@@ -109,8 +109,6 @@ class BUIRender extends UINavigableComponent {
          parent,
          ['*'],
          componentClass: 'ui-render',
-         classes: classes,
-         style: style,
          renderOnConstruction: false,
        ) {
     _navbarSource = BUIRenderSource(
@@ -701,15 +699,18 @@ class BUIViewProvider extends BUIViewProviderBase {
       var manifestTree = parseJSON(manifestContent);
       return BUIViewProvider.fromManifestTree(manifestTree);
     } else {
+      Map? manifestTree;
       try {
-        var manifestTree = loadYaml(manifestContent) as Map?;
+        manifestTree = loadYaml(manifestContent) as Map?;
         print(encodeJSON(manifestTree));
-        return BUIViewProvider.fromManifestTree(manifestTree);
       } catch (e) {
         print(e);
+        return null;
       }
+      // Resolved outside of the `try` block: `fromManifestTree` is `async`,
+      // so its errors were never caught by the `catch` above.
+      return BUIViewProvider.fromManifestTree(manifestTree);
     }
-    return null;
   }
 
   static Future<BUIViewProvider?> fromManifestTree(

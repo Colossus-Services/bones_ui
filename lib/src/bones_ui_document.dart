@@ -139,11 +139,11 @@ class UIDocument extends UIComponentAsync {
     mk.ExtensionSet? markdownExtensionSet,
     loadingContent,
     errorContent,
-    dynamic classes,
-    dynamic classes2,
-    dynamic style,
-    dynamic style2,
-    dynamic id,
+    super.classes,
+    super.classes2,
+    super.style,
+    super.style2,
+    super.id,
   }) : _markdownExtensionSet = markdownExtensionSet,
        _resourceContent = resourceContent,
        super(
@@ -153,11 +153,6 @@ class UIDocument extends UIComponentAsync {
          loadingContent,
          errorContent,
          componentClass: 'ui-document',
-         classes: classes,
-         classes2: classes2,
-         style: style,
-         style2: style2,
-         id: id,
          generator: generator,
        );
 

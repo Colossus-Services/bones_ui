@@ -355,29 +355,30 @@ DOMElement $uiDialog({
 }
 
 class UIDialog extends UIDialogBase {
-  /// Returns all the `.ui-dialog` as [UIDialogBase].
-  static List<UIDialogBase> getAllDialogs() {
-    var dialogs = window.document.querySelectorAll('.ui-dialog');
-
-    return dialogs
-        .whereElement()
-        .map(UIComponent.getContentUIComponent)
-        .whereType<UIDialogBase>()
-        .toList();
-  }
+  /// Returns all the [UIDialogBase] instances currently in the DOM.
+  ///
+  /// Note: the [UIDialogBase] instances are resolved through
+  /// [UIRootComponent.getInstances] instead of mapping the `.ui-dialog`
+  /// elements back to their components, because the element to component
+  /// mapping uses an [Expando], which is keyed by identity and doesn't
+  /// resolve an element re-read from the DOM when compiled to `Wasm`.
+  static List<UIDialogBase> getAllDialogs() =>
+      UIRootComponent.getInstances().whereType<UIDialogBase>().where((d) {
+        var content = d.content;
+        return content != null && isNodeInDOM(content);
+      }).toList();
 
   /// Removes and clears all the `.ui-dialog` [Element]s.
   static void removeAllDialogs() {
-    var dialogs = window.document.querySelectorAll('.ui-dialog');
+    for (var dialog in getAllDialogs()) {
+      dialog.hide();
+      dialog.clear();
+      dialog.content?.remove();
+    }
 
-    for (var d in dialogs.whereElement()) {
-      var component = UIComponent.getContentUIComponent(d);
-      if (component is UIDialogBase) {
-        component.hide();
-      }
-
-      component?.clear();
-
+    // Remove any remaining `.ui-dialog` element without a live component:
+    for (var d
+        in window.document.querySelectorAll('.ui-dialog').whereElement()) {
       d.remove();
     }
   }
@@ -586,15 +587,15 @@ class UIDialogInput extends UIDialog {
     String? inputClasses,
     String? inputStyle,
     String? value,
-    bool hideUIRoot = false,
-    bool showCloseButton = false,
-    dynamic classes,
-    dynamic style,
-    String padding = '6px',
-    bool fullScreen = false,
-    int backgroundGrey = 0,
-    double backgroundAlpha = 0.80,
-    int? backgroundBlur,
+    super.hideUIRoot,
+    super.showCloseButton,
+    super.classes,
+    super.style,
+    super.padding,
+    super.fullScreen = false,
+    super.backgroundGrey,
+    super.backgroundAlpha,
+    super.backgroundBlur,
   }) : super(
          _buildContent(
            label,
@@ -608,15 +609,6 @@ class UIDialogInput extends UIDialog {
            inputStyle,
            value,
          ),
-         hideUIRoot: hideUIRoot,
-         showCloseButton: showCloseButton,
-         classes: classes,
-         style: style,
-         padding: padding,
-         fullScreen: fullScreen,
-         backgroundGrey: backgroundGrey,
-         backgroundAlpha: backgroundAlpha,
-         backgroundBlur: backgroundBlur,
        );
 
   Future<String?> ask() async {
@@ -648,27 +640,16 @@ class UIDialogAlert extends UIDialog {
     String text,
     String buttonLabel, {
     String? buttonClasses,
-    bool hideUIRoot = false,
-    bool showCloseButton = false,
-    dynamic classes,
-    dynamic style,
-    String padding = '6px',
-    bool fullScreen = false,
-    int backgroundGrey = 0,
-    double backgroundAlpha = 0.80,
-    int? backgroundBlur,
-  }) : super(
-         _buildContent(text, buttonLabel, buttonClasses),
-         hideUIRoot: hideUIRoot,
-         showCloseButton: showCloseButton,
-         classes: classes,
-         style: style,
-         padding: padding,
-         fullScreen: fullScreen,
-         backgroundGrey: backgroundGrey,
-         backgroundAlpha: backgroundAlpha,
-         backgroundBlur: backgroundBlur,
-       );
+    super.hideUIRoot,
+    super.showCloseButton,
+    super.classes,
+    super.style,
+    super.padding,
+    super.fullScreen = false,
+    super.backgroundGrey,
+    super.backgroundAlpha,
+    super.backgroundBlur,
+  }) : super(_buildContent(text, buttonLabel, buttonClasses));
 }
 
 class UIDialogLoading extends UIDialog {
@@ -687,27 +668,15 @@ class UIDialogLoading extends UIDialog {
   UIDialogLoading(
     String text,
     UILoadingType loadingType, {
-    bool hideUIRoot = false,
-    bool showCloseButton = false,
-    bool show = false,
-    dynamic classes,
-    dynamic style,
-    String padding = '6px',
-    bool fullScreen = false,
-    int backgroundGrey = 0,
-    double backgroundAlpha = 0.80,
-    int? backgroundBlur,
-  }) : super(
-         _buildContent(loadingType, text),
-         hideUIRoot: hideUIRoot,
-         showCloseButton: showCloseButton,
-         show: show,
-         classes: classes,
-         style: style,
-         padding: padding,
-         fullScreen: fullScreen,
-         backgroundGrey: backgroundGrey,
-         backgroundAlpha: backgroundAlpha,
-         backgroundBlur: backgroundBlur,
-       );
+    super.hideUIRoot,
+    super.showCloseButton,
+    super.show,
+    super.classes,
+    super.style,
+    super.padding,
+    super.fullScreen = false,
+    super.backgroundGrey,
+    super.backgroundAlpha,
+    super.backgroundBlur,
+  }) : super(_buildContent(loadingType, text));
 }
