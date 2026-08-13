@@ -355,29 +355,30 @@ DOMElement $uiDialog({
 }
 
 class UIDialog extends UIDialogBase {
-  /// Returns all the `.ui-dialog` as [UIDialogBase].
-  static List<UIDialogBase> getAllDialogs() {
-    var dialogs = window.document.querySelectorAll('.ui-dialog');
-
-    return dialogs
-        .whereElement()
-        .map(UIComponent.getContentUIComponent)
-        .whereType<UIDialogBase>()
-        .toList();
-  }
+  /// Returns all the [UIDialogBase] instances currently in the DOM.
+  ///
+  /// Note: the [UIDialogBase] instances are resolved through
+  /// [UIRootComponent.getInstances] instead of mapping the `.ui-dialog`
+  /// elements back to their components, because the element to component
+  /// mapping uses an [Expando], which is keyed by identity and doesn't
+  /// resolve an element re-read from the DOM when compiled to `Wasm`.
+  static List<UIDialogBase> getAllDialogs() =>
+      UIRootComponent.getInstances().whereType<UIDialogBase>().where((d) {
+        var content = d.content;
+        return content != null && isNodeInDOM(content);
+      }).toList();
 
   /// Removes and clears all the `.ui-dialog` [Element]s.
   static void removeAllDialogs() {
-    var dialogs = window.document.querySelectorAll('.ui-dialog');
+    for (var dialog in getAllDialogs()) {
+      dialog.hide();
+      dialog.clear();
+      dialog.content?.remove();
+    }
 
-    for (var d in dialogs.whereElement()) {
-      var component = UIComponent.getContentUIComponent(d);
-      if (component is UIDialogBase) {
-        component.hide();
-      }
-
-      component?.clear();
-
+    // Remove any remaining `.ui-dialog` element without a live component:
+    for (var d
+        in window.document.querySelectorAll('.ui-dialog').whereElement()) {
       d.remove();
     }
   }

@@ -48,10 +48,30 @@
 
 - `UIEventHandler.trackAllRegisteredEventListeners`: fixed an empty-check using `isElement`.
 
+- `getUILoadingType`: the `dualRing` case was unreachable, since the value is lower-cased
+  before the `switch`. `UILoadingType.dualRing` could never be parsed from a `String` and
+  silently fell back to `UILoadingType.ring`. Also accepts `dual-ring` and `dual_ring`.
+
+- `UILoadingConfig`:
+  - `toInlineProperties` emitted `textZoom`, but `fromMap` only read `text-zoom`, and
+    `withProgress` was not emitted at all. Both were silently lost on a
+    `toInlineProperties` → `parse` round-trip (used by the `ui-button-loader` tag).
+
+- `UIDialog.getAllDialogs`/`removeAllDialogs`: resolved the dialogs by mapping the
+  `.ui-dialog` elements back to their components through an `Expando`. An `Expando` is
+  keyed by identity, and on `dart2wasm` an element re-read from the DOM is a new Dart
+  wrapper, so the lookup always missed and both methods were no-ops. They now resolve
+  the instances through `UIRootComponent.getInstances`.
+
 - Tests:
   - Added `test/bones_ui_component_test.dart`, `test/bones_ui_async_content_test.dart`,
     `test/bones_ui_layout_test.dart`, `test/bones_ui_navigator_test.dart` and
     `test/bones_ui_button_test.dart`.
+  - Coverage: added `test/bones_ui_extension_test.dart`,
+    `test/bones_ui_component_async_test.dart`, `test/bones_ui_fields_test.dart`,
+    `test/bones_ui_navigable_test.dart`, `test/bones_ui_utils_test.dart` and
+    `test/bones_ui_dialog_test.dart`.
+  - Line coverage: 47.8% → 60.8%.
 
 ## 3.0.18
 
