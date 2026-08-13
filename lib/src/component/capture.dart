@@ -1323,31 +1323,22 @@ class UIButtonCapture extends UICapture {
   final String? fontSize;
 
   UIButtonCapture(
-    Element? parent,
+    Element? super.parent,
     this.text,
-    CaptureType captureType, {
+    super.captureType, {
     super.editCapture,
     super.photoEditor,
-    String? fieldName,
-    String? navigate,
-    Map<String, String>? navigateParameters,
-    ParametersProvider? navigateParametersProvider,
-    dynamic classes,
-    dynamic classes2,
+    super.fieldName,
+    super.navigate,
+    super.navigateParameters,
+    super.navigateParametersProvider,
+    super.classes,
+    super.classes2,
     dynamic componentClass,
-    dynamic style,
+    super.style,
     bool small = false,
     this.fontSize,
   }) : super(
-         parent,
-         captureType,
-         fieldName: fieldName,
-         navigate: navigate,
-         navigateParameters: navigateParameters,
-         navigateParametersProvider: navigateParametersProvider,
-         classes: classes,
-         classes2: classes2,
-         style: style,
          componentClass: [
            small ? 'ui-button-small' : 'ui-button',
            componentClass,

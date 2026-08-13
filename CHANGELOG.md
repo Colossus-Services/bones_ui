@@ -63,6 +63,15 @@
   wrapper, so the lookup always missed and both methods were no-ops. They now resolve
   the instances through `UIRootComponent.getInstances`.
 
+- Lints (`dart analyze --fatal-infos --fatal-warnings`):
+  - `BUIViewProvider.fromManifestContent`: the `return` of the `async`
+    `fromManifestTree` was inside a `try` block, so its errors were never caught by the
+    `catch` (`unawaited_return_in_try_block`). Moved out of the `try`, which keeps the
+    behavior and makes the guarded scope explicit.
+  - Converted the forwarded constructor parameters to super parameters in `UIDocument`,
+    `BUIRender`, `UIButtonCapture`, `UIDialogInput`, `UIDialogAlert` and `UIDialogLoading`
+    (`use_super_parameters`).
+
 - Tests:
   - Added `test/bones_ui_component_test.dart`, `test/bones_ui_async_content_test.dart`,
     `test/bones_ui_layout_test.dart`, `test/bones_ui_navigator_test.dart` and
