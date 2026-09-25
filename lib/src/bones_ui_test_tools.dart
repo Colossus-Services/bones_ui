@@ -3028,17 +3028,13 @@ T _chainCapture<T>(T Function() callback) {
     return callback();
   }
 
-  return Chain.capture<T>(
-    callback,
-    onError: (e, c) => _chainCaptureOnError(e, c, parentChain),
-  );
-}
-
-_chainCaptureOnError(Object e, Chain c, Chain parentChain) {
-  var chainAll = Chain([...c.traces, ...parentChain.traces]);
-  var chainAllTerse = chainAll.terse;
-  var e2 = AsyncError(e, chainAllTerse);
-  Error.throwWithStackTrace(e2, chainAllTerse);
+  // Not an error zone. An error raised inside an error zone can't cross
+  // out of it: a failing `expect` in a `thenChain` was reported as an
+  // uncaught error — so the test showed as failed — but the future the
+  // test body was awaiting never completed, and the body hung until the
+  // test's own timeout. With `errorZone: false` the chain is still
+  // tracked and the error reaches whoever awaits it.
+  return Chain.capture<T>(callback, errorZone: false);
 }
 
 bool _equalsParameters(
