@@ -1,3 +1,17 @@
+## 3.0.20
+
+- Test tools: a failing step in a test chain no longer hangs the test.
+  - `_chainCapture` ran each step in `Chain.capture` with an `onError`,
+    which makes it an error zone. An error can't leave an error zone, so a
+    failing `expect` inside `thenChain` (e.g. `selectFirstWhereUntil` not
+    finding its element) was reported as an uncaught error — the test showed
+    as failed — while the future the test body awaited never completed. The
+    body then hung until the test's own timeout, holding up every suite
+    after it.
+  - Now `Chain.capture(errorZone: false)`: the chain is still tracked, and
+    the error completes the awaited future.
+  - New `bones_ui_test_chain_test.dart` covers it.
+
 ## 3.0.19
 
 - `UIComponent`:
