@@ -1145,9 +1145,9 @@ abstract class UITestChain<
         validator: (elems) => elems.any(test),
       ).selectWhere(selectors, test).thenChain((o) {
         if (expected) {
-          var sel = selectAll(
-            selectors,
-          ).element.map((e) => e.simplify()).toList();
+          var sel = selectAll(selectors).element
+              .map((e) => e.simplify())
+              .toList();
 
           expect(
             o.element,
@@ -1212,9 +1212,9 @@ abstract class UITestChain<
       ).selectFirstWhere(selectors, test).thenChain((o) {
         var elem = o.element;
         if (elem == null) {
-          var sel = selectAll(
-            selectors,
-          ).element.map((e) => e.simplify()).toList();
+          var sel = selectAll(selectors).element
+              .map((e) => e.simplify())
+              .toList();
 
           expect(
             elem,
@@ -2222,17 +2222,15 @@ extension FutureUITestChainNodeExtension<
     Iterable<Element> Function(List<Element> elems)? mapper,
     bool expected = false,
   }) => thenChain(
-    (o) =>
-        o.selectWhereUntil(
-              selectors,
-              test,
-              timeoutMs: timeoutMs,
-              intervalMs: intervalMs,
-              minMs: minMs,
-              mapper: mapper,
-              expected: expected,
-            )
-            as UITestChainNode<U, List<Element>, T>,
+    (o) => o.selectWhereUntil(
+      selectors,
+      test,
+      timeoutMs: timeoutMs,
+      intervalMs: intervalMs,
+      minMs: minMs,
+      mapper: mapper,
+      expected: expected,
+    ) as UITestChainNode<U, List<Element>, T>,
   );
 
   Future<UITestChainNode<U, List<O>, T>>
@@ -2246,18 +2244,16 @@ extension FutureUITestChainNodeExtension<
     Iterable<Element> Function(List<Element> elems)? mapper,
     bool expected = false,
   }) => thenChain(
-    (o) =>
-        o.selectWhereUntilTyped<O>(
-              selectors,
-              webType,
-              test,
-              timeoutMs: timeoutMs,
-              intervalMs: intervalMs,
-              minMs: minMs,
-              mapper: mapper,
-              expected: expected,
-            )
-            as UITestChainNode<U, List<O>, T>,
+    (o) => o.selectWhereUntilTyped<O>(
+      selectors,
+      webType,
+      test,
+      timeoutMs: timeoutMs,
+      intervalMs: intervalMs,
+      minMs: minMs,
+      mapper: mapper,
+      expected: expected,
+    ) as UITestChainNode<U, List<O>, T>,
   );
 
   Future<UITestChainNode<U, Element, T>> selectFirstWhereUntil(

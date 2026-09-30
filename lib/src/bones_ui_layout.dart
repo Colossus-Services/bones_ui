@@ -5,8 +5,10 @@ import 'bones_ui_component.dart';
 import 'bones_ui_web.dart';
 
 typedef ElementProvider = dynamic Function(String id, bool all);
-typedef ElementPropertyResolver =
-    dynamic Function(dynamic element, String property);
+typedef ElementPropertyResolver = dynamic Function(
+  dynamic element,
+  String property,
+);
 
 class ValueUnitExpression extends SimpleExpression {
   static String? getUnit(Expression? a, Expression? b) {
@@ -75,10 +77,17 @@ class ElementExpression extends SimpleExpression {
 }
 
 typedef ValueFromElement = String Function(UIElement elem);
-typedef ElementCoordsValue =
-    String Function(int parentWidth, int parentHeight, int width, int height);
-typedef ElementPercentageValue =
-    String Function(int parentWidth, int parentHeight, double percentage);
+typedef ElementCoordsValue = String Function(
+  int parentWidth,
+  int parentHeight,
+  int width,
+  int height,
+);
+typedef ElementPercentageValue = String Function(
+  int parentWidth,
+  int parentHeight,
+  double percentage,
+);
 
 class UILayoutEvaluator extends ExpressionEvaluator {
   final ElementProvider elementProvider;

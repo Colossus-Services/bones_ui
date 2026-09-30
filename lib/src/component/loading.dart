@@ -613,11 +613,10 @@ abstract class UILoading {
       config: config,
     );
     return div.buildDOM(
-          generator: UIComponent.domGenerator,
-          treeMap: UIComponent.domTreeMapDummy,
-          setTreeMapRoot: false,
-        )
-        as HTMLDivElement;
+      generator: UIComponent.domGenerator,
+      treeMap: UIComponent.domTreeMapDummy,
+      setTreeMapRoot: false,
+    ) as HTMLDivElement;
   }
 }
 

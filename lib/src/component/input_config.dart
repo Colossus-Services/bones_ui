@@ -764,13 +764,11 @@ class UIInputTable extends UIComponent {
               style: 'font-weight: bold',
               content: [label, ':', '&nbsp;'],
             );
-            var dom =
-                domLabel.buildDOM(
-                      generator: UIComponent.domGenerator,
-                      treeMap: domTreeMap,
-                      setTreeMapRoot: false,
-                    )
-                    as HTMLLabelElement;
+            var dom = domLabel.buildDOM(
+              generator: UIComponent.domGenerator,
+              treeMap: domTreeMap,
+              setTreeMapRoot: false,
+            ) as HTMLLabelElement;
             cell.appendChild(dom);
           } else {
             cell.appendHTML(
@@ -782,12 +780,10 @@ class UIInputTable extends UIComponent {
 
       var celInput = row.appendCell()..style.textAlign = 'left';
 
-      var inputRendered =
-          input.renderInput(
-                parent: this,
-                fieldValueProvider: getPreviousRenderedFieldValue,
-              )
-              as Object?;
+      var inputRendered = input.renderInput(
+        parent: this,
+        fieldValueProvider: getPreviousRenderedFieldValue,
+      ) as Object?;
 
       if (inputRendered.isElement) {
         var inputRenderedElement = inputRendered as Element;
@@ -937,26 +933,22 @@ class UIInputTable extends UIComponent {
     }
 
     if (table != null) {
-      var dom =
-          table.buildDOM(
-                generator: UIComponent.domGenerator,
-                treeMap: domTreeMap,
-                setTreeMapRoot: false,
-              )
-              as HTMLTableElement;
+      var dom = table.buildDOM(
+        generator: UIComponent.domGenerator,
+        treeMap: domTreeMap,
+        setTreeMapRoot: false,
+      ) as HTMLTableElement;
       var trs = dom.rows.toList();
       if (trs.isEmpty) return null;
       return trs.length == 1 ? trs.first : trs;
     }
 
     var div = $div(content: nodes);
-    var dom =
-        div.buildDOM(
-              generator: UIComponent.domGenerator,
-              treeMap: domTreeMap,
-              setTreeMapRoot: false,
-            )
-            as HTMLDivElement;
+    var dom = div.buildDOM(
+      generator: UIComponent.domGenerator,
+      treeMap: domTreeMap,
+      setTreeMapRoot: false,
+    ) as HTMLDivElement;
 
     return dom.children.toList();
   }

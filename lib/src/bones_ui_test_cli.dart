@@ -1034,9 +1034,8 @@ class BonesUIPlatform extends PlatformPlugin
 }
 
 Directory _createTempBonesUICompilerDir() {
-  var tempDir = Directory(
-    Directory.systemTemp.path,
-  ).createTempSync('dart_test_bones_ui_');
+  var tempDir = Directory(Directory.systemTemp.path)
+      .createTempSync('dart_test_bones_ui_');
   return Directory(tempDir.resolveSymbolicLinksSync());
 }
 

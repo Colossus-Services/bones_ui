@@ -854,8 +854,10 @@ abstract class UIComponent extends UIEventHandler {
       var uiRoot = this.uiRoot ?? UIRoot.getInstance();
 
       var intlMessageResolver = uiRoot?.intlMessageResolver;
-      intlMessageResolver ??=
-          (String key, [Map<String, dynamic>? parameters]) => key;
+      intlMessageResolver ??= (
+        String key, [
+        Map<String, dynamic>? parameters,
+      ]) => key;
 
       return text.replaceAllMapped(_regexpIntlMessage, (m) {
         var key = m[1]!;
@@ -1213,9 +1215,10 @@ abstract class UIComponent extends UIEventHandler {
     bool? deep,
   ]) {
     if (ids.isEmpty) return <UIComponent>[];
-    return getRenderedUIComponents(
-      deep,
-    ).whereType<T>().where((e) => e.id != null && ids.contains(e.id)).toList();
+    return getRenderedUIComponents(deep)
+        .whereType<T>()
+        .where((e) => e.id != null && ids.contains(e.id))
+        .toList();
   }
 
   List<T> getRenderedUIComponentByType<T>([bool? deep]) =>

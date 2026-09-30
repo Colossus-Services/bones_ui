@@ -401,11 +401,10 @@ class ElementProvider {
         return runtime.node as UIElement?;
       } else {
         return _domNode!.buildDOM(
-              generator: UIComponent.domGenerator,
-              treeMap: UIComponent.domTreeMapDummy,
-              setTreeMapRoot: false,
-            )
-            as UIElement?;
+          generator: UIComponent.domGenerator,
+          treeMap: UIComponent.domTreeMapDummy,
+          setTreeMapRoot: false,
+        ) as UIElement?;
       }
     }
 
@@ -478,13 +477,11 @@ class CSSProvider {
       if (runtime.exists) {
         return cssFromElement(runtime.node as UIElement);
       } else {
-        var element =
-            _domNode!.buildDOM(
-                  generator: UIComponent.domGenerator,
-                  treeMap: UIComponent.domTreeMapDummy,
-                  setTreeMapRoot: false,
-                )
-                as UIElement;
+        var element = _domNode!.buildDOM(
+          generator: UIComponent.domGenerator,
+          treeMap: UIComponent.domTreeMapDummy,
+          setTreeMapRoot: false,
+        ) as UIElement;
         return cssFromElement(element);
       }
     }

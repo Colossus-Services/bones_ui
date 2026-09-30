@@ -66,8 +66,9 @@ enum CaptureDataFormat {
   urlOrBlobUrl,
 }
 
-typedef CapturePhotoEditor =
-    FutureOr<HTMLImageElement?> Function(HTMLImageElement image);
+typedef CapturePhotoEditor = FutureOr<HTMLImageElement?> Function(
+  HTMLImageElement image,
+);
 
 /// Base class for capture components.
 /// See [UIButtonCapture] and [UIButtonCapturePhoto].

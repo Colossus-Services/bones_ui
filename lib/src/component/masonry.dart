@@ -75,11 +75,10 @@ int? _getElementWidth(Object? element) {
     return getElementWidth(element.content!);
   } else if (element is DOMElement) {
     return parseCSSLength(
-          element['width'] ?? element.style.width as String,
-          unit: 'px',
-          allowPXWithoutSuffix: true,
-        )
-        as int?;
+      element['width'] ?? element.style.width as String,
+      unit: 'px',
+      allowPXWithoutSuffix: true,
+    ) as int?;
   }
   return 0;
 }
@@ -92,11 +91,10 @@ int? _getElementHeight(Object? element) {
     return getElementHeight(element.content!);
   } else if (element is DOMElement) {
     return parseCSSLength(
-          element['height'] ?? element.style.height as String,
-          unit: 'px',
-          allowPXWithoutSuffix: true,
-        )
-        as int?;
+      element['height'] ?? element.style.height as String,
+      unit: 'px',
+      allowPXWithoutSuffix: true,
+    ) as int?;
   }
   return 0;
 }

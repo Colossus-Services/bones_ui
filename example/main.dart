@@ -42,12 +42,10 @@ class MyMenu extends UIComponent {
   @override
   dynamic render() {
     return $div(
-      style:
-          'position: fixed; top: 0; left: 0; width: 100%; background-color: black; color: white; padding: 10px',
+      style: 'position: fixed; top: 0; left: 0; width: 100%; background-color: black; color: white; padding: 10px',
       content: [
         $span(
-          content:
-              '<span style="font-size: 120%; font-weight: bold" navigate="home">Bones_UI &nbsp; - &nbsp;</span>',
+          content: '<span style="font-size: 120%; font-weight: bold" navigate="home">Bones_UI &nbsp; - &nbsp;</span>',
         ),
         $span(attributes: {'navigate': 'home'}, content: 'Home'),
         '<span> &nbsp; | &nbsp; </span>',
@@ -67,12 +65,10 @@ class MyFooter extends UIComponent {
   @override
   dynamic render() {
     return $div(
-      style:
-          'position: absolute; position: fixed; bottom: 0; left: 0; width: 100%; background-color: rgba(0,0,0, 0.05); color: black; padding: 4px',
+      style: 'position: absolute; position: fixed; bottom: 0; left: 0; width: 100%; background-color: rgba(0,0,0, 0.05); color: black; padding: 4px',
       content: [
         $span(
-          content:
-              '<span style="font-size: 90%;" navigate="home">Built with <a href="https://colossus-services.github.io/bones_ui/" target="_blank">Bones_UI</a></span>',
+          content: '<span style="font-size: 90%;" navigate="home">Built with <a href="https://colossus-services.github.io/bones_ui/" target="_blank">Bones_UI</a></span>',
         ),
       ],
     );
@@ -245,7 +241,6 @@ class MyComponents extends UIComponent {
   UIDialogAlert _showAlert(String title, String text) => UIDialogAlert(
     '<div style="background-color: rgba(0,0,0, 0.80); width: 100%; padding: 4px 0;">$title</div><br>$text<br>',
     'OK',
-    style:
-        'width: 200px; overflow: hidden; border-radius: 8px; padding: 0px 0px 8px 0px; box-shadow: 0 6px 14px rgba(0,0,0, 0.60);',
+    style: 'width: 200px; overflow: hidden; border-radius: 8px; padding: 0px 0px 8px 0px; box-shadow: 0 6px 14px rgba(0,0,0, 0.60);',
   )..show();
 }

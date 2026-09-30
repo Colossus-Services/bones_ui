@@ -1,4 +1,5 @@
 import 'package:web_utils/web_utils.dart';
+
 import 'dart:math' as math;
 
 import 'package:collection/collection.dart';
@@ -338,23 +339,19 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
           ],
         )..onClick.listen((_) => onTitleClick.add(_currentDate)),
         $div(
-            style:
-                'overflow-y: scroll; max-height: calc(100vh - 120px); max-width: calc(100vw - 12px)',
+            style: 'overflow-y: scroll; max-height: calc(100vh - 120px); max-width: calc(100vw - 12px)',
             content: [
               $table(
                 classes: 'ui-calendar-grid',
-                style:
-                    'border-collapse: collapse; border-top: 1px solid #000; width: 100%;',
-                trsStyle:
-                    'border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000;',
+                style: 'border-collapse: collapse; border-top: 1px solid #000; width: 100%;',
+                trsStyle: 'border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000;',
                 tdsStyle: 'text-align: left; vertical-align: top; padding: 2px',
                 body: [
                   for (var t in _dayHours(timeInterval))
                     [
                       $td(
                         classes: 'ui-calendar-hour-cell',
-                        style:
-                            'background-color: rgba(0,0,0, 0.50); width: 6ch; word-wrap: break-word; text-align: center;',
+                        style: 'background-color: rgba(0,0,0, 0.50); width: 6ch; word-wrap: break-word; text-align: center;',
                         content:
                             '${t.a.toString().padLeft(2, '0')}:${t.b.toString().padLeft(2, '0')}&nbsp;',
                       ),
@@ -495,15 +492,12 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
           ],
         )..onClick.listen((_) => onTitleClick.add(_currentDate)),
         $div(
-          style:
-              'overflow-y: scroll; max-height: calc(100vh - 40px); max-width: calc(100vw - 12px)',
+          style: 'overflow-y: scroll; max-height: calc(100vh - 40px); max-width: calc(100vw - 12px)',
           content: [
             $table(
               classes: 'ui-calendar-grid',
-              style:
-                  'border-collapse: collapse; border-top: 1px solid #000; width: 100%;',
-              trsStyle:
-                  'border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000;',
+              style: 'border-collapse: collapse; border-top: 1px solid #000; width: 100%;',
+              trsStyle: 'border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000;',
               tdsStyle: 'text-align: left; vertical-align: top; padding: 2px',
               body: [
                 _weekDays(firstDayOfWeek)

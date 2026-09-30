@@ -6,8 +6,9 @@ import '../bones_ui_async_content.dart';
 import '../bones_ui_component.dart';
 
 typedef RenderPropertiesProvider = Map<String, dynamic> Function();
-typedef RenderAsync =
-    Future<dynamic>? Function(Map<String, dynamic> properties);
+typedef RenderAsync = Future<dynamic>? Function(
+  Map<String, dynamic> properties,
+);
 
 /// A component that renders a content asynchronously.
 ///

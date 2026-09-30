@@ -446,8 +446,7 @@ abstract class UIRoot extends UIRootComponent {
   void renderAlert(dynamic dialogContent) {
     var div = $div(
       classes: 'ui-root-alert bg-blur',
-      style:
-          'color: #fff; background-color: rgba(255,255,255,0.20); margin: 12px 24px; padding: 14px; border-radius: 8px;',
+      style: 'color: #fff; background-color: rgba(255,255,255,0.20); margin: 12px 24px; padding: 14px; border-radius: 8px;',
       content: dialogContent,
     );
     UIDialog($div(content: [$br(), div]), showCloseButton: true, show: true);
