@@ -36,6 +36,10 @@ void main() {
   test('render benchmark', () async {
     final results = <String, Object?>{};
 
+    // Discarded pass, so that one-time allocations (code, caches) aren't
+    // counted in the first scenario:
+    await _runScenario(uiRoot, _scenarios.first);
+
     for (final scenario in _scenarios) {
       results[scenario.name] = await _runScenario(uiRoot, scenario);
     }
@@ -120,9 +124,15 @@ Future<Map<String, Object?>> _runScenario(
 
   component.delete();
   host.clear();
+
+  // Heap after the automatic purge of the `UIRoot`, that runs after the
+  // rendering finishes (the state of a running app):
+  await Future.delayed(_autoPurgeDelay);
+  final heapAutoPurged = await _heapAfterGC();
+
   await uiRoot.purgeRoot(disposePurgedComponents: true);
 
-  // Heap not released after deleting the component:
+  // Heap not released after deleting the component and explicitly purging:
   final heapAfter = await _heapAfterGC();
 
   samples.sort();
@@ -133,12 +143,20 @@ Future<Map<String, Object?>> _runScenario(
     'minMs': _round(samples.first),
     'maxMs': _round(samples.last),
     'domNodes': nodes,
-    if (heapBefore != null && heapRendered != null && heapAfter != null) ...{
+    if (heapBefore != null &&
+        heapRendered != null &&
+        heapAutoPurged != null &&
+        heapAfter != null) ...{
       'heapRenderedKB': (heapRendered - heapBefore) ~/ 1024,
+      'heapAutoPurgedKB': (heapAutoPurged - heapBefore) ~/ 1024,
       'heapRetainedKB': (heapAfter - heapBefore) ~/ 1024,
     },
   };
 }
+
+/// Longer than the render finish detection (~400 ms) plus the purge delay
+/// (300 ms) of `UIComponent`.
+const _autoPurgeDelay = Duration(milliseconds: 1500);
 
 /// Lets the event loop run the pending futures and timers.
 Future<void> _settle() => Future.delayed(Duration(milliseconds: 1));
