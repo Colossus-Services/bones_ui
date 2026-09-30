@@ -18,6 +18,20 @@ define_platforms:
     settings:
       executable:
         linux: firefox-esr
+  # Chrome with `gc()` and precise heap sizes, for `benchmark/`:
+  chrome-bench:
+    name: Chrome-Bench
+    extends: chrome
+    settings:
+      headless: true
+      arguments: --js-flags=--expose-gc --enable-precise-memory-info
+  # Chrome with the V8 tick profiler (see `docs/benchmarks.md`, "Profiling"):
+  chrome-prof:
+    name: Chrome-Prof
+    extends: chrome
+    settings:
+      headless: true
+      arguments: --no-sandbox --js-flags="--prof --logfile=/tmp/bones_ui_v8.log --no-logfile-per-isolate"
 
 platforms: [chrome]
 compilers: [dart2js, dart2wasm]
