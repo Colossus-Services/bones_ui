@@ -1269,11 +1269,7 @@ abstract class UIComponent extends UIEventHandler {
     var content = _content;
 
     if (content != null) {
-      var elements = content.children.toList();
-      for (var e in elements) {
-        e.remove();
-      }
-
+      // Removes all the child nodes at once (`innerHTML = ''`):
       content.clear();
 
       if (removeFromParent) {
@@ -1890,19 +1886,34 @@ abstract class UIComponent extends UIEventHandler {
   }
 
   void _finalizeRender() {
-    setTreeElementsBackgroundBlur(content!, 'bg-blur');
+    UIDOMGenerator.setElementsBGBlur(content!);
   }
 
-  void _ensureAllRendered(List<Object?> elements) {
+  void _ensureAllRendered(List<Object?> elements) =>
+      _ensureAllRenderedImpl(elements, true);
+
+  /// If [skipNoSubComponents] is `true`, skips the elements without a
+  /// `.ui-component` element (one native query). Only for the entry
+  /// elements: per level of the walk it would query the same subtrees again.
+  void _ensureAllRenderedImpl(
+    List<Object?> elements,
+    bool skipNoSubComponents,
+  ) {
     if (elements.isEmpty) return;
 
     for (var e in elements) {
       if (e is UIComponent) {
         e.ensureRendered();
       } else if (e.isElement) {
+        e as Element;
+
+        if (skipNoSubComponents && e.querySelector('.ui-component') == null) {
+          continue;
+        }
+
         var subElements = <Element>[];
 
-        var children = (e as Element).children.toList();
+        var children = e.children.toList();
         for (var child in children) {
           var classUiComponent = hasUIComponentClass(child);
 
@@ -1943,7 +1954,7 @@ abstract class UIComponent extends UIEventHandler {
         }
       }
 
-      _ensureAllRendered(subElements);
+      _ensureAllRenderedImpl(subElements, false);
     }
   }
 
@@ -2331,7 +2342,9 @@ abstract class UIComponent extends UIEventHandler {
       var renderedList = List<Object>.from(content.childNodes.toList());
       return renderedList;
     } else {
-      if (isListValuesIdentical(renderableList, content.childNodes.toList())) {
+      final childNodes = content.childNodes;
+      if (renderableList.length == childNodes.length &&
+          isListValuesIdentical(renderableList, childNodes.toList())) {
         return List<Object>.from(renderableList);
       }
 
@@ -2675,16 +2688,24 @@ abstract class UIComponent extends UIEventHandler {
     int prevElemIndex,
   ) {
     var content = this.content!;
+    final childNodes = content.childNodes;
 
-    var idx = content.childNodes.indexOf(element);
-
-    if (idx < 0) {
+    // Avoid `childNodes.indexOf` (O(n) through JS interop, making a render
+    // O(n^2)) for the common cases: a new element (appended) or an element
+    // already at the end (just generated into `content`):
+    int idx;
+    if (element.parentNode != content) {
       content.appendChild(element);
-      idx = content.childNodes.indexOf(element);
-    } else if (idx < prevElemIndex) {
-      element.remove();
-      content.appendChild(element);
-      idx = content.childNodes.indexOf(element);
+      idx = childNodes.length - 1;
+    } else if (content.lastChild == element) {
+      idx = childNodes.length - 1;
+    } else {
+      idx = childNodes.indexOf(element);
+      if (idx < prevElemIndex) {
+        element.remove();
+        content.appendChild(element);
+        idx = childNodes.length - 1;
+      }
     }
 
     prevElemIndex = idx;
@@ -2721,23 +2742,45 @@ abstract class UIComponent extends UIEventHandler {
     'data-source',
   ];
 
+  /// Matches the elements with an attribute parsed by [_parseAttributes].
+  /// Like `getAttribute`, attribute selectors are case-insensitive for HTML
+  /// elements and case-sensitive for others (SVG).
+  static const _parsedAttributesSelector =
+      '[navigate],[action],[onEventKeyPress],[onEventClick],[data-source]';
+
+  /// Parses the attributes of the elements in [list] and of their
+  /// descendants (in document order).
+  ///
+  /// Selects the elements with a parsed attribute through a native
+  /// `querySelectorAll`, instead of walking the whole tree through JS interop.
   void _parseAttributes(List<Object?> list) {
     if (list.isEmpty) return;
 
     for (var elem in list.whereElement()) {
-      _parseNavigate(elem);
-      _parseAction(elem);
-      _parseEvents(elem);
-      _parseDataSource(elem);
+      if (elem.matches(_parsedAttributesSelector)) {
+        _parseElementAttributes(elem);
+      }
 
-      try {
-        _parseAttributes(elem.children.asListViewFixed);
-      } catch (e) {
-        UIConsole.error('Error parsing attributes for element: $elem', e);
+      final matches = elem.querySelectorAll(_parsedAttributesSelector);
+      for (var sub in matches.whereElement()) {
+        try {
+          _parseElementAttributes(sub);
+        } catch (e) {
+          UIConsole.error('Error parsing attributes for element: $sub', e);
+        }
       }
     }
   }
 
+  void _parseElementAttributes(UIElement elem) {
+    _parseNavigate(elem);
+    _parseAction(elem);
+    _parseEvents(elem);
+    _parseDataSource(elem);
+  }
+
+  /// Parses the `uiLayout` attribute of the [HTMLElement]s in [list] and of
+  /// their descendants reachable through [HTMLElement]s only (not inside SVG).
   void _parseAttributesPosRender(List<Object?> list) {
     if (list.isEmpty) return;
 
@@ -2751,13 +2794,29 @@ abstract class UIComponent extends UIEventHandler {
           UIConsole.error('Error parsing attributes for element: $elem', e);
         }
 
-        try {
-          _parseAttributesPosRender(elem.children.asListViewFixed);
-        } catch (e) {
-          UIConsole.error('Error parsing attributes for element: $elem', e);
+        final matches = elem.querySelectorAll('[uiLayout]');
+        for (var sub in matches.whereElement()) {
+          if (!_isHTMLElementsPath(sub, elem)) continue;
+
+          try {
+            _parseUILayout(sub as HTMLElement);
+          } catch (e) {
+            UIConsole.error('Error parsing attributes for element: $sub', e);
+          }
         }
       }
     }
+  }
+
+  /// Returns `true` if [element] and its ancestors up to [root] (exclusive)
+  /// are all [HTMLElement]s.
+  static bool _isHTMLElementsPath(Element element, Element root) {
+    Element? cursor = element;
+    while (cursor != null && cursor != root) {
+      if (!cursor.isHTMLElement) return false;
+      cursor = cursor.parentElement;
+    }
+    return true;
   }
 
   void _parseNavigate(UIElement elem) {
