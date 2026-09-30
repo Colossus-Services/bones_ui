@@ -40,8 +40,17 @@
     `onShow` (or hides the `UIRoot` with `hideUIRoot`) before it's shown.
   - `UIButtonLoader`: the button is hidden while loading and restored on stop; `loadedTextStyle` no longer shows the
     loaded message before loading ends.
-  - `UICalendar`: the month view no longer drops the last day of some months; clicking the title date shows the
-    date input and updates the title.
+  - `UICalendar`:
+    - Week mode (`CalendarMode.week`, the default mode) is implemented: it rendered nothing. The days of the week of
+      `currentDate` (from `firstDayOfWeek`) × time slots, with `nextWeek`/`previousWeek` navigation, `onDayClick`
+      (day headers), `onHourClick`, `onEventClick`, and ↑/↓ to the month/day modes (per `allowedModes`). New
+      `currentWeekDays`.
+    - Events longer than a time slot (or spanning days in the month view) are shown in every slot/day they overlap
+      (only events entirely inside a slot were shown). `selectEvents` returns overlapping events; new
+      `CalendarEvent.overlapsTimeRange` (`isInTimeRange` is unchanged). Continuation slots are rendered with the
+      `ui-calendar-event-continuation` class (`CalendarEvent.render(continued:)`).
+    - The month view no longer drops the last day of some months; clicking the title date shows the date input and
+      updates the title.
   - `UILoadingConfig`/`$uiLoading`: `inline: false` is applied.
   - `UIDataSource`: its content is hidden (`display: 'node'` typo).
   - `UIJsonRender`: HTML inside JSON values is shown as text.

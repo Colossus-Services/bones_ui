@@ -266,8 +266,25 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
     if (value != null) _events.addAll(value);
   }
 
+  /// Returns the events that overlap [init] .. [end] (`end` exclusive),
+  /// including events longer than the range.
+  /// See [CalendarEvent.overlapsTimeRange].
   List<CalendarEvent> selectEvents(DateTime init, DateTime end) =>
-      _events.where((e) => e.isInTimeRange(init, end)).toList();
+      _events.where((e) => e.overlapsTimeRange(init, end)).toList();
+
+  /// Renders the events of the time slot starting at [slotInit] (of
+  /// [timeInterval] minutes). Events that started before the slot are
+  /// rendered as continuations.
+  List<DIVElement> _renderSlotEvents(DateTime slotInit) {
+    var slotEnd = slotInit.add(Duration(minutes: timeInterval));
+    return selectEvents(slotInit, slotEnd)
+        .map(
+          (e) =>
+              e.render(continued: e.initTime.isBefore(slotInit))
+                ..onClick.listen((_) => onEventClick.add(e)),
+        )
+        .toList();
+  }
 
   @override
   dynamic render() {
@@ -354,20 +371,9 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
                             '${t.a.toString().padLeft(2, '0')}:${t.b.toString().padLeft(2, '0')}&nbsp;',
                       ),
                       $td(
-                          content:
-                              selectEvents(
-                                    _currentDate.withTime(t.a, t.b),
-                                    _currentDate
-                                        .withTime(t.a, t.b)
-                                        .add(Duration(minutes: timeInterval)),
-                                  )
-                                  .map(
-                                    (e) => e.render()
-                                      ..onClick.listen(
-                                        (_) => onEventClick.add(e),
-                                      ),
-                                  )
-                                  .toList(),
+                          content: _renderSlotEvents(
+                            _currentDate.withTime(t.a, t.b),
+                          ),
                         )
                         ..onClick.listen(
                           (event) =>
@@ -480,7 +486,135 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
     return div;
   }
 
-  dynamic _renderModeWeek() {}
+  /// The 7 days of the week of [currentDate], starting at [firstDayOfWeek].
+  List<DateTime> get currentWeekDays =>
+      _weekDates(_currentDate, firstDayOfWeek);
+
+  dynamic _renderModeWeek() {
+    var today = UICalendar.today();
+    var weekDays = currentWeekDays;
+
+    var allowMonthMode = _allowedModes.contains(CalendarMode.month);
+    var allowDayMode = _allowedModes.contains(CalendarMode.day);
+
+    return $div(
+      classes: 'ui-calendar-panel',
+      style: 'min-width: 56ch',
+      content: [
+        $div(
+          classes: 'ui-calendar-title',
+          style: 'background-color: rgba(0,0,0, 0.50); padding: 2px',
+          content: [
+            if (allowMonthMode)
+              $span(
+                  classes: 'ui-calendar-mode-up',
+                  style: 'cursor: pointer; float: left;',
+                  content: '&nbsp;&nbsp;&#8673;&nbsp;',
+                )
+                ..onClick.listen((evt) {
+                  evt.cancel(stopImmediatePropagation: true);
+                  mode = mode.previousMode(day: false, week: false);
+                }),
+            $span(
+                classes: 'ui-calendar-previous',
+                style: 'cursor: pointer;',
+                content: '&larr;&nbsp;&nbsp;',
+              )
+              ..onClick.listen((evt) {
+                evt.cancel(stopImmediatePropagation: true);
+                previousWeek();
+              }),
+            _renderInputDate(textWithDay: true),
+            $span(
+                classes: 'ui-calendar-next',
+                style: 'cursor: pointer;',
+                content: '&nbsp;&nbsp;&rarr;',
+              )
+              ..onClick.listen((evt) {
+                evt.cancel(stopImmediatePropagation: true);
+                nextWeek();
+              }),
+            if (allowDayMode)
+              $span(
+                  classes: 'ui-calendar-mode-down',
+                  style: 'cursor: pointer; float: right;',
+                  content: '&nbsp;&#8675;&nbsp;&nbsp;',
+                )
+                ..onClick.listen((evt) {
+                  evt.cancel(stopImmediatePropagation: true);
+                  mode = mode.nextMode(week: false, month: false);
+                }),
+          ],
+        )..onClick.listen((_) => onTitleClick.add(_currentDate)),
+        $div(
+            style: 'overflow-y: scroll; max-height: calc(100vh - 120px); max-width: calc(100vw - 12px)',
+            content: [
+              $table(
+                classes: 'ui-calendar-grid',
+                style: 'border-collapse: collapse; border-top: 1px solid #000; width: 100%;',
+                trsStyle: 'border-left: 1px solid #000; border-right: 1px solid #000; border-bottom: 1px solid #000;',
+                tdsStyle: 'text-align: left; vertical-align: top; padding: 2px',
+                body: [
+                  [
+                    $td(
+                      classes: 'ui-calendar-hour-cell',
+                      style: 'background-color: rgba(0,0,0, 0.50); width: 6ch;',
+                    ),
+                    for (var day in weekDays) _renderWeekDayHeader(day, today),
+                  ],
+                  for (var t in _dayHours(timeInterval))
+                    [
+                      $td(
+                        classes: 'ui-calendar-hour-cell',
+                        style: 'background-color: rgba(0,0,0, 0.50); width: 6ch; word-wrap: break-word; text-align: center;',
+                        content:
+                            '${t.a.toString().padLeft(2, '0')}:${t.b.toString().padLeft(2, '0')}&nbsp;',
+                      ),
+                      for (var day in weekDays)
+                        $td(
+                            classes: day == today
+                                ? 'ui-calendar-week-slot-cell ui-calendar-today-cell'
+                                : 'ui-calendar-week-slot-cell',
+                            content: _renderSlotEvents(day.withTime(t.a, t.b)),
+                          )
+                          ..onClick.listen(
+                            (_) => onHourClick.add(day.withTime(t.a, t.b)),
+                          ),
+                    ],
+                ],
+              ),
+            ],
+          )
+          ..onGenerate.listen((Object? element) {
+            if (element.isHTMLElement) {
+              blockVerticalScrollTraverse(element as HTMLElement);
+            }
+          }),
+      ],
+    );
+  }
+
+  DOMElement _renderWeekDayHeader(DateTime day, DateTime today) {
+    var weekDayName = IntlBasicDictionary.msg('week_day_${day.weekday}')
+        ?.truncate(3);
+
+    var td = $td(
+      classes: day == today
+          ? 'ui-calendar-week-cell ui-calendar-today-cell'
+          : 'ui-calendar-week-cell',
+      style: day == today
+          ? 'text-align: center; cursor: pointer; font-weight: bold;'
+          : 'text-align: center; cursor: pointer;',
+      content: '${weekDayName ?? ''}<br>${day.day}',
+    );
+
+    td.onClick.listen((evt) {
+      evt.cancel(stopImmediatePropagation: true);
+      onDayClick.add(day);
+    });
+
+    return td;
+  }
 
   dynamic _renderModeMonth() {
     var today = UICalendar.today();
@@ -591,6 +725,22 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
     currentDate = _currentDate.previousDay;
   }
 
+  void nextWeek() {
+    currentDate = DateTime(
+      _currentDate.year,
+      _currentDate.month,
+      _currentDate.day + 7,
+    );
+  }
+
+  void previousWeek() {
+    currentDate = DateTime(
+      _currentDate.year,
+      _currentDate.month,
+      _currentDate.day - 7,
+    );
+  }
+
   void nextMonth() {
     currentDate = _currentDate.nextMonth;
   }
@@ -623,11 +773,26 @@ class CalendarEvent implements Comparable<CalendarEvent> {
     String? description,
   }) : this(title, initTime, initTime.add(duration), description: description);
 
+  /// Returns `true` if this event is entirely inside [init] .. [end].
+  /// See [overlapsTimeRange].
   bool isInTimeRange(DateTime init, DateTime end) {
     var a = init.compareTo(initTime) <= 0;
     var b = end.compareTo(endTime) >= 0;
     var c = a && b;
     return c;
+  }
+
+  /// Returns `true` if this event overlaps the time range [init] .. [end]
+  /// (`end` exclusive): it starts before [end] and ends after [init]. An
+  /// instant event (`initTime == endTime`) overlaps if it's in the range.
+  ///
+  /// Unlike [isInTimeRange], an event longer than the range (e.g. a 2h event
+  /// and a 1h time slot) overlaps every range it spans.
+  bool overlapsTimeRange(DateTime init, DateTime end) {
+    if (initTime == endTime) {
+      return !initTime.isBefore(init) && initTime.isBefore(end);
+    }
+    return initTime.isBefore(end) && endTime.isAfter(init);
   }
 
   @override
@@ -641,9 +806,14 @@ class CalendarEvent implements Comparable<CalendarEvent> {
 
   Duration get duration => endTime.difference(initTime);
 
-  DIVElement render() => $div(
-    classes: 'ui-calendar-day-events-cell',
-    style: 'cursor: pointer;',
+  /// Renders this event. [continued] renders it as the continuation of an
+  /// event that started in a previous time range (class
+  /// `ui-calendar-event-continuation`).
+  DIVElement render({bool continued = false}) => $div(
+    classes: continued
+        ? 'ui-calendar-day-events-cell ui-calendar-event-continuation'
+        : 'ui-calendar-day-events-cell',
+    style: continued ? 'cursor: pointer; opacity: 0.6;' : 'cursor: pointer;',
     content: [
       $span(
         style: 'font-size: 90%',
@@ -913,6 +1083,17 @@ List<List<DateTime>> _monthDaysPerWeek(
   }
 
   return list;
+}
+
+/// The 7 dates of the week of [date], starting at [firstDayOfWeek]
+/// (built with the [DateTime] constructor, so they're not affected by DST).
+List<DateTime> _weekDates(DateTime date, DateTimeWeekDay firstDayOfWeek) {
+  var firstWeekDay = _weekDays(firstDayOfWeek).first;
+  var offset = (date.weekday - firstWeekDay) % 7;
+  return List<DateTime>.generate(
+    7,
+    (i) => DateTime(date.year, date.month, date.day - offset + i),
+  );
 }
 
 List<int> _weekDays(DateTimeWeekDay firstDayOfWeek) {

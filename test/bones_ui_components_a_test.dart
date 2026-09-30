@@ -1880,6 +1880,9 @@ void main() {
       expect(calendar.mode, equals(CalendarMode.month));
     });
 
+    // Regression: events longer than a time slot (or spanning days in month
+    // mode) were never rendered: only events entirely inside a slot were
+    // selected.
     test(
       'day mode shows events spanning more than one time interval',
       () async {
@@ -1897,28 +1900,210 @@ void main() {
           ],
         );
         await calendar.callRenderAndWait();
-        expect(calendar.content!.textContent, contains('Long'));
-      },
-      skip:
-          'BUG?: `CalendarEvent.isInTimeRange` requires the event to be fully '
-          'inside the range, so an event longer than `timeInterval` (or '
-          'spanning days in month mode) is never rendered',
-    );
 
-    test(
-      'week mode (the default) renders a calendar panel',
-      () async {
-        var calendar = UICalendar(uiRoot.content);
-        await calendar.callRenderAndWait();
+        var cells = calendar.content!
+            .querySelectorAll('.ui-calendar-day-events-cell')
+            .toElements();
+        // In the 10:00 and 11:00 slots (not in 12:00: the event ends there):
+        expect(cells.length, equals(2));
+        expect(cells.every((c) => c.textContent == 'Long'), isTrue);
         expect(
-          calendar.content!.querySelector('.ui-calendar-panel'),
-          isNotNull,
+          cells[0].classList.contains('ui-calendar-event-continuation'),
+          isFalse,
+        );
+        expect(
+          cells[1].classList.contains('ui-calendar-event-continuation'),
+          isTrue,
         );
       },
-      skip:
-          'BUG?: `CalendarMode.week` (the default mode) is not implemented: '
-          '`_renderModeWeek` renders nothing',
     );
+
+    test('month mode marks every day of a multi-day event', () async {
+      var calendar = UICalendar(
+        uiRoot.content,
+        mode: CalendarMode.month,
+        currentDate: DateTime(2026, 3, 1),
+        firstDayOfWeek: DateTimeWeekDay.monday,
+        events: [
+          CalendarEvent(
+            'Trip',
+            DateTime(2026, 3, 10, 18),
+            DateTime(2026, 3, 12, 9),
+          ),
+        ],
+      );
+      await calendar.callRenderAndWait();
+
+      var daysWithEvent = calendar.content!
+          .querySelectorAll('.ui-calendar-day-with-event')
+          .toElements()
+          .map((e) => e.firstElementChild!.textContent)
+          .toList();
+      expect(daysWithEvent, equals(['10', '11', '12']));
+    });
+
+    test('CalendarEvent.overlapsTimeRange / isInTimeRange', () {
+      var d = DateTime(2026, 3, 15);
+      var e = CalendarEvent('e', d.withHour(10), d.withHour(12));
+
+      expect(e.overlapsTimeRange(d.withHour(9), d.withHour(10)), isFalse);
+      expect(e.overlapsTimeRange(d.withHour(10), d.withHour(11)), isTrue);
+      expect(e.overlapsTimeRange(d.withHour(11), d.withHour(12)), isTrue);
+      expect(e.overlapsTimeRange(d.withHour(12), d.withHour(13)), isFalse);
+      expect(e.overlapsTimeRange(d.withHour(8), d.withHour(14)), isTrue);
+
+      // `isInTimeRange` (entirely inside) is unchanged:
+      expect(e.isInTimeRange(d.withHour(10), d.withHour(11)), isFalse);
+      expect(e.isInTimeRange(d.withHour(8), d.withHour(14)), isTrue);
+
+      var instant = CalendarEvent('i', d.withHour(10), d.withHour(10));
+      expect(instant.overlapsTimeRange(d.withHour(10), d.withHour(11)), isTrue);
+      expect(instant.overlapsTimeRange(d.withHour(9), d.withHour(10)), isFalse);
+    });
+
+    // Regression: `CalendarMode.week` (the default mode) wasn't implemented:
+    // `_renderModeWeek` rendered nothing.
+    group('week mode', () {
+      test('is the default and renders the 7 days of the week', () async {
+        var calendar = UICalendar(
+          uiRoot.content,
+          currentDate: DateTime(2026, 3, 18), // Wednesday
+          firstDayOfWeek: DateTimeWeekDay.monday,
+        );
+        expect(calendar.mode, equals(CalendarMode.week));
+        await calendar.callRenderAndWait();
+
+        var content = calendar.content!;
+        expect(content.querySelector('.ui-calendar-panel'), isNotNull);
+
+        expect(
+          calendar.currentWeekDays,
+          equals([for (var d = 16; d <= 22; d++) DateTime(2026, 3, d)]),
+        );
+
+        var headers = content
+            .querySelectorAll('.ui-calendar-week-cell')
+            .toElements();
+        expect(headers.length, equals(7));
+        expect(
+          headers.map((h) => RegExp(r'\d+$').firstMatch(h.textContent!)![0]),
+          equals(['16', '17', '18', '19', '20', '21', '22']),
+        );
+
+        // 24 hourly rows x 7 days:
+        expect(
+          content.querySelectorAll('.ui-calendar-week-slot-cell').length,
+          equals(24 * 7),
+        );
+      });
+
+      test('respects firstDayOfWeek', () async {
+        var calendar = UICalendar(
+          uiRoot.content,
+          currentDate: DateTime(2026, 3, 18), // Wednesday
+          firstDayOfWeek: DateTimeWeekDay.sunday,
+        );
+        expect(calendar.currentWeekDays.first, equals(DateTime(2026, 3, 15)));
+        expect(calendar.currentWeekDays.last, equals(DateTime(2026, 3, 21)));
+      });
+
+      test('places events in their day and time slots', () async {
+        var calendar = UICalendar(
+          uiRoot.content,
+          currentDate: DateTime(2026, 3, 18),
+          firstDayOfWeek: DateTimeWeekDay.monday,
+          events: [
+            CalendarEvent(
+              'Meeting',
+              DateTime(2026, 3, 17, 9),
+              DateTime(2026, 3, 17, 11),
+            ),
+            CalendarEvent(
+              'Next week',
+              DateTime(2026, 3, 25, 9),
+              DateTime(2026, 3, 25, 10),
+            ),
+          ],
+        );
+        await calendar.callRenderAndWait();
+
+        var slots = calendar.content!
+            .querySelectorAll('.ui-calendar-week-slot-cell')
+            .toElements();
+        // Row-major: slot index = hour * 7 + dayColumn (Tuesday = 1).
+        expect(slots[9 * 7 + 1].textContent, equals('Meeting'));
+        expect(slots[10 * 7 + 1].textContent, equals('Meeting'));
+        expect(slots[11 * 7 + 1].textContent, isEmpty);
+        expect(slots[9 * 7 + 2].textContent, isEmpty);
+        expect(calendar.content!.textContent, isNot(contains('Next week')));
+
+        var clicked = <CalendarEvent>[];
+        calendar.onEventClick.listen(clicked.add);
+        slots[9 * 7 + 1].firstElementChild!.click();
+        await _tick();
+        expect(clicked.single.title, equals('Meeting'));
+      });
+
+      test('navigation, clicks and mode changes', () async {
+        var calendar = UICalendar(
+          uiRoot.content,
+          currentDate: DateTime(2026, 3, 18),
+          firstDayOfWeek: DateTimeWeekDay.monday,
+        );
+        await calendar.callRenderAndWait();
+
+        calendar.nextWeek();
+        expect(calendar.currentDate, equals(DateTime(2026, 3, 25)));
+        calendar.previousWeek();
+        calendar.previousWeek();
+        expect(calendar.currentDate, equals(DateTime(2026, 3, 11)));
+        calendar.currentDate = DateTime(2026, 3, 18);
+        await calendar.callRenderAndWait();
+
+        var hours = <DateTime>[];
+        var days = <DateTime>[];
+        calendar.onHourClick.listen(hours.add);
+        calendar.onDayClick.listen(days.add);
+
+        var content = calendar.content!;
+        (content
+                .querySelectorAll('.ui-calendar-week-slot-cell')
+                .toElements()[14 * 7 + 4])
+            .click();
+        await _tick();
+        expect(hours.single, equals(DateTime(2026, 3, 20, 14)));
+
+        content
+            .querySelectorAll('.ui-calendar-week-cell')
+            .toElements()[0]
+            .click();
+        await _tick();
+        expect(days.single, equals(DateTime(2026, 3, 16)));
+
+        content.querySelector('.ui-calendar-mode-down')!.click();
+        await _tick();
+        expect(calendar.mode, equals(CalendarMode.day));
+
+        calendar.mode = CalendarMode.week;
+        await calendar.callRenderAndWait();
+        calendar.content!.querySelector('.ui-calendar-mode-up')!.click();
+        await _tick();
+        expect(calendar.mode, equals(CalendarMode.month));
+      });
+
+      test('mode arrows follow allowedModes', () async {
+        var calendar = UICalendar(
+          uiRoot.content,
+          allowedModes: [CalendarMode.week],
+        );
+        await calendar.callRenderAndWait();
+        expect(calendar.content!.querySelector('.ui-calendar-mode-up'), isNull);
+        expect(
+          calendar.content!.querySelector('.ui-calendar-mode-down'),
+          isNull,
+        );
+      });
+    });
 
     test('events, modes and fields', () async {
       var calendar = UICalendar(uiRoot.content, fieldName: 'cal');
@@ -1954,7 +2139,15 @@ void main() {
       expect(changes, equals(3));
 
       expect(calendar.selectEvents(d, d.add(Duration(hours: 1))), [early]);
-      expect(calendar.selectEvents(d, d.add(Duration(minutes: 30))), isEmpty);
+      // Overlapping events are selected (not only events entirely inside):
+      expect(calendar.selectEvents(d, d.add(Duration(minutes: 30))), [early]);
+      expect(
+        calendar.selectEvents(
+          d.add(Duration(hours: 1)),
+          d.add(Duration(hours: 2)),
+        ),
+        isEmpty,
+      );
 
       calendar.events = [late];
       expect(calendar.getFieldValue(), equals([late]));
@@ -2248,4 +2441,6 @@ DataSourceHttp _dataSource({String name = 'items'}) => DataSourceHttp(
 
 extension on DateTime {
   int get nextMonthNumber => month == 12 ? 1 : month + 1;
+
+  DateTime withHour(int hour) => DateTime(year, month, day, hour);
 }
