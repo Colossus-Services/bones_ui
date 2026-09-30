@@ -335,8 +335,11 @@ abstract class UIComponent extends UIEventHandler {
 
   HTMLElement? _getContent() => _content;
 
-  static final Expando<WeakReference<UIComponent>> _contentsUIComponents =
-      Expando();
+  // Not an `Expando`: with `dart2wasm` the same DOM element can be wrapped by
+  // distinct Dart objects (e.g. re-read from the DOM), so it must be keyed by
+  // JS identity (see [_ElementWeakStore]).
+  static final _ElementWeakStore<WeakReference<UIComponent>>
+  _contentsUIComponents = _ElementWeakStore();
 
   static UIComponent? getContentUIComponent(UIElement content) =>
       _contentsUIComponents[content]?.target;
@@ -398,6 +401,8 @@ abstract class UIComponent extends UIEventHandler {
         _resolveParentUIComponent(parentUIComponent ?? parent);
         return _parent;
       } else if (content.parentElement == parent) {
+        // Already in place (e.g. appended externally): just record it.
+        _parent = parent;
         _resolveParentUIComponent(parentUIComponent ?? parent);
         return _parent;
       } else {
@@ -3825,5 +3830,38 @@ abstract class UIComponent extends UIEventHandler {
 
     DSX.purge();
     await yeld();
+  }
+}
+
+@JS('WeakMap')
+extension type _JSWeakMap._(JSObject _) implements JSObject {
+  external _JSWeakMap();
+
+  external JSAny? get(JSObject key);
+
+  external void set(JSObject key, JSAny? value);
+
+  external bool delete(JSObject key);
+}
+
+/// Associates values with DOM elements without keeping them alive, keyed by
+/// JS identity (a JS `WeakMap`). An [Expando] keys by the Dart object, and
+/// with `dart2wasm` the same element can have distinct Dart wrappers.
+class _ElementWeakStore<V extends Object> {
+  final _JSWeakMap _weakMap = _JSWeakMap();
+
+  V? operator [](JSObject element) {
+    final boxed = _weakMap.get(element);
+    return boxed.isA<JSBoxedDartObject>()
+        ? (boxed as JSBoxedDartObject).toDart as V
+        : null;
+  }
+
+  void operator []=(JSObject element, V? value) {
+    if (value == null) {
+      _weakMap.delete(element);
+    } else {
+      _weakMap.set(element, value.toJSBox);
+    }
   }
 }

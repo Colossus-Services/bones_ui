@@ -59,4 +59,37 @@ void main() {
       expect(css.style, contains('width: 10px'));
     });
   });
+
+  group('UIComponent.getContentUIComponent', () {
+    // Regression (dart2wasm): the content -> component association was an
+    // `Expando` keyed by the Dart wrapper, and an element re-read from the DOM
+    // can have a distinct wrapper with dart2wasm.
+    test('from a content element re-read from the DOM', () async {
+      var holder = web.HTMLDivElement()..id = 'regression-content-holder';
+      web.document.body!.appendChild(holder);
+      addTearDown(() => holder.remove());
+
+      var component = _TextComponent(holder, 'hello');
+      await component.callRenderAndWait();
+
+      var content = component.content!;
+      expect(UIComponent.getContentUIComponent(content), same(component));
+
+      var reRead = web.document
+          .querySelector('#regression-content-holder')!
+          .firstElementChild!;
+      expect(UIComponent.getContentUIComponent(reRead), same(component));
+
+      expect(UIComponent.getContentUIComponent(web.HTMLDivElement()), isNull);
+    });
+  });
+}
+
+class _TextComponent extends UIComponent {
+  final String text;
+
+  _TextComponent(super.parent, this.text);
+
+  @override
+  dynamic render() => text;
 }

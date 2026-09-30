@@ -514,17 +514,18 @@ class BUIRender extends UINavigableComponent {
 
     var svgStyles = '';
     if (includeDocumentStyles) {
+      // `rules` is a JS `CSSRuleList` (not a Dart `List`, so a
+      // `whereType<List<CSSRule>>()` dropped every style sheet):
       var rules = getAllCssStyleSheet()
-          .map((e) => e.rules)
-          .whereType<List<CSSRule>>()
-          .expand((e) => e)
+          .expand((e) => e.rules.toList())
           .toList();
 
       svgStyles = rules.map((e) => e.cssText).join('\n');
     }
 
     if (isNotEmptyObject(styles)) {
-      svgStyles = '\n$styles';
+      // Appended to the document styles (it used to replace them):
+      svgStyles += '\n$styles';
     }
 
     var svg = htmlAsSvgContent(

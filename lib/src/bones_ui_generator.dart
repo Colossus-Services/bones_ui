@@ -203,7 +203,8 @@ class UIComponentGenerator<C extends UIComponent>
   void clearAttribute<T>(C uiComponent, String name) {
     var attribute = getAttributeHandler(name);
     if (attribute != null) {
-      attribute.set(uiComponent, null);
+      // Uses the handler's `cleaner` (by default `setter(null)`):
+      attribute.clear(uiComponent);
     }
   }
 

@@ -38,7 +38,8 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
                         RegExp(r'\s*[:=]\s*'),
                       ) ??
                       {}),
-            cleaner: (c) => c._options = null,
+            // Empty, not `null`: the option accessors expect `_options`.
+            cleaner: (c) => c._options = {},
           ),
           UIComponentAttributeHandler<UIMultiSelection, dynamic>(
             'multi-selection',

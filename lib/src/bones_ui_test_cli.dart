@@ -790,7 +790,7 @@ class BonesUICompiler {
 
   /// Compiles the project to [compileDir].
   Future<bool> compile() async {
-    compileDir.create(recursive: true);
+    await compileDir.create(recursive: true);
 
     var compileDirPath = compileDir.path;
 
@@ -1157,9 +1157,10 @@ class _DocumentLog {
         '<title>$prevTitle - $title</title>',
       );
     } else {
+      // No `<title>` to replace: insert one (like `_setContentBasePath`).
       content = content.replaceFirst(
-        RegExp(r'<title>.*?</title>'),
-        '<title>$title</title>',
+        RegExp(r'<head>', caseSensitive: false),
+        '<head><title>$title</title>',
       );
     }
     return content;

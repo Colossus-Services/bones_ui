@@ -179,18 +179,13 @@ void main() {
         expect(comp.label, equals('c'));
       });
 
-      test(
-        'clearAttribute uses the handler cleaner',
-        () {
-          var comp = _GenComp(null, label: 'a');
-          _GenComp.generator.clearAttribute(comp, 'label');
-          expect(comp.label, equals('CLEARED'));
-        },
-        skip:
-            'BUG?: UIComponentGenerator.clearAttribute calls `set(c, null)`, '
-            'ignoring the handler `cleaner` (UIMultiSelection `options` '
-            'cleaner sets null while its getter force-unwraps)',
-      );
+      // Regression: `clearAttribute` called `set(c, null)`, ignoring the
+      // handler's `cleaner`.
+      test('clearAttribute uses the handler cleaner', () {
+        var comp = _GenComp(null, label: 'a');
+        _GenComp.generator.clearAttribute(comp, 'label');
+        expect(comp.label, equals('CLEARED'));
+      });
 
       test('isGeneratedElement', () {
         var gen = _GenComp.generator;
@@ -432,26 +427,22 @@ void main() {
         expect(comp.content!.parentNode, _sameJS(host));
       });
 
-      test(
-        'added/replacing components record their parent',
-        () {
-          var host = _host(context.uiRoot);
+      // Regression: `_setParentImpl` returned without setting `_parent` when
+      // the content was already a child of `parent` (the generator appends
+      // first), so `parent` stayed `null`.
+      test('added/replacing components record their parent', () {
+        var host = _host(context.uiRoot);
 
-          var c1 = _GenComp(null, label: 'c1');
-          gen().addExternalElementToElement(host, c1);
-          expect(c1.parent, _sameJS(host));
+        var c1 = _GenComp(null, label: 'c1');
+        gen().addExternalElementToElement(host, c1);
+        expect(c1.parent, _sameJS(host));
 
-          var old = HTMLSpanElement();
-          host.appendChild(old);
-          var c2 = _GenComp(null, label: 'c2')..ensureRendered();
-          gen().replaceChildElement(host, old, [c2.content!]);
-          expect(c2.parent, _sameJS(host));
-        },
-        skip:
-            'BUG?: UIComponent._setParentImpl returns without setting '
-            '`_parent` when the content is already a child of `parent` '
-            '(bones_ui_component.dart ~400); the generator appends first.',
-      );
+        var old = HTMLSpanElement();
+        host.appendChild(old);
+        var c2 = _GenComp(null, label: 'c2')..ensureRendered();
+        gen().replaceChildElement(host, old, [c2.content!]);
+        expect(c2.parent, _sameJS(host));
+      });
 
       test('future elements are attached when resolved', () async {
         var host = _host(context.uiRoot);
