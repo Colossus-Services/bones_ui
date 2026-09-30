@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:dom_builder/dom_builder_web.dart';
-import 'package:dom_tools/dom_tools.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:intl_messages/intl_messages.dart';
@@ -9,6 +8,7 @@ import 'package:swiss_knife/swiss_knife.dart';
 import 'package:web_utils/web_utils.dart';
 
 import 'bones_ui_component.dart';
+import 'bones_ui_components_tree.dart';
 import 'bones_ui_document.dart';
 import 'bones_ui_log.dart';
 import 'bones_ui_navigator.dart';
@@ -72,15 +72,45 @@ abstract class UIRootComponent extends UIComponent {
     _rootComponentInstances.add(WeakReference(this));
   }
 
-  DOMTreeReferenceMap<UIComponent>? _uiComponentsTree;
+  UIComponentsTree? _uiComponentsTree;
 
   void initializeUIComponentsTree() => _getUIComponentsTree();
 
-  DOMTreeReferenceMap<UIComponent> _getUIComponentsTree() {
-    return _uiComponentsTree ??= _UIDOMTreeReferenceMap(
-      this,
+  UIComponentsTree _getUIComponentsTree() {
+    return _uiComponentsTree ??= UIComponentsTree(
+      content!,
+      validator: _isValidUIComponentEntry,
       onPurgedEntries: _onPurgedUIComponents,
     );
+  }
+
+  /// Validates an entry of the [UIComponentsTree], before its default
+  /// validation (still in the tree).
+  static bool? _isValidUIComponentEntry(Node key, UIComponent value) {
+    // Keep the component alive while async content is loading.
+    if (value.isLoadingUIAsyncContent) {
+      return true;
+    }
+
+    // Components that preserve rendered elements must remain valid
+    // even when outside the DOM, since they may be reused later.
+    if (value.preserveRender) {
+      return true;
+    }
+
+    // Avoid purging components still in their initial rendering phase.
+    if (!value.isDisposed) {
+      final content = value.content;
+      final parent = value.parent;
+
+      // Component still in the initial rendering:
+      if (content == null || parent == null) {
+        return true;
+      }
+    }
+
+    // Default validation: whether `root` still contains the component.
+    return null;
   }
 
   void _onPurgedUIComponents(Map<Node, UIComponent> purgedEntries) {
@@ -97,7 +127,7 @@ abstract class UIRootComponent extends UIComponent {
   UIRootComponent get uiRootComponent;
 
   bool get isAnyComponentRendering =>
-      _uiComponentsTree?.validEntries.any((e) => e.value.isRendering) ?? false;
+      _uiComponentsTree?.anyValidValue((c) => c.isRendering) ?? false;
 
   UIComponent? getUIComponentByContent(
     UIElement? uiComponentContent, {
@@ -531,45 +561,4 @@ void _registerAllComponents() {
   UIDocument.register();
   UIDialog.register();
   UISVG.register();
-}
-
-class _UIDOMTreeReferenceMap extends DOMTreeReferenceMap<UIComponent> {
-  final UIRootComponent rootComponent;
-
-  _UIDOMTreeReferenceMap(this.rootComponent, {super.onPurgedEntries})
-    : super(
-        rootComponent.content!,
-        autoPurge: false,
-        keepPurgedKeys: true,
-        purgedEntriesTimeout: Duration(minutes: 1),
-      );
-
-  @override
-  bool isValidEntry(Node key, UIComponent value) {
-    // Keep the component alive while async content is loading.
-    if (value.isLoadingUIAsyncContent) {
-      return true;
-    }
-
-    // Components that preserve rendered elements must remain valid
-    // even when outside the DOM, since they may be reused later.
-    if (value.preserveRender) {
-      return true;
-    }
-
-    // Avoid purging components still in their initial rendering phase.
-    if (!value.isDisposed) {
-      final content = value.content;
-      final parent = value.parent;
-
-      // Component still in the initial rendering:
-      if (content == null || parent == null) {
-        return true;
-      }
-    }
-
-    // Default validation:
-    // - Calls `isInTree`: checks whether `root` still contains the component.
-    return super.isValidEntry(key, value);
-  }
 }
