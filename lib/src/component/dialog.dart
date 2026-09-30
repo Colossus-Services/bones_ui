@@ -328,14 +328,14 @@ abstract class UIDialogBase extends UIRootComponent {
 
 /// [DOMElement] tag `ui-dialog` for [UIDialog].
 DOMElement $uiDialog({
-  id,
+  Object? id,
   String? field,
-  classes,
-  style,
+  Object? classes,
+  Object? style,
   bool? show,
   bool? showCloseButton,
   Map<String, String>? attributes,
-  content,
+  Object? content,
   bool commented = false,
 }) {
   return $tag(

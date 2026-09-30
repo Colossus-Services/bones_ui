@@ -127,18 +127,18 @@ class InputConfig {
     this.checked,
     this.precision,
     String? placeholder = '',
-    Map<String, String>? attributes,
-    Map<String, String>? options,
+    this._attributes,
+    this._options,
     bool? optional = false,
     Object? classes,
     String? labelStyle,
     String? labelVerticalAlign,
     String? style,
-    FieldInputRender? inputRender,
-    FieldValueProvider? valueProvider,
-    FieldValueValidator? valueValidator,
-    FieldValueNormalizer? valueNormalizer,
-    Object? invalidValueMessage,
+    this._inputRender,
+    this._valueProvider,
+    this._valueValidator,
+    this._valueNormalizer,
+    this._invalidValueMessage,
     this.onChangeListener,
     this.onActionListener,
   }) : _id = id,
@@ -148,13 +148,6 @@ class InputConfig {
            ? null
            : placeholder,
        _optional = optional ?? false,
-       _attributes = attributes,
-       _options = options,
-       _inputRender = inputRender,
-       _valueProvider = valueProvider,
-       _valueValidator = valueValidator,
-       _valueNormalizer = valueNormalizer,
-       _invalidValueMessage = invalidValueMessage,
        classes = UIComponent.parseClasses(classes) {
     if (label == null || label.isEmpty) {
       if (this.value != null) {
@@ -262,7 +255,7 @@ class InputConfig {
 
       if (obj is UIComponent) {
         inputComponent = obj;
-      } else if (obj.asJSAny.isA<HTMLInputElement>()) {
+      } else if (obj.isA<HTMLInputElement>()) {
         inputElement = obj as HTMLInputElement;
       } else if (obj is DOMElement) {
         domeElement = obj;
@@ -836,7 +829,7 @@ class UIInputTable extends UIComponent {
       var row = _resolveRow(r);
       if (row == null) continue;
 
-      if (row.asJSAny.isA<HTMLTableRowElement>()) {
+      if (row.isA<HTMLTableRowElement>()) {
         _addTableRow(table, row as HTMLTableRowElement);
       } else if (row is List<HTMLTableRowElement>) {
         for (var r in row) {

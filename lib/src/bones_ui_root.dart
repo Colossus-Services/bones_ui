@@ -346,11 +346,7 @@ abstract class UIRoot extends UIRootComponent {
     var content = renderContent();
     var footer = renderFooter();
 
-    return [
-      if (menu != null) menu,
-      if (content != null) content,
-      if (footer != null) footer,
-    ];
+    return [?menu, ?content, ?footer];
   }
 
   Future<bool>? isReady() {
@@ -517,7 +513,7 @@ void _initializeAll() {
 
 void _configure() {
   Dimension.parsers.add((v) {
-    if (v.asJSAny.isA<Screen>()) {
+    if (v.isA<Screen>()) {
       final screen = v as Screen;
       return Dimension(screen.width, screen.height);
     } else {

@@ -133,7 +133,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     return _setDataOptions(data);
   }
 
-  bool _setDataOptions(data) {
+  bool _setDataOptions(Object? data) {
     var options = _parseDataOptions(data);
 
     if (isEqualsDeep(_options, options)) {
@@ -145,7 +145,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     return true;
   }
 
-  Map _parseDataOptions(data) {
+  Map _parseDataOptions(Object? data) {
     if (isEmptyObject(data)) {
       return {};
     } else if (data is Map) {

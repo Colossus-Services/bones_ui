@@ -136,7 +136,7 @@ class UIDocument extends UIComponentAsync {
   UIDocument(
     UIElement? parent,
     ResourceContent? resourceContent, {
-    mk.ExtensionSet? markdownExtensionSet,
+    this._markdownExtensionSet,
     loadingContent,
     errorContent,
     super.classes,
@@ -144,8 +144,7 @@ class UIDocument extends UIComponentAsync {
     super.style,
     super.style2,
     super.id,
-  }) : _markdownExtensionSet = markdownExtensionSet,
-       _resourceContent = resourceContent,
+  }) : _resourceContent = resourceContent,
        super(
          parent,
          null,

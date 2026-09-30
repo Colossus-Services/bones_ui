@@ -45,19 +45,19 @@ class ValueUnitExpression extends SimpleExpression {
   }
 
   // ignore: avoid_dynamic_calls
-  dynamic operator +(o) => ValueUnitExpression(value + o, unit);
+  dynamic operator +(dynamic o) => ValueUnitExpression(value + o, unit);
 
   // ignore: avoid_dynamic_calls
-  dynamic operator -(o) => ValueUnitExpression(value - o, unit);
+  dynamic operator -(dynamic o) => ValueUnitExpression(value - o, unit);
 
   // ignore: avoid_dynamic_calls
-  dynamic operator *(o) => ValueUnitExpression(value * o, unit);
+  dynamic operator *(dynamic o) => ValueUnitExpression(value * o, unit);
 
   // ignore: avoid_dynamic_calls
-  dynamic operator /(o) => ValueUnitExpression(value / o, unit);
+  dynamic operator /(dynamic o) => ValueUnitExpression(value / o, unit);
 
   // ignore: avoid_dynamic_calls
-  dynamic operator ~/(o) => ValueUnitExpression(value ~/ o, unit);
+  dynamic operator ~/(dynamic o) => ValueUnitExpression(value ~/ o, unit);
 }
 
 class ElementExpression extends SimpleExpression {
@@ -596,7 +596,7 @@ class UILayout {
   dynamic _getElementProperty(Object? elem, String? property) {
     if (property == null) return null;
 
-    if (elem.asJSAny.isHTMLElement) {
+    if (elem.isHTMLElement) {
       elem = elem as HTMLElement;
 
       property = property.toLowerCase();

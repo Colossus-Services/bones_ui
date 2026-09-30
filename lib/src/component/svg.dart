@@ -11,17 +11,17 @@ import '../bones_ui_generator.dart';
 
 /// [DOMElement] tag `ui-svg` for [UISVG].
 DOMElement $uiSVG({
-  id,
+  Object? id,
   String? field,
-  classes,
-  style,
+  Object? classes,
+  Object? style,
   String? src,
-  width,
-  height,
-  color,
-  title,
+  Object? width,
+  Object? height,
+  Object? color,
+  Object? title,
   Map<String, String>? attributes,
-  content,
+  Object? content,
   bool commented = false,
 }) {
   return $tag(
@@ -31,7 +31,7 @@ DOMElement $uiSVG({
     style: style,
     attributes: {
       if (field != null && field.isNotEmpty) 'field': field,
-      if (src != null) 'src': src,
+      'src': ?src,
       if (width != null) 'width': '$width',
       if (height != null) 'height': '$height',
       if (color != null) 'color': '$color',

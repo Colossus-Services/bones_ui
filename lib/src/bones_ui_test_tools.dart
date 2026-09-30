@@ -2961,7 +2961,7 @@ void _selectIndex(
     reason = "$root";
   }
 
-  if (o.asJSAny.isA<HTMLSelectElement>()) {
+  if (o.isA<HTMLSelectElement>()) {
     (o as HTMLSelectElement).selectIndex(index);
   } else if (expected) {
     throw TestFailure(
@@ -2985,7 +2985,7 @@ void _checkbox(
     reason = "$root";
   }
 
-  if (o.asJSAny.isA<HTMLInputElement>()) {
+  if (o.isA<HTMLInputElement>()) {
     var input = o as HTMLInputElement;
     if (input.type == 'checkbox') {
       input.checked = checked;

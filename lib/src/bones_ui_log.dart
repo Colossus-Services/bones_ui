@@ -52,7 +52,7 @@ class _Logger {
 
   Object? _format(Object? msg, [Object? error]) {
     if (msg is List) {
-      return [...msg.map((e) => _format(msg)), if (error != null) error];
+      return [...msg.map((e) => _format(msg)), ?error];
     } else if (msg is String) {
       var str = StringBuffer(error != null ? '\n' : '');
 

@@ -71,7 +71,7 @@ class UICalendarPopup extends UIComponent
 
   UICalendarPopup(
     super.parent, {
-    String? buttonText,
+    this._buttonText,
     String? fieldName,
     DateTime? currentDate,
     List<CalendarEvent>? events,
@@ -80,8 +80,7 @@ class UICalendarPopup extends UIComponent
     int backgroundGrey = 0,
     double backgroundAlpha = 0.80,
     int? backgroundBlur,
-  }) : fieldName = fieldName ?? 'calendar',
-       _buttonText = buttonText {
+  }) : fieldName = fieldName ?? 'calendar' {
     _calendar = UICalendar(
       null,
       fieldName: fieldName,
@@ -99,7 +98,7 @@ class UICalendarPopup extends UIComponent
       backgroundBlur: backgroundBlur,
     );
 
-    _button = UIButton(content, this.buttonText)
+    _button = UIButton(content, buttonText)
       ..onClick.listen((_) => showCalendar());
 
     _calendar.onChange.listen((_) => _updateButtonText());
@@ -189,13 +188,12 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
     super.parent, {
     String? fieldName,
     List<CalendarEvent>? events,
-    CalendarMode mode = CalendarMode.week,
+    this._mode = CalendarMode.week,
     int? timeInterval,
     DateTime? currentDate,
     DateTimeWeekDay? firstDayOfWeek,
     Iterable<CalendarMode>? allowedModes,
   }) : fieldName = fieldName ?? 'calendar',
-       _mode = mode,
        _events = events?.toList() ?? <CalendarEvent>[],
        timeInterval = timeInterval ?? 60,
        _currentDate = currentDate ?? today(),

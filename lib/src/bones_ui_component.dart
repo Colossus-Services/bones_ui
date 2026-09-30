@@ -103,10 +103,9 @@ abstract class UIComponent extends UIEventHandler {
     bool renderOnConstruction = false,
     bool preserveRender = false,
     this.id,
-    UIComponentGenerator? generator,
+    this._generator,
   }) : globalID = ++_globalIDCount,
-       _subComponent = subComponent,
-       _generator = generator {
+       _subComponent = subComponent {
     if (subComponent) {
       _domTreeMap = parentComponent?.domTreeMap;
     }
@@ -720,7 +719,7 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  static List<String> _parseClasses(classes) => toFlatListOfStrings(
+  static List<String> _parseClasses(Object? classes) => toFlatListOfStrings(
     classes,
     delimiter: _classesEntryDelimiter,
     trim: true,
@@ -780,7 +779,7 @@ abstract class UIComponent extends UIEventHandler {
 
   static final RegExp _cssEntryDelimiter = RegExp(r'\s*;\s*');
 
-  static List<String> parseStyle(style1) => toFlatListOfStrings(
+  static List<String> parseStyle(Object? style1) => toFlatListOfStrings(
     style1,
     delimiter: _cssEntryDelimiter,
     trim: true,
@@ -2098,10 +2097,7 @@ abstract class UIComponent extends UIEventHandler {
 
     var uiComponents = _renderedUIComponents.toList();
 
-    var uiRootComponents = {
-      ..._renderedUIRootComponents,
-      if (mainUIRoot != null) mainUIRoot,
-    };
+    var uiRootComponents = {..._renderedUIRootComponents, ?mainUIRoot};
 
     _renderedUIComponents.clear();
     _renderedUIRootComponents.clear();
@@ -3613,7 +3609,7 @@ abstract class UIComponent extends UIEventHandler {
 
     var component = getFieldComponent(fieldName);
 
-    if (component.asJSAny.isA<HTMLElement>()) {
+    if (component.isA<HTMLElement>()) {
       (component as HTMLElement).focus();
       return true;
     } else if (component is UIComponent) {

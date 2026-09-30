@@ -96,15 +96,13 @@ class BUIRender extends UINavigableComponent {
     Element? parent, {
     dynamic source,
     DOMGenerator<UINode>? domGenerator,
-    DataAssets? dataAssets,
-    BUIViewProviderBase? viewProvider,
+    this._dataAssets,
+    this._viewProvider,
     super.classes,
     super.style,
     bool renderOnConstruction = true,
   }) : renderDomGenerator =
            domGenerator ?? DOMGeneratorDelegate(UIComponent.domGenerator),
-       _dataAssets = dataAssets,
-       _viewProvider = viewProvider,
        super(
          parent,
          ['*'],

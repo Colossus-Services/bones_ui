@@ -22,12 +22,10 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
     this.placeholder,
     String? fieldName,
     String? value = '',
-    int pickerWidth = 200,
-    int pickerHeight = 200,
+    this._pickerWidth = 200,
+    this._pickerHeight = 200,
   }) : fieldName = fieldName ?? 'color-picker',
-       _initialValue = value ?? '',
-       _pickerWidth = pickerWidth,
-       _pickerHeight = pickerHeight;
+       _initialValue = value ?? '';
 
   @override
   String getFieldValue() => _input?.value ?? '';
@@ -567,7 +565,7 @@ class UIColorPicker extends UIComponent {
     }
   }
 
-  void _lumaDrag(event) {
+  void _lumaDrag(MouseEvent event) {
     if (_lumaPressed) {
       _lumaClick(event);
     } else if (_huePressed) {
@@ -583,7 +581,7 @@ class UIColorPicker extends UIComponent {
     }
   }
 
-  void _saturationDrag(event) {
+  void _saturationDrag(MouseEvent event) {
     if (_saturationPressed) {
       _saturationClick(event);
     }
@@ -600,7 +598,7 @@ class UIColorPicker extends UIComponent {
     }
   }
 
-  void _hueDrag(event) {
+  void _hueDrag(MouseEvent event) {
     if (_huePressed) {
       _hueClick(event);
     }

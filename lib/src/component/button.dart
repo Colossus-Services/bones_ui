@@ -147,10 +147,10 @@ abstract class UIButtonBase extends UIComponent {
 
 /// [DOMElement] tag `ui-button` for [UIButton].
 DOMElement $uiButton({
-  id,
+  Object? id,
   String? field,
-  classes,
-  style,
+  Object? classes,
+  Object? style,
   Map<String, String>? attributes,
   String? text,
   bool commented = false,
@@ -215,9 +215,8 @@ class UIButton extends UIButtonBase {
     super.style,
     super.style2,
     bool small = false,
-    String? fontSize,
+    this._fontSize,
   }) : _buttonContent = buttonContent,
-       _fontSize = fontSize,
        super(
          componentClass: [
            small ? 'ui-button-small' : 'ui-button',
@@ -285,21 +284,21 @@ class UIButton extends UIButtonBase {
 
 /// [DOMElement] tag `ui-button-loader` for [UIButtonLoader].
 DOMElement $uiButtonLoader({
-  id,
+  Object? id,
   String? field,
-  classes,
-  style,
-  buttonClasses,
-  buttonStyle,
+  Object? classes,
+  Object? style,
+  Object? buttonClasses,
+  Object? buttonStyle,
   Map<String, String>? attributes,
-  content,
+  Object? content,
   bool commented = false,
-  loadedTextClass,
-  loadedTextStyle,
-  loadedTextErrorClass,
-  loadedTextErrorStyle,
-  loadedTextOK,
-  loadedTextError,
+  Object? loadedTextClass,
+  Object? loadedTextStyle,
+  Object? loadedTextErrorClass,
+  Object? loadedTextErrorStyle,
+  Object? loadedTextOK,
+  Object? loadedTextError,
   bool? withProgress,
   dynamic loadingConfig,
 }) {
