@@ -770,8 +770,10 @@ class _CapturedData {
               mimeType,
             );
           } else if (data is DataURLBase64) {
+            // `payloadBase64`: `payload` is the decoded content (a data URL's
+            // `selectedFileDataAsBase64` returned the text, not base64).
             return _CapturedData.fromBase64(
-              data.payload,
+              data.payloadBase64,
               data.mimeTypeAsString,
             );
           } else {

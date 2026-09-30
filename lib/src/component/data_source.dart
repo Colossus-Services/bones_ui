@@ -39,7 +39,7 @@ class UIDataSource extends UIComponent {
   HTMLElement createContentElement(bool inline) {
     var div = createDiv(inline: inline);
     div.hidden = true.toJS;
-    div.style.display = 'node';
+    div.style.display = 'none';
     div.style.visibility = 'hidden';
     return div;
   }
@@ -60,7 +60,10 @@ class UIDataSource extends UIComponent {
 
   @override
   dynamic render() {
-    var json = dataSource!.toJson(true);
+    final dataSource = this.dataSource;
+    if (dataSource == null) return null;
+
+    var json = dataSource.toJson(true);
     return HTMLPreElement.pre()..text = '\n$json\n';
   }
 }

@@ -28,7 +28,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
         [
           UIComponentAttributeHandler<UIMultiSelection, dynamic>(
             'options',
-            parser: parseJSON,
+            parser: _parseOptionsAttribute,
             getter: (c) => c._options,
             setter: (c, v) => c._options = v is Map
                 ? v
@@ -54,6 +54,13 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
   static void register() {
     UIComponent.registerGenerator(generator);
+  }
+
+  /// Keeps an inline map (`a: A ; b: B`) for the `options` setter: `parseJSON`
+  /// threw for it, so these options were never set.
+  static Object? _parseOptionsAttribute(Object? value) {
+    if (value is String && !isEncodedJSONMap(value)) return value;
+    return parseJSON(value);
   }
 
   @override
@@ -695,6 +702,10 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       str.write('${entry.key}=');
       str.write('${entry.value}&');
     }
+
+    // Separates the lists: otherwise filtering the last options (moving them
+    // to the filtered list) keeps the same signature and isn't rendered.
+    str.write('\n');
 
     for (var entry in entriesFiltered) {
       str.write('${entry.key}=');

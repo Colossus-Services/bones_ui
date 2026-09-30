@@ -2268,6 +2268,12 @@ abstract class UIComponent extends UIEventHandler {
           renderableList.add(val);
         }
       }
+
+      // A `Map` without renderable entries is rendered as JSON (as documented
+      // in `render`), instead of rendering nothing:
+      if (renderableList.isEmpty && list.isNotEmpty) {
+        renderableList = [list];
+      }
     } else {
       renderableList = [list];
     }
@@ -2832,8 +2838,9 @@ abstract class UIComponent extends UIEventHandler {
     String? delimiter,
     Pattern? delimiterPattern,
   ]) {
-    var list = parseAttributeValueAsStringList(value, delimiterPattern)!;
-    if (list.isEmpty) return '';
+    // `null` for an empty value (e.g. `''`):
+    var list = parseAttributeValueAsStringList(value, delimiterPattern);
+    if (list == null || list.isEmpty) return '';
     delimiter ??= ' ';
     return list.length == 1 ? list.single : list.join(delimiter);
   }
@@ -2912,7 +2919,9 @@ abstract class UIComponent extends UIEventHandler {
       case 'class':
         {
           content!.classList.clear();
-          content!.classList.addAll(parseAttributeValueAsStringList(value)!);
+          content!.classList.addAll(
+            parseAttributeValueAsStringList(value) ?? const <String>[],
+          );
           return true;
         }
       case 'navigate':
@@ -3273,10 +3282,17 @@ abstract class UIComponent extends UIEventHandler {
 
     var entries = fieldsElementsMap.entries.toList();
 
+    // A field element that is an `UIComponent` content (an `UIField`
+    // component) resolves to that component, not to the component that has
+    // it as child (as `getField`/`getFieldExtended` do):
     var entriesUIComponents = resolveUIComponents
         ? Map.fromEntries(
             entries.map(
-              (e) => MapEntry(e.value, findUIComponentByChild(e.value)),
+              (e) => MapEntry(
+                e.value,
+                _getUIComponentByContent(e.value) ??
+                    findUIComponentByChild(e.value),
+              ),
             ),
           )
         : {};

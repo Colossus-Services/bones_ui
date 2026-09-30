@@ -408,11 +408,22 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
       value: dateStr.join('-'),
     );
 
+    // `elemText` has no event listeners, so it's not mapped to its element
+    // (`elemText.runtime` is a no-op, see `UIDOMGenerator.isMappable`):
+    // it's resolved as the sibling of the (mapped) `elemInput`.
+    HTMLElement? textElement() {
+      final Object? input = elemInput.runtimeNode;
+      final text = input.isA<Element>()
+          ? (input as Element).previousElementSibling
+          : null;
+      return text.isA<HTMLElement>() ? text as HTMLElement : null;
+    }
+
     elemInput.onChange.listen((_) {
       var date = parseDateTime(elemInput.runtime.value);
 
       if (date != null) {
-        elemText.runtime.text = date
+        textElement()?.textContent = date
             .toStringParts(year: true, month: true, day: true)
             .join('/');
 
@@ -433,11 +444,11 @@ class UICalendar extends UIComponent implements UIField<List<CalendarEvent>> {
 
       if (isShowingInput()) {
         elemInput.runtime.setStyleProperty('display', 'none');
-        elemText.runtime.setStyleProperty('display', 'inline');
+        textElement()?.style.display = 'inline';
 
         return false;
       } else {
-        elemText.runtime.setStyleProperty('display', 'none');
+        textElement()?.style.display = 'none';
         elemInput.runtime.setStyleProperty('display', 'inline');
 
         return true;
@@ -866,7 +877,9 @@ List<List<DateTime>> _monthDaysPerWeek(
 
   DateTime? day = date.withDay(days.removeAt(0));
 
-  while (days.isNotEmpty) {
+  // Until the last day is placed (not until `days` is empty: the last day is
+  // taken from `days` before it's placed in a week).
+  while (day != null) {
     var daysBeforeMonth = <DateTime>[];
     var week = <DateTime>[];
 

@@ -169,10 +169,7 @@ class UIComponentGenerator<C extends UIComponent>
       var tag = element2.tagName.toLowerCase();
       if (tag != generatedTag) return false;
       var classes = element2.classList.toList();
-      var match = classes.containsAll(componentClass.asAttributeValues!);
-      print(classes);
-      print('$componentClass -> $match');
-      return match;
+      return classes.containsAll(componentClass.asAttributeValues!);
     } else {
       return false;
     }

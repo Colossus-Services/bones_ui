@@ -517,7 +517,11 @@ class UIButtonLoader extends UIButtonBase {
     }
 
     if (isNotEmptyString(style, trim: true)) {
+      // `cssText` replaces all the inline style, including the `display`
+      // that controls the message visibility:
+      var display = loadedMessage.style.display;
       loadedMessage.style.cssText = style ?? '';
+      loadedMessage.style.display = display;
     }
 
     var classesError = (_loadedTextErrorClass?.text ?? '').trim().split(
@@ -545,21 +549,32 @@ class UIButtonLoader extends UIButtonBase {
     super.fireClickEvent(event, params);
   }
 
+  /// The rendered button [HTMLElement].
+  HTMLElement? get _buttonElement {
+    final button = _button;
+
+    if (button is DOMElement) {
+      // Only mapped if it has event listeners or handled attributes
+      // (see `UIDOMGenerator.isMappable`):
+      final Object? node = button.runtimeNode;
+      if (node.isA<HTMLElement>()) return node as HTMLElement;
+
+      // Otherwise it's the element rendered just before the loading `div`
+      // (see [renderButton]):
+      final element = _loadingDiv?.previousElementSibling;
+      return element.isA<HTMLElement>() ? element as HTMLElement : null;
+    }
+
+    return button.isA<HTMLElement>() ? button as HTMLElement : null;
+  }
+
   void startLoading() {
     final loadingDiv = _loadingDiv;
     if (loadingDiv == null) return;
 
     loadingDiv.style.display = 'inline-block';
 
-    var button = _button;
-
-    var buttonElement =
-        (button is DOMElement
-                ? button.runtimeNode
-                : (button.isHTMLElement ? button : null))
-            as HTMLElement?;
-
-    buttonElement?.style.display = 'none';
+    _buttonElement?.style.display = 'none';
 
     _loadedMessage?.style.display = 'none';
   }
@@ -576,13 +591,7 @@ class UIButtonLoader extends UIButtonBase {
       errorMessage = resolveTextIntl(errorMessage);
     }
 
-    var button = _button;
-
-    var buttonElement =
-        (button is DOMElement
-                ? button.runtimeNode
-                : (button.isElement ? button : null))
-            as HTMLElement?;
+    var buttonElement = _buttonElement;
 
     var loadedMessage = _loadedMessage;
 

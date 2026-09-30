@@ -24,7 +24,7 @@ class MasonryItem {
     } else if (element is UIComponent) {
       return MasonryItem.fromElement(element.content);
     } else {
-      var w = _getElementHeight(element);
+      var w = _getElementWidth(element);
       var h = _getElementHeight(element);
       return MasonryItem(element, w, h);
     }
@@ -74,13 +74,16 @@ int? _getElementWidth(Object? element) {
   } else if (element is UIComponent) {
     return getElementWidth(element.content!);
   } else if (element is DOMElement) {
-    return parseCSSLength(
-      element['width'] ?? element.style.width as String,
-      unit: 'px',
-      allowPXWithoutSuffix: true,
-    ) as int?;
+    return _parseDOMElementLength(element['width'], element.style.width);
   }
   return 0;
+}
+
+/// Parses a `px` length from a [DOMElement] attribute or style entry.
+/// (The style entry is a `CSSEntry`: casting it to a `String` always threw.)
+int? _parseDOMElementLength(String? attributeValue, CSSEntry? styleEntry) {
+  var value = attributeValue ?? styleEntry?.value?.toString() ?? '';
+  return parseCSSLength(value, unit: 'px', allowPXWithoutSuffix: true)?.toInt();
 }
 
 int? _getElementHeight(Object? element) {
@@ -90,11 +93,7 @@ int? _getElementHeight(Object? element) {
   } else if (element is UIComponent) {
     return getElementHeight(element.content!);
   } else if (element is DOMElement) {
-    return parseCSSLength(
-      element['height'] ?? element.style.height as String,
-      unit: 'px',
-      allowPXWithoutSuffix: true,
-    ) as int?;
+    return _parseDOMElementLength(element['height'], element.style.height);
   }
   return 0;
 }
@@ -127,10 +126,12 @@ class UIMasonry extends UIComponent {
   late NNField<int?> _masonryWidthSize;
   late NNField<int?> _masonryHeightSize;
 
+  // The key type is the parameters type: the default key generator casts the
+  // parameters to it, and `Parameters2<List<int>, double>` always threw.
   late CachedComputation<
     int,
     Parameters2<List<int?>, double?>,
-    Parameters2<List<int>, double>
+    Parameters2<List<int?>, double?>
   >
   _computeGCDCache;
 
@@ -1081,7 +1082,9 @@ class _MasonryRenderItem extends _MasonryRenderable {
         parent: div4,
         setTreeMapRoot: false,
       );
-    } else {
+    } else if (!element.isElement) {
+      // An `Element` is appended as is: `$htmlRoot` can't parse it, and threw
+      // (so a masonry of `Element` items rendered nothing).
       var htmlRoot = $htmlRoot(element);
       element = htmlRoot?.buildDOM(
         generator: UIComponent.domGenerator,

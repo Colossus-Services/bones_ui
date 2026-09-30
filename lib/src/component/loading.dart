@@ -520,6 +520,7 @@ abstract class UILoading {
   }) {
     if (config != null) {
       type = config.type;
+      if (config.inline != null) inline = config.inline!;
       if (isNotEmptyString(config.color, trim: true)) color = config.color;
       if (config.zoom != null) zoom = config.zoom;
       if (config.text != null) text = config.text;

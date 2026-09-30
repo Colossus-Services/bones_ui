@@ -478,7 +478,8 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     }
   }
 
-  static final RegExp _patternNumber = RegExp(r'^(\d+(?:\.\d+)?)$');
+  // Accepts negative numbers: `-5` got no unit (`y(-5)` set an invalid `-5`).
+  static final RegExp _patternNumber = RegExp(r'^(-?\d+(?:\.\d+)?)$');
 
   dynamic processLayout(
     String expressionStr,
@@ -587,7 +588,9 @@ class UILayout {
 
     var content = parent.content;
     if (all) {
-      return content!.querySelectorAll('#$id');
+      // A Dart `List`: the evaluator indexes it dynamically (`#id[n]`), which
+      // fails on a JS `NodeList` with dart2wasm.
+      return content!.querySelectorAll('#$id').toElements();
     } else {
       return content!.querySelector('#$id');
     }

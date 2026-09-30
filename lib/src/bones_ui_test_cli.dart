@@ -143,10 +143,11 @@ class BonesUITestRunner {
 
       if (idx >= 0) {
         args.removeAt(idx);
-        var dir = args.removeAt(idx);
-        dir = pack_path.normalize(dir.trim());
+        var dir = args.removeAt(idx).trim();
+        // Check before normalizing: `normalize('')` is `.` (the current
+        // directory), which used to be taken as the log directory.
         if (dir.isNotEmpty) {
-          logDir = dir;
+          logDir = pack_path.normalize(dir);
         }
       }
     }

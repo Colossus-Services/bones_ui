@@ -517,10 +517,10 @@ class UIColorPicker extends UIComponent {
     _hueBar!.style.left = '${hueX}px';
 
     _lumaBar!.style.backgroundColor =
-        'rgb(${_baseColor!.red},${_baseColor!.green},${_baseColor!.blue}';
+        'rgb(${_baseColor!.red},${_baseColor!.green},${_baseColor!.blue})';
 
     _hueBar!.style.backgroundColor =
-        'rgb(${255 - _baseColor!.red},${255 - _baseColor!.green},${255 - _baseColor!.blue}';
+        'rgb(${255 - _baseColor!.red},${255 - _baseColor!.green},${255 - _baseColor!.blue})';
 
     _viewColor!.style.backgroundColor =
         'rgb(${_color!.red},${_color!.green},${_color!.blue})';

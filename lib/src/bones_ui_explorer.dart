@@ -230,7 +230,7 @@ class YAMLConfig extends ResourceConfig<YAMLConfigDocument> {
 
   @override
   String toString() {
-    return 'YAMLConfig{uri: $uri';
+    return 'YAMLConfig{uri: $uri}';
   }
 }
 
@@ -256,7 +256,7 @@ class JSONConfig extends ResourceConfig<JSONConfigDocument> {
 
   @override
   String toString() {
-    return 'JSONConfig{uri: $uri';
+    return 'JSONConfig{uri: $uri}';
   }
 }
 
@@ -626,7 +626,14 @@ class _UIExplorerQuery extends UIControlledComponent {
       controllersValues.forEach((k, v) => mapValues[k] ??= v);
     }
 
-    return MapProperties.fromStringProperties(mapValues as Map<String, String>);
+    // `mapValues` is a `Map<String, String?>`: casting it to
+    // `Map<String, String>` always threw. Skip the unset (`null`) values:
+    var properties = <String, String>{
+      for (var e in mapValues.entries)
+        if (e.value != null) e.key: e.value!,
+    };
+
+    return MapProperties.fromStringProperties(properties);
   }
 
   @override

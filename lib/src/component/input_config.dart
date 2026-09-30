@@ -400,6 +400,10 @@ class InputConfig {
     var input = $input(style: 'width: auto', value: inputValue);
     DOMElement? button;
 
+    // The generated `input`: `input.runtime.node` isn't mapped (it was `null`,
+    // so setting the provided value threw).
+    HTMLInputElement? inputElement;
+
     var valueProvider = _valueProvider;
 
     if (valueProvider != null) {
@@ -419,7 +423,8 @@ class InputConfig {
               }
               value ??= '';
 
-              var element = input.runtime.node as HTMLInputElement;
+              var element = inputElement;
+              if (element == null) return;
               element.value = '$value';
               element.dispatchChangeEvent();
             });
@@ -429,9 +434,11 @@ class InputConfig {
       generator: UIComponent.domGenerator,
       treeMap: parent?.domTreeMap ?? UIComponent.domTreeMapDummy,
       setTreeMapRoot: false,
-    );
+    ) as HTMLDivElement?;
 
-    return div as HTMLDivElement?;
+    inputElement = div?.querySelector('input') as HTMLInputElement?;
+
+    return div;
   }
 
   HTMLTextAreaElement _renderTextArea(UIComponent? parent, Object? inputValue) {
@@ -831,22 +838,26 @@ class UIInputTable extends UIComponent {
 
       if (row.isA<HTMLTableRowElement>()) {
         _addTableRow(table, row as HTMLTableRowElement);
-      } else if (row is List<HTMLTableRowElement>) {
-        for (var r in row) {
-          _addTableRow(table, r);
-        }
-      } else if (row is List<HTMLTableCellElement>) {
-        var tr = table.appendRow();
-
-        for (var cell in row) {
-          _addTableRowCell(tr, cell);
-        }
       } else if (row is List<Element>) {
-        var tr = table.appendRow();
+        // Checked with `isA`: `is List<HTMLTableRowElement>` can't tell JS
+        // interop types apart (a list of `<span>` matched and crashed).
+        if (row.every((e) => e.isA<HTMLTableRowElement>())) {
+          for (var r in row) {
+            _addTableRow(table, r as HTMLTableRowElement);
+          }
+        } else if (row.every((e) => e.isA<HTMLTableCellElement>())) {
+          var tr = table.appendRow();
 
-        for (var cell in row) {
-          var td = tr.appendCell();
-          td.appendChild(cell);
+          for (var cell in row) {
+            _addTableRowCell(tr, cell as HTMLTableCellElement);
+          }
+        } else {
+          var tr = table.appendRow();
+
+          for (var cell in row) {
+            var td = tr.appendCell();
+            td.appendChild(cell);
+          }
         }
       }
     }
@@ -872,12 +883,14 @@ class UIInputTable extends UIComponent {
     var td = tr.appendCell();
     td.setAttributes(cell.attributes.toMap());
 
-    var children = cell.children.toList();
+    // All the child nodes: with only `children` (elements), the text of a
+    // cell was lost.
+    var nodes = cell.childNodes.toList();
     cell.clear();
 
-    td.appendNodes(children);
+    td.appendNodes(nodes);
 
-    for (var element in children) {
+    for (var element in nodes.whereElement()) {
       UIComponent.resolveParentUIComponent(
         parent: content,
         parentUIComponent: this,

@@ -204,9 +204,6 @@ Future<bool> _testUISleepUntilImpl(
   int? intervalMs,
   int? minMs,
 ) async {
-  var isReady = await ready();
-  if (isReady) return true;
-
   timeoutMs = _sleepMs(timeoutMs ?? 3000, null, 90000);
 
   intervalMs = intervalMs != null
@@ -220,12 +217,18 @@ Future<bool> _testUISleepUntilImpl(
     minMs = minMs.clamp(1, timeoutMs);
   }
 
+  var initTime = DateTime.now();
+
+  var isReady = await ready();
+  if (isReady) {
+    await _sleepMinMsRemaining(readyTitle, initTime, minMs);
+    return true;
+  }
+
   print(
     '** Test UI Sleep Until $readyTitle> sleep: $timeoutMs ms '
     '(interval: $intervalMs ms${minMs != null ? ' ; min: $minMs ms' : ''})',
   );
-
-  var initTime = DateTime.now();
 
   while (true) {
     isReady = await ready();
@@ -235,6 +238,7 @@ Future<bool> _testUISleepUntilImpl(
       print(
         '-- Test UI Sleep Until $readyTitle> READY (elapsedTime: $elapsedTime ms)',
       );
+      await _sleepMinMsRemaining(readyTitle, initTime, minMs);
       return true;
     }
 
@@ -251,27 +255,39 @@ Future<bool> _testUISleepUntilImpl(
     '-- Test UI Sleep Until $readyTitle> ${isReady ? 'READY' : 'NOT READY'}',
   );
 
-  if (minMs != null) {
-    var elapsedTime = DateTime.now().difference(initTime).inMilliseconds;
-    var remainingTime = timeoutMs - elapsedTime;
-
-    if (remainingTime > 0) {
-      print(
-        '-- Test UI Sleep Until $readyTitle> minimal sleep: $minMs ms (elapsed: $elapsedTime ms ; remaining: $remainingTime ms)',
-      );
-
-      await Future.delayed(Duration(milliseconds: remainingTime));
-    }
-  }
+  await _sleepMinMsRemaining(readyTitle, initTime, minMs);
 
   return ready();
+}
+
+/// Sleeps the remaining time to complete [minMs] since [initTime].
+///
+/// (`minMs` used to be ignored: the remaining time was computed from the
+/// timeout, after it had already elapsed, and not at all when ready.)
+Future<void> _sleepMinMsRemaining(
+  String readyTitle,
+  DateTime initTime,
+  int? minMs,
+) async {
+  if (minMs == null) return;
+
+  var elapsedTime = DateTime.now().difference(initTime).inMilliseconds;
+  var remainingTime = minMs - elapsedTime;
+
+  if (remainingTime > 0) {
+    print(
+      '-- Test UI Sleep Until $readyTitle> minimal sleep: $minMs ms (elapsed: $elapsedTime ms ; remaining: $remainingTime ms)',
+    );
+
+    await Future.delayed(Duration(milliseconds: remainingTime));
+  }
 }
 
 int _sleepMs(int? ms, int? frames, int maxMs) {
   ms ??= frames != null ? frames * 16 : 30;
   ms = (ms * _speedFactor).toInt();
-  ms.clamp(1, maxMs);
-  return ms;
+  // (The `clamp` result used to be discarded, so `maxMs` was never applied.)
+  return ms.clamp(1, maxMs);
 }
 
 /// Calls [testUISleepUntil] checking if [route] is the current route ([UINavigator.currentRoute]).
@@ -1309,10 +1325,10 @@ abstract class UITestChain<
       ).selectExpected(selectors).then((o) {
         var elem = o.element;
         if (!elem.isElementOf<O>(webType)) {
-          expect(
-            elem,
-            pkg_test.isA<O>(),
-            reason: "Selected element not of type `$webType`: $elem",
+          // Not an `isA<O>()` matcher: JS interop types are erased at
+          // runtime, so it always matched any element.
+          pkg_test.fail(
+            "Selected element not of type `$webType`: ${elem.tagName}",
           );
         }
 
@@ -2222,15 +2238,18 @@ extension FutureUITestChainNodeExtension<
     Iterable<Element> Function(List<Element> elems)? mapper,
     bool expected = false,
   }) => thenChain(
-    (o) => o.selectWhereUntil(
-      selectors,
-      test,
-      timeoutMs: timeoutMs,
-      intervalMs: intervalMs,
-      minMs: minMs,
-      mapper: mapper,
-      expected: expected,
-    ) as UITestChainNode<U, List<Element>, T>,
+    // Cast the resolved node, not the `Future` (that always threw):
+    (o) => o
+        .selectWhereUntil(
+          selectors,
+          test,
+          timeoutMs: timeoutMs,
+          intervalMs: intervalMs,
+          minMs: minMs,
+          mapper: mapper,
+          expected: expected,
+        )
+        .then((o) => o as UITestChainNode<U, List<Element>, T>),
   );
 
   Future<UITestChainNode<U, List<O>, T>>
@@ -2244,16 +2263,19 @@ extension FutureUITestChainNodeExtension<
     Iterable<Element> Function(List<Element> elems)? mapper,
     bool expected = false,
   }) => thenChain(
-    (o) => o.selectWhereUntilTyped<O>(
-      selectors,
-      webType,
-      test,
-      timeoutMs: timeoutMs,
-      intervalMs: intervalMs,
-      minMs: minMs,
-      mapper: mapper,
-      expected: expected,
-    ) as UITestChainNode<U, List<O>, T>,
+    // Cast the resolved node, not the `Future` (that always threw):
+    (o) => o
+        .selectWhereUntilTyped<O>(
+          selectors,
+          webType,
+          test,
+          timeoutMs: timeoutMs,
+          intervalMs: intervalMs,
+          minMs: minMs,
+          mapper: mapper,
+          expected: expected,
+        )
+        .then((o) => o as UITestChainNode<U, List<O>, T>),
   );
 
   Future<UITestChainNode<U, Element, T>> selectFirstWhereUntil(

@@ -127,15 +127,16 @@ class BUIRender extends UINavigableComponent {
 
     _renderSource!.source = source;
 
-    renderDomGenerator.sourceResolver =
-        _sourceResolver as String Function(String)?;
+    // Not a cast of the tear-offs: they return `String?`, so casting them to a
+    // function returning `String` always threw a `TypeError`.
+    renderDomGenerator.sourceResolver = (url) => _sourceResolver(url) ?? url;
 
     renderDomGenerator.domContext ??= DOMContext(resolveCSSURL: true);
 
     var domContext = renderDomGenerator.domContext!;
 
     domContext.resolveCSSURL = true;
-    domContext.cssURLResolver ??= _cssURLResolver as String Function(String?)?;
+    domContext.cssURLResolver ??= (url) => _cssURLResolver(url) ?? url ?? '';
     domContext.namedElementProvider ??= _namedElementProvider;
 
     updateSourcesFromViewProvider();
@@ -910,14 +911,18 @@ class BUIViewProvider extends BUIViewProviderBase {
     return view;
   }
 
-  @override
-  List<String> get routes =>
-      views.values.map((e) => e.route).toList() as List<String>;
+  // `nonNulls` instead of casting a `List<String?>` to `List<String>`, which
+  // always threw a `TypeError`:
 
   @override
-  List<String> get menuRoutes =>
-      views.values.where((e) => !e.isHideFromMenu).map((e) => e.route).toList()
-          as List<String>;
+  List<String> get routes => views.values.map((e) => e.route).nonNulls.toList();
+
+  @override
+  List<String> get menuRoutes => views.values
+      .where((e) => !e.isHideFromMenu)
+      .map((e) => e.route)
+      .nonNulls
+      .toList();
 
   @override
   String? getRouteName(String? route) => getView(route)?.name;
@@ -1192,7 +1197,9 @@ class BUIRenderSource {
       return source as DOMElement?;
     } else if (source.isElement) {
       var elem = source as Element;
-      return $htmlRoot(elem.outerHTML);
+      // `outerHTML` is a JS value: as a `String` (it's not one with dart2wasm,
+      // and `$htmlRoot` threw "Can't parse type: JSValue").
+      return $htmlRoot(elem.outerHTML.asString);
     } else {
       throw StateError("Can't convert source to Element: $source");
     }
