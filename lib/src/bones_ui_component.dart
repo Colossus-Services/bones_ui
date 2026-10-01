@@ -2132,23 +2132,39 @@ abstract class UIComponent extends UIEventHandler {
     List<UIComponent> uiComponents,
     Set<UIRootComponent> uiRootComponents,
   ) async {
+    // Yields to the event loop only after some work (time-sliced): a yield
+    // per component (a timer, clamped to ~4ms by browsers) took seconds for
+    // thousands of components, keeping all of them (and every discarded
+    // render) alive, and delaying the purge of the roots.
+    final sliceTime = Stopwatch()..start();
+
     for (var uiComponent in uiComponents) {
-      await uiComponent._onPurge();
+      uiComponent._onPurge();
+
+      if (sliceTime.elapsed >= purgeSliceTime) {
+        await yeld();
+        sliceTime.reset();
+      }
     }
+
+    uiComponents.clear();
 
     for (var uiRootComponent in uiRootComponents) {
       await uiRootComponent.purgeRoot();
     }
   }
 
-  Future<void> _onPurge() async {
+  /// The maximum time the purge after rendering runs before yielding to the
+  /// event loop (it purges the rendered components in time slices).
+  static Duration purgeSliceTime = const Duration(milliseconds: 8);
+
+  void _onPurge() {
     if (_subComponent) return;
 
     final domTreeMap = _domTreeMap;
     if (domTreeMap == null) return;
 
     domTreeMap.purge();
-    await yeld();
   }
 
   /// If [true] will preserve last render in next calls to [render].

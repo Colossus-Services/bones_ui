@@ -9,6 +9,21 @@
 - Adopted Dart 3.8–3.12 features (flagged by `lints` 6): private named parameters (`this._x`, same named
   arguments), null-aware elements, explicit types; `Object?.isA<T>()` instead of `asJSAny.isA<T>()`.
 
+- Performance (render time and memory; see `doc/benchmarks.md`):
+  - Rendering no longer walks the whole rendered tree through JS interop several times per render: the elements
+    with parsed attributes (`navigate`, `action`, `onEventClick`, `uiLayout`...), `bg-blur` and `div-centered-*`
+    classes and sub-components are selected with native `querySelector(All)`.
+  - Placing the rendered children no longer calls `childNodes.indexOf` per element (O(n²) per render).
+  - `UIComponentsTree` replaces `DOMTreeReferenceMap` as the tree of components of a `UIRootComponent`: with
+    `dart2wasm` JS objects have a constant Dart `hashCode`, making each registration and lookup O(n); nodes are now
+    hashed by JS identity (up to 10x faster renders of many components with `dart2wasm`).
+  - Purged components (no longer in the tree) are held weakly (still resolvable while referenced elsewhere, up to
+    the same 1 minute), and the purge after rendering is time-sliced (it yielded ~4ms per component): discarded
+    renders are released promptly (-16% heap in a real app after navigating and re-rendering). The slice length is
+    `UIComponent.purgeSliceTime` (8ms by default).
+  - New `benchmark/render_benchmark.dart` (synthetic render scenarios, `dart2js` and `dart2wasm`),
+    `benchmark/compare.dart`, and `chrome-bench`/`chrome-prof` test platforms.
+
 - `UIComponent`:
   - Fix (`dart2wasm`): `getContentUIComponent` (and so `element.uiComponent`) missed components when the content
     element was re-read from the DOM: the association was an `Expando` keyed by the Dart wrapper; it's now a JS
