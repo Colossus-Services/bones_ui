@@ -19,7 +19,8 @@
     hashed by JS identity (up to 10x faster renders of many components with `dart2wasm`).
   - Purged components (no longer in the tree) are held weakly (still resolvable while referenced elsewhere, up to
     the same 1 minute), and the purge after rendering is time-sliced (it yielded ~4ms per component): discarded
-    renders are released promptly (-16% heap in a real app after navigating and re-rendering).
+    renders are released promptly (-16% heap in a real app after navigating and re-rendering). The slice length is
+    `UIComponent.purgeSliceTime` (8ms by default).
   - New `benchmark/render_benchmark.dart` (synthetic render scenarios, `dart2js` and `dart2wasm`),
     `benchmark/compare.dart`, and `chrome-bench`/`chrome-prof` test platforms.
 

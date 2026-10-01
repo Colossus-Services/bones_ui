@@ -2141,7 +2141,7 @@ abstract class UIComponent extends UIEventHandler {
     for (var uiComponent in uiComponents) {
       uiComponent._onPurge();
 
-      if (sliceTime.elapsedMilliseconds >= _purgeSliceMs) {
+      if (sliceTime.elapsed >= purgeSliceTime) {
         await yeld();
         sliceTime.reset();
       }
@@ -2154,7 +2154,9 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  static const _purgeSliceMs = 8;
+  /// The maximum time the purge after rendering runs before yielding to the
+  /// event loop (it purges the rendered components in time slices).
+  static Duration purgeSliceTime = const Duration(milliseconds: 8);
 
   void _onPurge() {
     if (_subComponent) return;
