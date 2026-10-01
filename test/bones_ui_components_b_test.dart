@@ -1770,6 +1770,10 @@ void main() {
       expect(() => source.sourceAsElement, throwsStateError);
       expect(() => source.sourceAsDOMElement, throwsStateError);
 
+      // `render` stays registered as a navigable: a later (asynchronous)
+      // navigation would render the invalid source and fail the suite.
+      render.source = null;
+
       var other = BUIRenderSource(
         UIComponent.domGenerator,
         () => null,
