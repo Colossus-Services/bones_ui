@@ -376,8 +376,7 @@ class UIPopupMenu extends UIComponent {
        targetElement = ElementProvider.from(targetElement),
        super(
          componentClass: 'ui-popup-menu',
-         componentStyle:
-             'max-height: 80vh; max-width: 80vw; overflow: auto; scrollbar-color: auto;',
+         componentStyle: 'max-height: 80vh; max-width: 80vw; overflow: auto; scrollbar-color: auto;',
        ) {
     this.entries = (entries ?? <MenuItem>[]).toList();
 

@@ -92,10 +92,9 @@ class UIAsyncContent {
     this._asyncContentProvider,
     dynamic loadingContent, {
     dynamic errorContent,
-    Duration? refreshInterval,
+    this._refreshInterval,
     Map<String, dynamic>? properties,
   }) : _locale = IntlLocale.getDefaultLocale(),
-       _refreshInterval = refreshInterval,
        _properties = properties ?? {},
        _loadingContent = _normalizeContent(loadingContent),
        _errorContent = _normalizeContent(errorContent),
@@ -113,10 +112,9 @@ class UIAsyncContent {
     Future<dynamic> contentFuture,
     dynamic loadingContent, {
     dynamic errorContent,
-    Duration? refreshInterval,
+    this._refreshInterval,
     Map<String, dynamic>? properties,
   }) : _locale = IntlLocale.getDefaultLocale(),
-       _refreshInterval = refreshInterval,
        _properties = properties ?? {},
        _loadingContent = _normalizeContent(loadingContent),
        _errorContent = _normalizeContent(errorContent),

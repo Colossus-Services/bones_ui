@@ -127,18 +127,18 @@ class InputConfig {
     this.checked,
     this.precision,
     String? placeholder = '',
-    Map<String, String>? attributes,
-    Map<String, String>? options,
+    this._attributes,
+    this._options,
     bool? optional = false,
     Object? classes,
     String? labelStyle,
     String? labelVerticalAlign,
     String? style,
-    FieldInputRender? inputRender,
-    FieldValueProvider? valueProvider,
-    FieldValueValidator? valueValidator,
-    FieldValueNormalizer? valueNormalizer,
-    Object? invalidValueMessage,
+    this._inputRender,
+    this._valueProvider,
+    this._valueValidator,
+    this._valueNormalizer,
+    this._invalidValueMessage,
     this.onChangeListener,
     this.onActionListener,
   }) : _id = id,
@@ -148,13 +148,6 @@ class InputConfig {
            ? null
            : placeholder,
        _optional = optional ?? false,
-       _attributes = attributes,
-       _options = options,
-       _inputRender = inputRender,
-       _valueProvider = valueProvider,
-       _valueValidator = valueValidator,
-       _valueNormalizer = valueNormalizer,
-       _invalidValueMessage = invalidValueMessage,
        classes = UIComponent.parseClasses(classes) {
     if (label == null || label.isEmpty) {
       if (this.value != null) {
@@ -262,7 +255,7 @@ class InputConfig {
 
       if (obj is UIComponent) {
         inputComponent = obj;
-      } else if (obj.asJSAny.isA<HTMLInputElement>()) {
+      } else if (obj.isA<HTMLInputElement>()) {
         inputElement = obj as HTMLInputElement;
       } else if (obj is DOMElement) {
         domeElement = obj;
@@ -407,6 +400,10 @@ class InputConfig {
     var input = $input(style: 'width: auto', value: inputValue);
     DOMElement? button;
 
+    // The generated `input`: `input.runtime.node` isn't mapped (it was `null`,
+    // so setting the provided value threw).
+    HTMLInputElement? inputElement;
+
     var valueProvider = _valueProvider;
 
     if (valueProvider != null) {
@@ -426,7 +423,8 @@ class InputConfig {
               }
               value ??= '';
 
-              var element = input.runtime.node as HTMLInputElement;
+              var element = inputElement;
+              if (element == null) return;
               element.value = '$value';
               element.dispatchChangeEvent();
             });
@@ -436,9 +434,11 @@ class InputConfig {
       generator: UIComponent.domGenerator,
       treeMap: parent?.domTreeMap ?? UIComponent.domTreeMapDummy,
       setTreeMapRoot: false,
-    );
+    ) as HTMLDivElement?;
 
-    return div as HTMLDivElement?;
+    inputElement = div?.querySelector('input') as HTMLInputElement?;
+
+    return div;
   }
 
   HTMLTextAreaElement _renderTextArea(UIComponent? parent, Object? inputValue) {
@@ -764,13 +764,11 @@ class UIInputTable extends UIComponent {
               style: 'font-weight: bold',
               content: [label, ':', '&nbsp;'],
             );
-            var dom =
-                domLabel.buildDOM(
-                      generator: UIComponent.domGenerator,
-                      treeMap: domTreeMap,
-                      setTreeMapRoot: false,
-                    )
-                    as HTMLLabelElement;
+            var dom = domLabel.buildDOM(
+              generator: UIComponent.domGenerator,
+              treeMap: domTreeMap,
+              setTreeMapRoot: false,
+            ) as HTMLLabelElement;
             cell.appendChild(dom);
           } else {
             cell.appendHTML(
@@ -782,12 +780,10 @@ class UIInputTable extends UIComponent {
 
       var celInput = row.appendCell()..style.textAlign = 'left';
 
-      var inputRendered =
-          input.renderInput(
-                parent: this,
-                fieldValueProvider: getPreviousRenderedFieldValue,
-              )
-              as Object?;
+      var inputRendered = input.renderInput(
+        parent: this,
+        fieldValueProvider: getPreviousRenderedFieldValue,
+      ) as Object?;
 
       if (inputRendered.isElement) {
         var inputRenderedElement = inputRendered as Element;
@@ -840,24 +836,28 @@ class UIInputTable extends UIComponent {
       var row = _resolveRow(r);
       if (row == null) continue;
 
-      if (row.asJSAny.isA<HTMLTableRowElement>()) {
+      if (row.isA<HTMLTableRowElement>()) {
         _addTableRow(table, row as HTMLTableRowElement);
-      } else if (row is List<HTMLTableRowElement>) {
-        for (var r in row) {
-          _addTableRow(table, r);
-        }
-      } else if (row is List<HTMLTableCellElement>) {
-        var tr = table.appendRow();
-
-        for (var cell in row) {
-          _addTableRowCell(tr, cell);
-        }
       } else if (row is List<Element>) {
-        var tr = table.appendRow();
+        // Checked with `isA`: `is List<HTMLTableRowElement>` can't tell JS
+        // interop types apart (a list of `<span>` matched and crashed).
+        if (row.every((e) => e.isA<HTMLTableRowElement>())) {
+          for (var r in row) {
+            _addTableRow(table, r as HTMLTableRowElement);
+          }
+        } else if (row.every((e) => e.isA<HTMLTableCellElement>())) {
+          var tr = table.appendRow();
 
-        for (var cell in row) {
-          var td = tr.appendCell();
-          td.appendChild(cell);
+          for (var cell in row) {
+            _addTableRowCell(tr, cell as HTMLTableCellElement);
+          }
+        } else {
+          var tr = table.appendRow();
+
+          for (var cell in row) {
+            var td = tr.appendCell();
+            td.appendChild(cell);
+          }
         }
       }
     }
@@ -883,12 +883,14 @@ class UIInputTable extends UIComponent {
     var td = tr.appendCell();
     td.setAttributes(cell.attributes.toMap());
 
-    var children = cell.children.toList();
+    // All the child nodes: with only `children` (elements), the text of a
+    // cell was lost.
+    var nodes = cell.childNodes.toList();
     cell.clear();
 
-    td.appendNodes(children);
+    td.appendNodes(nodes);
 
-    for (var element in children) {
+    for (var element in nodes.whereElement()) {
       UIComponent.resolveParentUIComponent(
         parent: content,
         parentUIComponent: this,
@@ -937,26 +939,22 @@ class UIInputTable extends UIComponent {
     }
 
     if (table != null) {
-      var dom =
-          table.buildDOM(
-                generator: UIComponent.domGenerator,
-                treeMap: domTreeMap,
-                setTreeMapRoot: false,
-              )
-              as HTMLTableElement;
+      var dom = table.buildDOM(
+        generator: UIComponent.domGenerator,
+        treeMap: domTreeMap,
+        setTreeMapRoot: false,
+      ) as HTMLTableElement;
       var trs = dom.rows.toList();
       if (trs.isEmpty) return null;
       return trs.length == 1 ? trs.first : trs;
     }
 
     var div = $div(content: nodes);
-    var dom =
-        div.buildDOM(
-              generator: UIComponent.domGenerator,
-              treeMap: domTreeMap,
-              setTreeMapRoot: false,
-            )
-            as HTMLDivElement;
+    var dom = div.buildDOM(
+      generator: UIComponent.domGenerator,
+      treeMap: domTreeMap,
+      setTreeMapRoot: false,
+    ) as HTMLDivElement;
 
     return dom.children.toList();
   }

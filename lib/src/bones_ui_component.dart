@@ -103,10 +103,9 @@ abstract class UIComponent extends UIEventHandler {
     bool renderOnConstruction = false,
     bool preserveRender = false,
     this.id,
-    UIComponentGenerator? generator,
+    this._generator,
   }) : globalID = ++_globalIDCount,
-       _subComponent = subComponent,
-       _generator = generator {
+       _subComponent = subComponent {
     if (subComponent) {
       _domTreeMap = parentComponent?.domTreeMap;
     }
@@ -336,8 +335,11 @@ abstract class UIComponent extends UIEventHandler {
 
   HTMLElement? _getContent() => _content;
 
-  static final Expando<WeakReference<UIComponent>> _contentsUIComponents =
-      Expando();
+  // Not an `Expando`: with `dart2wasm` the same DOM element can be wrapped by
+  // distinct Dart objects (e.g. re-read from the DOM), so it must be keyed by
+  // JS identity (see [_ElementWeakStore]).
+  static final _ElementWeakStore<WeakReference<UIComponent>>
+  _contentsUIComponents = _ElementWeakStore();
 
   static UIComponent? getContentUIComponent(UIElement content) =>
       _contentsUIComponents[content]?.target;
@@ -399,6 +401,8 @@ abstract class UIComponent extends UIEventHandler {
         _resolveParentUIComponent(parentUIComponent ?? parent);
         return _parent;
       } else if (content.parentElement == parent) {
+        // Already in place (e.g. appended externally): just record it.
+        _parent = parent;
         _resolveParentUIComponent(parentUIComponent ?? parent);
         return _parent;
       } else {
@@ -720,7 +724,7 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
-  static List<String> _parseClasses(classes) => toFlatListOfStrings(
+  static List<String> _parseClasses(Object? classes) => toFlatListOfStrings(
     classes,
     delimiter: _classesEntryDelimiter,
     trim: true,
@@ -780,7 +784,7 @@ abstract class UIComponent extends UIEventHandler {
 
   static final RegExp _cssEntryDelimiter = RegExp(r'\s*;\s*');
 
-  static List<String> parseStyle(style1) => toFlatListOfStrings(
+  static List<String> parseStyle(Object? style1) => toFlatListOfStrings(
     style1,
     delimiter: _cssEntryDelimiter,
     trim: true,
@@ -854,8 +858,10 @@ abstract class UIComponent extends UIEventHandler {
       var uiRoot = this.uiRoot ?? UIRoot.getInstance();
 
       var intlMessageResolver = uiRoot?.intlMessageResolver;
-      intlMessageResolver ??=
-          (String key, [Map<String, dynamic>? parameters]) => key;
+      intlMessageResolver ??= (
+        String key, [
+        Map<String, dynamic>? parameters,
+      ]) => key;
 
       return text.replaceAllMapped(_regexpIntlMessage, (m) {
         var key = m[1]!;
@@ -1213,9 +1219,10 @@ abstract class UIComponent extends UIEventHandler {
     bool? deep,
   ]) {
     if (ids.isEmpty) return <UIComponent>[];
-    return getRenderedUIComponents(
-      deep,
-    ).whereType<T>().where((e) => e.id != null && ids.contains(e.id)).toList();
+    return getRenderedUIComponents(deep)
+        .whereType<T>()
+        .where((e) => e.id != null && ids.contains(e.id))
+        .toList();
   }
 
   List<T> getRenderedUIComponentByType<T>([bool? deep]) =>
@@ -2095,10 +2102,7 @@ abstract class UIComponent extends UIEventHandler {
 
     var uiComponents = _renderedUIComponents.toList();
 
-    var uiRootComponents = {
-      ..._renderedUIRootComponents,
-      if (mainUIRoot != null) mainUIRoot,
-    };
+    var uiRootComponents = {..._renderedUIRootComponents, ?mainUIRoot};
 
     _renderedUIComponents.clear();
     _renderedUIRootComponents.clear();
@@ -2268,6 +2272,12 @@ abstract class UIComponent extends UIEventHandler {
         if (isRenderable(val) || isHTMLElement(val)) {
           renderableList.add(val);
         }
+      }
+
+      // A `Map` without renderable entries is rendered as JSON (as documented
+      // in `render`), instead of rendering nothing:
+      if (renderableList.isEmpty && list.isNotEmpty) {
+        renderableList = [list];
       }
     } else {
       renderableList = [list];
@@ -2833,8 +2843,9 @@ abstract class UIComponent extends UIEventHandler {
     String? delimiter,
     Pattern? delimiterPattern,
   ]) {
-    var list = parseAttributeValueAsStringList(value, delimiterPattern)!;
-    if (list.isEmpty) return '';
+    // `null` for an empty value (e.g. `''`):
+    var list = parseAttributeValueAsStringList(value, delimiterPattern);
+    if (list == null || list.isEmpty) return '';
     delimiter ??= ' ';
     return list.length == 1 ? list.single : list.join(delimiter);
   }
@@ -2913,7 +2924,9 @@ abstract class UIComponent extends UIEventHandler {
       case 'class':
         {
           content!.classList.clear();
-          content!.classList.addAll(parseAttributeValueAsStringList(value)!);
+          content!.classList.addAll(
+            parseAttributeValueAsStringList(value) ?? const <String>[],
+          );
           return true;
         }
       case 'navigate':
@@ -3274,10 +3287,17 @@ abstract class UIComponent extends UIEventHandler {
 
     var entries = fieldsElementsMap.entries.toList();
 
+    // A field element that is an `UIComponent` content (an `UIField`
+    // component) resolves to that component, not to the component that has
+    // it as child (as `getField`/`getFieldExtended` do):
     var entriesUIComponents = resolveUIComponents
         ? Map.fromEntries(
             entries.map(
-              (e) => MapEntry(e.value, findUIComponentByChild(e.value)),
+              (e) => MapEntry(
+                e.value,
+                _getUIComponentByContent(e.value) ??
+                    findUIComponentByChild(e.value),
+              ),
             ),
           )
         : {};
@@ -3610,7 +3630,7 @@ abstract class UIComponent extends UIEventHandler {
 
     var component = getFieldComponent(fieldName);
 
-    if (component.asJSAny.isA<HTMLElement>()) {
+    if (component.isA<HTMLElement>()) {
       (component as HTMLElement).focus();
       return true;
     } else if (component is UIComponent) {
@@ -3810,5 +3830,38 @@ abstract class UIComponent extends UIEventHandler {
 
     DSX.purge();
     await yeld();
+  }
+}
+
+@JS('WeakMap')
+extension type _JSWeakMap._(JSObject _) implements JSObject {
+  external _JSWeakMap();
+
+  external JSAny? get(JSObject key);
+
+  external void set(JSObject key, JSAny? value);
+
+  external bool delete(JSObject key);
+}
+
+/// Associates values with DOM elements without keeping them alive, keyed by
+/// JS identity (a JS `WeakMap`). An [Expando] keys by the Dart object, and
+/// with `dart2wasm` the same element can have distinct Dart wrappers.
+class _ElementWeakStore<V extends Object> {
+  final _JSWeakMap _weakMap = _JSWeakMap();
+
+  V? operator [](JSObject element) {
+    final boxed = _weakMap.get(element);
+    return boxed.isA<JSBoxedDartObject>()
+        ? (boxed as JSBoxedDartObject).toDart as V
+        : null;
+  }
+
+  void operator []=(JSObject element, V? value) {
+    if (value == null) {
+      _weakMap.delete(element);
+    } else {
+      _weakMap.set(element, value.toJSBox);
+    }
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:js_interop_unsafe';
+
 import 'package:dom_builder/dom_builder_web.dart';
 import 'package:dom_tools/dom_tools.dart';
 import 'package:intl_messages/intl_messages.dart';
@@ -157,7 +159,12 @@ class UIDeviceOrientation extends _EventHandlerPrivate {
   int? _lastOrientation;
 
   void _onChangeOrientation(DeviceOrientationEvent event) {
-    var orientation = window.orientation;
+    // `window.orientation` is only defined in mobile browsers (reading it as
+    // an `int` throws when it's `undefined`):
+    var orientationValue = window.getProperty<JSAny?>('orientation'.toJS);
+    var orientation = orientationValue.isA<JSNumber>()
+        ? (orientationValue as JSNumber).toDartInt
+        : null;
 
     if (_lastOrientation != orientation) {
       _fireEvent(eventChangeOrientation, event, [orientation]);
@@ -315,7 +322,8 @@ class TextProvider {
     } else if (_intlKey != null) {
       value = _intlKey!.message;
     } else {
-      throw StateError("Can't provide a text: $this");
+      // Not `$this`: `toString` calls `text`, recursing until a stack overflow.
+      throw StateError("Can't provide a text: no text source");
     }
 
     var text = value != null ? value.toString() : '';
@@ -401,11 +409,10 @@ class ElementProvider {
         return runtime.node as UIElement?;
       } else {
         return _domNode!.buildDOM(
-              generator: UIComponent.domGenerator,
-              treeMap: UIComponent.domTreeMapDummy,
-              setTreeMapRoot: false,
-            )
-            as UIElement?;
+          generator: UIComponent.domGenerator,
+          treeMap: UIComponent.domTreeMapDummy,
+          setTreeMapRoot: false,
+        ) as UIElement?;
       }
     }
 
@@ -478,13 +485,11 @@ class CSSProvider {
       if (runtime.exists) {
         return cssFromElement(runtime.node as UIElement);
       } else {
-        var element =
-            _domNode!.buildDOM(
-                  generator: UIComponent.domGenerator,
-                  treeMap: UIComponent.domTreeMapDummy,
-                  setTreeMapRoot: false,
-                )
-                as UIElement;
+        var element = _domNode!.buildDOM(
+          generator: UIComponent.domGenerator,
+          treeMap: UIComponent.domTreeMapDummy,
+          setTreeMapRoot: false,
+        ) as UIElement;
         return cssFromElement(element);
       }
     }
@@ -494,7 +499,15 @@ class CSSProvider {
 
   static CSS cssFromElement(UIElement element) {
     if (isNodeInDOM(element)) {
-      return CSS(element.getComputedStyle().cssText);
+      // A computed style's `cssText` is empty in Chromium (and Firefox), so
+      // copy property by property:
+      var computed = element.getComputedStyle();
+      var css = StringBuffer();
+      for (var i = 0; i < computed.length; ++i) {
+        var name = computed.item(i);
+        css.write('$name: ${computed.getPropertyValue(name)}; ');
+      }
+      return CSS(css.toString());
     } else {
       return CSS(element.style?.cssText);
     }

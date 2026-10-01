@@ -52,7 +52,7 @@ class _Logger {
 
   Object? _format(Object? msg, [Object? error]) {
     if (msg is List) {
-      return [...msg.map((e) => _format(msg)), if (error != null) error];
+      return [...msg.map((e) => _format(e)), ?error];
     } else if (msg is String) {
       var str = StringBuffer(error != null ? '\n' : '');
 
@@ -205,7 +205,11 @@ class UIConsole {
     // ignore: omit_local_variable_types
     List<String> list = [];
 
-    for (var i = _logs.length - tailSize; i < _logs.length; ++i) {
+    // Not below 0 when there are fewer logs than `tailSize`:
+    var start = _logs.length - tailSize;
+    if (start < 0) start = 0;
+
+    for (var i = start; i < _logs.length; ++i) {
       list.add(_logs[i]);
     }
 

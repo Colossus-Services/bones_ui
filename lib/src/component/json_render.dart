@@ -29,7 +29,9 @@ class UIJsonRender extends UIComponent {
     } else if (json is num) {
       return $tag('pre', content: '$json');
     } else {
-      var j = JsonEncoder.withIndent('  ').convert(json);
+      // Escaped like the `String` case, so strings in the JSON aren't parsed
+      // as HTML:
+      var j = HtmlEscape().convert(JsonEncoder.withIndent('  ').convert(json));
       return $tag('pre', content: j);
     }
   }

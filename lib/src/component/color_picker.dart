@@ -22,12 +22,10 @@ class UIColorPickerInput extends UIComponent implements UIField<String> {
     this.placeholder,
     String? fieldName,
     String? value = '',
-    int pickerWidth = 200,
-    int pickerHeight = 200,
+    this._pickerWidth = 200,
+    this._pickerHeight = 200,
   }) : fieldName = fieldName ?? 'color-picker',
-       _initialValue = value ?? '',
-       _pickerWidth = pickerWidth,
-       _pickerHeight = pickerHeight;
+       _initialValue = value ?? '';
 
   @override
   String getFieldValue() => _input?.value ?? '';
@@ -418,8 +416,7 @@ class UIColorPicker extends UIComponent {
         ..style.backgroundColor = 'red'
         ..style.width = '${width + barSize}px'
         ..style.height = '${barSize}px'
-        ..style.background =
-            'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)';
+        ..style.background = 'linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)';
 
       _disableTransitions(_hue!);
 
@@ -520,10 +517,10 @@ class UIColorPicker extends UIComponent {
     _hueBar!.style.left = '${hueX}px';
 
     _lumaBar!.style.backgroundColor =
-        'rgb(${_baseColor!.red},${_baseColor!.green},${_baseColor!.blue}';
+        'rgb(${_baseColor!.red},${_baseColor!.green},${_baseColor!.blue})';
 
     _hueBar!.style.backgroundColor =
-        'rgb(${255 - _baseColor!.red},${255 - _baseColor!.green},${255 - _baseColor!.blue}';
+        'rgb(${255 - _baseColor!.red},${255 - _baseColor!.green},${255 - _baseColor!.blue})';
 
     _viewColor!.style.backgroundColor =
         'rgb(${_color!.red},${_color!.green},${_color!.blue})';
@@ -568,7 +565,7 @@ class UIColorPicker extends UIComponent {
     }
   }
 
-  void _lumaDrag(event) {
+  void _lumaDrag(MouseEvent event) {
     if (_lumaPressed) {
       _lumaClick(event);
     } else if (_huePressed) {
@@ -584,7 +581,7 @@ class UIColorPicker extends UIComponent {
     }
   }
 
-  void _saturationDrag(event) {
+  void _saturationDrag(MouseEvent event) {
     if (_saturationPressed) {
       _saturationClick(event);
     }
@@ -601,7 +598,7 @@ class UIColorPicker extends UIComponent {
     }
   }
 
-  void _hueDrag(event) {
+  void _hueDrag(MouseEvent event) {
     if (_huePressed) {
       _hueClick(event);
     }

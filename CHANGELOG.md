@@ -1,3 +1,105 @@
+## 3.1.0
+
+- sdk: ^3.13.0
+
+- Now based on `dom_builder` 3.1.0, `dom_tools` 3.1.0, `web_utils` 1.1.0 and `js_interop_utils` 1.1.1 (Dart 3.13
+  versions, with many bug fixes; see their changelogs). Notably, `UIColorPickerInput` colors are now opaque (they
+  were parsed with alpha 0) and `rgba(...)` colors keep their alpha (via `Color.parse`).
+
+- Adopted Dart 3.8–3.12 features (flagged by `lints` 6): private named parameters (`this._x`, same named
+  arguments), null-aware elements, explicit types; `Object?.isA<T>()` instead of `asJSAny.isA<T>()`.
+
+- `UIComponent`:
+  - Fix (`dart2wasm`): `getContentUIComponent` (and so `element.uiComponent`) missed components when the content
+    element was re-read from the DOM: the association was an `Expando` keyed by the Dart wrapper; it's now a JS
+    `WeakMap` (JS identity).
+  - `parent` is recorded when the content is already a child of the parent (it stayed `null`, e.g. after
+    `addExternalElementToElement`/`replaceChildElement`).
+  - `getFields` returns the value of `UIField` components (it resolved their container: `''`).
+  - `setAttribute('style' | 'class', '')` no longer fails a null check.
+  - A `render()` returning a `Map` without renderable entries is rendered as JSON (as documented).
+
+- `UIComponentGenerator.clearAttribute`: uses the attribute handler's `cleaner` (it always set `null`).
+
+- `UIConsole`: formatting a `List` message no longer recurses until a stack overflow; `tail(n)` no longer throws a
+  `RangeError` with fewer than `n` logs (`tail()` threw with fewer than 100).
+
+- `CSSProvider.cssFromElement`: returns the computed CSS of elements in the DOM (Chromium's computed `cssText` is
+  empty).
+
+- `TextProvider` without a source throws a `StateError` (it overflowed the stack). `UIDeviceOrientation` no longer
+  throws on each `deviceorientation` event where `window.orientation` is undefined (desktop).
+
+- `UIDocument`: text documents are HTML-escaped (`<tag>` in a `.txt` became an element).
+
+- Navigation: `parameterAsNumList`/`parameterAsBoolList` no longer throw a `TypeError`;
+  `UINavigableContent` fires `onChangeRoute`.
+
+- Components:
+  - `$uiDialog` creates a `ui-dialog` (it created a `ui-button-loader`). Constructing a `UIDialog` no longer fires
+    `onShow` (or hides the `UIRoot` with `hideUIRoot`) before it's shown.
+  - `UIButtonLoader`: the button is hidden while loading and restored on stop; `loadedTextStyle` no longer shows the
+    loaded message before loading ends.
+  - `UICalendar`:
+    - Week mode (`CalendarMode.week`, the default mode) is implemented: it rendered nothing. The days of the week of
+      `currentDate` (from `firstDayOfWeek`) × time slots, with `nextWeek`/`previousWeek` navigation, `onDayClick`
+      (day headers), `onHourClick`, `onEventClick`, and ↑/↓ to the month/day modes (per `allowedModes`). New
+      `currentWeekDays`.
+    - Events longer than a time slot (or spanning days in the month view) are shown in every slot/day they overlap
+      (only events entirely inside a slot were shown). `selectEvents` returns overlapping events; new
+      `CalendarEvent.overlapsTimeRange` (`isInTimeRange` is unchanged). Continuation slots are rendered with the
+      `ui-calendar-event-continuation` class (`CalendarEvent.render(continued:)`).
+    - The month view no longer drops the last day of some months; clicking the title date shows the date input and
+      updates the title.
+  - `UILoadingConfig`/`$uiLoading`: `inline: false` is applied.
+  - `UIDataSource`: its content is hidden (`display: 'node'` typo).
+  - `UIJsonRender`: HTML inside JSON values is shown as text.
+  - `htmlAsSvgContent`: applies `rootClass`, uses the title's text, no debug `print`. `UISVG`: `renderedElement`/
+    `isRenderedAsSVG` are set for `svgContent`.
+  - `BUIRender`: fixed a `TypeError` on construction; `BUIViewProvider.routes`/`menuRoutes` no longer throw;
+    `BUIRenderSource.sourceAsDOMElement` works with an `Element` source on `dart2wasm`; `renderThumbnail` includes
+    the document styles (they were dropped) and appends `styles` instead of replacing them.
+  - `UIMasonry`: `Element` items render; fixed `TypeError`s in the size calculation and with `DOMElement` items.
+  - `UIMultiSelection`: filtering re-renders the options panel; the inline `options` attribute (`a: A ; b: B`)
+    works.
+  - `UIInputTable`: extra rows keep their text; extra rows of non-table elements no longer crash; the `path`
+    input's value-provider button works.
+  - `ui-template`: `variables` are applied, including JSON variables.
+  - `UICapture.selectedFileDataAsBase64`: fixed for data URL data.
+
+- `UILayout`: `#id[n]` expressions work on `dart2wasm`; negative values get their unit (`-5px`).
+
+- `UIExplorer`: `query` explorers render (a `TypeError` in the controllers' properties); `YAMLConfig`/`JSONConfig`
+  `toString()` closing `}`. `isGeneratedElement`: removed debug `print`s.
+
+- Test tools: `testUISleep` applies `maxMs` and the 1 ms minimum; `testUISleepUntil` applies `minMs`;
+  `selectUntilTyped` rejects elements of the wrong type (JS interop types erase at runtime); the
+  `selectWhereUntil`/`selectWhereUntilTyped` future extensions no longer throw a `TypeError`.
+
+- Test CLI: an empty `--log-dir` is no longer the current directory; a missing `<title>` is inserted in reports;
+  `compile()` awaits the compile directory creation.
+
+- Dependencies:
+  - dom_builder: ^3.1.0
+  - dom_tools: ^3.1.0
+  - web_utils: ^1.1.0
+  - js_interop_utils: ^1.1.1
+  - statistics: ^1.2.2
+  - yaml: ^3.1.4
+  - archive: ^4.3.0
+  - test: ^1.32.0
+  - test_api: ^0.7.14
+  - test_core: ^0.6.20
+  - stack_trace: ^1.12.2
+  - build_web_compilers: ^4.8.10
+  - build_runner: ^2.16.1
+  - lints: ^6.1.0
+  - dependency_validator: ^5.1.0
+
+- Tests: new browser integration tests (`bones_ui_core_integration_test.dart`, `bones_ui_components_a_test.dart`,
+  `bones_ui_components_b_test.dart`, `bones_ui_generator_explorer_test.dart`, `bones_ui_regression_test.dart`) and
+  VM tests for the test CLI (`bones_ui_cli_test.dart`).
+
 ## 3.0.20
 
 - Test tools: a failing step in a test chain no longer hangs the test.

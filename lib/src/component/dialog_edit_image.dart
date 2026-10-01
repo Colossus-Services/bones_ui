@@ -23,8 +23,7 @@ class UIDialogEditImage extends UIDialog {
   UIDialogEditImage(
     this.image, {
     this.btnClasses = 'btn btn-primary',
-    this.btnStyle =
-        'background-color: rgba(0,0,0, 0.50); color: #ffffff; border-color: #ffffff;',
+    this.btnStyle = 'background-color: rgba(0,0,0, 0.50); color: #ffffff; border-color: #ffffff;',
     this.marginHorizontal = 8,
     this.marginVertical = 48,
     super.hideUIRoot = false,

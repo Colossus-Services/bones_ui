@@ -751,15 +751,27 @@ class Navigation {
       ? parseIntsFromInlineList(parameters![key], RegExp(r'\s*,\s*'), def)
       : def;
 
+  // Not `parseNumsFromInlineList`/`parseBoolsFromInlineList`: in
+  // `swiss_knife` 3.3.14 they cast `parseNum`/`parseBool` to
+  // `X Function(String)` and throw a `TypeError`.
+
   List<num>? parameterAsNumList(String key, [List<num>? def]) =>
-      parameters != null
-      ? parseNumsFromInlineList(parameters![key], RegExp(r'\s*,\s*'), def)
-      : def;
+      _parameterAsList(key, (s) => parseNum(s), def);
 
   List<bool>? parameterAsBoolList(String key, [List<bool>? def]) =>
-      parameters != null
-      ? parseBoolsFromInlineList(parameters![key], RegExp(r'\s*,\s*'), def)
-      : def;
+      _parameterAsList(key, (s) => parseBool(s), def);
+
+  List<T>? _parameterAsList<T extends Object>(
+    String key,
+    T? Function(String s) parser,
+    List<T>? def,
+  ) {
+    var list = parameters != null
+        ? parseStringFromInlineList(parameters![key], RegExp(r'\s*,\s*'))
+        : null;
+    if (list == null) return def;
+    return list.map(parser).nonNulls.toList();
+  }
 
   @override
   String toString() {
@@ -1048,6 +1060,9 @@ abstract class UINavigableContent extends UINavigableComponent {
     if (findRoutes != null && findRoutes!) {
       updateRoutes();
     }
+
+    // As `UINavigableComponent.render` does (`onChangeRoute` never fired):
+    notifyChangeRoute();
 
     return allRendered;
   }

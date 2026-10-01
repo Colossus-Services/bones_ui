@@ -158,7 +158,7 @@ class MyContact extends UIComponent {
     return Future.delayed(Duration(milliseconds: 1000), _myRender);
   }
 
-  _myRender() => $div(
+  DOMElement _myRender() => $div(
     content: [
       $tag('h1', content: 'Contact'),
       $p(),

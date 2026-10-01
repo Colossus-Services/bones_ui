@@ -43,9 +43,7 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
     domGenerator.addChildToElement(parent, element);
 
-    var hasUnresolvedTemplate = contentNodes!
-        .where((e) => e.hasUnresolvedTemplate)
-        .isNotEmpty;
+    var hasUnresolvedTemplate = contentNodes!.any(_hasUnresolvedTemplate);
 
     if (hasUnresolvedTemplate) {
       var htmlUnresolved = _nodesToHTMLUnresolved(contentNodes);
@@ -71,6 +69,16 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
 
     return element;
   }
+
+  /// Whether [node] or its children have a template to resolve with the
+  /// `variables`. `DOMNode.hasUnresolvedTemplate` alone missed them: it's
+  /// `false` for a parsed `TemplateNode` (`{{x}}`, see `hasTemplate`) and for
+  /// an element containing one (`<b>{{x}}</b>`), so the variables were never
+  /// applied.
+  static bool _hasUnresolvedTemplate(DOMNode node) =>
+      node.hasUnresolvedTemplate ||
+      node is TemplateNode ||
+      node.nodesView.any(_hasUnresolvedTemplate);
 
   String _nodesToHTMLUnresolved(List<DOMNode> contentNodes) {
     return contentNodes
@@ -302,7 +310,9 @@ class UITemplateElementGenerator extends ElementGeneratorBase {
     var value = attributes['variables']?.toString();
 
     if (isNotEmptyString(value, trim: true)) {
-      if (isJSONMap(value)) {
+      // `isEncodedJSONMap` (a `String`), not `isJSONMap` (a `Map` object),
+      // which was always `false`: JSON variables were parsed as a query.
+      if (isEncodedJSONMap(value)) {
         return parseJSON(value) as Map?;
       } else {
         return decodeQueryString(value);

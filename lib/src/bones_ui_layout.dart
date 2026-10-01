@@ -5,8 +5,10 @@ import 'bones_ui_component.dart';
 import 'bones_ui_web.dart';
 
 typedef ElementProvider = dynamic Function(String id, bool all);
-typedef ElementPropertyResolver =
-    dynamic Function(dynamic element, String property);
+typedef ElementPropertyResolver = dynamic Function(
+  dynamic element,
+  String property,
+);
 
 class ValueUnitExpression extends SimpleExpression {
   static String? getUnit(Expression? a, Expression? b) {
@@ -43,19 +45,19 @@ class ValueUnitExpression extends SimpleExpression {
   }
 
   // ignore: avoid_dynamic_calls
-  dynamic operator +(o) => ValueUnitExpression(value + o, unit);
+  dynamic operator +(dynamic o) => ValueUnitExpression(value + o, unit);
 
   // ignore: avoid_dynamic_calls
-  dynamic operator -(o) => ValueUnitExpression(value - o, unit);
+  dynamic operator -(dynamic o) => ValueUnitExpression(value - o, unit);
 
   // ignore: avoid_dynamic_calls
-  dynamic operator *(o) => ValueUnitExpression(value * o, unit);
+  dynamic operator *(dynamic o) => ValueUnitExpression(value * o, unit);
 
   // ignore: avoid_dynamic_calls
-  dynamic operator /(o) => ValueUnitExpression(value / o, unit);
+  dynamic operator /(dynamic o) => ValueUnitExpression(value / o, unit);
 
   // ignore: avoid_dynamic_calls
-  dynamic operator ~/(o) => ValueUnitExpression(value ~/ o, unit);
+  dynamic operator ~/(dynamic o) => ValueUnitExpression(value ~/ o, unit);
 }
 
 class ElementExpression extends SimpleExpression {
@@ -75,10 +77,17 @@ class ElementExpression extends SimpleExpression {
 }
 
 typedef ValueFromElement = String Function(UIElement elem);
-typedef ElementCoordsValue =
-    String Function(int parentWidth, int parentHeight, int width, int height);
-typedef ElementPercentageValue =
-    String Function(int parentWidth, int parentHeight, double percentage);
+typedef ElementCoordsValue = String Function(
+  int parentWidth,
+  int parentHeight,
+  int width,
+  int height,
+);
+typedef ElementPercentageValue = String Function(
+  int parentWidth,
+  int parentHeight,
+  double percentage,
+);
 
 class UILayoutEvaluator extends ExpressionEvaluator {
   final ElementProvider elementProvider;
@@ -469,7 +478,8 @@ class UILayoutEvaluator extends ExpressionEvaluator {
     }
   }
 
-  static final RegExp _patternNumber = RegExp(r'^(\d+(?:\.\d+)?)$');
+  // Accepts negative numbers: `-5` got no unit (`y(-5)` set an invalid `-5`).
+  static final RegExp _patternNumber = RegExp(r'^(-?\d+(?:\.\d+)?)$');
 
   dynamic processLayout(
     String expressionStr,
@@ -578,7 +588,9 @@ class UILayout {
 
     var content = parent.content;
     if (all) {
-      return content!.querySelectorAll('#$id');
+      // A Dart `List`: the evaluator indexes it dynamically (`#id[n]`), which
+      // fails on a JS `NodeList` with dart2wasm.
+      return content!.querySelectorAll('#$id').toElements();
     } else {
       return content!.querySelector('#$id');
     }
@@ -587,7 +599,7 @@ class UILayout {
   dynamic _getElementProperty(Object? elem, String? property) {
     if (property == null) return null;
 
-    if (elem.asJSAny.isHTMLElement) {
+    if (elem.isHTMLElement) {
       elem = elem as HTMLElement;
 
       property = property.toLowerCase();

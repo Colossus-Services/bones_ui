@@ -11,17 +11,17 @@ import '../bones_ui_generator.dart';
 
 /// [DOMElement] tag `ui-svg` for [UISVG].
 DOMElement $uiSVG({
-  id,
+  Object? id,
   String? field,
-  classes,
-  style,
+  Object? classes,
+  Object? style,
   String? src,
-  width,
-  height,
-  color,
-  title,
+  Object? width,
+  Object? height,
+  Object? color,
+  Object? title,
   Map<String, String>? attributes,
-  content,
+  Object? content,
   bool commented = false,
 }) {
   return $tag(
@@ -31,7 +31,7 @@ DOMElement $uiSVG({
     style: style,
     attributes: {
       if (field != null && field.isNotEmpty) 'field': field,
-      if (src != null) 'src': src,
+      'src': ?src,
       if (width != null) 'width': '$width',
       if (height != null) 'height': '$height',
       if (color != null) 'color': '$color',
@@ -180,11 +180,16 @@ class UISVG extends UIComponent {
   }
 
   Element? _renderFromSVGContent() {
-    return buildSVGElement(svgContent);
+    var element = buildSVGElement(svgContent);
+    _renderedElement = element;
+    return element;
   }
 
   Element? _renderFromSRC() {
-    if (src == null || src!.isEmpty) return null;
+    if (src == null || src!.isEmpty) {
+      _renderedElement = null;
+      return null;
+    }
 
     var resourceContent = _resourceContentCache.get(src)!;
 
@@ -305,19 +310,22 @@ String? htmlAsSvgContent(
   String? rootClass,
   String? style,
 }) {
-  print(style);
   var htmlRoot = $htmlRoot(html);
   if (htmlRoot == null) return null;
 
-  if (isNotEmptyObject(rootClass)) {
-    htmlRoot.addClass('ui-render');
+  if (rootClass != null && rootClass.isNotEmpty) {
+    htmlRoot.addClass(rootClass);
   }
 
   var titleNode = htmlRoot.selectAllWhere(
     (e) => e is DOMElement && e.tag == 'title',
   );
 
-  var titleText = titleNode.firstOrNull ?? 'HTML as SVG';
+  var titleText = ensureNotEmptyString(
+    titleNode.firstOrNull?.text,
+    trim: true,
+    def: 'HTML as SVG',
+  )!;
 
   htmlRoot
       .selectAllWhere((n) => true)

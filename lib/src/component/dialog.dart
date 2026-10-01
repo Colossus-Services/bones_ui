@@ -84,7 +84,9 @@ abstract class UIDialogBase extends UIRootComponent {
 
     configureStyle(style);
 
-    _callOnShow();
+    // Not `_callOnShow()` here: the dialog isn't shown yet (`show()` notifies
+    // it). It hid the `UIRoot` (`hideUIRoot`) and fired `onShow` on
+    // construction, even for a dialog never shown.
   }
 
   static final String dialogButtonClass = 'ui-dialog-button';
@@ -328,18 +330,18 @@ abstract class UIDialogBase extends UIRootComponent {
 
 /// [DOMElement] tag `ui-dialog` for [UIDialog].
 DOMElement $uiDialog({
-  id,
+  Object? id,
   String? field,
-  classes,
-  style,
+  Object? classes,
+  Object? style,
   bool? show,
   bool? showCloseButton,
   Map<String, String>? attributes,
-  content,
+  Object? content,
   bool commented = false,
 }) {
   return $tag(
-    'ui-button-loader',
+    'ui-dialog',
     id: id,
     classes: classes,
     style: style,

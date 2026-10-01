@@ -13,27 +13,32 @@ import 'bones_ui_web.dart';
 import 'component/bui.dart';
 import 'component/template.dart';
 
-typedef UIComponentInstantiator<C extends UIComponent> =
-    C Function(
-      UIElement? parent,
-      Map<String, DOMAttribute> attributes,
-      UINode? contentHolder,
-      List<DOMNode>? contentNodes,
-    );
+typedef UIComponentInstantiator<C extends UIComponent> = C Function(
+  UIElement? parent,
+  Map<String, DOMAttribute> attributes,
+  UINode? contentHolder,
+  List<DOMNode>? contentNodes,
+);
 
 typedef UIComponentAttributeParser<T> = T? Function(dynamic value);
 
-typedef UIComponentAttributeGetter<C extends UIComponent, T> =
-    T? Function(C uiComponent);
+typedef UIComponentAttributeGetter<C extends UIComponent, T> = T? Function(
+  C uiComponent,
+);
 
-typedef UIComponentAttributeSetter<C extends UIComponent, T> =
-    void Function(C uiComponent, T? value);
+typedef UIComponentAttributeSetter<C extends UIComponent, T> = void Function(
+  C uiComponent,
+  T? value,
+);
 
-typedef UIComponentAttributeAppender<C extends UIComponent, T> =
-    void Function(C uiComponent, T? value);
+typedef UIComponentAttributeAppender<C extends UIComponent, T> = void Function(
+  C uiComponent,
+  T? value,
+);
 
-typedef UIComponentAttributeCleaner<C extends UIComponent, T> =
-    void Function(C uiComponent);
+typedef UIComponentAttributeCleaner<C extends UIComponent, T> = void Function(
+  C uiComponent,
+);
 
 /// Handler of a [UIComponent] attribute.
 class UIComponentAttributeHandler<C extends UIComponent, T> {
@@ -164,10 +169,7 @@ class UIComponentGenerator<C extends UIComponent>
       var tag = element2.tagName.toLowerCase();
       if (tag != generatedTag) return false;
       var classes = element2.classList.toList();
-      var match = classes.containsAll(componentClass.asAttributeValues!);
-      print(classes);
-      print('$componentClass -> $match');
-      return match;
+      return classes.containsAll(componentClass.asAttributeValues!);
     } else {
       return false;
     }
@@ -201,7 +203,8 @@ class UIComponentGenerator<C extends UIComponent>
   void clearAttribute<T>(C uiComponent, String name) {
     var attribute = getAttributeHandler(name);
     if (attribute != null) {
-      attribute.set(uiComponent, null);
+      // Uses the handler's `cleaner` (by default `setter(null)`):
+      attribute.clear(uiComponent);
     }
   }
 

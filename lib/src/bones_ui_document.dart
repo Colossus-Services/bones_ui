@@ -1,3 +1,5 @@
+import 'dart:convert' show HtmlEscape, HtmlEscapeMode;
+
 import 'package:dom_tools/dom_tools.dart';
 import 'package:markdown/markdown.dart' as mk;
 import 'package:swiss_knife/swiss_knife.dart';
@@ -136,7 +138,7 @@ class UIDocument extends UIComponentAsync {
   UIDocument(
     UIElement? parent,
     ResourceContent? resourceContent, {
-    mk.ExtensionSet? markdownExtensionSet,
+    this._markdownExtensionSet,
     loadingContent,
     errorContent,
     super.classes,
@@ -144,8 +146,7 @@ class UIDocument extends UIComponentAsync {
     super.style,
     super.style2,
     super.id,
-  }) : _markdownExtensionSet = markdownExtensionSet,
-       _resourceContent = resourceContent,
+  }) : _resourceContent = resourceContent,
        super(
          parent,
          null,
@@ -196,7 +197,9 @@ class UIDocument extends UIComponentAsync {
       if (language == 'html') {
         return docContent;
       } else if (language == 'text') {
-        return '<pre>\n$docContent\n</pre>';
+        // Escaped: a text document is not HTML (`<tag>` must stay text):
+        var text = const HtmlEscape(HtmlEscapeMode.element).convert(docContent);
+        return '<pre>\n$text\n</pre>';
       } else if (language == 'markdown') {
         var div = markdownToDiv(
           docContent,

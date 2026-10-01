@@ -143,10 +143,11 @@ class BonesUITestRunner {
 
       if (idx >= 0) {
         args.removeAt(idx);
-        var dir = args.removeAt(idx);
-        dir = pack_path.normalize(dir.trim());
+        var dir = args.removeAt(idx).trim();
+        // Check before normalizing: `normalize('')` is `.` (the current
+        // directory), which used to be taken as the log directory.
         if (dir.isNotEmpty) {
-          logDir = dir;
+          logDir = pack_path.normalize(dir);
         }
       }
     }
@@ -789,7 +790,7 @@ class BonesUICompiler {
 
   /// Compiles the project to [compileDir].
   Future<bool> compile() async {
-    compileDir.create(recursive: true);
+    await compileDir.create(recursive: true);
 
     var compileDirPath = compileDir.path;
 
@@ -1034,9 +1035,8 @@ class BonesUIPlatform extends PlatformPlugin
 }
 
 Directory _createTempBonesUICompilerDir() {
-  var tempDir = Directory(
-    Directory.systemTemp.path,
-  ).createTempSync('dart_test_bones_ui_');
+  var tempDir = Directory(Directory.systemTemp.path)
+      .createTempSync('dart_test_bones_ui_');
   return Directory(tempDir.resolveSymbolicLinksSync());
 }
 
@@ -1157,9 +1157,10 @@ class _DocumentLog {
         '<title>$prevTitle - $title</title>',
       );
     } else {
+      // No `<title>` to replace: insert one (like `_setContentBasePath`).
       content = content.replaceFirst(
-        RegExp(r'<title>.*?</title>'),
-        '<title>$title</title>',
+        RegExp(r'<head>', caseSensitive: false),
+        '<head><title>$title</title>',
       );
     }
     return content;
