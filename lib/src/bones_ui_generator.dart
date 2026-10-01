@@ -459,10 +459,26 @@ class UIDOMGenerator extends DOMGeneratorWebImpl {
   }
 
   static void setElementsBGBlur(UIElement element) {
+    // One native query to skip the 5 `querySelectorAll` of
+    // `setTreeElementsBackgroundBlur` (`bg-blur` and `bg-blur-1..4`)
+    // when no element in the tree uses them:
+    if (!element.matches(_selectorBGBlur) &&
+        element.querySelector(_selectorBGBlur) == null) {
+      return;
+    }
+
     setTreeElementsBackgroundBlur(element, 'bg-blur');
   }
 
+  static const _selectorBGBlur = '[class*="bg-blur"]';
+
   static void setElementsDivCentered(UIElement element) {
+    // `setTreeElementsDivCentered` only applies to sub `div`s with a
+    // `div-centered-*` class, skip its 4 `querySelectorAll` if none:
+    if (element.querySelector('div[class*="div-centered-"]') == null) {
+      return;
+    }
+
     setTreeElementsDivCentered(
       element,
       'div-centered-vh',
