@@ -55,6 +55,18 @@ void main() {
     expect(inSVG.getAttribute('style'), isNull);
   });
 
+  test('an invalid `uiLayout` does not stop the other elements', () async {
+    final c = _InvalidLayouts(uiRoot.content);
+    addTearDown(c.delete);
+    await c.callRenderAndWait();
+
+    expect(c.isRendered, isTrue);
+
+    // Mixed units (`px` and `em`) throw while parsing `#layout-invalid`:
+    final after = c.querySelectorNonTyped('#layout-after')! as HTMLElement;
+    expect(after.style.position, equals('relative'));
+  });
+
   test('re-render parses the new elements', () async {
     final c = _Actions(uiRoot.content);
     addTearDown(c.delete);
@@ -65,6 +77,17 @@ void main() {
     (c.querySelectorNonTyped('#deep-act')! as HTMLElement).click();
     expect(c.actions, equals(['deep-action']));
   });
+}
+
+class _InvalidLayouts extends UIComponent {
+  _InvalidLayouts(super.parent);
+
+  @override
+  dynamic render() =>
+      '<div>'
+      '<div id="layout-invalid" uiLayout="width(10px + 5em)"></div>'
+      '<div id="layout-after" uiLayout="container"></div>'
+      '</div>';
 }
 
 class _Root extends UIRoot {

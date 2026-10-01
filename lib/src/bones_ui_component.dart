@@ -2763,11 +2763,7 @@ abstract class UIComponent extends UIEventHandler {
 
       final matches = elem.querySelectorAll(_parsedAttributesSelector);
       for (var sub in matches.whereElement()) {
-        try {
-          _parseElementAttributes(sub);
-        } catch (e) {
-          UIConsole.error('Error parsing attributes for element: $sub', e);
-        }
+        _parseSafely(sub, _parseElementAttributes);
       }
     }
   }
@@ -2779,6 +2775,19 @@ abstract class UIComponent extends UIEventHandler {
     _parseDataSource(elem);
   }
 
+  /// Calls [parse] for [element], logging an error instead of propagating it
+  /// (an invalid attribute doesn't stop the parsing of the other elements).
+  static void _parseSafely<E extends Element>(
+    E element,
+    void Function(E element) parse,
+  ) {
+    try {
+      parse(element);
+    } catch (e) {
+      UIConsole.error('Error parsing attributes for element: $element', e);
+    }
+  }
+
   /// Parses the `uiLayout` attribute of the [HTMLElement]s in [list] and of
   /// their descendants reachable through [HTMLElement]s only (not inside SVG).
   void _parseAttributesPosRender(List<Object?> list) {
@@ -2788,21 +2797,12 @@ abstract class UIComponent extends UIEventHandler {
       if (elem.isHTMLElement) {
         elem = elem as HTMLElement;
 
-        try {
-          _parseUILayout(elem);
-        } catch (e) {
-          UIConsole.error('Error parsing attributes for element: $elem', e);
-        }
+        _parseSafely(elem, _parseUILayout);
 
         final matches = elem.querySelectorAll('[uiLayout]');
         for (var sub in matches.whereElement()) {
           if (!_isHTMLElementsPath(sub, elem)) continue;
-
-          try {
-            _parseUILayout(sub as HTMLElement);
-          } catch (e) {
-            UIConsole.error('Error parsing attributes for element: $sub', e);
-          }
+          _parseSafely(sub as HTMLElement, _parseUILayout);
         }
       }
     }
