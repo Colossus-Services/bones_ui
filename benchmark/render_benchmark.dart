@@ -10,7 +10,7 @@
 //   dart test benchmark/render_benchmark.dart -p chrome-bench
 //
 // Each compiler prints one `BONES_UI_BENCH {...}` JSON line. Record the
-// results in `docs/benchmarks.md` (see there how to compare them).
+// results in `doc/benchmarks.md` (see there how to compare them).
 @TestOn('browser')
 @Timeout(Duration(minutes: 10))
 library;

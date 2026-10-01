@@ -25,7 +25,7 @@ define_platforms:
     settings:
       headless: true
       arguments: --js-flags=--expose-gc --enable-precise-memory-info
-  # Chrome with the V8 tick profiler (see `docs/benchmarks.md`, "Profiling"):
+  # Chrome with the V8 tick profiler (see `doc/benchmarks.md`, "Profiling"):
   chrome-prof:
     name: Chrome-Prof
     extends: chrome
