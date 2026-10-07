@@ -1,3 +1,10 @@
+## 3.1.2
+
+- `UIRoot`: `<html lang>` follows the locale. It is set on every locale definition, at start-up and on a change
+  without a reload (`setPreferredLocale`, a language selector), as a BCP 47 tag (`pt-BR`, not `pt_BR`), so fonts
+  (the right CJK glyphs), screen readers and hyphenation follow the language of the texts. New static
+  `UIRoot.setDocumentLang`.
+
 ## 3.1.1
 
 - `dom_builder: ^3.2.0`: a false boolean attribute (`selected="false"`, `hidden="false"`...) no longer turns it on;
