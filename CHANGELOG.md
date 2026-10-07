@@ -1,3 +1,8 @@
+## 3.1.4
+
+- `intl_messages: ^3.0.2`: `IntlLocale.onDefineDefaultLocale` no longer throws a `TypeError` on access, so an app
+  can listen to locale definitions through it.
+
 ## 3.1.3
 
 - `UIRoot.setDocumentLang` is an instance method (was static), so a `UIRoot` can override it to customize how
