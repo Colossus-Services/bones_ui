@@ -2,6 +2,8 @@
 library;
 
 import 'package:bones_ui/bones_ui_test.dart';
+import 'package:intl/intl.dart';
+import 'package:intl_messages/intl_messages.dart';
 import 'package:test/test.dart';
 import 'package:web_utils/web_utils.dart' as web;
 
@@ -252,10 +254,212 @@ void main() {
       );
     });
   });
+
+  // A language `<select>` in a `<ui-template>`, inside a
+  // `<ui-dialog remove-on-hide="false">` opened by an `action="#id.show()"`,
+  // as an app's top menu declares it: the option of the current locale
+  // (`locale`, a context variable) must be the selected one, also after the
+  // locale changes and the component renders again.
+  group('ui-dialog with a locale select (ui-template)', () {
+    late final _DialogRoot uiRoot;
+    String? prevLocale;
+
+    setUpAll(() async {
+      uiRoot = await initializeTestUIRoot((rootContainer) {
+        return _DialogRoot(rootContainer);
+      });
+      await uiRoot.callRenderAndWait();
+      prevLocale = Intl.defaultLocale;
+    });
+
+    tearDown(() {
+      UIDialog.removeAllDialogs();
+      Intl.defaultLocale = prevLocale;
+    });
+
+    /// The language menu, rendered in a new holder.
+    Future<_LanguageMenu> renderMenu() async {
+      var holder = web.HTMLDivElement();
+      uiRoot.content!.append(holder);
+      addTearDown(() => holder.remove());
+      var menu = _LanguageMenu(holder);
+      await menu.callRenderAndWait();
+      await testUISleep(ms: 50);
+      return menu;
+    }
+
+    /// Sets the preferred [locale] as the select's `locale()` action does,
+    /// and waits for the root to render again for it (a changed locale
+    /// clears it). Returns the current locale.
+    Future<String?> setLocale(String locale) async {
+      expect(await uiRoot.setPreferredLocale(locale), isTrue);
+      await testUISleep(ms: 200);
+      return UIRoot.getCurrentLocale();
+    }
+
+    /// Clicks the menu's button, as a user opening the dialog.
+    Future<void> openDialog(_LanguageMenu menu) async {
+      (menu.content!.querySelector('#lang_btn') as web.HTMLElement).click();
+      await testUISleep(ms: 100);
+    }
+
+    /// The `#lang_dialog` elements in the page.
+    List<web.HTMLElement> dialogs() => document
+        .querySelectorAll('#lang_dialog')
+        .toList()
+        .cast<web.HTMLElement>();
+
+    /// The `#lang_dialog` shown, if one (`UIDialog.hide` sets
+    /// `display: none`).
+    web.HTMLElement? shownDialog() =>
+        dialogs().where((d) => d.style.display != 'none').firstOrNull;
+
+    /// The value of the select of the dialog shown.
+    String? shownSelectValue() => (shownDialog()?.querySelector(
+      'select',
+    ) as web.HTMLSelectElement?)?.value;
+
+    test('selects the current locale', () async {
+      Intl.defaultLocale = 'pt';
+
+      var menu = await renderMenu();
+      await openDialog(menu);
+
+      expect(shownDialog(), isNotNull, reason: 'The dialog should show');
+      expect(shownSelectValue(), equals('pt'));
+    });
+
+    test(
+      'selects the new locale after it changes and the menu renders again',
+      () async {
+        Intl.defaultLocale = 'pt';
+
+        var menu = await renderMenu();
+        await openDialog(menu);
+        expect(shownSelectValue(), equals('pt'));
+
+        // Closed (kept in the page: `remove-on-hide="false"`):
+        UIDialog.getAllDialogs().forEach((d) => d.hide());
+        await testUISleep(ms: 50);
+
+        Intl.defaultLocale = 'es';
+        await menu.callRenderAndWait();
+        await testUISleep(ms: 50);
+
+        await openDialog(menu);
+
+        expect(
+          shownSelectValue(),
+          equals('es'),
+          reason: '`#lang_dialog` elements in the page: ${dialogs().length}',
+        );
+      },
+    );
+
+    test('opens the dialog of the current render', () async {
+      Intl.defaultLocale = 'pt';
+
+      var menu = await renderMenu();
+      await openDialog(menu);
+      UIDialog.getAllDialogs().forEach((d) => d.hide());
+      await testUISleep(ms: 50);
+
+      for (var i = 0; i < 3; i++) {
+        await menu.callRenderAndWait();
+        await testUISleep(ms: 50);
+      }
+
+      Intl.defaultLocale = 'es';
+      await menu.callRenderAndWait();
+      await testUISleep(ms: 50);
+
+      await openDialog(menu);
+
+      // No copy of an earlier render is left in the page:
+      expect(dialogs().length, equals(1));
+
+      var shown = dialogs().where((d) => d.style.display != 'none').toList();
+      expect(shown.length, equals(1), reason: 'One dialog shown');
+      expect(shownSelectValue(), equals('es'));
+    });
+
+    // The locale set as the select's `locale()` action sets it
+    // (`UIRoot.setPreferredLocale`), with an app that only has messages for
+    // some languages (`_DialogRoot.initializeLocale`).
+
+    test(
+      'a picked language is the current locale and the selected option',
+      () async {
+        expect(await setLocale('pt'), equals('pt'));
+
+        var menu = await renderMenu();
+        await openDialog(menu);
+        expect(shownSelectValue(), equals('pt'));
+
+        UIDialog.getAllDialogs().forEach((d) => d.hide());
+
+        // The root renders again for the new locale, and the menu with it:
+        expect(await setLocale('es'), equals('es'));
+
+        menu = await renderMenu();
+        await openDialog(menu);
+        expect(shownSelectValue(), equals('es'));
+        expect(dialogs().length, equals(1));
+      },
+    );
+
+    test(
+      'a regional locale (a browser\'s `pt-BR`) resolves to its language',
+      () async {
+        expect(await setLocale('pt_BR'), equals('pt'));
+
+        var menu = await renderMenu();
+        await openDialog(menu);
+        expect(shownSelectValue(), equals('pt'));
+      },
+    );
+  });
+}
+
+/// An app's language menu: a button opening a dialog with the locale select.
+/// See also the `with the locales of an app` group.
+class _LanguageMenu extends UIComponent {
+  _LanguageMenu(super.parent);
+
+  @override
+  dynamic render() => '''
+<div>
+  <span id="lang_btn" action="#lang_dialog.show()" style="cursor: pointer">Lang</span>
+  <ui-dialog id="lang_dialog" remove-on-hide="false">
+    <ui-template>
+      <select>
+        <option value="en" selected="{{:locale=='en'}}true{{?}}false{{/}}">EN</option>
+        <option value="pt" selected="{{:locale=='pt'}}true{{?}}false{{/}}">PT</option>
+        <option value="es" selected="{{:locale=='es'}}true{{?}}false{{/}}">ES</option>
+      </select>
+    </ui-template>
+  </ui-dialog>
+</div>
+''';
 }
 
 class _DialogRoot extends UIRoot {
   _DialogRoot(super.rootContainer) : super(id: 'dialog-root');
+
+  /// The languages with messages, as an app's `msgs-<lang>.intl` files:
+  /// only these (not `pt_BR`...) initialize.
+  static const languages = {'en', 'pt', 'es'};
+
+  /// As an app's `IntlMessages.autoDiscoverLocale`: its resource discovery
+  /// adds the languages it has to the `LocalesManager`s to look up (which a
+  /// locale must be in to initialize), then finds only those.
+  @override
+  Future<bool> initializeLocale(String locale) {
+    for (var m in LocalesManager.instances()) {
+      m.addLanguagesToLookup([for (var l in languages) IntlLocale(l)]);
+    }
+    return Future.value(languages.contains(locale));
+  }
 
   @override
   UIComponent? renderContent() => null;
