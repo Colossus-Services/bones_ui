@@ -363,7 +363,19 @@ abstract class UIRoot extends UIRootComponent {
 
   void _onDefineLocale(String locale) {
     UIConsole.log('UIRoot> Locale defined: $locale');
+    setDocumentLang(locale);
     refreshIfLocaleChanged();
+  }
+
+  /// Sets `<html lang>` to [locale], as a BCP 47 tag (`pt-BR`, not
+  /// `pt_BR`). Called on every locale definition, at start-up and on a
+  /// change without a reload, so fonts (CJK glyphs), screen readers and
+  /// hyphenation follow the language of the texts.
+  static void setDocumentLang(String? locale) {
+    if (locale == null) return;
+    locale = locale.trim();
+    if (locale.isEmpty) return;
+    document.documentElement?.setAttribute('lang', locale.replaceAll('_', '-'));
   }
 
   @override
