@@ -358,7 +358,7 @@ class UIButtonLoader extends UIButtonBase {
           var buttonClasses =
               attributes['button-class'] ?? attributes['button-classes'];
           var buttonStyle = attributes['button-style'];
-          var withProgress = parseBool(attributes['with-progress']);
+          var withProgress = parseAttributeBool(attributes, 'with-progress');
           var loadingConfig = UILoadingConfig.parse(
             attributes['loading-config']?.value,
           );

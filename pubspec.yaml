@@ -16,13 +16,13 @@ dependencies:
   web: ^1.1.1
   intl_messages: ^3.0.1
   dom_tools: ^3.1.0
-  dom_builder: ^3.1.0
+  dom_builder: ^3.2.0
   swiss_knife: ^3.3.14
   statistics: ^1.2.2
   mercury_client: ^2.3.0
   dynamic_call: ^2.0.1
   project_template: ^1.1.1
-  resource_portable: ^3.1.2
+  resource_portable: ^3.1.4
   extended_type: ^2.1.1
   expressions: ^0.2.5+3
   html_unescape: ^2.0.0
@@ -42,7 +42,7 @@ dependencies:
 
 
 dev_dependencies:
-  build_web_compilers: ^4.8.10
+  build_web_compilers: ^4.8.11
   build_runner: ^2.16.1
   lints: ^6.1.0
   dependency_validator: ^5.1.0

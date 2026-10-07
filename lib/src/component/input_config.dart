@@ -490,7 +490,10 @@ class InputConfig {
 
     var checked = this.checked;
     if (checked != null) {
-      input.checked = checked;
+      // The attribute too (`defaultChecked`), so a form reset keeps it.
+      input
+        ..defaultChecked = checked
+        ..checked = checked;
       if (valText == null) {
         input.value = 'true';
       }
@@ -527,7 +530,10 @@ class InputConfig {
           ..value = optKey;
 
         if (selected) {
-          optionElement.selected = selected;
+          // The attribute too (`defaultSelected`), so a form reset keeps it.
+          optionElement
+            ..defaultSelected = true
+            ..selected = true;
         }
 
         select.add(optionElement, null);

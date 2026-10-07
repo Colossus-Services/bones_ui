@@ -609,8 +609,11 @@ class BUIView {
 
   set intl(dynamic value) => _intl = TextProvider.from(value);
 
-  bool get isHideFromMenu =>
-      parseBool(parseBUIAttribute(buiCode, 'hide-from-menu'), false)!;
+  /// Read as HTML does: `<bui hide-from-menu>` is hidden.
+  bool get isHideFromMenu => DOMAttribute.parseBooleanValue(
+    'hide-from-menu',
+    parseBUIAttribute(buiCode, 'hide-from-menu'),
+  );
 
   IntlMessagesLoader? _intlMessagesLoader;
 
