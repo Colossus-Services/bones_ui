@@ -392,14 +392,21 @@ class UIDialog extends UIDialogBase {
         'ui-dialog',
         '',
         (parent, attributes, contentHolder, contentNodes) {
-          var show = parseBool(attributes['show'], false)!;
-          var showCloseButton = parseBool(
-            attributes['show-close-button'],
+          // Read as HTML does: `<ui-dialog show>` is shown.
+          var show = parseAttributeBool(attributes, 'show', false)!;
+          var showCloseButton = parseAttributeBool(
+            attributes,
+            'show-close-button',
             true,
           )!;
-          var removeOnHide = parseBool(attributes['remove-on-hide'], true)!;
-          var onClickListenOnlyForDialogButtonClass = parseBool(
-            attributes['on-click-listen-only-for-dialog-button-class'],
+          var removeOnHide = parseAttributeBool(
+            attributes,
+            'remove-on-hide',
+            true,
+          )!;
+          var onClickListenOnlyForDialogButtonClass = parseAttributeBool(
+            attributes,
+            'on-click-listen-only-for-dialog-button-class',
             true,
           )!;
 

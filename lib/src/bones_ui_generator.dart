@@ -20,6 +20,24 @@ typedef UIComponentInstantiator<C extends UIComponent> = C Function(
   List<DOMNode>? contentNodes,
 );
 
+/// The boolean attribute [name] of a component tag, read as HTML does
+/// (`DOMAttribute.parseBooleanValue`), or [defaultValue] if absent:
+///
+/// ```dart
+/// // <ui-dialog show>, show="", show="show", show="true"  -> true
+/// // <ui-dialog show="false">                             -> false
+/// // <ui-dialog>                                          -> defaultValue
+/// ```
+bool? parseAttributeBool(
+  Map<String, DOMAttribute> attributes,
+  String name, [
+  bool? defaultValue,
+]) {
+  var attribute = attributes[name];
+  if (attribute == null) return defaultValue;
+  return DOMAttribute.parseBooleanValue(name, attribute.value);
+}
+
 typedef UIComponentAttributeParser<T> = T? Function(dynamic value);
 
 typedef UIComponentAttributeGetter<C extends UIComponent, T> = T? Function(

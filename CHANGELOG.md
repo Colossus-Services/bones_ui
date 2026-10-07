@@ -1,5 +1,22 @@
 ## 3.1.1
 
+- `dom_builder: ^3.2.0`: a false boolean attribute (`selected="false"`, `hidden="false"`...) no longer turns it on;
+  every `selected="false"` option was selected, so a `<select>` (as an app's language menu) showed its last option.
+  Also `resource_portable: ^3.1.4` and `build_web_compilers: ^4.8.11`.
+
+- Component boolean attributes are read as HTML does (`DOMAttribute.parseBooleanValue`): a bare one, an empty one
+  or one set to its own name is on. `<ui-dialog show>` is shown, and `<bui hide-from-menu>` hidden (both were
+  off). Explicit `"true"`/`"false"` values are unchanged. New `parseAttributeBool` reads one, or its default if
+  absent: `show`, `show-close-button`, `remove-on-hide` and `on-click-listen-only-for-dialog-button-class` of
+  `<ui-dialog>`, `with-progress` of `<ui-button-loader>`.
+
+- `InputConfig`: a checked checkbox and a selected option also get the attribute (`defaultChecked`,
+  `defaultSelected`), not only the property, so a form reset keeps them (it unchecked the box and selected the
+  first option).
+
+- Tests: boolean attributes in rendered components, `<ui-dialog>`, `<bui>` and `InputConfig` attributes
+  (`bones_ui_boolean_attributes_test.dart`).
+
 - Tests: a `<ui-dialog remove-on-hide="false">` with a locale `<select>` in a `<ui-template>` (as an app's language
   menu), opened by an `action="#id.show()"`: the option of the current locale is selected, also after the locale
   changes and the component (or the root) renders again; no copy of an earlier render is left in the page; a
