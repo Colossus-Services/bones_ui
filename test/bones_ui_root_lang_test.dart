@@ -44,16 +44,26 @@ void main() {
     });
 
     test('`setDocumentLang` writes a BCP 47 tag', () {
-      UIRoot.setDocumentLang('pt_BR');
+      uiRoot.setDocumentLang('pt_BR');
       expect(htmlLang(), equals('pt-BR'));
 
-      UIRoot.setDocumentLang(' fr ');
+      uiRoot.setDocumentLang(' fr ');
       expect(htmlLang(), equals('fr'));
 
       // Nothing to set: keeps the previous one.
-      UIRoot.setDocumentLang(null);
-      UIRoot.setDocumentLang('');
+      uiRoot.setDocumentLang(null);
+      uiRoot.setDocumentLang('');
       expect(htmlLang(), equals('fr'));
+    });
+
+    test('`setDocumentLang` can be overridden', () async {
+      uiRoot.definedLocales.clear();
+
+      expect(await uiRoot.setPreferredLocale('pt'), isTrue);
+      await testUISleep(ms: 100);
+
+      expect(uiRoot.definedLocales, contains('pt'));
+      expect(htmlLang(), equals('pt'));
     });
   });
 }
@@ -62,6 +72,15 @@ class _LangRoot extends UIRoot {
   _LangRoot(super.rootContainer) : super(id: 'lang-root');
 
   static const languages = {'en', 'pt', 'es'};
+
+  /// The locales [setDocumentLang] was called with (an override).
+  final List<String?> definedLocales = [];
+
+  @override
+  void setDocumentLang(String? locale) {
+    definedLocales.add(locale);
+    super.setDocumentLang(locale);
+  }
 
   /// As an app's `IntlMessages.autoDiscoverLocale`: only the languages it
   /// has messages for initialize.
