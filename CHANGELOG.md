@@ -1,3 +1,11 @@
+## 3.1.1
+
+- Tests: a `<ui-dialog remove-on-hide="false">` with a locale `<select>` in a `<ui-template>` (as an app's language
+  menu), opened by an `action="#id.show()"`: the option of the current locale is selected, also after the locale
+  changes and the component (or the root) renders again; no copy of an earlier render is left in the page; a
+  language picked with `UIRoot.setPreferredLocale` becomes the current locale, and a regional one (a browser's
+  `pt-BR`) resolves to the language with messages (`pt`).
+
 ## 3.1.0
 
 - sdk: ^3.13.0
