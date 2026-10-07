@@ -1,3 +1,9 @@
+## 3.1.3
+
+- `UIRoot.setDocumentLang` is an instance method (was static), so a `UIRoot` can override it to customize how
+  `<html lang>` is set (another tag, another element, or not at all). Its first call can come during the `UIRoot`
+  construction, before a subclass's constructor body runs.
+
 ## 3.1.2
 
 - `UIRoot`: `<html lang>` follows the locale. It is set on every locale definition, at start-up and on a change

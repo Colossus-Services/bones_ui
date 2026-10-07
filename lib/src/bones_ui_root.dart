@@ -371,7 +371,11 @@ abstract class UIRoot extends UIRootComponent {
   /// `pt_BR`). Called on every locale definition, at start-up and on a
   /// change without a reload, so fonts (CJK glyphs), screen readers and
   /// hyphenation follow the language of the texts.
-  static void setDocumentLang(String? locale) {
+  ///
+  /// Override to customize it (another tag, another element, or not at all).
+  /// The first call can come while [UIRoot] is still being constructed,
+  /// before a subclass's constructor body runs.
+  void setDocumentLang(String? locale) {
     if (locale == null) return;
     locale = locale.trim();
     if (locale.isEmpty) return;
