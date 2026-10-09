@@ -352,8 +352,10 @@ class BonesUITestRunner {
 
     testArgs.insertAll(0, ['--configuration', configurationPath]);
 
-    await test_executable.runTests(testArgs);
-    test_executable.completeShutdown();
+    // `main` runs the tests and then releases the signal and stdin
+    // listeners, and returns (it doesn't `exit`). `test_core` 0.6.21 removed
+    // the `runTests` + `completeShutdown` pair it used to be split into.
+    await test_executable.main(testArgs);
 
     _processJsonReportFile();
 

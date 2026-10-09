@@ -1,3 +1,11 @@
+## 3.1.5
+
+- `bones_ui test` (`BonesUITestCLI`): runs the tests through `test_core`'s `main`, which also works with
+  `test_core` 0.6.21. That release removed the `runTests`/`completeShutdown` pair, so `dart pub global activate
+  bones_ui` failed to build the CLI (`Method not found: 'runTests'`).
+- CI: `actions/checkout@v6` and `codecov/codecov-action@v5` (Node 24, no Node 20 deprecation warning); a new push
+  cancels the branch's running jobs; read-only `permissions`; job timeouts.
+
 ## 3.1.4
 
 - `intl_messages: ^3.0.2`: `IntlLocale.onDefineDefaultLocale` no longer throws a `TypeError` on access, so an app
