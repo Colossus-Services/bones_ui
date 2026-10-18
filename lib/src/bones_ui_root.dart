@@ -220,6 +220,16 @@ abstract class UIRoot extends UIRootComponent {
 
   final String? name;
 
+  /// [registerComponents] registers the components that markup can create
+  /// by tag (`<ui-button>`, `<ui-document>`, `<ui-dialog>`...), once, when
+  /// the first [UIRoot] is constructed. Without it, all of them are
+  /// ([registerAllComponents]).
+  ///
+  /// Pass one that registers only those the app's markup uses, or none
+  /// (`() {}`), and dart2js leaves the others out of the compiled app —
+  /// `<ui-document>` alone brings in the `markdown` package. Every [UIRoot]
+  /// of the app must pass it: one that leaves it out keeps them all. A
+  /// component created in code (`UIDialog(...)`) needs no registration.
   UIRoot(
     super.rootContainer, {
     this.name,
@@ -229,13 +239,14 @@ abstract class UIRoot extends UIRootComponent {
     UIComponentClearParent super.clearParent =
         UIComponentClearParent.onInitialRender,
     this.readyTimeout = const Duration(seconds: 15),
+    void Function()? registerComponents,
   }) : super(
          style: style,
          classes: classes,
          componentClass: 'ui-root',
          construct: false,
        ) {
-    _initializeAll();
+    _initializeAll(registerComponents ?? registerAllComponents);
 
     final componentInternals = this.componentInternals;
 
@@ -380,6 +391,18 @@ abstract class UIRoot extends UIRootComponent {
     locale = locale.trim();
     if (locale.isEmpty) return;
     document.documentElement?.setAttribute('lang', locale.replaceAll('_', '-'));
+  }
+
+  /// Registers every component that markup can create by tag: the default
+  /// `registerComponents` of the [UIRoot] constructor.
+  static void registerAllComponents() {
+    UIButton.register();
+    UIButtonLoader.register();
+    UIMultiSelection.register();
+    UIDataSource.register();
+    UIDocument.register();
+    UIDialog.register();
+    UISVG.register();
   }
 
   @override
@@ -548,13 +571,14 @@ abstract class UIRoot extends UIRootComponent {
 
 bool _initializedAll = false;
 
-void _initializeAll() {
+void _initializeAll(void Function() registerComponents) {
   if (_initializedAll) return;
   _initializedAll = true;
 
   _configure();
 
-  _registerAllComponents();
+  UIConsole.get();
+  registerComponents();
 }
 
 void _configure() {
@@ -566,15 +590,4 @@ void _configure() {
       return null;
     }
   });
-}
-
-void _registerAllComponents() {
-  UIConsole.get();
-  UIButton.register();
-  UIButtonLoader.register();
-  UIMultiSelection.register();
-  UIDataSource.register();
-  UIDocument.register();
-  UIDialog.register();
-  UISVG.register();
 }

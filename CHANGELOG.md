@@ -1,3 +1,22 @@
+## 3.1.6
+
+- `UIRoot`: new `registerComponents` parameter, the components that markup can create by tag (`<ui-button>`,
+  `<ui-document>`, `<ui-dialog>`...) to register when the first root is constructed. Without it all of them are
+  registered, as before (the new static `UIRoot.registerAllComponents`). Whatever is registered is compiled in, so
+  an app that writes none of those tags can pass `() {}`, or register only those it uses (`UIDialog.register`):
+  `<ui-document>` alone brings in the `markdown` package. Every `UIRoot` of the app must pass it. In a real app
+  (a game whose only component, a dialog, is created in code) the dart2js output went from 474 KiB gzipped to
+  389 KiB, 18% smaller.
+- Tests:
+  - `bones_ui_root_register_components_test.dart`: a root registering only `UIDialog` has `<ui-dialog>` and none of
+    the others; the registration runs once, before the first render; a registered tag becomes its component, an
+    unregistered one (`<ui-document>`) stays a plain element, and a component created in code needs none.
+  - `bones_ui_root_register_all_components_test.dart`: without `registerComponents` every tag component is
+    registered, and `<ui-document>` renders its markdown.
+  - `register_components_tree_shaking_test.dart` (VM): compiles minimal apps (`test/register_components/`) with
+    `dart compile js -O2`. Registering none leaves every component and the `markdown` package out (about 30%
+    smaller), registering `UIDialog` alone keeps only it, and one root without `registerComponents` keeps them all.
+
 ## 3.1.5
 
 - `bones_ui test` (`BonesUITestCLI`): runs the tests through `test_core`'s `main`, which also works with
