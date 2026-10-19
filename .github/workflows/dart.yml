@@ -65,12 +65,19 @@ jobs:
       - name: Upgrade dependencies
         run: dart pub upgrade
       - name: Run tests (VM)
-        run: dart test --platform vm
+        run: dart test --platform vm --concurrency=4
 
 
+  # One job per compiler, in parallel (they ran one after the other). Test
+  # files run 4 at a time: the runner's vCPUs.
   test_chrome:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [ dart2wasm, dart2js ]
 
     steps:
       - uses: actions/checkout@v6
@@ -86,14 +93,19 @@ jobs:
       - name: Upgrade dependencies
         run: dart pub upgrade
       - name: Run tests (Chrome Wasm)
-        run: dart test --platform chrome --compiler dart2wasm
+        if: matrix.compiler == 'dart2wasm'
+        run: dart test --platform chrome --compiler dart2wasm --concurrency=4
+      # The coverage is collected from the JS run:
       - name: Run tests (Chrome JS)
-        run: dart test --platform chrome --compiler dart2js --coverage=./coverage
+        if: matrix.compiler == 'dart2js'
+        run: dart test --platform chrome --compiler dart2js --concurrency=4 --coverage=./coverage
       - name: Generate coverage report
+        if: matrix.compiler == 'dart2js'
         run: |
           dart pub global activate coverage
           dart pub global run coverage:format_coverage --packages=.dart_tool/package_config.json --report-on=lib --lcov -o ./coverage/lcov.info -i ./coverage
       - name: Upload coverage to Codecov
+        if: matrix.compiler == 'dart2js'
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

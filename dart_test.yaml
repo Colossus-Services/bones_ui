@@ -1,7 +1,9 @@
 
 timeout: 3x
 
-concurrency: 1
+# No `concurrency`: test files run in parallel (the default: half the
+# processors). The browser suites run each in its own frame and pass in
+# parallel; CI passes `--concurrency` for its runner.
 
 override_platforms:
   chrome:
