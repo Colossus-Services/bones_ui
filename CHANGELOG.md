@@ -1,3 +1,16 @@
+## 3.1.7
+
+- `UIMultiSelection`: the options panel is shown attached to the document's `body` (with the component's font and
+  color), and returns to the component when hidden (also on `dispose`, or on a new render). Inside the component it
+  was positioned in page coordinates, so under an ancestor that is the containing block of absolute elements
+  (`position`, `transform`, `filter`, `backdrop-filter`...) it was displaced by that ancestor's offset, and the
+  ancestor's `overflow` clipped it: clicking the input showed nothing. It isn't shown for an input out of the
+  document.
+- Tests:
+  - `bones_ui_components_b_test.dart`: under a `backdrop-filter` + `overflow` ancestor the panel is shown right
+    under the input, in the `body`, with the component's font and color, and is back after the input when hidden;
+    a disposed selection doesn't leave it in the `body`.
+
 ## 3.1.6
 
 - `UIRoot`: new `registerComponents` parameter, the components that markup can create by tag (`<ui-button>`,

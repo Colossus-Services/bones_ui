@@ -533,6 +533,12 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       });
     }
 
+    // Rendered back into the component (hidden), if shown in the `body`:
+    if (_optionsPanel!.parentNode == document.body) {
+      _optionsPanel!.style.display = 'none';
+      _detachOptionsPanel();
+    }
+
     _optionsPanel!.style.maxHeight = '60vh';
     _optionsPanel!.style.overflowY = 'auto';
 
@@ -634,8 +640,6 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   }
 
   dynamic _toggleDivOptions([bool? requestedHide]) {
-    _updateDivOptionsPosition();
-
     bool hide;
     if (requestedHide != null) {
       hide = requestedHide;
@@ -644,13 +648,72 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       hide = showing;
     }
 
+    // Not shown for an input out of the document (a removed component):
+    if (!hide && !_input!.isConnected) {
+      hide = true;
+    }
+
     if (hide) {
       _optionsPanel!.style.display = 'none';
+      _detachOptionsPanel();
       _updateElementText();
       _optionsPanelInteractionCompleter.triggerIfHasInteraction();
     } else {
+      _attachOptionsPanel();
+      _updateDivOptionsPosition();
       _optionsPanel!.style.display = '';
     }
+  }
+
+  /// Shows the options panel attached to the document's `body`, positioned
+  /// in page coordinates ([_updateDivOptionsPosition]). Inside the component,
+  /// an ancestor that is the containing block of absolute elements
+  /// (`position`, `transform`, `filter`, `backdrop-filter`...) displaced it,
+  /// and one with `overflow` clipped it. It keeps the component's font and
+  /// color, which it inherited there.
+  void _attachOptionsPanel() {
+    var panel = _optionsPanel!;
+    var body = document.body;
+    if (body == null || panel.parentNode == body) return;
+
+    var computedStyle = (content ?? _input!).getComputedStyle();
+
+    panel.style
+      ..color = computedStyle.color
+      ..fontFamily = computedStyle.fontFamily
+      ..fontSize = computedStyle.fontSize
+      ..lineHeight = computedStyle.lineHeight;
+
+    body.appendChild(panel);
+  }
+
+  /// Returns the options panel (hidden) from the `body` to the component,
+  /// after the input; removes it if the input is no longer in the document.
+  void _detachOptionsPanel() {
+    var panel = _optionsPanel;
+    if (panel == null || panel.parentNode != document.body) return;
+
+    panel.style
+      ..color = ''
+      ..fontFamily = ''
+      ..fontSize = ''
+      ..lineHeight = '';
+
+    var input = _input;
+    var inputParent = input?.parentNode;
+    if (input != null && inputParent != null && input.isConnected) {
+      inputParent.insertBefore(panel, input.nextSibling);
+    } else {
+      panel.remove();
+    }
+  }
+
+  @override
+  void dispose() {
+    // Not left shown in the `body`:
+    _optionsPanel?.style.display = 'none';
+    _detachOptionsPanel();
+    super.dispose();
   }
 
   bool _isShowing() =>

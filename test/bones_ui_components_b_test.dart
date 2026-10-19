@@ -1051,17 +1051,75 @@ void main() {
       var selection = await newSelection();
 
       var inputElem = input(selection);
+      // Shown, the panel is in the `body` (not in the component):
+      var panelElem = panel(selection);
       inputElem.value = 'gam';
       inputElem.dispatchEvent(web.KeyboardEvent('keyup'));
 
-      expect(panel(selection).style.display, equals(''));
-      var labels = panel(selection).querySelectorAll('label').toElements();
+      expect(panelElem.style.display, equals(''));
+      var labels = panelElem.querySelectorAll('label').toElements();
       expect(labels.first.textContent, equals('Gamma'));
-      expect(panel(selection).querySelector('hr'), isNotNull);
+      expect(panelElem.querySelector('hr'), isNotNull);
 
       inputElem.click();
       expect(inputElem.value, isEmpty);
+
+      selection.dispose();
+      expect(panelElem.style.display, equals('none'));
+      expect(panelElem.parentNode, isNot(equals(web.document.body)));
     });
+
+    // Regression: the panel was shown inside the component, positioned in
+    // page coordinates: under an ancestor that is the containing block of
+    // absolute elements (a `backdrop-filter`) it was displaced by that
+    // ancestor's offset, and the ancestor's `overflow` clipped it (not seen).
+    test(
+      'the panel is shown under the input, out of a clipping ancestor',
+      () async {
+        var holder = newHolder();
+        var box = web.HTMLDivElement()
+          ..style.marginTop = '150px'
+          ..style.marginLeft = '80px'
+          ..style.padding = '12px'
+          ..style.width = '300px'
+          ..style.overflowX = 'auto'
+          ..style.setProperty('backdrop-filter', 'saturate(130%)')
+          ..style.color = 'rgb(1, 2, 3)'
+          ..style.fontSize = '17px';
+        holder.append(box);
+
+        var selection = UIMultiSelection(box, {
+          'a': 'Alpha',
+          'b': 'Beta',
+        }, selectionMaxDelay: Duration(milliseconds: 50));
+        await selection.callRenderAndWait();
+
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        inputElem.click();
+        expect(panelElem.style.display, equals(''));
+
+        var inputRect = inputElem.getBoundingClientRect();
+        var panelRect = panelElem.getBoundingClientRect();
+        expect(panelRect.left, closeTo(inputRect.left, 1));
+        expect(panelRect.top, closeTo(inputRect.bottom, 1));
+        expect(panelRect.height, greaterThan(0));
+
+        expect(panelElem.parentNode, equals(web.document.body));
+
+        // The component's font and color (inherited inside it):
+        expect(panelElem.style.color, equals('rgb(1, 2, 3)'));
+        expect(panelElem.style.fontSize, equals('17px'));
+
+        // Hidden, it is back in the component, after the input:
+        inputElem.dispatchEvent(web.MouseEvent('mouseleave'));
+        await testUISleep(ms: 60);
+        expect(panelElem.style.display, equals('none'));
+        expect(inputElem.nextSibling, equals(panelElem));
+        expect(panelElem.style.color, isEmpty);
+      },
+    );
 
     test('input value (allowInputValue)', () async {
       var selection = await newSelection(allowInputValue: true);
