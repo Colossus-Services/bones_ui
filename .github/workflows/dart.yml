@@ -69,12 +69,12 @@ jobs:
 
 
   # The browser tests, by compiler and shard of the test files, all in
-  # parallel (most of their time is compiling each test file). The dart2wasm
-  # shards run 4 test files at a time (the runner's vCPUs); the dart2js ones,
-  # collecting the coverage, one at a time: in parallel the coverage misses
-  # lines run asynchronously after a test file's tests (async contents,
-  # loadings, calendar events...). The coverage of each dart2js shard is
-  # uploaded, merged by Codecov (`.codecov.yml`).
+  # parallel (most of their time is compiling each test file). Each shard
+  # runs its test files one at a time: in parallel on the runner's 4 vCPUs,
+  # timing tests failed (timers late), and the coverage missed lines run
+  # asynchronously after a test file's tests (async contents, loadings,
+  # calendar events...). The coverage of each dart2js shard is uploaded,
+  # merged by Codecov (`.codecov.yml`).
   test_chrome:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -111,7 +111,7 @@ jobs:
           echo "TEST_FILES=$files" >> "$GITHUB_ENV"
       # The coverage is collected from the dart2js runs:
       - name: Run tests (Chrome ${{ matrix.compiler }}, shard ${{ matrix.shard }})
-        run: dart test --platform chrome --compiler ${{ matrix.compiler }} ${{ matrix.compiler == 'dart2js' && '--concurrency=1 --coverage=./coverage' || '--concurrency=4' }} $TEST_FILES
+        run: dart test --platform chrome --compiler ${{ matrix.compiler }} --concurrency=1 ${{ matrix.compiler == 'dart2js' && '--coverage=./coverage' || '' }} $TEST_FILES
       - name: Generate coverage report
         if: matrix.compiler == 'dart2js'
         run: |
