@@ -98,6 +98,21 @@ void main() {
       await testUISleep(ms: 100);
       expect(uiRoot.content!.textContent, equals('CLOSED'));
     });
+
+    test('a failing dispose does not stop the shutdown', () async {
+      var uiRoot = await newRoot();
+      var host = newHost(uiRoot);
+
+      var failing = _FailingDispose(host);
+      var plain = _Plain(host);
+      await failing.callRenderAndWait();
+      await plain.callRenderAndWait();
+
+      expect(await uiRoot.close(), isTrue);
+      expect(failing.disposeCalls, greaterThanOrEqualTo(1));
+      expect(plain.isDisposed, isTrue);
+      expect(uiRoot.content!.textContent, equals('CLOSED'));
+    });
   });
 
   group('UIRoot.whenIdle', () {
@@ -140,6 +155,21 @@ void main() {
       expect(autoRefresh.isLoadingUIAsyncContent, isTrue, reason: 'Kept');
       expect(autoRefresh.hasPendingUIAsyncContent, isFalse);
     });
+
+    test('not idle while the root itself loads an async content', () async {
+      var uiRoot = await initializeTestUIRoot(_AsyncRoot.new);
+      await uiRoot.callRenderAndWait();
+      expect(uiRoot.hasPendingUIAsyncContent, isTrue);
+
+      expect(
+        await uiRoot.whenIdle(timeout: Duration(milliseconds: 300)),
+        isFalse,
+      );
+
+      uiRoot.completer.complete('root loaded');
+      expect(await uiRoot.whenIdle(timeout: Duration(seconds: 3)), isTrue);
+      expect(uiRoot.content!.textContent, contains('root loaded'));
+    });
   });
 }
 
@@ -153,11 +183,48 @@ class _Root extends UIRoot {
   web.Element? renderClosed() => web.HTMLSpanElement()..textContent = 'CLOSED';
 }
 
+/// A root rendering an async content of its own, loaded by [completer].
+class _AsyncRoot extends _Root {
+  final Completer<String> completer = Completer<String>();
+
+  _AsyncRoot(super.rootContainer);
+
+  UIAsyncContent? _asyncContent;
+
+  @override
+  List render() {
+    if (isClosed) return super.render();
+    return [
+      _asyncContent ??= UIAsyncContent.provider(
+        () => completer.future,
+        'root loading',
+      ),
+    ];
+  }
+}
+
 class _Plain extends UIComponent {
   _Plain(super.parent);
 
   @override
   dynamic render() => 'plain';
+}
+
+/// A component whose [dispose] throws (after disposing).
+class _FailingDispose extends UIComponent {
+  int disposeCalls = 0;
+
+  _FailingDispose(super.parent);
+
+  @override
+  dynamic render() => 'failing';
+
+  @override
+  void dispose() {
+    disposeCalls++;
+    super.dispose();
+    throw StateError('dispose failed');
+  }
 }
 
 /// An [UIComponentAsync] with auto refresh, counting its [loads].

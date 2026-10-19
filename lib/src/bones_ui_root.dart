@@ -116,7 +116,13 @@ abstract class UIRootComponent extends UIComponent {
   void _onPurgedUIComponents(Map<Node, UIComponent> purgedEntries) {
     for (var e in purgedEntries.entries) {
       final component = e.value;
-      component.dispose();
+      // One failing `dispose` doesn't stop the others (nor `purgeRoot`,
+      // awaited by `UIRoot.close`):
+      try {
+        component.dispose();
+      } catch (e, s) {
+        UIConsole.error('Error disposing purged component: $component', e, s);
+      }
     }
   }
 

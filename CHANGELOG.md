@@ -9,6 +9,9 @@
     `UIComponent.stopUIAsyncContents`);
   - its tree is purged (`purgeRoot`), awaited;
   - its closed render (`renderClosed`), awaited, then `onClose`.
+
+  A component whose `dispose` throws is logged and doesn't stop the others, nor `close` (also when purged by
+  `purgeRoot`, now awaited).
 - New `UIRoot.whenIdle({timeout, quietTime})`: waits until no component is rendering, no `UIAsyncContent` is still
   loading for the first time (new `UIComponent.hasPendingUIAsyncContent`; a loaded one with auto refresh doesn't
   count, it never finishes) and no render happened in the last `quietTime` (new `UIComponent.lastRenderTime`).
@@ -23,11 +26,12 @@
 - Tests:
   - New `bones_ui_root_close_test.dart`: when `close` returns, the components are disposed, an auto refresh is
     stopped, an open `UIMultiSelection` panel is gone and the root is rendered closed (`onClose` after it); a
-    pending async content is stopped (not rendered later); `whenIdle` while an async content loads and once
-    loaded, and with a loaded auto refresh.
+    pending async content is stopped (not rendered later); a failing `dispose` doesn't stop the shutdown;
+    `whenIdle` while an async content (of a component, or of the root itself) loads and once loaded, and with a
+    loaded auto refresh.
   - New `bones_ui_test_tools_teardown_test.dart`: a root initialized in a group's `setUpAll` is open during its
     group and closed (its components disposed) after it; `closeOnTearDown: false` keeps it open; a root
-    initialized in a test is closed after that test.
+    initialized in a test is closed after that test, also one never idle (after the idle timeout).
   - `bones_ui_components_b_test.dart`: the removed `UIMultiSelection` test uses a selection delay far beyond the
     visibility check (it was flaky on CI).
 

@@ -69,6 +69,29 @@ void main() {
   test('is closed after that test', () async {
     expect(inTest!.isClosed, isTrue);
   });
+
+  // Its async content never loads: closed after the idle timeout (3s).
+  _Root? notIdle;
+  _Pending? notIdleComponent;
+
+  test('a root never idle', () async {
+    notIdle = await initializeTestUIRoot(
+      _Root.new,
+      outputDivID: 'teardown-not-idle',
+    );
+    await notIdle!.callRenderAndWait();
+    await testUISleep(ms: 100);
+
+    notIdleComponent = _Pending(notIdle!.content);
+    await notIdleComponent!.callRenderAndWait();
+    expect(notIdleComponent!.hasPendingUIAsyncContent, isTrue);
+  });
+
+  test('is closed after that test anyway', () async {
+    expect(notIdle!.isClosed, isTrue);
+    expect(notIdleComponent!.isDisposed, isTrue);
+    expect(notIdleComponent!.hasPendingUIAsyncContent, isFalse);
+  });
 }
 
 class _Root extends UIRoot {
@@ -83,4 +106,17 @@ class _Plain extends UIComponent {
 
   @override
   dynamic render() => 'plain';
+}
+
+/// Renders an [UIAsyncContent] that never loads.
+class _Pending extends UIComponent {
+  _Pending(super.parent);
+
+  UIAsyncContent? _asyncContent;
+
+  @override
+  dynamic render() => _asyncContent ??= UIAsyncContent.provider(
+    () => Completer<String>().future,
+    'loading',
+  );
 }
