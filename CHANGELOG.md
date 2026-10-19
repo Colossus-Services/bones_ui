@@ -1,15 +1,32 @@
 ## 3.1.7
 
-- `UIMultiSelection`: the options panel is shown attached to the document's `body` (with the component's font and
-  color), and returns to the component when hidden (also on `dispose`, or on a new render). Inside the component it
-  was positioned in page coordinates, so under an ancestor that is the containing block of absolute elements
-  (`position`, `transform`, `filter`, `backdrop-filter`...) it was displaced by that ancestor's offset, and the
-  ancestor's `overflow` clipped it: clicking the input showed nothing. It isn't shown for an input out of the
-  document.
+- `UIMultiSelection`: the options panel is shown attached to the document's `body`, and returns to the component
+  when hidden (also on `dispose`). Inside the component it was positioned in page coordinates, so under an
+  ancestor that is the containing block of absolute elements (`position`, `transform`, `filter`,
+  `backdrop-filter`...) it was displaced by that ancestor's offset, and the ancestor's `overflow` clipped it:
+  clicking the input showed nothing.
+  - Its default look (white background, left alignment, padding) is no longer inline: it's a `:where(...)` rule
+    (no specificity), so an app rule styling `.ui-multi-selection-options-menu` now applies (inline, the white
+    background always won: on a dark theme, light text over white).
+  - In the `body` it keeps the component's inherited `color`, `font-family`, `font-size`, `font-style`,
+    `font-weight`, `line-height`, `letter-spacing` and `direction`, passed as `--ui-multi-selection-*` properties
+    to that same rule: an app rule still takes precedence, as over inheritance. CSS rules selecting the panel
+    through the component's ancestors no longer match it while shown.
+  - Its position is corrected by where it lands (a positioned `body`).
+  - A new render keeps it shown (as before), with the new options, re-positioned.
+  - While shown, it's hidden if the input stops being displayed (an ancestor with `display: none`, e.g. a hidden
+    dialog), notifying the selection as on any hide; or if the input leaves the document (a removed component),
+    without notifying it, also later (its pending selection is cancelled). No `mouseleave` would hide it there.
+    It isn't shown for an input out of the document.
+  - Single selection: each instance has its own radio group (in the `body`, the radios of an instance in a
+    `<form>` and of one out of it shared a group, unchecking each other's).
 - Tests:
-  - `bones_ui_components_b_test.dart`: under a `backdrop-filter` + `overflow` ancestor the panel is shown right
-    under the input, in the `body`, with the component's font and color, and is back after the input when hidden;
-    a disposed selection doesn't leave it in the `body`.
+  - `bones_ui_components_b_test.dart` ("options panel placement"): under a `backdrop-filter` + `overflow` ancestor
+    the panel is shown right under the input, in the `body`, with the component's font and color, and its options
+    work; back after the input when hidden; the app's CSS overrides its defaults. Also on a scrolled page, a
+    positioned `body`, above the input near the bottom of the viewport, and after a window resize. A new render
+    keeps it shown; a removed component and a hidden ancestor hide it (a removed one notifying nothing); `dispose`
+    doesn't leave it in the `body`; single selections in and out of a `<form>` keep theirs.
 
 ## 3.1.6
 

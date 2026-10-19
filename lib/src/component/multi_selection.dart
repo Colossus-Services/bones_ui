@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:collection/collection.dart' show IterableExtension;
@@ -86,6 +87,11 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   late InteractionCompleter _inputInteractionCompleter;
 
   final EventStream<UIMultiSelection> onSelect = EventStream();
+
+  static int _instanceCount = 0;
+
+  /// This instance's ID (its single-selection radio group).
+  final int _instanceID = ++_instanceCount;
 
   UIMultiSelection(
     super.parent,
@@ -473,14 +479,15 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
       //style="cursor: pointer; padding: 5px 10px; border: 1px solid #ccc; width: 100%"
 
+      // Its look (background, alignment, padding) is a default the app's CSS
+      // can override ([_optionsPanelCSS]):
+      addCSSCode(_optionsPanelCSS);
+
       _optionsPanel = HTMLDivElement()
         ..style.display = 'none'
-        ..style.backgroundColor = 'rgba(255,255,255, 0.90)'
         ..style.position = 'absolute'
         ..style.left = '0px'
-        ..style.top = '0px'
-        ..style.textAlign = 'left'
-        ..style.padding = '4px';
+        ..style.top = '0px';
 
       _optionsPanel!.classList.add('shadow');
       _optionsPanel!.classList.add('p-2');
@@ -533,13 +540,15 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       });
     }
 
-    // Rendered back into the component (hidden), if shown in the `body`:
-    if (_optionsPanel!.parentNode == document.body) {
-      _optionsPanel!.style.display = 'none';
-      _detachOptionsPanel();
-    }
+    // Shown, it stays shown in the `body` (not rendered into the component):
+    // re-attached and re-positioned in [posRender] (a render clearing the
+    // rendered elements takes it out of the `body`).
+    var keepShown = _isShowing() && document.body != null;
+    _reattachOptionsPanel = keepShown;
 
-    _optionsPanel!.style.maxHeight = '60vh';
+    if (!keepShown) {
+      _optionsPanel!.style.maxHeight = '60vh';
+    }
     _optionsPanel!.style.overflowY = 'auto';
 
     var checksList = _renderPanelOptions();
@@ -547,11 +556,27 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
     _updateElementText();
 
-    return [_input, _optionsPanel];
+    return keepShown ? [_input] : [_input, _optionsPanel];
   }
+
+  /// Whether [posRender] re-attaches the options panel shown during [render].
+  bool _reattachOptionsPanel = false;
 
   @override
   void posRender() {
+    if (_reattachOptionsPanel) {
+      _reattachOptionsPanel = false;
+
+      if (_isShowing()) {
+        if (_isInputShown) {
+          _attachOptionsPanel();
+          _updateDivOptionsPosition();
+        } else {
+          _hideOptionsPanelQuietly();
+        }
+      }
+    }
+
     // For adjustment after attach element to DOM (after input have dimensions):
     if (autoInputFontShrink) {
       Future.delayed(Duration(milliseconds: 50), () => _updateElementText());
@@ -622,20 +647,38 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
     var freeViewportHeightUpward = inputVPY - 10;
     var freeViewportHeightBelow = (window.innerHeight - inputVPY) - 10;
 
+    var upward =
+        freeViewportHeightBelow < 130 && freeViewportHeightUpward > 130;
+
+    if (upward) {
+      y = inputY;
+    }
+
     _optionsPanel!
       ..style.position = 'absolute'
       ..style.left = '${x}px'
       ..style.top = '${y}px'
       ..style.width = '${inputW}px'
       ..style.zIndex = '999999999'
-      ..style.transform = ''
-      ..style.maxHeight = '${freeViewportHeightBelow}px';
+      ..style.transform = upward ? 'translate(0% , -100%)' : ''
+      ..style.maxHeight =
+          '${upward ? freeViewportHeightUpward : freeViewportHeightBelow}px';
 
-    if (freeViewportHeightBelow < 130 && freeViewportHeightUpward > 130) {
-      _optionsPanel!
-        ..style.top = '${inputY}px'
-        ..style.transform = 'translate(0% , -100%)'
-        ..style.maxHeight = '${freeViewportHeightUpward}px';
+    // Page coordinates are relative to the document only while the panel's
+    // containing block is (a `body` not positioned, nor transformed):
+    // corrected by where the shown panel landed.
+    if (_isShowing()) {
+      var panelVPRect = _optionsPanel!.getBoundingClientRect();
+      var dx = inputVPRect.left - panelVPRect.left;
+      var dy = upward
+          ? inputVPRect.top - panelVPRect.bottom
+          : inputVPRect.bottom - panelVPRect.top;
+
+      if (dx.abs() >= 0.5 || dy.abs() >= 0.5) {
+        _optionsPanel!
+          ..style.left = '${x + dx}px'
+          ..style.top = '${y + dy}px';
+      }
     }
   }
 
@@ -660,9 +703,81 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       _optionsPanelInteractionCompleter.triggerIfHasInteraction();
     } else {
       _attachOptionsPanel();
-      _updateDivOptionsPosition();
+      // Shown before positioned: its position is checked by where it landed.
       _optionsPanel!.style.display = '';
+      _updateDivOptionsPosition();
     }
+  }
+
+  /// The inherited properties the options panel keeps from the component
+  /// while shown in the `body` (passed as `--ui-multi-selection-<property>`).
+  static const _optionsPanelInheritedStyle = [
+    'color',
+    'font-family',
+    'font-size',
+    'font-style',
+    'font-weight',
+    'line-height',
+    'letter-spacing',
+    'direction',
+  ];
+
+  /// The options panel's default style, in `:where` (no specificity): any
+  /// app rule styling `.ui-multi-selection-options-menu` takes precedence
+  /// (as inline styles it couldn't be overridden). In the `body`, the
+  /// component's inherited properties apply the same way, as inheritance
+  /// would inside it.
+  static final String _optionsPanelCSS = [
+    ':where(.ui-multi-selection-options-menu) {',
+    '  background-color: rgba(255, 255, 255, 0.90);',
+    '  text-align: left;',
+    '  padding: 4px;',
+    '}',
+    ':where(body > .ui-multi-selection-options-menu) {',
+    for (var property in _optionsPanelInheritedStyle)
+      '  $property: var(--ui-multi-selection-$property);',
+    '}',
+  ].join('\n');
+
+  /// While the options panel is shown in the `body`: hides it if the input
+  /// leaves the document (the component removed, e.g. by a new render of its
+  /// parent) or isn't displayed (an ancestor with `display: none`, e.g. a
+  /// hidden dialog), where no `mouseleave` would hide it. Inside the
+  /// component it was hidden with it.
+  Timer? _optionsPanelVisibilityCheck;
+
+  static const _optionsPanelVisibilityCheckInterval = Duration(
+    milliseconds: 250,
+  );
+
+  void _checkOptionsPanelVisibility() {
+    var input = _input;
+    if (input == null || !input.isConnected) {
+      // A removed component: its pending selection isn't notified.
+      _optionsPanelInteractionCompleter.cancel();
+      _hideOptionsPanelQuietly();
+    } else if (!_isInputShown) {
+      _overElement = false;
+      _overDivOptions = false;
+      _toggleDivOptions(true);
+    }
+  }
+
+  /// Whether the input is in the document and displayed (has a box).
+  bool get _isInputShown {
+    var input = _input;
+    return input != null &&
+        input.isConnected &&
+        input.getClientRects().length > 0;
+  }
+
+  /// Hides the options panel, back in the component, without notifying a
+  /// pending selection (for a component being removed or re-rendered).
+  void _hideOptionsPanelQuietly() {
+    _overElement = false;
+    _overDivOptions = false;
+    _optionsPanel?.style.display = 'none';
+    _detachOptionsPanel();
   }
 
   /// Shows the options panel attached to the document's `body`, positioned
@@ -670,7 +785,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   /// an ancestor that is the containing block of absolute elements
   /// (`position`, `transform`, `filter`, `backdrop-filter`...) displaced it,
   /// and one with `overflow` clipped it. It keeps the component's font and
-  /// color, which it inherited there.
+  /// color, which it inherited there ([_optionsPanelCSS]).
   void _attachOptionsPanel() {
     var panel = _optionsPanel!;
     var body = document.body;
@@ -678,26 +793,39 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
 
     var computedStyle = (content ?? _input!).getComputedStyle();
 
-    panel.style
-      ..color = computedStyle.color
-      ..fontFamily = computedStyle.fontFamily
-      ..fontSize = computedStyle.fontSize
-      ..lineHeight = computedStyle.lineHeight;
+    for (var property in _optionsPanelInheritedStyle) {
+      panel.style.setProperty(
+        '--ui-multi-selection-$property',
+        computedStyle.getPropertyValue(property),
+      );
+    }
 
     body.appendChild(panel);
+
+    _optionsPanelVisibilityCheck?.cancel();
+    _optionsPanelVisibilityCheck = Timer.periodic(
+      _optionsPanelVisibilityCheckInterval,
+      (_) => _checkOptionsPanelVisibility(),
+    );
   }
 
-  /// Returns the options panel (hidden) from the `body` to the component,
-  /// after the input; removes it if the input is no longer in the document.
+  /// Returns the options panel (hidden) to the component, after the input,
+  /// from the `body` (or out of the document, taken by a render clearing the
+  /// rendered elements); removes it if the input is no longer in the
+  /// document.
   void _detachOptionsPanel() {
-    var panel = _optionsPanel;
-    if (panel == null || panel.parentNode != document.body) return;
+    _optionsPanelVisibilityCheck?.cancel();
+    _optionsPanelVisibilityCheck = null;
 
-    panel.style
-      ..color = ''
-      ..fontFamily = ''
-      ..fontSize = ''
-      ..lineHeight = '';
+    var panel = _optionsPanel;
+    if (panel == null) return;
+
+    for (var property in _optionsPanelInheritedStyle) {
+      panel.style.removeProperty('--ui-multi-selection-$property');
+    }
+
+    // Already in the component:
+    if (panel.parentNode != document.body && panel.isConnected) return;
 
     var input = _input;
     var inputParent = input?.parentNode;
@@ -711,8 +839,7 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
   @override
   void dispose() {
     // Not left shown in the `body`:
-    _optionsPanel?.style.display = 'none';
-    _detachOptionsPanel();
+    _hideOptionsPanelQuietly();
     super.dispose();
   }
 
@@ -899,9 +1026,12 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       input.checked = check;
       checkElem = input;
     } else {
+      // A radio group per instance: in the `body`, the options of instances
+      // in and out of a `<form>` would share a group (unchecking each
+      // other's).
       var input = HTMLInputElement()
         ..type = 'radio'
-        ..name = '__MultiSelection__';
+        ..name = '__MultiSelection__$_instanceID';
       input.checked = check;
       checkElem = input;
     }
