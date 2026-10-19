@@ -68,16 +68,26 @@ jobs:
         run: dart test --platform vm --concurrency=4
 
 
-  # One job per compiler, in parallel (they ran one after the other). Test
-  # files run 4 at a time: the runner's vCPUs.
+  # The browser tests, by compiler and shard of the test files, all in
+  # parallel (most of their time is compiling each test file). The dart2wasm
+  # shards run 4 test files at a time (the runner's vCPUs); the dart2js ones,
+  # collecting the coverage, one at a time: in parallel the coverage misses
+  # lines run asynchronously after a test file's tests (async contents,
+  # loadings, calendar events...). The coverage of each dart2js shard is
+  # uploaded, merged by Codecov (`.codecov.yml`).
   test_chrome:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    env:
+      # The number of `matrix.shard`s (also `after_n_builds` in `.codecov.yml`):
+      TEST_SHARDS: 3
 
     strategy:
       fail-fast: false
       matrix:
         compiler: [ dart2wasm, dart2js ]
+        shard: [ 0, 1, 2 ]
 
     steps:
       - uses: actions/checkout@v6
@@ -92,13 +102,16 @@ jobs:
       # fresh `dart pub global activate bones_ui` does.
       - name: Upgrade dependencies
         run: dart pub upgrade
-      - name: Run tests (Chrome Wasm)
-        if: matrix.compiler == 'dart2wasm'
-        run: dart test --platform chrome --compiler dart2wasm --concurrency=4
-      # The coverage is collected from the JS run:
-      - name: Run tests (Chrome JS)
-        if: matrix.compiler == 'dart2js'
-        run: dart test --platform chrome --compiler dart2js --concurrency=4 --coverage=./coverage
+      # This shard's test files: every `TEST_SHARDS`th one, by name (a new
+      # test file is included; the VM-only ones are skipped on Chrome).
+      - name: Select test files
+        run: |
+          files=$(ls test/*_test.dart | sort | awk -v n="$TEST_SHARDS" -v i="${{ matrix.shard }}" '(NR - 1) % n == i' | tr '\n' ' ')
+          echo "Test files: $files"
+          echo "TEST_FILES=$files" >> "$GITHUB_ENV"
+      # The coverage is collected from the dart2js runs:
+      - name: Run tests (Chrome ${{ matrix.compiler }}, shard ${{ matrix.shard }})
+        run: dart test --platform chrome --compiler ${{ matrix.compiler }} ${{ matrix.compiler == 'dart2js' && '--concurrency=1 --coverage=./coverage' || '--concurrency=4' }} $TEST_FILES
       - name: Generate coverage report
         if: matrix.compiler == 'dart2js'
         run: |

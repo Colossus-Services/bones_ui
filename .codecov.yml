@@ -1,0 +1,10 @@
+# The coverage is uploaded by each dart2js shard of the CI's `test_chrome`
+# job (`TEST_SHARDS` in `.github/workflows/dart.yml`): Codecov merges them,
+# and only reports (statuses and the PR comment) once all have arrived, so a
+# partial upload isn't reported as a coverage drop.
+codecov:
+  notify:
+    after_n_builds: 3
+
+comment:
+  after_n_builds: 3
