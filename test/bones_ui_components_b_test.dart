@@ -1198,11 +1198,16 @@ void main() {
           spaceBefore: 800,
           spaceAfter: 3000,
         );
-        scrollPageTo(500);
-        expect(web.window.scrollY, greaterThan(0));
-
         var inputElem = input(selection);
         var panelElem = panel(selection);
+
+        // The input 100px below the top of the viewport (room below it to
+        // show the panel there, whatever the viewport's height):
+        var inputPageTop =
+            inputElem.getBoundingClientRect().top + web.window.scrollY;
+        scrollPageTo(inputPageTop - 100);
+        expect(web.window.scrollY, greaterThan(0));
+        expect(inputElem.getBoundingClientRect().top, closeTo(100, 1));
 
         inputElem.click();
         expectUnderInput(inputElem, panelElem);
