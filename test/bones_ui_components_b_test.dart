@@ -1295,9 +1295,11 @@ void main() {
       });
 
       // No `mouseleave` hides it for an input removed from the document.
+      // The selection delay (3s) is far beyond the visibility check (250ms):
+      // on CI, throttled timers ran a shorter delay's trigger before it.
       test('a removed component does not leave it in the body', () async {
         var selection = await newBoxedSelection(
-          selectionMaxDelay: Duration(milliseconds: 800),
+          selectionMaxDelay: Duration(seconds: 3),
         );
         var inputElem = input(selection);
         var panelElem = panel(selection);
@@ -1320,8 +1322,9 @@ void main() {
         expect(panelElem.style.display, equals('none'));
         expect(panelElem.isConnected, isFalse);
 
-        // Its pending selection isn't notified (removed):
-        await testUISleep(ms: 800);
+        // Its pending selection isn't notified (removed), also after the
+        // selection delay:
+        await testUISleep(ms: 3200);
         expect(selects, equals(0));
       });
 

@@ -159,13 +159,9 @@ void main() async {
     late MyUIRoot uiRoot;
 
     setUpAll(() async {
-      // Initialize your `UIRoot`:
+      // Initialize your `UIRoot`. After this group's tests, once idle,
+      // it's closed (`closeOnTearDown`): no `tearDownAll` needed for it.
       uiRoot = await initializeTestUIRoot(MyUIRoot.new);
-    });
-
-    tearDownAll(() async {
-      await testUISleep(ms: 200);
-      uiRoot.clear();
     });
 
     test('menu: routes', () async {
