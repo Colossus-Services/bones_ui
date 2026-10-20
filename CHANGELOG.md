@@ -1,3 +1,74 @@
+## 3.1.8
+
+- `UIRoot.close`: the returned `Future` completes once the root is shut down. It returned at once (`true`),
+  without awaiting the purge of its tree nor its closed render, and its components kept running: `clear` only
+  removes their elements, so their timers kept going and their async contents kept loading and auto refreshing
+  (also keeping them alive in the tree, never purged nor disposed). Now, in order:
+  - the `closeOperations` (by default `clear`);
+  - its components are disposed (`dispose`), and their `UIAsyncContent`s stopped, also their auto refresh (new
+    `UIComponent.stopUIAsyncContents`);
+  - its tree is purged (`purgeRoot`), awaited;
+  - its closed render (`renderClosed`), awaited, then `onClose`.
+
+  A component whose `dispose` throws is logged and doesn't stop the others, nor `close` (also when purged by
+  `purgeRoot`, now awaited).
+- New `UIRoot.whenIdle({timeout, quietTime})`: waits until no component is rendering, no `UIAsyncContent` is still
+  loading for the first time (new `UIComponent.hasPendingUIAsyncContent`; a loaded one with auto refresh doesn't
+  count, it never finishes) and no render happened in the last `quietTime` (new `UIComponent.lastRenderTime`).
+  Returns `false` on timeout.
+- `UIComponent.waitRender`: the misspelled `waiteRender` renamed; `waiteRender` is kept, deprecated, calling it.
+- `UIAsyncContent.stop`: also a refresh already scheduled is ignored (it still loaded once more). `reset` still
+  loads it again.
+- `UIMultiSelection`: a removed component (its input out of the document) no longer notifies its pending selection
+  on any hide of the options panel. Removed under the pointer, the browser fires a `mouseleave` before the
+  visibility check (3.1.7), and that hide notified it (`onSelect` / `onChange` of a removed component).
+- Test tools: `initializeTestUIRoot` shuts its root down after the tests (new `closeOnTearDown`, default `true`):
+  once idle (`whenIdle`), it's closed. Called in a `setUpAll`, after all the tests of that `setUpAll`'s group (the
+  whole file for a top-level one); called in a test, after that test; before the group's own `tearDownAll`s.
+  Without it, a test file ended with its root's renders, async contents and timers still pending: with test files
+  run in parallel, the coverage missed the lines they ran late, and timing tests were flaky.
+- Tests:
+  - New `bones_ui_root_close_test.dart`: when `close` returns, the components are disposed, an auto refresh is
+    stopped, an open `UIMultiSelection` panel is gone and the root is rendered closed (`onClose` after it); a
+    pending async content is stopped (not rendered later); a failing `dispose` doesn't stop the shutdown;
+    `whenIdle` while an async content (of a component, or of the root itself) loads and once loaded, and with a
+    loaded auto refresh.
+  - New `bones_ui_test_tools_teardown_test.dart`: a root initialized in a group's `setUpAll` is open during its
+    group and closed (its components disposed) after it; `closeOnTearDown: false` keeps it open; a root
+    initialized in a test is closed after that test, also one never idle (after the idle timeout).
+  - `bones_ui_components_b_test.dart`: a removed `UIMultiSelection` under the pointer (a `mouseleave` before the
+    visibility check) notifies nothing; it failed on 3.1.7, as the removed-component test did on CI.
+
+## 3.1.7
+
+- `UIMultiSelection`: the options panel is shown attached to the document's `body`, and returns to the component
+  when hidden (also on `dispose`). Inside the component it was positioned in page coordinates, so under an
+  ancestor that is the containing block of absolute elements (`position`, `transform`, `filter`,
+  `backdrop-filter`...) it was displaced by that ancestor's offset, and the ancestor's `overflow` clipped it:
+  clicking the input showed nothing.
+  - Its default look (white background, left alignment, padding) is no longer inline: it's a `:where(...)` rule
+    (no specificity), so an app rule styling `.ui-multi-selection-options-menu` now applies (inline, the white
+    background always won: on a dark theme, light text over white).
+  - In the `body` it keeps the component's inherited `color`, `font-family`, `font-size`, `font-style`,
+    `font-weight`, `line-height`, `letter-spacing` and `direction`, passed as `--ui-multi-selection-*` properties
+    to that same rule: an app rule still takes precedence, as over inheritance. CSS rules selecting the panel
+    through the component's ancestors no longer match it while shown.
+  - Its position is corrected by where it lands (a positioned `body`).
+  - A new render keeps it shown (as before), with the new options, re-positioned.
+  - While shown, it's hidden if the input stops being displayed (an ancestor with `display: none`, e.g. a hidden
+    dialog), notifying the selection as on any hide; or if the input leaves the document (a removed component),
+    without notifying it, also later (its pending selection is cancelled). No `mouseleave` would hide it there.
+    It isn't shown for an input out of the document.
+  - Single selection: each instance has its own radio group (in the `body`, the radios of an instance in a
+    `<form>` and of one out of it shared a group, unchecking each other's).
+- Tests:
+  - `bones_ui_components_b_test.dart` ("options panel placement"): under a `backdrop-filter` + `overflow` ancestor
+    the panel is shown right under the input, in the `body`, with the component's font and color, and its options
+    work; back after the input when hidden; the app's CSS overrides its defaults. Also on a scrolled page, a
+    positioned `body`, above the input near the bottom of the viewport, and after a window resize. A new render
+    keeps it shown; a removed component and a hidden ancestor hide it (a removed one notifying nothing); `dispose`
+    doesn't leave it in the `body`; single selections in and out of a `<form>` keep theirs.
+
 ## 3.1.6
 
 - `UIRoot`: new `registerComponents` parameter, the components that markup can create by tag (`<ui-button>`,

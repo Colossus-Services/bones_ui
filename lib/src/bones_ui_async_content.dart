@@ -248,7 +248,9 @@ class UIAsyncContent {
   }
 
   void _refreshImpl(bool fromRefresh) {
-    if (_asyncContentProvider == null) return;
+    // Stopped ([stop]): no refresh, also one already scheduled (a [reset]
+    // still loads it again).
+    if (_asyncContentProvider == null || (fromRefresh && _stopped)) return;
     _callContentProvider(fromRefresh);
   }
 

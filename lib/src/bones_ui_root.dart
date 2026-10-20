@@ -116,7 +116,13 @@ abstract class UIRootComponent extends UIComponent {
   void _onPurgedUIComponents(Map<Node, UIComponent> purgedEntries) {
     for (var e in purgedEntries.entries) {
       final component = e.value;
-      component.dispose();
+      // One failing `dispose` doesn't stop the others (nor `purgeRoot`,
+      // awaited by `UIRoot.close`):
+      try {
+        component.dispose();
+      } catch (e, s) {
+        UIConsole.error('Error disposing purged component: $component', e, s);
+      }
     }
   }
 
@@ -532,31 +538,94 @@ abstract class UIRoot extends UIRootComponent {
   /// - See [close] and [closeOperations].
   bool get isClosed => _closed;
 
-  FutureOr<bool> close({bool refreshAfterClose = true}) {
+  /// Closes this [UIRoot], returning `true`, or `false` if already closed.
+  ///
+  /// The returned [Future] completes once it's shut down:
+  /// 1. The [closeOperations] (by default: [clear]).
+  /// 2. Its [UIComponent]s are disposed ([UIComponent.dispose]), and their
+  ///    [UIAsyncContent]s stopped, also their auto refresh
+  ///    ([UIComponent.stopUIAsyncContents]): they no longer load, refresh or
+  ///    keep timers.
+  /// 3. Its tree is purged ([purgeRoot]).
+  /// 4. If [refreshAfterClose], it's rendered closed ([renderClosed]).
+  /// 5. [onClose] is notified.
+  ///
+  /// See [isClosed] and [whenIdle].
+  FutureOr<bool> close({bool refreshAfterClose = true}) async {
     if (_closed) return false;
     _closed = true;
 
-    var ret = closeOperations();
+    // Before the close operations (clearing their content):
+    final components = subUIComponentsDeeply.toList();
 
-    if (ret is Future<bool>) {
-      return ret.then((value) {
-        purgeRoot(disposePurgedComponents: true);
-        if (refreshAfterClose) {
-          refresh(forceRender: true, clearPreservedRender: true);
-        }
-        UIConsole.log('UIRoot> closed!');
-        onClose.add(this);
-        return true;
-      });
-    } else {
-      purgeRoot(disposePurgedComponents: true);
-      if (refreshAfterClose) {
-        refresh(forceRender: true, clearPreservedRender: true);
-      }
-      UIConsole.log('UIRoot> closed!');
-      onClose.add(this);
-      return true;
+    await closeOperations();
+
+    _shutdownComponents(components);
+
+    await purgeRoot(disposePurgedComponents: true);
+
+    if (refreshAfterClose) {
+      var rendered = waitRender();
+      refresh(forceRender: true, clearPreservedRender: true);
+      await rendered;
     }
+
+    UIConsole.log('UIRoot> closed!');
+    onClose.add(this);
+    return true;
+  }
+
+  void _shutdownComponents(List<UIComponent> components) {
+    stopUIAsyncContents();
+
+    for (var component in components) {
+      try {
+        component.stopUIAsyncContents();
+        component.dispose();
+      } catch (e, s) {
+        UIConsole.error('Error shutting down component: $component', e, s);
+      }
+    }
+  }
+
+  /// Waits until this [UIRoot] is idle, returning `true`, or `false` after
+  /// [timeout]:
+  /// - No [UIComponent] rendering ([isAnyComponentRendering]).
+  /// - No [UIAsyncContent] still loading for the first time
+  ///   ([UIComponent.hasPendingUIAsyncContent]). A loaded content with auto
+  ///   refresh doesn't count: it never finishes.
+  /// - No render in the last [quietTime] ([UIComponent.lastRenderTime]).
+  ///
+  /// Timers of the components themselves (e.g. a delayed selection) aren't
+  /// tracked: [close] disposes the components.
+  Future<bool> whenIdle({
+    Duration timeout = const Duration(seconds: 5),
+    Duration quietTime = const Duration(milliseconds: 100),
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+
+    while (true) {
+      if (_isIdle(quietTime)) return true;
+      if (!DateTime.now().isBefore(deadline)) return false;
+      await Future.delayed(const Duration(milliseconds: 20));
+    }
+  }
+
+  bool _isIdle(Duration quietTime) {
+    if (isRendering || hasPendingUIAsyncContent || isAnyComponentRendering) {
+      return false;
+    }
+
+    for (var component in subUIComponentsDeeply) {
+      if (component.isRendering || component.hasPendingUIAsyncContent) {
+        return false;
+      }
+    }
+
+    var sinceLastRender =
+        DateTime.now().millisecondsSinceEpoch - UIComponent.lastRenderTime;
+
+    return sinceLastRender >= quietTime.inMilliseconds;
   }
 
   /// Customizable close operations.

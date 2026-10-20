@@ -1988,7 +1988,9 @@ abstract class UIComponent extends UIEventHandler {
 
   Completer<bool>? _waitingRender;
 
-  Future<bool> waiteRender({Duration timeout = const Duration(seconds: 3)}) {
+  /// Waits for the next render of this component (its synchronous part),
+  /// returning `true`, or `false` after [timeout] (no timeout if zero).
+  Future<bool> waitRender({Duration timeout = const Duration(seconds: 3)}) {
     var waitingRender = _waitingRender ??= Completer<bool>();
 
     if (timeout.inMilliseconds >= 1) {
@@ -1998,10 +2000,15 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  /// The previous (misspelled) name of [waitRender].
+  @Deprecated('Use `waitRender`')
+  Future<bool> waiteRender({Duration timeout = const Duration(seconds: 3)}) =>
+      waitRender(timeout: timeout);
+
   Future<bool> callRenderAndWait({
     Duration timeout = const Duration(seconds: 3),
   }) {
-    var wait = waiteRender(timeout: timeout);
+    var wait = waitRender(timeout: timeout);
     callRender();
     return wait;
   }
@@ -2028,6 +2035,10 @@ abstract class UIComponent extends UIEventHandler {
   EventStream<dynamic> get onChange => _onChange ??= EventStream();
 
   static int _lastRenderTime = DateTime.now().millisecondsSinceEpoch;
+
+  /// When the last render of any [UIComponent] happened (milliseconds since
+  /// epoch). See [UIRoot.whenIdle].
+  static int get lastRenderTime => _lastRenderTime;
 
   static bool _renderFinished = true;
 
@@ -2543,6 +2554,40 @@ abstract class UIComponent extends UIEventHandler {
 
   bool get isLoadingUIAsyncContent =>
       _loadingAsyncContents?.isNotEmpty ?? false;
+
+  /// Whether a [UIAsyncContent] of this component is still loading for the
+  /// first time (not loaded, not with error, not stopped). Unlike
+  /// [isLoadingUIAsyncContent], a loaded content with auto refresh is not
+  /// pending: it never finishes. See [UIRoot.whenIdle].
+  bool get hasPendingUIAsyncContent {
+    final loadingAsyncContents = _loadingAsyncContents;
+    if (loadingAsyncContents == null || loadingAsyncContents.isEmpty) {
+      return false;
+    }
+    return loadingAsyncContents.any(
+      (c) => !c.isLoaded && !c.isWithError && !c.stopped,
+    );
+  }
+
+  /// Stops the [UIAsyncContent]s of this component, also their auto refresh
+  /// ([UIAsyncContent.stop]), and no longer keeps it alive for them in its
+  /// root's tree (see [isLoadingUIAsyncContent]). Called by [UIRoot.close].
+  void stopUIAsyncContents() {
+    final loadingAsyncContents = _loadingAsyncContents;
+    if (loadingAsyncContents != null) {
+      for (var c in loadingAsyncContents) {
+        c.stop();
+      }
+      loadingAsyncContents.clear();
+    }
+
+    final renderedAsyncContents = _renderedAsyncContents;
+    if (renderedAsyncContents != null) {
+      for (var c in renderedAsyncContents.keys) {
+        c.stop();
+      }
+    }
+  }
 
   void _resolveUIAsyncContentLoaded(
     UIAsyncContent asyncContent,

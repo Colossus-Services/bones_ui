@@ -1051,16 +1051,378 @@ void main() {
       var selection = await newSelection();
 
       var inputElem = input(selection);
+      // Shown, the panel is in the `body` (not in the component):
+      var panelElem = panel(selection);
       inputElem.value = 'gam';
       inputElem.dispatchEvent(web.KeyboardEvent('keyup'));
 
-      expect(panel(selection).style.display, equals(''));
-      var labels = panel(selection).querySelectorAll('label').toElements();
+      expect(panelElem.style.display, equals(''));
+      var labels = panelElem.querySelectorAll('label').toElements();
       expect(labels.first.textContent, equals('Gamma'));
-      expect(panel(selection).querySelector('hr'), isNotNull);
+      expect(panelElem.querySelector('hr'), isNotNull);
 
       inputElem.click();
       expect(inputElem.value, isEmpty);
+
+      selection.dispose();
+      expect(panelElem.style.display, equals('none'));
+      expect(panelElem.parentNode, isNot(equals(web.document.body)));
+    });
+
+    // Regression: the panel was shown inside the component, positioned in
+    // page coordinates: under an ancestor that is the containing block of
+    // absolute elements (a `backdrop-filter`) it was displaced by that
+    // ancestor's offset, and the ancestor's `overflow` clipped it (not seen).
+    group('options panel placement', () {
+      /// A selection in a panel like an app's "glass" panel: a
+      /// `backdrop-filter` (the containing block of absolute elements) and an
+      /// `overflow` (clipping), offset in the page, after [spaceBefore] and
+      /// followed by [spaceAfter] (to scroll the page).
+      Future<UIMultiSelection> newBoxedSelection({
+        int spaceBefore = 150,
+        int spaceAfter = 0,
+        bool multiSelection = true,
+        Duration selectionMaxDelay = const Duration(milliseconds: 50),
+        web.HTMLElement? parent,
+      }) async {
+        var holder = parent ?? newHolder();
+        var box = web.HTMLDivElement()
+          ..style.marginTop = '${spaceBefore}px'
+          ..style.marginLeft = '80px'
+          ..style.marginBottom = '${spaceAfter}px'
+          ..style.padding = '12px'
+          ..style.width = '300px'
+          ..style.overflowX = 'auto'
+          ..style.setProperty('backdrop-filter', 'saturate(130%)')
+          ..style.color = 'rgb(1, 2, 3)'
+          ..style.fontSize = '17px'
+          ..style.fontWeight = '700';
+        holder.append(box);
+
+        var selection = UIMultiSelection(
+          box,
+          {'a': 'Alpha', 'b': 'Beta'},
+          multiSelection: multiSelection,
+          selectionMaxDelay: selectionMaxDelay,
+        );
+        await selection.callRenderAndWait();
+        // No panel (nor its visibility check) left in the `body`:
+        addTearDown(selection.dispose);
+        return selection;
+      }
+
+      void scrollPageTo(num y) {
+        var page = web.document.scrollingElement!;
+        page.scrollTop = y;
+        addTearDown(() => page.scrollTop = 0);
+      }
+
+      void expectUnderInput(web.HTMLElement inputElem, web.HTMLElement panel) {
+        var inputRect = inputElem.getBoundingClientRect();
+        var panelRect = panel.getBoundingClientRect();
+        expect(panelRect.left, closeTo(inputRect.left, 1));
+        expect(panelRect.top, closeTo(inputRect.bottom, 1));
+        expect(panelRect.height, greaterThan(0));
+      }
+
+      test('shown under the input, out of a clipping ancestor', () async {
+        var selection = await newBoxedSelection();
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        inputElem.click();
+        expect(panelElem.style.display, equals(''));
+        expectUnderInput(inputElem, panelElem);
+        expect(panelElem.parentNode, equals(web.document.body));
+
+        // The component's font and color (inherited inside it), and the
+        // default background:
+        var computed = panelElem.getComputedStyle();
+        expect(computed.color, equals('rgb(1, 2, 3)'));
+        expect(computed.fontSize, equals('17px'));
+        expect(computed.fontWeight, equals('700'));
+        expect(computed.backgroundColor, equals('rgba(255, 255, 255, 0.9)'));
+
+        // Not as inline styles (an app rule couldn't override them):
+        expect(panelElem.style.color, isEmpty);
+        expect(panelElem.style.backgroundColor, isEmpty);
+
+        // Its options still work from the `body`:
+        (panelElem.querySelector('input') as web.HTMLElement).click();
+        expect(selection.selectedIDs, equals(['a']));
+
+        // Hidden, it is back in the component, after the input, without the
+        // passed properties:
+        inputElem.dispatchEvent(web.MouseEvent('mouseleave'));
+        await testUISleep(ms: 60);
+        expect(panelElem.style.display, equals('none'));
+        expect(inputElem.nextSibling, equals(panelElem));
+        expect(
+          panelElem.style.getPropertyValue('--ui-multi-selection-color'),
+          isEmpty,
+        );
+        expect(inputElem.value, equals('Alpha'));
+      });
+
+      // Regression: the default background was an inline style, so an app's
+      // `.ui-multi-selection-options-menu` rule never applied (on a dark
+      // theme: its light text over the default white background).
+      test("the app's CSS overrides the panel's defaults", () async {
+        var appStyle = web.HTMLStyleElement()
+          ..textContent =
+              '.ui-multi-selection-options-menu {'
+              ' background-color: rgb(10, 20, 30);'
+              ' color: rgb(200, 201, 202);'
+              ' font-size: 13px;'
+              '}';
+        web.document.head!.append(appStyle);
+        addTearDown(() => appStyle.remove());
+
+        var selection = await newBoxedSelection();
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        inputElem.click();
+        expect(panelElem.parentNode, equals(web.document.body));
+
+        var computed = panelElem.getComputedStyle();
+        expect(computed.backgroundColor, equals('rgb(10, 20, 30)'));
+        expect(computed.color, equals('rgb(200, 201, 202)'));
+        expect(computed.fontSize, equals('13px'));
+        // Not set by the app: still the component's.
+        expect(computed.fontWeight, equals('700'));
+      });
+
+      test('a scrolled page', () async {
+        var selection = await newBoxedSelection(
+          spaceBefore: 800,
+          spaceAfter: 3000,
+        );
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        // The input 100px below the top of the viewport (room below it to
+        // show the panel there, whatever the viewport's height):
+        var inputPageTop =
+            inputElem.getBoundingClientRect().top + web.window.scrollY;
+        scrollPageTo(inputPageTop - 100);
+        expect(web.window.scrollY, greaterThan(0));
+        expect(inputElem.getBoundingClientRect().top, closeTo(100, 1));
+
+        inputElem.click();
+        expectUnderInput(inputElem, panelElem);
+      });
+
+      // Page coordinates are relative to the document only while the `body`
+      // isn't positioned: then the position is corrected.
+      test('a positioned body', () async {
+        var bodyStyle = web.document.body!.style;
+        var position = bodyStyle.position;
+        var marginLeft = bodyStyle.marginLeft;
+        var marginTop = bodyStyle.marginTop;
+        bodyStyle
+          ..position = 'relative'
+          ..marginLeft = '37px'
+          ..marginTop = '23px';
+        addTearDown(() {
+          bodyStyle
+            ..position = position
+            ..marginLeft = marginLeft
+            ..marginTop = marginTop;
+        });
+
+        var selection = await newBoxedSelection();
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        inputElem.click();
+        expectUnderInput(inputElem, panelElem);
+      });
+
+      test('above the input, near the bottom of the viewport', () async {
+        var selection = await newBoxedSelection(
+          spaceBefore: 1500,
+          spaceAfter: 3000,
+        );
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        // The input 60px above the bottom of the viewport:
+        var inputPageTop =
+            inputElem.getBoundingClientRect().top + web.window.scrollY;
+        scrollPageTo(inputPageTop - (web.window.innerHeight - 60));
+
+        inputElem.click();
+
+        var inputRect = inputElem.getBoundingClientRect();
+        var panelRect = panelElem.getBoundingClientRect();
+        expect(inputRect.bottom, lessThanOrEqualTo(web.window.innerHeight));
+        expect(panelRect.left, closeTo(inputRect.left, 1));
+        expect(panelRect.bottom, closeTo(inputRect.top, 1));
+        expect(panelRect.height, greaterThan(0));
+      });
+
+      // As before (rendered inside the component, it stayed shown): e.g. the
+      // options set while the user has the panel open.
+      test('a new render keeps it shown, with the new options', () async {
+        var selection = await newBoxedSelection();
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        inputElem.click();
+        expect(panelElem.parentNode, equals(web.document.body));
+
+        selection.options = {'x': 'Xi', 'y': 'Upsilon'};
+        await testUISleep(ms: 100);
+
+        expect(panelElem.style.display, equals(''));
+        expect(panelElem.parentNode, equals(web.document.body));
+        expect(panelElem.textContent, contains('Upsilon'));
+        expectUnderInput(input(selection), panelElem);
+
+        // Still checked by its visibility check (not left in the `body`):
+        selection.content!.parentElement!.remove();
+        await testUISleep(ms: 400);
+        expect(panelElem.isConnected, isFalse);
+
+        // Hidden, a new render returns it to the component:
+        newHolder().append(selection.content!.parentElement!);
+        selection.options = {'z': 'Zeta'};
+        await testUISleep(ms: 100);
+        expect(panelElem.style.display, equals('none'));
+        expect(selection.content!.contains(panelElem), isTrue);
+        expect(panelElem.textContent, contains('Zeta'));
+      });
+
+      // No `mouseleave` hides it for an input removed from the document.
+      test('a removed component does not leave it in the body', () async {
+        var selection = await newBoxedSelection(
+          selectionMaxDelay: Duration(milliseconds: 800),
+        );
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        var selects = 0;
+        selection.onSelect.listen((_) => selects++);
+
+        inputElem.click();
+        expect(panelElem.parentNode, equals(web.document.body));
+        (panelElem.querySelector('input') as web.HTMLElement).click();
+
+        selection.content!.parentElement!.remove();
+        await testUISleep(ms: 400);
+
+        expect(panelElem.style.display, equals('none'));
+        expect(panelElem.isConnected, isFalse);
+
+        // Nor shown again while the input is out of the document:
+        inputElem.click();
+        expect(panelElem.style.display, equals('none'));
+        expect(panelElem.isConnected, isFalse);
+
+        // Its pending selection isn't notified (removed), also after the
+        // selection delay:
+        await testUISleep(ms: 800);
+        expect(selects, equals(0));
+      });
+
+      // Regression (seen on CI): removed under the pointer, the browser fires
+      // a `mouseleave` before the visibility check runs; that hide notified
+      // the pending selection of the removed component.
+      test('a removed component under the pointer notifies nothing', () async {
+        var selection = await newBoxedSelection(
+          selectionMaxDelay: Duration(milliseconds: 300),
+        );
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        var selects = 0;
+        selection.onSelect.listen((_) => selects++);
+
+        inputElem.click();
+        (panelElem.querySelector('input') as web.HTMLElement).click();
+
+        selection.content!.parentElement!.remove();
+        // The pointer leaves both, before any visibility check (250ms):
+        panelElem.dispatchEvent(web.MouseEvent('mouseleave'));
+        inputElem.dispatchEvent(web.MouseEvent('mouseleave'));
+        await testUISleep(ms: 60);
+
+        expect(panelElem.style.display, equals('none'));
+        expect(panelElem.isConnected, isFalse);
+
+        // Not now, nor after the selection delay:
+        await testUISleep(ms: 500);
+        expect(selects, equals(0));
+      });
+
+      // E.g. in a dialog hidden (`display: none`) while the panel is open:
+      // inside the component, the panel was hidden with it.
+      test('a hidden ancestor hides it', () async {
+        var selection = await newBoxedSelection(
+          selectionMaxDelay: Duration(seconds: 5),
+        );
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        var selects = 0;
+        selection.onSelect.listen((_) => selects++);
+
+        inputElem.click();
+        (panelElem.querySelector('input') as web.HTMLElement).click();
+
+        var box = selection.content!.parentElement! as web.HTMLElement;
+        box.style.display = 'none';
+        await testUISleep(ms: 400);
+
+        expect(panelElem.style.display, equals('none'));
+        // Back in the component (still in the document):
+        expect(selection.content!.contains(panelElem), isTrue);
+        // Its selection notified, as when the panel hides:
+        expect(selects, equals(1));
+        expect(inputElem.value, equals('Alpha'));
+      });
+
+      test('a window resize keeps it under the input', () async {
+        var selection = await newBoxedSelection();
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        inputElem.click();
+        expectUnderInput(inputElem, panelElem);
+
+        // The input moves (a layout change) and the window is resized:
+        (selection.content!.parentElement! as web.HTMLElement)
+                .style
+                .marginLeft =
+            '140px';
+        web.window.dispatchEvent(web.Event('resize'));
+        expectUnderInput(inputElem, panelElem);
+      });
+
+      // Radios in the `body` change group (their form owner): an instance in
+      // a `<form>` and one out of it shared the group, unchecking each
+      // other's selection.
+      test('single selections in and out of a form keep theirs', () async {
+        var form = web.HTMLFormElement();
+        newHolder().append(form);
+
+        var inForm = await newBoxedSelection(
+          multiSelection: false,
+          parent: form,
+        );
+        var outOfForm = await newBoxedSelection(multiSelection: false);
+
+        outOfForm.checkByID('a', true);
+
+        var inFormPanel = panel(inForm);
+        input(inForm).click();
+        expect(inFormPanel.parentNode, equals(web.document.body));
+        (inFormPanel.querySelector('input') as web.HTMLElement).click();
+        expect(inForm.selectedIDs, equals(['a']));
+
+        expect(outOfForm.selectedIDs, equals(['a']));
+      });
     });
 
     test('input value (allowInputValue)', () async {
