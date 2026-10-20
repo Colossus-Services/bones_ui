@@ -45,15 +45,26 @@ bool isHeadlessUI() {
 }
 
 /// Initializes the test [UIRoot] using the [uiRootInstantiator] to instantiate it.
+///
+/// - If [closeOnTearDown] (the default), the root is shut down after the
+///   tests, once idle: [UIRoot.whenIdle], then [UIRoot.close] (its
+///   components disposed, their async contents stopped). Called in a
+///   `setUpAll` (as usual), it's after all the tests of that `setUpAll`'s
+///   group (the whole file for a top-level one); called in a test, after that
+///   test. It runs before the group's own `tearDownAll`s. Without it, a test
+///   file ended with the root's renders, async contents and timers still
+///   pending.
 Future<U> initializeTestUIRoot<U extends UIRoot>(
   U Function(UIElement rootContainer) uiRootInstantiator, {
   String outputDivID = 'test-output',
   Duration initialRenderTimeout = const Duration(seconds: 5),
+  bool closeOnTearDown = true,
 }) => _chainCapture(
   () => _initializeTestUIRootImpl<U>(
     uiRootInstantiator,
     outputDivID,
     initialRenderTimeout,
+    closeOnTearDown,
   ),
 );
 
@@ -61,6 +72,7 @@ Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
   U Function(UIElement rootContainer) uiRootInstantiator,
   String outputDivID,
   Duration initialRenderTimeout,
+  bool closeOnTearDown,
 ) async {
   printTestToolTitle();
 
@@ -107,6 +119,11 @@ Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
   var uiRoot = uiRootInstantiator(output);
   print('-- Instantiated: $uiRoot');
 
+  // Only inside a test (or `setUpAll`): `addTearDown` needs one.
+  if (closeOnTearDown && pkg_test_invoker.Invoker.current != null) {
+    pkg_test.addTearDown(() => _shutdownTestUIRoot(uiRoot));
+  }
+
   uiRoot.content!.classList.add('__bones_ui_test__');
 
   uiRoot.initialize();
@@ -128,6 +145,24 @@ Future<U> _initializeTestUIRootImpl<U extends UIRoot>(
   print('-- Initialized: $uiRoot');
 
   return uiRoot;
+}
+
+/// Shuts down a test [UIRoot] after its tests ([initializeTestUIRoot]): once
+/// idle (the last test's async work done), it's closed.
+Future<void> _shutdownTestUIRoot(UIRoot uiRoot) async {
+  if (uiRoot.isClosed) return;
+
+  var idle = await uiRoot.whenIdle(timeout: const Duration(seconds: 3));
+  if (!idle) {
+    print('** Test `UIRoot` not idle after 3s, closing it: $uiRoot');
+  }
+
+  await uiRoot.close();
+
+  // For the one-shot timers of the framework:
+  await Future.delayed(const Duration(milliseconds: 50));
+
+  print('-- Closed: $uiRoot');
 }
 
 /// Clears the DIV with the ID ([outputDivID]).

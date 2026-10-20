@@ -1,3 +1,44 @@
+## 3.1.8
+
+- `UIRoot.close`: the returned `Future` completes once the root is shut down. It returned at once (`true`),
+  without awaiting the purge of its tree nor its closed render, and its components kept running: `clear` only
+  removes their elements, so their timers kept going and their async contents kept loading and auto refreshing
+  (also keeping them alive in the tree, never purged nor disposed). Now, in order:
+  - the `closeOperations` (by default `clear`);
+  - its components are disposed (`dispose`), and their `UIAsyncContent`s stopped, also their auto refresh (new
+    `UIComponent.stopUIAsyncContents`);
+  - its tree is purged (`purgeRoot`), awaited;
+  - its closed render (`renderClosed`), awaited, then `onClose`.
+
+  A component whose `dispose` throws is logged and doesn't stop the others, nor `close` (also when purged by
+  `purgeRoot`, now awaited).
+- New `UIRoot.whenIdle({timeout, quietTime})`: waits until no component is rendering, no `UIAsyncContent` is still
+  loading for the first time (new `UIComponent.hasPendingUIAsyncContent`; a loaded one with auto refresh doesn't
+  count, it never finishes) and no render happened in the last `quietTime` (new `UIComponent.lastRenderTime`).
+  Returns `false` on timeout.
+- `UIComponent.waitRender`: the misspelled `waiteRender` renamed; `waiteRender` is kept, deprecated, calling it.
+- `UIAsyncContent.stop`: also a refresh already scheduled is ignored (it still loaded once more). `reset` still
+  loads it again.
+- `UIMultiSelection`: a removed component (its input out of the document) no longer notifies its pending selection
+  on any hide of the options panel. Removed under the pointer, the browser fires a `mouseleave` before the
+  visibility check (3.1.7), and that hide notified it (`onSelect` / `onChange` of a removed component).
+- Test tools: `initializeTestUIRoot` shuts its root down after the tests (new `closeOnTearDown`, default `true`):
+  once idle (`whenIdle`), it's closed. Called in a `setUpAll`, after all the tests of that `setUpAll`'s group (the
+  whole file for a top-level one); called in a test, after that test; before the group's own `tearDownAll`s.
+  Without it, a test file ended with its root's renders, async contents and timers still pending: with test files
+  run in parallel, the coverage missed the lines they ran late, and timing tests were flaky.
+- Tests:
+  - New `bones_ui_root_close_test.dart`: when `close` returns, the components are disposed, an auto refresh is
+    stopped, an open `UIMultiSelection` panel is gone and the root is rendered closed (`onClose` after it); a
+    pending async content is stopped (not rendered later); a failing `dispose` doesn't stop the shutdown;
+    `whenIdle` while an async content (of a component, or of the root itself) loads and once loaded, and with a
+    loaded auto refresh.
+  - New `bones_ui_test_tools_teardown_test.dart`: a root initialized in a group's `setUpAll` is open during its
+    group and closed (its components disposed) after it; `closeOnTearDown: false` keeps it open; a root
+    initialized in a test is closed after that test, also one never idle (after the idle timeout).
+  - `bones_ui_components_b_test.dart`: a removed `UIMultiSelection` under the pointer (a `mouseleave` before the
+    visibility check) notifies nothing; it failed on 3.1.7, as the removed-component test did on CI.
+
 ## 3.1.7
 
 - `UIMultiSelection`: the options panel is shown attached to the document's `body`, and returns to the component

@@ -1109,21 +1109,27 @@ void main() {
       expect(c.content!.isConnected, isFalse);
     });
 
-    test('onRender / waiteRender / callRenderAndWait', () async {
+    test('onRender / waitRender / callRenderAndWait', () async {
       var c = _CountingComponent(uiRoot.content);
       var onRender = c.onRender.first;
       expect(await c.callRenderAndWait(), isTrue);
       expect(await onRender, same(c));
 
-      var wait = c.waiteRender(timeout: Duration.zero);
+      var wait = c.waitRender(timeout: Duration.zero);
       c.refresh();
       expect(await wait, isTrue);
 
       expect(
-        await c.waiteRender(timeout: Duration(milliseconds: 10)),
+        await c.waitRender(timeout: Duration(milliseconds: 10)),
         isFalse,
         reason: 'timeout',
       );
+
+      // The deprecated (misspelled) name still works:
+      // ignore: deprecated_member_use_from_same_package
+      var waitDeprecated = c.waiteRender(timeout: Duration.zero);
+      c.refresh();
+      expect(await waitDeprecated, isTrue);
     });
 
     test('preserveRender', () async {

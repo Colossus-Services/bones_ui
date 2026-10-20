@@ -1320,8 +1320,39 @@ void main() {
         expect(panelElem.style.display, equals('none'));
         expect(panelElem.isConnected, isFalse);
 
-        // Its pending selection isn't notified (removed):
+        // Its pending selection isn't notified (removed), also after the
+        // selection delay:
         await testUISleep(ms: 800);
+        expect(selects, equals(0));
+      });
+
+      // Regression (seen on CI): removed under the pointer, the browser fires
+      // a `mouseleave` before the visibility check runs; that hide notified
+      // the pending selection of the removed component.
+      test('a removed component under the pointer notifies nothing', () async {
+        var selection = await newBoxedSelection(
+          selectionMaxDelay: Duration(milliseconds: 300),
+        );
+        var inputElem = input(selection);
+        var panelElem = panel(selection);
+
+        var selects = 0;
+        selection.onSelect.listen((_) => selects++);
+
+        inputElem.click();
+        (panelElem.querySelector('input') as web.HTMLElement).click();
+
+        selection.content!.parentElement!.remove();
+        // The pointer leaves both, before any visibility check (250ms):
+        panelElem.dispatchEvent(web.MouseEvent('mouseleave'));
+        inputElem.dispatchEvent(web.MouseEvent('mouseleave'));
+        await testUISleep(ms: 60);
+
+        expect(panelElem.style.display, equals('none'));
+        expect(panelElem.isConnected, isFalse);
+
+        // Not now, nor after the selection delay:
+        await testUISleep(ms: 500);
         expect(selects, equals(0));
       });
 
