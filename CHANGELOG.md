@@ -18,6 +18,9 @@
   Returns `false` on timeout.
 - `UIAsyncContent.stop`: also a refresh already scheduled is ignored (it still loaded once more). `reset` still
   loads it again.
+- `UIMultiSelection`: a removed component (its input out of the document) no longer notifies its pending selection
+  on any hide of the options panel. Removed under the pointer, the browser fires a `mouseleave` before the
+  visibility check (3.1.7), and that hide notified it (`onSelect` / `onChange` of a removed component).
 - Test tools: `initializeTestUIRoot` shuts its root down after the tests (new `closeOnTearDown`, default `true`):
   once idle (`whenIdle`), it's closed. Called in a `setUpAll`, after all the tests of that `setUpAll`'s group (the
   whole file for a top-level one); called in a test, after that test; before the group's own `tearDownAll`s.
@@ -32,8 +35,8 @@
   - New `bones_ui_test_tools_teardown_test.dart`: a root initialized in a group's `setUpAll` is open during its
     group and closed (its components disposed) after it; `closeOnTearDown: false` keeps it open; a root
     initialized in a test is closed after that test, also one never idle (after the idle timeout).
-  - `bones_ui_components_b_test.dart`: the removed `UIMultiSelection` test uses a selection delay far beyond the
-    visibility check (it was flaky on CI).
+  - `bones_ui_components_b_test.dart`: a removed `UIMultiSelection` under the pointer (a `mouseleave` before the
+    visibility check) notifies nothing; it failed on 3.1.7, as the removed-component test did on CI.
 
 ## 3.1.7
 

@@ -700,7 +700,15 @@ class UIMultiSelection extends UIComponent implements UIField<List<String?>> {
       _optionsPanel!.style.display = 'none';
       _detachOptionsPanel();
       _updateElementText();
-      _optionsPanelInteractionCompleter.triggerIfHasInteraction();
+
+      if (_input!.isConnected) {
+        _optionsPanelInteractionCompleter.triggerIfHasInteraction();
+      } else {
+        // A removed component: its pending selection isn't notified, on any
+        // hide (e.g. a `mouseleave` the browser fires when the removed
+        // input was under the pointer, before the visibility check).
+        _optionsPanelInteractionCompleter.cancel();
+      }
     } else {
       _attachOptionsPanel();
       // Shown before positioned: its position is checked by where it landed.
