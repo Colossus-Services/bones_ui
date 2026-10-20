@@ -565,7 +565,7 @@ abstract class UIRoot extends UIRootComponent {
     await purgeRoot(disposePurgedComponents: true);
 
     if (refreshAfterClose) {
-      var rendered = waiteRender();
+      var rendered = waitRender();
       refresh(forceRender: true, clearPreservedRender: true);
       await rendered;
     }

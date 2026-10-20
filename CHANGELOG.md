@@ -16,6 +16,7 @@
   loading for the first time (new `UIComponent.hasPendingUIAsyncContent`; a loaded one with auto refresh doesn't
   count, it never finishes) and no render happened in the last `quietTime` (new `UIComponent.lastRenderTime`).
   Returns `false` on timeout.
+- `UIComponent.waitRender`: the misspelled `waiteRender` renamed; `waiteRender` is kept, deprecated, calling it.
 - `UIAsyncContent.stop`: also a refresh already scheduled is ignored (it still loaded once more). `reset` still
   loads it again.
 - `UIMultiSelection`: a removed component (its input out of the document) no longer notifies its pending selection

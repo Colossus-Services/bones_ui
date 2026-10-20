@@ -1988,7 +1988,9 @@ abstract class UIComponent extends UIEventHandler {
 
   Completer<bool>? _waitingRender;
 
-  Future<bool> waiteRender({Duration timeout = const Duration(seconds: 3)}) {
+  /// Waits for the next render of this component (its synchronous part),
+  /// returning `true`, or `false` after [timeout] (no timeout if zero).
+  Future<bool> waitRender({Duration timeout = const Duration(seconds: 3)}) {
     var waitingRender = _waitingRender ??= Completer<bool>();
 
     if (timeout.inMilliseconds >= 1) {
@@ -1998,10 +2000,15 @@ abstract class UIComponent extends UIEventHandler {
     }
   }
 
+  /// The previous (misspelled) name of [waitRender].
+  @Deprecated('Use `waitRender`')
+  Future<bool> waiteRender({Duration timeout = const Duration(seconds: 3)}) =>
+      waitRender(timeout: timeout);
+
   Future<bool> callRenderAndWait({
     Duration timeout = const Duration(seconds: 3),
   }) {
-    var wait = waiteRender(timeout: timeout);
+    var wait = waitRender(timeout: timeout);
     callRender();
     return wait;
   }
