@@ -1091,7 +1091,9 @@ class _DocumentLog {
       decompressed = true;
       content = content.trim();
       var compressed = base64.decode(content);
-      var bytes = GZipDecoder().decodeBytes(compressed);
+      // `throwOnError`: since `archive` 4.6.0 damaged data no longer throws
+      // by default (it decodes partially).
+      var bytes = GZipDecoder().decodeBytes(compressed, throwOnError: true);
       content = utf8.decode(bytes);
     }
 
