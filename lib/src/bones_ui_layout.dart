@@ -11,7 +11,9 @@ typedef ElementPropertyResolver = dynamic Function(
 );
 
 class ValueUnitExpression extends SimpleExpression {
-  static String? getUnit(Expression? a, Expression? b) {
+  // `Object?`: an operand can be an evaluated value (like the `int` of a
+  // nested `(2 + 3)`), which threw a `TypeError` as an `Expression?`.
+  static String? getUnit(Object? a, Object? b) {
     if (a is ValueUnitExpression && b is ValueUnitExpression) {
       var unitA = a.unit;
       var unitB = b.unit;

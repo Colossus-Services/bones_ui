@@ -451,21 +451,28 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     _CapturedData capturedData,
     HTMLImageElement image,
   ) async {
+    // Whether [image] was replaced by an edited one (then it's not
+    // [capturedData] anymore, and is always encoded):
+    var imageReplaced = false;
+
     if (editCapture) {
       await yeld();
 
       var photoEditor = this.photoEditor;
       if (photoEditor != null) {
         var imageEdited = await photoEditor(image);
-        if (imageEdited != null) {
+        if (imageEdited != null && imageEdited != image) {
           image = imageEdited;
+          imageReplaced = true;
         }
       } else {
         var dialogEdit = UIDialogEditImage(image);
         await yeld();
         var edited = await dialogEdit.showAndWait();
-        if (edited) {
-          image = dialogEdit.editedImage ?? image;
+        var editedImage = edited ? dialogEdit.editedImage : null;
+        if (editedImage != null) {
+          image = editedImage;
+          imageReplaced = true;
         }
       }
     }
@@ -523,7 +530,9 @@ abstract class UICapture extends UIButtonBase implements UIField<String> {
     var maxW = captureMaxWidth ?? imgW;
     var maxH = captureMaxHeight ?? imgH;
 
-    if (imgW <= maxW && imgH <= maxH && imgSrc == image) {
+    // An edited image is never the original `capturedData` (it was returned
+    // here, discarding the edition):
+    if (imgW <= maxW && imgH <= maxH && imgSrc == image && !imageReplaced) {
       return capturedData;
     }
 

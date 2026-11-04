@@ -1285,6 +1285,10 @@ class BUIManifest {
 
   Map<String, DataSource>? _dataSources;
 
+  /// The `data-sources` of the manifest (by ID), once loaded.
+  Map<String, DataSource>? get dataSources =>
+      _dataSources != null ? Map.unmodifiable(_dataSources!) : null;
+
   Future<void> _loadDataSources() async {
     var manifestTree = await getManifestTree() ?? {};
 
@@ -1317,7 +1321,7 @@ class BUIManifest {
         dataSources[dataSource.id] = dataSource;
       }
 
-      _dataSources = _dataSources;
+      _dataSources = dataSources;
     }
   }
 
