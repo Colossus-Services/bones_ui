@@ -937,7 +937,9 @@ BUIViewProvider _loadBUIZipIntoViewProvider(
   Uint8List bytes, [
   BUIViewProvider? viewProvider,
 ]) {
-  final archive = ZipDecoder().decodeBytes(bytes);
+  // `throwOnError`: since `archive` 4.6.0 a damaged zip no longer throws by
+  // default (it decodes partially), and a damaged BUI zip must fail to load.
+  final archive = ZipDecoder().decodeBytes(bytes, throwOnError: true);
 
   DataAssets? dataAssets;
   if (viewProvider == null) {
