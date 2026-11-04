@@ -1,3 +1,10 @@
+## 3.1.10
+
+- swiss_knife: ^3.4.1
+  - Bug fixes in APIs used by bones_ui: `decodeQueryString` (values containing `=`),
+    `ResourceContent.fromURI(null, ...)`, `ResourceContentCache` (content-only resources),
+    `MimeType.parse` (`xhtml`) and `Parameters2.hashCode`.
+
 ## 3.1.9
 
 - `archive: ^4.6.0`: its decoders no longer throw on damaged data by default (they decode partially). The BUI zip
