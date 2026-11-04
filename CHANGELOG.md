@@ -1,3 +1,17 @@
+## 3.1.9
+
+- `archive: ^4.6.0`: its decoders no longer throw on damaged data by default (they decode partially). The BUI zip
+  loader (`ZipDecoder`) and the test CLI's gzip document logs (`GZipDecoder`) pass `throwOnError: true`, so a
+  damaged input still fails instead of loading partially.
+- `swiss_knife: ^3.4.0`: fixes in `AsyncValue` (a future completed with `null`, `dispose`), `deepCopy` of typed
+  lists, `findKeyPathValue`'s `keyDelimiter`, the inline list parsers and the date quarter start/end. The template
+  `AsyncValue`s (a nullable type) still complete with `null` on an error.
+- `dom_builder: ^3.3.2`, `mercury_client: ^2.4.0`, `web: ^1.1.2`.
+- `test: ^1.33.0`, `test_api: ^0.7.15`, `test_core: ^0.6.21`.
+- Dev: `build_web_compilers: ^4.8.12`, `build_runner: ^2.16.2` (not 2.17: it requires `build` 5, which
+  `build_web_compilers` doesn't allow yet).
+- CI: `actions/checkout@v7` and `codecov/codecov-action@v7`.
+
 ## 3.1.8
 
 - `UIRoot.close`: the returned `Future` completes once the root is shut down. It returned at once (`true`),
