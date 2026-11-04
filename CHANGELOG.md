@@ -3,10 +3,9 @@
 - swiss_knife: ^3.4.2
   - Bug fixes in APIs used by bones_ui, no code change needed: `CachedComputation` (the `UIMasonry` GCD cache,
     keyed by `Parameters2` with a `List`, now hits the cache: `List` keys are compared deeply), `ResourceContentCache`
-    (`contains` no longer inserts; content transferred into a cached instance marks it loaded),
-    `EventStreamDelegator` (`BUIManifestRender.onChangeRoute`: a listener added while buffering receives each
-    event once), `deepCopy`, `AsyncValue.from`, `MimeType.parse`/`byExtension` (`mp3` is `audio/mpeg`) and the
-    JSON number detection.
+    (`get`: content transferred into a cached instance marks it loaded), `EventStreamDelegator`
+    (`BUIManifestRender.onChangeRoute`: a listener added while buffering receives each event once), `deepCopy`,
+    `AsyncValue.from` and `MimeType.parse`/`byExtension` (`mp3` is `audio/mpeg`).
 - mercury_client: ^2.4.1 (a `String` request body is encoded with the `Content-Type` charset).
 - dom_builder: ^3.3.3, dom_tools: ^3.1.1, intl_messages: ^3.0.3.
 - Dev: `build_runner` stays at ^2.16.2 (2.17 requires `build` 5, which `build_web_compilers` 4.8.12, the latest,
