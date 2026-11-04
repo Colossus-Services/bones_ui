@@ -4,6 +4,16 @@
   - Bug fixes in APIs used by bones_ui: `decodeQueryString` (values containing `=`),
     `ResourceContent.fromURI(null, ...)`, `ResourceContentCache` (content-only resources),
     `MimeType.parse` (`xhtml`) and `Parameters2.hashCode`.
+- `UICapture` (`editCapture: true`): the edited photo (by the `UIDialogEditImage` or a `photoEditor`) was discarded
+  when no `captureMaxWidth`/`captureMaxHeight`/`captureAspectRatio` applied, storing the original capture instead.
+- `BUIManifest`: the loaded `data-sources` were never stored (`_dataSources = _dataSources`). New getter
+  `dataSources` (by ID, `null` before loading).
+- `ValueUnitExpression.getUnit` (layout expressions): accepts evaluated operands (`Object?`); a unit value plus a
+  nested expression (`1px + (2 + 3)`) threw a `TypeError`.
+- Tests: new Chrome tests (`test/bones_ui_coverage_{a,b,c}_test.dart`) for BUI views/manifests, `ui-template`,
+  layout expressions and `UILayout`, `UIControlledComponent`, `ui-data-source`, `UICapture`, `UIDialogEditImage`,
+  `UIMasonry`, component render errors and lookups, data-source bindings, fields, navigables, `UIExplorer`
+  documents and `UIRoot`. Coverage (Chrome dart2js, `lib/`): 93.43% → 96.17%.
 
 ## 3.1.9
 
